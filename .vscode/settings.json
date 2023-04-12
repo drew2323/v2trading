@@ -1,0 +1,6 @@
+{
+    "python.analysis.logLevel": "Trace",
+    "terminal.integrated.env.osx": {
+        "PYTHONPATH": "${workspaceFolder}/"
+    }
+}

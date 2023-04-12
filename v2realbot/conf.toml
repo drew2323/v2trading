@@ -1,0 +1,100 @@
+[general]
+general_attributtes = true
+ping_time = 1200
+
+#V1 na BAC
+[[strategies]]
+name = "V1 na BAC"
+symbol = "BAC"
+script = "ENTRY_backtest_strategyVykladaci"
+class = "StrategyOrderLimitVykladaci"
+open_rush = 0
+close_rush = 0
+
+    [stratvars]
+    maxpozic = 200
+    chunk = 10
+    MA = 6
+    Trend = 5
+    profit = 0.02
+    lastbuyindex=-6
+    pendingbuys={}
+    limitka = "None"
+    jevylozeno=0
+    vykladka=5
+    curve = [0.01, 0.01, 0.01, 0.0, 0.02, 0.02, 0.01,0.01, 0.01,0.03, 0.01, 0.01, 0.01,0.04, 0.01,0.01, 0.01,0.05, 0.01,0.01, 0.01,0.01, 0.06,0.01, 0.01,0.01, 0.01]
+    blockbuy = 0
+    ticks2reset = 0.04
+
+    [[add_data]]
+    symbol="BAC"
+    rectype= "bar"
+    timeframe=5
+    update_ltp=true
+    align="round"
+    mintick=0
+    minsize=100
+    exthours=false
+
+#D2 na C
+[[strategies]]
+name = "D2 na C"
+script = "ENTRY_backtest_strategyKOKA-ok"
+class = "StrategyOrderLimitKOKA"
+symbol = "C"
+open_rush = 0
+close_rush = 0
+
+    [strategies.stratvars]
+    maxpozic = 200
+    chunk = 10
+    MA = 4
+    Trend = 4
+    profit = 0.01
+    lastbuyindex=-6
+    pendingbuys={}
+    limitka = "None"
+
+    [[strategies.add_data]]
+    symbol="C"
+    rectype="bar"
+    timeframe=10
+    update_ltp=true
+    align="round"
+    mintick=0
+    minsize=100
+    exthours=false
+
+#V3 na EPD
+[[strategies]]
+name = "V3 na EPD"
+symbol = "EPD"
+script = "ENTRY_backtest_strategyVykladaci"
+class = "StrategyOrderLimitVykladaci"
+open_rush = 0
+close_rush = 0
+
+    [strategies.stratvars]
+    maxpozic = 200
+    chunk = 10
+    MA = 4
+    Trend = 4
+    profit = 0.02
+    lastbuyindex=-6
+    pendingbuys={}
+    limitka = "None"
+    jevylozeno=0
+    vykladka=5
+    curve = [0.01, 0.01, 0.01,0.01, 0.02, 0.01,0.01, 0.01,0.03, 0.01, 0.01, 0.01,0.04, 0.01,0.01, 0.01,0.05, 0.01,0.01, 0.01,0.01, 0.06,0.01, 0.01,0.01, 0.01]
+    blockbuy = 0
+    ticks2reset = 0.04
+
+    [[strategies.add_data]]
+    symbol="EPD"
+    rectype="bar"
+    timeframe=15
+    update_ltp=true
+    align="round"
+    mintick=0
+    minsize=100
+    exthours=false

@@ -21,7 +21,7 @@ class BT_DELAYS:
     fill_to_not: float = 0.023
     #doplnit dle live
     limit_order_offset: float = 0
-
+ 
 class Keys:
     def __init__(self, api_key, secret_key, paper, feed) -> None:
         self.API_KEY = api_key

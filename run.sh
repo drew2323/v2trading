@@ -17,7 +17,7 @@ SCRIPT_TO_EXECUTE_PLUS_ARGS='v2realbot/main.py -u'
 
 OUTPUT_PID_FILE=running.pid
 
-OUTPUT_PID_PATH=.
+OUTPUT_PID_PATH=$HOME
 
 PYTHON_TO_USE="python3"
 

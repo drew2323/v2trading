@@ -1,0 +1,33 @@
+.flex-container {
+    display: inline-grid;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: stretch;
+    align-content: normal;
+  }
+  
+  .flex-items{
+    display: block;
+    flex-grow: 0;
+    flex-shrink: 1;
+    flex-basis: auto;
+    align-self: auto;
+    order: 0;
+    margin-inline-start: 50px;
+  }
+
+ .chartContainer {
+    position: relative;
+} 
+
+.legend {
+    position: absolute;
+    color: #050505;
+    left: 60px;
+    top: 99px;
+    z-index: 1;
+    font-size: 16px;
+    line-height: 18px;
+    font-weight: 300;
+}

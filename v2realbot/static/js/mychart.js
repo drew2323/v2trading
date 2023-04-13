@@ -1,6 +1,6 @@
 //const chartOptions = { layout: { textColor: 'black', background: { type: 'solid', color: 'white' } } };
-const chartOptions = { width: 800, height: 600}
-const chart = LightweightCharts.createChart(document.getElementById('conteiner'), chartOptions);
+const chartOptions = { width: 1200, height: 600}
+const chart = LightweightCharts.createChart(document.getElementById('chart'), chartOptions);
 chart.applyOptions({ timeScale: { visible: true, timeVisible: true, secondsVisible: true }, crosshair: {
     mode: LightweightCharts.CrosshairMode.Normal, labelVisible: true
 }})
@@ -28,15 +28,12 @@ const vwapSeries = chart.addLineSeries({
 
 
 //TBD dynamicky zobrazovat vsechny indikatory
-document.getElementById('conteiner').style.display = 'inline-block';
-var cont = document.getElementById('conteiner');
-var legend = document.createElement('div');
-legend.classList.add('legend');
-cont.appendChild(legend);
+//document.getElementById('chart').style.display = 'inline-block';
+var legendlist = document.getElementById('legend');
 var firstRow = document.createElement('div');
 firstRow.innerText = '-';
 // firstRow.style.color = 'white';
-legend.appendChild(firstRow);
+legendlist.appendChild(firstRow);
 
 function pad(n) {
 	var s = ('0' + n);
@@ -49,7 +46,15 @@ chart.subscribeCrosshairMove((param) => {
 		const vwap = data.value !== undefined ? data.value : data.close;
         const bars = param.seriesData.get(candlestickSeries);
         const volumes = param.seriesData.get(volumeSeries);
-		firstRow.innerText = 'VWAP' + '  ' + vwap.toFixed(2) + " O" + bars.open + " H" + bars.high + " L" + bars.low + " C" + bars.close + " V" + volumes.value;
+        firstRow.innerText = "";
+        //iterate of custom indicators dictionary to get values of custom lines
+        // var customIndicator = {name: key, series: null}
+        indList.forEach(function (item) {
+            const ind = param.seriesData.get(item.series)
+            firstRow.innerText += item.name + " " + ind.value + " ";
+        });
+
+		firstRow.innerText += 'vwap' + '  ' + vwap.toFixed(2) + " o" + bars.open + " h" + bars.high + " l" + bars.low + " c" + bars.close + " v" + volumes.value;
 	}
   else {
   	firstRow.innerText = '-';

@@ -1,7 +1,7 @@
+var indList = []
 var ws = null;
 function connect(event) {
     var runnerId = document.getElementById("runnerId")
-    var indList = []
     try {
         ws = new WebSocket("ws://localhost:8000/runners/" + runnerId.value + "/ws?api_key=" + API_KEY);
     }
@@ -10,7 +10,7 @@ function connect(event) {
     }
     ws.onopen = function(event) {
         document.getElementById("status").textContent = "Connected to" + runnerId.value
-        document.getElementById("bt-disc").style.display = "block"
+        document.getElementById("bt-disc").style.display = "initial"
         document.getElementById("bt-conn").style.display = "none"
     }
     ws.onmessage = function(event) {
@@ -89,7 +89,7 @@ function connect(event) {
     ws.onclose = function(event) {
         document.getElementById("status").textContent = "Disconnected from" + runnerId.value
         document.getElementById("bt-disc").style.display = "none"
-        document.getElementById("bt-conn").style.display = "block"
+        document.getElementById("bt-conn").style.display = "initial"
     }
     event.preventDefault()
 }

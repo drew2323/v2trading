@@ -9,10 +9,6 @@ function store_api_key(event) {
 }
 
 function get_status(id) {
-
-    // for (val of stratinRecords.rows().iterator()) {
-    //     window.alert(JSON.stringify(val))
-    // }
     var status = "stopped"
     runnerRecords.rows().iterator('row', function ( context, index ) {
         var data = this.row(index).data();
@@ -32,6 +28,18 @@ function get_status(id) {
     return status
 }
 
+function is_running(id) {
+    var running = false
+    runnerRecords.rows().iterator('row', function ( context, index ) {
+        var data = this.row(index).data();
+        //window.alert(JSON.stringify(data))
+        if (data.id == id) {
+            running = true    
+        }
+            //window.alert("found") }
+    });
+    return running
+}
     // alert(JSON.stringify(stratinRecords.data()))
     // arr = stratinRecords.data()
     // foreach(row in arr.rows) {
@@ -263,7 +271,13 @@ var stratinRecords =
                 return '<i class="fas fa-check-circle">'+status+'</i>'
             },
             }],
-        paging: false
+        paging: false,
+        // createdRow: function( row, data, dataIndex){
+        //     if (is_running(data.id) ){
+        //         alert("runner");
+        //         $(row).addClass('highlight');
+        //     }
+        //}
         } );
 
 //runner table

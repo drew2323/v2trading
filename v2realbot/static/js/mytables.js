@@ -54,7 +54,6 @@ $(document).ready(function () {
     //disable buttons (enable on row selection)
     $('#button_pause').attr('disabled','disabled');
     $('#button_stop').attr('disabled','disabled');
-    $('#button_add').attr('disabled','disabled');
     $('#button_edit').attr('disabled','disabled');
     $('#button_delete').attr('disabled','disabled');
     $('#button_run').attr('disabled','disabled');
@@ -63,14 +62,12 @@ $(document).ready(function () {
     $('#stratinTable tbody').on('click', 'tr', function () {
         if ($(this).hasClass('selected')) {
             $(this).removeClass('selected');
-            $('#button_add').attr('disabled','disabled');
             $('#button_edit').attr('disabled','disabled');
             $('#button_delete').attr('disabled','disabled');
             $('#button_run').attr('disabled','disabled');
         } else {
             stratinRecords.$('tr.selected').removeClass('selected');
             $(this).addClass('selected');
-            $('#button_add').attr('disabled',false);
             $('#button_edit').attr('disabled',false);
             $('#button_delete').attr('disabled',false);
             $('#button_run').attr('disabled',false);

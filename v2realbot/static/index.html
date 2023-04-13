@@ -15,7 +15,7 @@
         <h2>Your ID: <span id="ws-id"></span></h2>
         <h3>Status: <span id="status">Not connected</span></h3>
         <form action="" onsubmit="sendMessage(event)">
-            <label>Runner ID: <input type="text" id="runnerId" autocomplete="off" value="foo"/></label>
+            <label>Runner ID: <input type="text" id="runnerId" autocomplete="off" value=""/></label>
             <button onclick="connect(event)" id="bt-conn">Connect</button>
             <button onclick="disconnect(event)" id="bt-disc" style="display: None">Disconnect</button>
             <hr>
@@ -219,11 +219,11 @@
                             </div>	
                             <div class="form-group">
                                 <label for="bt_from" class="control-label">bt_from</label>							
-                                <input type="text" class="form-control" id="bt_from" name="bt_from" placeholder="2023-04-06T09:00:00Z">							
+                                <input type="datetime-local" class="form-control" id="bt_from" name="bt_from" placeholder="2023-04-06T09:00:00Z">							
                             </div>	   	
                             <div class="form-group">
                                 <label for="bt_to" class="control-label">bt_to</label>							
-                                <input type="text" class="form-control" id="bt_to" name="bt_to" placeholder="2023-04-06T09:00:00Z">							
+                                <input type="datetime-local" class="form-control" id="bt_to" name="bt_to" placeholder="2023-04-06T09:00:00Z">							
                             </div>
                             <div class="form-group">
                                 <label for="cash" class="control-label">cash</label>							

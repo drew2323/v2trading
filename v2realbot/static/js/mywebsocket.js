@@ -12,6 +12,7 @@ function connect(event) {
         document.getElementById("status").textContent = "Connected to" + runnerId.value
         document.getElementById("bt-disc").style.display = "initial"
         document.getElementById("bt-conn").style.display = "none"
+        document.getElementById("chart").style.display = "block"
     }
     ws.onmessage = function(event) {
         //var messages = document.getElementById('messages')

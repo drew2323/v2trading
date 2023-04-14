@@ -167,8 +167,8 @@ class LiveInterface(GeneralInterface):
                 return -1
             
     """get open orders ->list(Order)"""         
-    def get_open_orders(self, side: OrderSide, symbol: str): # -> list(Order):
-        getRequest = GetOrdersRequest(status=QueryOrderStatus.OPEN, side=OrderSide.SELL, symbols=[symbol])
+    def get_open_orders(self, symbol: str, side: OrderSide = OrderSide.SELL): # -> list(Order):
+        getRequest = GetOrdersRequest(status=QueryOrderStatus.OPEN, side=side, symbols=[symbol])
         try:
             # Market order submit
             orderlist = self.trading_client.get_orders(getRequest)

@@ -228,7 +228,6 @@ $(document).ready(function () {
         row = stratinRecords.row('.selected').data();
         window.$('#delModal').modal('show');
         $('#delid').val(row.id);
-        $('.modal-title').html(" Delete Record");
         $('#action').val('delRecord');
         $('#save').val('Delete');
 

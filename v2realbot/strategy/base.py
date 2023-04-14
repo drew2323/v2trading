@@ -261,6 +261,8 @@ class Strategy:
         self.stop()
 
         if self.mode == Mode.BT:
+            print("REQUEST COUNT:", self.interface.mincnt)
+
             self.bt.backtest_end = datetime.now()
             print(40*"*",self.mode, "BACKTEST RESULTS",40*"*")
             #-> account, cash,trades,open_orders

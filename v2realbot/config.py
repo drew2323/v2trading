@@ -5,7 +5,7 @@ from appdirs import user_data_dir
 STRATVARS_UNCHANGEABLES = ['pendingbuys', 'blockbuy', 'jevylozeno', 'limitka']
 DATA_DIR = user_data_dir("v2realbot")
 #BT DELAYS
- 
+  
 """"
 LATENCY DELAYS for LIVE eastcoast
 .000 trigger - last_trade_time (.4246266)

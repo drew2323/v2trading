@@ -13,7 +13,7 @@ import os
 from v2realbot.common.model import StrategyInstance, Runner
 from typing import List
 import tomli
-from config import DATA_DIR
+from v2realbot.config import DATA_DIR
 
 #datetime to timestamp
 def json_serial(obj):

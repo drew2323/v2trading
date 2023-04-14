@@ -3,7 +3,7 @@ import os
 import requests
 from html.parser import HTMLParser
 import requests
-from config import DATA_DIR
+from v2realbot.config import DATA_DIR
 
 def patch_file(file_path: str, content: bytes, extra: dict = None) -> bytes:
     if file_path == 'index.html':

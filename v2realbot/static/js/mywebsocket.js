@@ -3,7 +3,7 @@ var ws = null;
 function connect(event) {
     var runnerId = document.getElementById("runnerId")
     try {
-        ws = new WebSocket("ws://localhost:8000/runners/" + runnerId.value + "/ws?api_key=" + API_KEY);
+        ws = new WebSocket("ws://"+ window.location.hostname +":8000/runners/" + runnerId.value + "/ws?api_key=" + API_KEY);
     }
     catch (err) {
         console.log("nejaky error" + err)

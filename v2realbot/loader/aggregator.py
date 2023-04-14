@@ -77,10 +77,11 @@ class TradeAggregator:
         #print(data)
         ##implementing fitlers - zatim natvrdo a jen tyto: size: 1, cond in [O,C,4] opening,closed a derivately priced,
         ## 22.3. - dal jsem pryc i contingency trades [' ', '7', 'V'] - nasel jsem obchod o 30c mimo
+        ## dán pryč P - prior reference time + 25centu mimo, {'t': '2023-04-12T19:45:08.63257344Z', 'x': 'D', 'p': 28.68, 's': 1000, 'c': [' ', 'P'], 'i': 71693108525109, 'z': 'A'},
         ## Q - jsou v pohode, oteviraci trady, ale O jsou jejich duplikaty
         try:
             for i in data['c']:
-                if i in ('C','O','4','B','7','V'): return 0
+                if i in ('C','O','4','B','7','V','P'): return 0
         except KeyError:
             pass
 

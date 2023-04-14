@@ -6,6 +6,7 @@ from v2realbot.common.model import StrategyInstance, Runner, RunRequest
 from v2realbot.utils.utils import AttributeDict, zoneNY, dict_replace_value, Store, parse_toml_string
 from datetime import datetime
 from threading import Thread, current_thread, Event, enumerate
+from v2realbot.config import STRATVARS_UNCHANGEABLES
 import importlib
 from queue import Queue
 db = Store()
@@ -89,42 +90,68 @@ def delete_stratin(id: UUID):
             return (0, i.id)
     return (-2, "not found")
 
-def inject_stratvars(id: UUID, stratvars_parsed: AttributeDict):
+def inject_stratvars(id: UUID, stratvars_parsed_new: AttributeDict, stratvars_parsed_old: AttributeDict):
     for i in db.runners:
         if str(i.id) == str(id):
-            i.run_instance.state.vars = AttributeDict(stratvars_parsed["stratvars"])
-            i.run_instance.stratvars = AttributeDict(stratvars_parsed["stratvars"])
-            return 0
-    return -2
+            #inject only those changed, some of them cannot be changed (for example pendingbuys)
+
+            changed_keys = []
+            #get changed values
+            for key,value in stratvars_parsed_new.items():
+                if value != stratvars_parsed_old[key]:
+                    changed_keys.append(key)
+
+            #print("changed before check", changed_keys)
+            #remove keys that cannot be changed
+            for k in changed_keys:
+                if k in STRATVARS_UNCHANGEABLES:
+                    #print(k, "cant be changed removing")
+                    changed_keys.remove(k)
+                    return -2, "Stratvar Key "+k+" cannot be changed"
+
+            #print("clean changed keys", changed_keys)
+            #inject clean keys
+            for k in changed_keys:
+                print("INJECTING ",k, "value", stratvars_parsed_new[k])
+                i.run_instance.state.vars[k] = stratvars_parsed_new[k]
+                i.run_instance.stratvars[k] = stratvars_parsed_new[k]
+            return 0, None
+    return -2, "No runners found"
 
 #allows change of set of parameters that are possible to change while it is running
 #also injects those parameters to instance
 def modify_stratin_running(si: StrategyInstance, id: UUID):
-    #validate toml
-    res,stp = parse_toml_string(si.stratvars_conf)
-    if res < 0:
-        return (-1, "stratvars invalid")
-    for i in db.stratins:
-        if str(i.id) == str(id):
-            if not is_stratin_running(id=str(id)):
-                return (-1, "not running")
-            i.id2 = si.id2
-            i.name = si.name
-            i.open_rush = si.open_rush
-            i.stratvars_conf = si.stratvars_conf
-            i.note = si.note
-            i.history = si.history
-            db.save()
-            #TODO reload running strat
-            print(stp)
-            print("starting injection", stp)
-            res = inject_stratvars(id=si.id, stratvars_parsed=stp)
-            if res < 0:
-                print("ajajaj inject se nepovedl")
-                return(-3, "inject failed")
-            return (0, i.id)
-    return (-2, "not found")
-    #controller.reload_params(si)
+    try:
+        #validate toml
+        res,stp = parse_toml_string(si.stratvars_conf)
+        if res < 0:
+            return (-1, "new stratvars format invalid")
+        for i in db.stratins:
+            if str(i.id) == str(id):
+                if not is_stratin_running(id=str(id)):
+                    return (-1, "not running")
+                res,stp_old = parse_toml_string(i.stratvars_conf)
+                if res < 0:
+                    return (-1, "current stratin stratvars invalid")
+                #TODO reload running strat
+                #print(stp)
+                #print("starting injection", stp)
+                res, msg = inject_stratvars(id=si.id, stratvars_parsed_new=stp["stratvars"], stratvars_parsed_old=stp_old["stratvars"])
+                if res < 0:
+                    print("ajajaj inject se nepovedl", msg)
+                    return(-3, "inject failed: " + msg)
+                i.id2 = si.id2
+                i.name = si.name
+                i.open_rush = si.open_rush
+                i.stratvars_conf = si.stratvars_conf
+                i.note = si.note
+                i.history = si.history
+                db.save()
+                return (0, i.id)
+        return (-2, "not found")
+    except Exception as e:
+        return (-2, "Error Exception" + str(e))
+
 
 ##enable realtime chart - inject given queue for strategy instance
 ##webservice listens to this queue
@@ -208,6 +235,7 @@ def capsule(target: object, db: object):
         reason = "SHUTDOWN OK"
     except Exception as e:
         reason = "SHUTDOWN Exception:" + str(e)
+        print(reason)
     finally:
         # remove runners after thread is stopped and save results to stratin history
         for i in db.runners:

@@ -43,7 +43,7 @@ from v2realbot.common.model import TradeUpdate, Order
 #from rich import print
 import threading
 import asyncio
-from v2realbot.config import BT_DELAYS
+from v2realbot.config import BT_DELAYS, DATA_DIR
 from v2realbot.utils.utils import AttributeDict, ltp, zoneNY, trunc, count_decimals,print
 from v2realbot.utils.tlog import tlog
 from datetime import datetime, timedelta
@@ -59,7 +59,6 @@ from v2realbot.utils.dash_save_html import make_static
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output
 from dash import dcc, html, dash_table, Dash
-from config import DATA_DIR
 """"
 LATENCY DELAYS
 .000 trigger - last_trade_time (.4246266)
@@ -563,8 +562,18 @@ class Backtester:
         hist_df = hist_df.set_index('time', drop=False)
 
         #indicators
-        ind_df = pd.DataFrame(state.indicators)
-        ind_df = ind_df.set_index('time', drop=False)
+        #TODO vyresit if no indicators or no trades - pada na ValueError protoze pole obsahuje time, ale nikoliv indikatory
+        #zatim jen takto workaround
+        #print(state.indicators)
+        try:
+            ind_df = pd.DataFrame(state.indicators)
+            ind_df = ind_df.set_index('time', drop=False)
+        except ValueError as e:
+            print("Value error", str(e))
+            state.indicators = {'time': [] }
+            ind_df = pd.DataFrame(state.indicators)
+            ind_df = ind_df.set_index('time', drop=False)
+            
         #print("Indicators", ind_df)
         #print(state.indicators)
 
@@ -801,7 +810,7 @@ class Backtester:
             if n_clicks == 0:
                 return 'not saved'
             else:
-                bt_dir = DATADIR + "/backtestresults/" + self.symbol + self.bp_from.strftime("%d-%m-%y-%H-%M-%S") + ' ' + self.bp_to.strftime("%d-%m-%y-%H-%M-%S") + ' ' + str(datetime.now().microsecond)
+                bt_dir = DATA_DIR + "/backtestresults/" + self.symbol + self.bp_from.strftime("%d-%m-%y-%H-%M-%S") + ' ' + self.bp_to.strftime("%d-%m-%y-%H-%M-%S") + ' ' + str(datetime.now().microsecond)
                 make_static(f'http://127.0.0.1:{port}/', bt_dir)
                 return 'saved'
 

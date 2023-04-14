@@ -220,11 +220,11 @@ def main():
     name = os.path.basename(__file__)
     se = Event()
     pe = Event()
-    s = StrategyOrderLimitVykladaci(name = name, symbol = "BAC", account=Account.ACCOUNT2, next=next, init=init, stratvars=stratvars, open_rush=40, close_rush=0, pe=pe, se=se)
-    s.set_mode(mode = Mode.PAPER,
+    s = StrategyOrderLimitVykladaci(name = name, symbol = "BAC", account=Account.ACCOUNT2, next=next, init=init, stratvars=stratvars, open_rush=10, close_rush=0, pe=pe, se=se)
+    s.set_mode(mode = Mode.BT,
                debug = False,
-               start = datetime(2023, 3, 30, 9, 30, 0, 0, tzinfo=zoneNY),
-               end =   datetime(2023, 3, 31, 16, 0, 0, 0, tzinfo=zoneNY),
+               start = datetime(2023, 4, 10, 9, 30, 0, 0, tzinfo=zoneNY),
+               end =   datetime(2023, 4, 10, 9, 35, 0, 0, tzinfo=zoneNY),
                cash=100000)
 
     #na sekundovem baru nezaokrouhlovat MAcko

@@ -31,7 +31,7 @@ ic.configureOutput(includeContext=True)
 def threadName():
     return '%s |> ' % str(current_thread().name)
 ic.configureOutput(prefix=threadName)
-#ic.disable()
+ic.disable()
 """""   
 Main entry point of the bot. Starts strategies according to config file, each
 in separate thread.

@@ -63,6 +63,7 @@ $(document).ready(function () {
     $('#button_pause').attr('disabled','disabled');
     $('#button_stop').attr('disabled','disabled');
     $('#button_edit').attr('disabled','disabled');
+    $('#button_dup').attr('disabled','disabled');
     $('#button_delete').attr('disabled','disabled');
     $('#button_run').attr('disabled','disabled');
 
@@ -70,12 +71,14 @@ $(document).ready(function () {
     $('#stratinTable tbody').on('click', 'tr', function () {
         if ($(this).hasClass('selected')) {
             $(this).removeClass('selected');
+            $('#button_dup').attr('disabled','disabled');
             $('#button_edit').attr('disabled','disabled');
             $('#button_delete').attr('disabled','disabled');
             $('#button_run').attr('disabled','disabled');
         } else {
             stratinRecords.$('tr.selected').removeClass('selected');
             $(this).addClass('selected');
+            $('#button_dup').attr('disabled',false);
             $('#button_edit').attr('disabled',false);
             $('#button_delete').attr('disabled',false);
             $('#button_run').attr('disabled',false);
@@ -101,6 +104,46 @@ $(document).ready(function () {
         runnerRecords.ajax.reload();
         stratinRecords.ajax.reload();
     })
+
+   //button duplicate
+   $('#button_dup').click(function () {
+    row = stratinRecords.row('.selected').data();
+    event.preventDefault();
+    $('#button_dup').attr('disabled','disabled');
+    const rec = new Object()
+    rec.id2 = parseInt(row.id2) + 1;
+    rec.name = row.name + " copy";
+    rec.symbol = row.symbol;
+    rec.class_name = row.class_name;
+    rec.script = row.script;
+    rec.open_rush = row.open_rush;
+    rec.close_rush = row.close_rush;
+    rec.stratvars_conf = row.stratvars_conf;
+    rec.add_data_conf = row.add_data_conf;
+    rec.note = row.note;
+    rec.history = "";
+    jsonString = JSON.stringify(rec);
+    $.ajax({
+        url:"/stratins/",
+        beforeSend: function (xhr) {
+            xhr.setRequestHeader('X-API-Key',
+            API_KEY); },
+        method:"POST",
+        contentType: "application/json",
+        dataType: "json",
+        data: jsonString,
+        success:function(data){							
+            $('#button_dup').attr('disabled', false);
+            stratinRecords.ajax.reload();
+        },
+        error: function(xhr, status, error) {
+            var err = eval("(" + xhr.responseText + ")");
+            window.alert(JSON.stringify(xhr));
+            console.log(JSON.stringify(xhr));
+            $('#button_dup').attr('disabled', false);
+        }
+    })
+});
 
     //button pause
     $('#button_pause').click(function () {
@@ -191,7 +234,11 @@ $(document).ready(function () {
     $('#button_run').click(function () {
         row = stratinRecords.row('.selected').data();
         window.$('#runModal').modal('show');
-        //$('#runForm')[0].reset();
+        $('#bt_from').val(localStorage.getItem("bt_from"));
+        $('#bt_to').val(localStorage.getItem("bt_to"));
+        $('#mode').val(localStorage.getItem("mode"));
+        $('#account').val(localStorage.getItem("account"));
+        $('#debug').val(localStorage.getItem("debug"));
         $('#runid').val(row.id);
     });
 
@@ -270,6 +317,7 @@ var stratinRecords =
                 return '<i class="fas fa-check-circle">'+status+'</i>'
             },
             }],
+        order: [[1, 'asc']],
         paging: false,
         // createdRow: function( row, data, dataIndex){
         //     if (is_running(data.id) ){
@@ -314,6 +362,11 @@ var runnerRecords =
 
 //modal na run
 $("#runModal").on('submit','#runForm', function(event){
+    localStorage.setItem("bt_from", $('#bt_from').val());
+    localStorage.setItem("bt_to", $('#bt_to').val());
+    localStorage.setItem("mode", $('#mode').val());
+    localStorage.setItem("account", $('#account').val());
+    localStorage.setItem("debug", $('#debug').val());
     event.preventDefault();
     $('#run').attr('disabled','disabled');
     var formData = $(this).serializeJSON();

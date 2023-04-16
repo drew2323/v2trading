@@ -135,7 +135,7 @@ def next(data, state: StrategyState):
     try:
         #print(state.vars.MA, "MACKO")
         #print(state.bars.hlcc4)
-        state.indicators.ema = ema(state.bars.hlcc4, state.vars.MA) #state.bars.vwap
+        state.indicators.ema = ema(state.bars.close, state.vars.MA) #state.bars.vwap
         #trochu prasarna, EMAcko trunc na 3 mista - kdyz se osvedci, tak udelat efektivne
         state.indicators.ema = [trunc(i,3) for i in state.indicators.ema]
         ic(state.vars.MA, state.vars.Trend, state.indicators.ema[-5:])

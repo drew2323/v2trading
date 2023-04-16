@@ -2,13 +2,14 @@ import os,sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from v2realbot.strategy.base import StrategyState
 from v2realbot.strategy.StrategyOrderLimitVykladaci import StrategyOrderLimitVykladaci
-from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account
+from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, OrderSide
 from v2realbot.indicators.indicators import ema
 from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, dict_replace_value
 from datetime import datetime
 from icecream import install, ic
 from rich import print
 from threading import Event
+from msgpack import packb, unpackb
 import asyncio
 import os
 import tomli
@@ -22,6 +23,10 @@ Vykladaci strategie refactored z původního engine
 Params:
 (maxpozic = 200, chunk = 50, MA = 6, Trend = 6, profit = 0.02, lastbuyindex=-6, pendingbuys={},limitka = None, jevylozeno=0, ticks2reset = 0.04, blockbuy=0)
 
+Pozor na symbolu nesmi byt dalsi cizí otevrene objednavky:
+Pravidelny konzolidacni process da SELL order da do limitka, BUY - do pole pendingbuys
+
+consolidation_bar_count - pocet baru po kterych se triggeruje konzolidační proces
 
 Více nakupuje oproti Dokupovaci. Tady vylozime a nakupujeme 5 pozic hned. Pri dokupovaci se dokupuje, az na zaklade dalsich triggeru.
 Do budoucna vice ridit nakupy pri klesani - napr. vyložení jen 2-3 pozic a další dokupy až po triggeru.
@@ -39,7 +44,8 @@ stratvars = AttributeDict(maxpozic = 250,
                           vykladka=5,
                           curve = [0.01, 0.01, 0.01, 0, 0.02, 0.02, 0.01,0.01, 0.01,0.03, 0.01, 0.01, 0.01,0.04, 0.01,0.01, 0.01,0.05, 0.01,0.01, 0.01,0.01, 0.06,0.01, 0.01,0.01, 0.01],
                           blockbuy = 0,
-                          ticks2reset = 0.04)
+                          ticks2reset = 0.04,
+                          consolidation_bar_count = 10)
 ##toto rozparsovat a strategii spustit stejne jako v main
 toml_string = """
 [[strategies]]
@@ -171,6 +177,7 @@ def next(data, state: StrategyState):
                     res = asyncio.run(state.cancel_pending_buys())
 
 
+            #PENDING BUYS SPENT - PART
             #pokud mame vylozeno a pendingbuys se vyklepou a 
             # 1 vykladame idned znovu
                 # vyloz()
@@ -183,7 +190,57 @@ def next(data, state: StrategyState):
                 state.vars.blockbuy = 0
                 state.vars.jevylozeno = 0
 
-            #TODO toto dodelat
+            #TODO toto dodelat konzolidaci a mozna lock na limitku a pendingbuys a jevylozeno ??
+
+            #kdykoliv se muze notifikace ztratit 
+                # - pendingbuys - vsechny open orders buy
+                # - limitka - open order sell
+
+            ##CONSOLIDATION PART kazdy Nty bar dle nastaveni
+            if int(data["index"])%int(state.vars.consolidation_bar_count) == 0:
+                print("***Consolidation ENTRY***")
+
+                orderlist = state.interface.get_open_orders(symbol=state.symbol, side=None)
+                #print(orderlist)
+                pendingbuys_new = {}
+                limitka_old = state.vars.limitka
+                print("Puvodni LIMITKA", limitka_old)
+                state.vars.limitka = None
+                for o in orderlist:
+                    if o.side == OrderSide.SELL:
+                        state.vars.limitka = o.id
+                    if o.side == OrderSide.BUY:
+                        pendingbuys_new[str(o.id)]=o.limit_price
+
+                print("Nová LIMITKA", state.vars.limitka)
+                if pendingbuys_new != state.vars.pendingbuys:
+                    print("ROZDILNA PENDINGBUYS přepsána")
+                    print("OLD",state.vars.pendingbuys)
+                    state.vars.pendingbuys = unpackb(packb(pendingbuys_new))
+                    print("NEW", state.vars.pendingbuys)
+                else:
+                    print("PENDINGBUYS sedí - necháváme", state.vars.pendingbuys)
+                print("OLD jevylozeno", state.vars.jevylozeno)
+                if len(state.vars.pendingbuys) > 0:
+                    state.vars.jevylozeno = 1
+                else:
+                    state.vars.jevylozeno = 0
+                print("NEW jevylozeno", state.vars.jevylozeno)
+
+                #print(limitka)
+                #print(pendingbuys_new)
+                #print(pendingbuys)
+                #print(len(pendingbuys))
+                #print(len(pendingbuys_new))
+                #print(jevylozeno)
+                print("***CONSOLIDATION EXIT***")
+
+            else:
+                print("no time for consolidation", data["index"])
+
+
+            
+
             #pokud je vylozeno a mame pozice a neexistuje limitka - pak ji vytvorim
             # if int(state.oe.poz)>0 and state.oe.limitka == 0:
             #     #pro jistotu updatujeme pozice

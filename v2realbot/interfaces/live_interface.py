@@ -7,7 +7,7 @@ from alpaca.trading.enums import OrderSide, TimeInForce, OrderClass, OrderStatus
 from alpaca.trading.models import Order, Position
 from alpaca.common.exceptions import APIError
 from v2realbot.config import Keys
-from interfaces.general_interface import GeneralInterface
+from v2realbot.interfaces.general_interface import GeneralInterface
 """""
 Live interface with Alpaca for LIVE and PAPER trading.
 """""
@@ -149,7 +149,7 @@ class LiveInterface(GeneralInterface):
             #order doesnt exist
             if e.code == 40410000: return 0,0
             else:
-                print("nepovedlo se zrusit objednavku")
+                print("nepovedlo se zrusit objednavku", str(e))
                 #raise Exception(e)
                 return -1
             

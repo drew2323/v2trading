@@ -516,8 +516,10 @@ class Backtester:
         res = []
         #with lock:
         for o in self.open_orders:
-            if str(o.side) == side and o.symbol == symbol:
-                res.append(o)
+            #print(o)
+            if o.symbol == symbol:
+                if side is None or o.side == side:
+                    res.append(o)
         return res
 
     def display_backtest_result(self, state):

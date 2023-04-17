@@ -45,7 +45,10 @@ stratvars = AttributeDict(maxpozic = 250,
                           curve = [0.01, 0.01, 0.01, 0, 0.02, 0.02, 0.01,0.01, 0.01,0.03, 0.01, 0.01, 0.01,0.04, 0.01,0.01, 0.01,0.05, 0.01,0.01, 0.01,0.01, 0.06,0.01, 0.01,0.01, 0.01],
                           blockbuy = 0,
                           ticks2reset = 0.04,
-                          consolidation_bar_count = 10)
+                          consolidation_bar_count = 10,
+                          slope_lookback = 20,
+                          minimum_slope = -0.23
+                          )
 ##toto rozparsovat a strategii spustit stejne jako v main
 toml_string = """
 [[strategies]]
@@ -106,7 +109,7 @@ def next(data, state: StrategyState):
         price = last_price
         ##prvni se vyklada na aktualni cenu, další jdou podle krivky, nula v krivce zvyšuje množství pro následující iteraci
         state.buy_l(price=price, size=qty)
-        print("prvni limitka na aktuální cenu. Další podle křicvky", price, qty)
+        print("prvni limitka na aktuální cenu. Další podle křivky", price, qty)
         for i in range(0,vykladka-1):
             price = price2dec(float(price - curve[i]))
             if price == last_price:
@@ -133,24 +136,55 @@ def next(data, state: StrategyState):
             return 0
 
     try:
+
+        ## slope vyresi rychlé sesupy - jeste je treba podchytit pomalejsi sesupy
+
+
+        slope = 99
+        #minimum slope disabled if -1
+
+
+        #roc_lookback = 20
         #print(state.vars.MA, "MACKO")
         #print(state.bars.hlcc4)
         state.indicators.ema = ema(state.bars.close, state.vars.MA) #state.bars.vwap
         #trochu prasarna, EMAcko trunc na 3 mista - kdyz se osvedci, tak udelat efektivne
         state.indicators.ema = [trunc(i,3) for i in state.indicators.ema]
         ic(state.vars.MA, state.vars.Trend, state.indicators.ema[-5:])
+
+        slope_lookback = int(state.vars.slope_lookback)
+        minimum_slope = float(state.vars.minimum_slope)
+
+        if len(state.bars.close) > slope_lookback:
+            #slope = ((state.indicators.ema[-1] - state.indicators.ema[-slope_lookback])/slope_lookback)*100
+            #PUVODNI slope = ((state.bars.close[-1] - state.bars.close[-slope_lookback])/slope_lookback)*100
+            slope = ((state.bars.close[-1] - state.bars.close[-slope_lookback])/state.bars.close[-slope_lookback])*100
+            #roc = ((state.indicators.ema[-1] - state.indicators.ema[-roc_lookback])/state.indicators.ema[-roc_lookback])*100
+            state.indicators.slope.append(slope)
+            #state.indicators.roc.append(roc)
+            ic(state.indicators.slope[-5:])
+            #ic(state.indicators.roc[-5:])
     except Exception as e:
-        print("No data for MA yet", str(e))
+        print("Exception in NEXT Indicator section", str(e))
 
     print("is falling",isfalling(state.indicators.ema,state.vars.Trend))
     print("is rising",isrising(state.indicators.ema,state.vars.Trend))
 
-    #and data['index'] > state.vars.lastbuyindex+state.vars.Trend:
-    #neni vylozeno muzeme nakupovat
+    #SLOPE ANGLE PROTECTION
+    if slope < minimum_slope:
+        print("OCHRANA SLOPE TOO HIGH")
+        if len(state.vars.pendingbuys)>0:
+            print("CANCEL PENDINGBUYS")
+            ic(state.vars.pendingbuys)
+            res = asyncio.run(state.cancel_pending_buys())
+            ic(state.vars.pendingbuys)
+        print("slope", slope)
+        print("min slope", minimum_slope)
+
     if ic(state.vars.jevylozeno) == 0:
         print("Neni vylozeno, muzeme testovat nakup")
 
-        if isfalling(state.indicators.ema,state.vars.Trend):
+        if isfalling(state.indicators.ema,state.vars.Trend) and slope > minimum_slope:
             print("BUY MARKET")
             ic(data['updated'])
             ic(state.time)
@@ -167,7 +201,7 @@ def next(data, state: StrategyState):
     #TODO predelat mechanismus ticků (zrelativizovat), aby byl pouzitelny na tituly s ruznou cenou
     #TODO spoustet 1x za X iteraci nebo cas
     if state.vars.jevylozeno == 1:
-        #pokud mame vylozeno a cena je vetsi nez 0.04 
+        #pokud mame vylozeno a cena je vetsi nez tick2reset 
             if len(state.vars.pendingbuys)>0:
                 maxprice = max(state.vars.pendingbuys.values())
                 print("max cena v orderbuys", maxprice)
@@ -264,6 +298,8 @@ def init(state: StrategyState):
     #place to declare new vars
     print("INIT v main",state.name)
     state.indicators['ema'] = []
+    state.indicators['slope'] = []
+    #state.indicators['roc'] = []
 
 def main():
 

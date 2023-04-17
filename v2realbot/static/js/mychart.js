@@ -1,5 +1,5 @@
 //const chartOptions = { layout: { textColor: 'black', background: { type: 'solid', color: 'white' } } };
-const chartOptions = { width: 1200, height: 600}
+const chartOptions = { width: 1200, height: 600, leftPriceScale: {visible: true}}
 const chart = LightweightCharts.createChart(document.getElementById('chart'), chartOptions);
 chart.applyOptions({ timeScale: { visible: true, timeVisible: true, secondsVisible: true }, crosshair: {
     mode: LightweightCharts.CrosshairMode.Normal, labelVisible: true

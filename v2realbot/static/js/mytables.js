@@ -64,6 +64,7 @@ $(document).ready(function () {
     $('#button_stop').attr('disabled','disabled');
     $('#button_edit').attr('disabled','disabled');
     $('#button_dup').attr('disabled','disabled');
+    $('#button_copy').attr('disabled','disabled');
     $('#button_delete').attr('disabled','disabled');
     $('#button_run').attr('disabled','disabled');
 
@@ -72,6 +73,7 @@ $(document).ready(function () {
         if ($(this).hasClass('selected')) {
             $(this).removeClass('selected');
             $('#button_dup').attr('disabled','disabled');
+            $('#button_copy').attr('disabled','disabled');
             $('#button_edit').attr('disabled','disabled');
             $('#button_delete').attr('disabled','disabled');
             $('#button_run').attr('disabled','disabled');
@@ -79,6 +81,7 @@ $(document).ready(function () {
             stratinRecords.$('tr.selected').removeClass('selected');
             $(this).addClass('selected');
             $('#button_dup').attr('disabled',false);
+            $('#button_copy').attr('disabled',false);
             $('#button_edit').attr('disabled',false);
             $('#button_delete').attr('disabled',false);
             $('#button_run').attr('disabled',false);
@@ -103,6 +106,28 @@ $(document).ready(function () {
     $('#button_refresh').click(function () {
         runnerRecords.ajax.reload();
         stratinRecords.ajax.reload();
+    })
+
+    //button refresh
+    $('#button_copy').click(function () {
+        event.preventDefault();
+        $('#button_copy').attr('disabled','disabled');
+        row = stratinRecords.row('.selected').data();
+        const rec = new Object()
+        rec.id2 = parseInt(row.id2);
+        rec.name = row.name;
+        rec.symbol = row.symbol;
+        rec.class_name = row.class_name;
+        rec.script = row.script;
+        rec.open_rush = row.open_rush;
+        rec.close_rush = row.close_rush;
+        rec.stratvars_conf = row.stratvars_conf;
+        rec.add_data_conf = row.add_data_conf;
+        rec.note = row.note;
+        rec.history = "";
+        jsonString = JSON.stringify(rec);
+        navigator.clipboard.writeText(jsonString);
+        $('#button_copy').attr('disabled', false);
     })
 
    //button duplicate
@@ -250,6 +275,7 @@ $(document).ready(function () {
 		$('#action').val('addRecord');
 		$('#save').val('Add');
     });
+
     //edit button
     $('#button_edit').click(function () {
         row = stratinRecords.row('.selected').data();
@@ -278,6 +304,10 @@ $(document).ready(function () {
         $('#action').val('delRecord');
         $('#save').val('Delete');
 
+    });
+    //json add button
+    $('#button_add_json').click(function () {
+        window.$('#jsonModal').modal('show');
     });
 } );
 
@@ -441,7 +471,7 @@ $("#recordModal").on('submit','#recordForm', function(event){
         })
     }
     else {
-        //code for add
+        //code for edit
         event.preventDefault();
         $('#save').attr('disabled','disabled');
         var formData = $(this).serializeJSON();
@@ -474,7 +504,40 @@ $("#recordModal").on('submit','#recordForm', function(event){
 
 });	
 
-//delete
+//add json modal
+$("#jsonModal").on('submit','#jsonForm', function(event){
+    event.preventDefault();
+    $('#json_add').attr('disabled','disabled');
+    jsonString = $('#jsontext').val();
+    $.ajax({
+        url:"/stratins/",
+        beforeSend: function (xhr) {
+            xhr.setRequestHeader('X-API-Key',
+                API_KEY); },
+        method:"POST",
+        contentType: "application/json",
+        dataType: "json",
+        data: jsonString,
+        success:function(data){				
+            $('#jsonForm')[0].reset();
+            window.$('#jsonModal').modal('hide');				
+            $('#json_add').attr('disabled', false);
+            setTimeout(function () {
+                runnerRecords.ajax.reload();
+                stratinRecords.ajax.reload();
+                }, 750)
+        },
+        error: function(xhr, status, error) {
+            var err = eval("(" + xhr.responseText + ")");
+            window.alert(JSON.stringify(xhr));
+            console.log(JSON.stringify(xhr));
+            $('#json_add').attr('disabled', false);
+        }
+    })
+});
+
+
+//delete modal
 $("#delModal").on('submit','#delForm', function(event){
         event.preventDefault();
         $('#delete').attr('disabled','disabled');

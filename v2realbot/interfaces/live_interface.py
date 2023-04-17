@@ -147,7 +147,7 @@ class LiveInterface(GeneralInterface):
             return a
         except APIError as e:
             #order doesnt exist
-            if e.code == 40410000: return 0,0
+            if e.code == 40410000: return 0
             else:
                 print("nepovedlo se zrusit objednavku", str(e))
                 #raise Exception(e)

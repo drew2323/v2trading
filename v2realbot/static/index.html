@@ -79,7 +79,13 @@
             </div>
             <div id="stratin-table" class="flex-items">
                 <div id="stratin-table">
-                <button id="button_add" class="btn btn-success">Add</button><button id="button_edit" class="btn btn-success">Edit</button><button id="button_dup" class="btn btn-success">Duplicate</button><button id="button_delete" class="btn btn-success">Delete</button><button id="button_run" class="btn btn-success">Run Strategy</button>
+                <button id="button_add" class="btn btn-success">Add</button>
+                <button id="button_add_json" class="btn btn-success">Add JSON</button>
+                <button id="button_edit" class="btn btn-success">Edit</button>
+                <button id="button_dup" class="btn btn-success">Duplicate</button>
+                <button id="button_copy" class="btn btn-success">Copy JSON</button>
+                <button id="button_delete" class="btn btn-success">Delete</button>
+                <button id="button_run" class="btn btn-success">Run Strategy</button>
                 <table id="stratinTable" class="display" style="width:100%">
                     <thead>
                         <tr>
@@ -186,6 +192,28 @@
                                 </div>
                                 <div class="modal-footer">
                                     <input type="submit" name="delete" id="delete" class="btn btn-info" value="Delete" />
+                                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div id="jsonModal" class="modal fade">
+                    <div class="modal-dialog">
+                        <form method="post" id="jsonForm">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <button type="button" class="close" data-dismiss="modal">×</button>
+                                    <h4 class="modal-title_json"><i class="fa fa-plus"></i> Add JSON Record</h4>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="form-group">
+                                        <label for="jsontext" class="control-label">JSON</label>
+                                        <textarea class="form-control" rows="7" id="jsontext" name="jsontext" required></textarea>		
+                                    </div>				
+                                </div>
+                                <div class="modal-footer">
+                                    <input type="submit" name="json_add" id="json_add" class="btn btn-info" value="Add" />
                                     <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
                                 </div>
                             </div>

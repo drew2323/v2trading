@@ -14,6 +14,18 @@ from v2realbot.common.model import StrategyInstance, Runner
 from typing import List
 import tomli
 from v2realbot.config import DATA_DIR
+import requests
+
+def send_to_telegram(message):
+    apiToken = '5836666362:AAGPuzwp03tczMQTwTBiHW6VsZZ-1RCMAEE'
+    chatID = '5029424778'
+    apiURL = f'https://api.telegram.org/bot{apiToken}/sendMessage'
+
+    try:
+        response = requests.post(apiURL, json={'chat_id': chatID, 'text': message})
+        print(response.text)
+    except Exception as e:
+        print(e)
 
 #datetime to timestamp
 def json_serial(obj):

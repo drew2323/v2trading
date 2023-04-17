@@ -517,7 +517,7 @@ class Backtester:
         #with lock:
         for o in self.open_orders:
             #print(o)
-            if o.symbol == symbol:
+            if o.symbol == symbol and o.canceled_at is None:
                 if side is None or o.side == side:
                     res.append(o)
         return res

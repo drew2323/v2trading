@@ -11,7 +11,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import APIKeyHeader
 import uvicorn
 from uuid import UUID
-import controller.services as cs
+import v2realbot.controller.services as cs
 from v2realbot.common.model import StrategyInstance, RunnerView, RunRequest
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status, WebSocketException, Cookie, Query
 from fastapi.responses import HTMLResponse, FileResponse

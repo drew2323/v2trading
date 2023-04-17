@@ -235,6 +235,7 @@ def capsule(target: object, db: object):
         reason = "SHUTDOWN OK"
     except Exception as e:
         reason = "SHUTDOWN Exception:" + str(e)
+        print(str(e))
         print(reason)
     finally:
         # remove runners after thread is stopped and save results to stratin history

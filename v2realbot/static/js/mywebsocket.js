@@ -1,3 +1,4 @@
+const momentumIndicatorNames = ["roc", "slope"]
 var indList = []
 var ws = null;
 function connect(event) {
@@ -54,7 +55,7 @@ function connect(event) {
 
         if (parsed_data.hasOwnProperty("indicators")) { 
             var indicators = parsed_data.indicators
-            //if there are indicators it means there must be at least two keys (first time is there everytime)
+            //if there are indicators it means there must be at least two keys (except time which is always present)
             if (Object.keys(indicators).length > 1) {
                 for (const [key, value] of Object.entries(indicators)) {
                     if (key !== "time") {
@@ -63,10 +64,19 @@ function connect(event) {
                         if (searchObject == undefined) {
                             console.log("object new - init and add")
                             var obj = {name: key, series: null}
-                            obj.series = chart.addLineSeries({
-                                title: key,
-                                lineWidth: 1,
-                            })
+                            if (momentumIndicatorNames.includes(key)) {
+                                obj.series = chart.addLineSeries({
+                                    priceScaleId: 'left',
+                                    title: key,
+                                    lineWidth: 1,
+                                })                               
+                            }
+                            else {
+                                obj.series = chart.addLineSeries({
+                                    title: key,
+                                    lineWidth: 1,
+                                })
+                            }
                             obj.series.update({
                                 time: indicators.time,
                                 value: value});

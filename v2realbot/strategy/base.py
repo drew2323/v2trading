@@ -334,7 +334,11 @@ class Strategy:
             if len(self.state.indicators) > 0:
                 rt_out["indicators"] = dict()
                 for key, value in self.state.indicators.items():
-                        rt_out["indicators"][key] = value[-1]
+                        #odchyceny pripad, kdy indikatory jsou inicializovane, ale jeste v nich nejsou data, pak do WS nic neposilame
+                        try:
+                            rt_out["indicators"][key]= value[-1]
+                        except IndexError:
+                            pass
             print(rt_out)
 
             print("RTQUEUE INSERT")
@@ -342,10 +346,6 @@ class Strategy:
             #all datetime values are converted to timestamp
             self.rtqueue.put(json.dumps(rt_out, default=json_serial))
             print("RTQUEUE", self.rtqueue)
-
-
-
-
 
 
     # inicializace poplatna typu strategie (např. u LIMITu dotažení existující limitky)

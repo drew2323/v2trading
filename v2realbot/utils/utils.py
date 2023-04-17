@@ -64,7 +64,8 @@ qu = Queue()
 zoneNY = tz.gettz('America/New_York')
 
 def print(*args, **kwargs):
-    ic(*args, **kwargs)
+    #ic(*args, **kwargs)
+    print(*args, **kwargs)
 
 def price2dec(price: float) -> float:
     """

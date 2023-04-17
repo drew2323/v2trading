@@ -244,7 +244,7 @@ def next(data, state: StrategyState):
                     if o.side == OrderSide.SELL:
                         state.vars.limitka = o.id
                     if o.side == OrderSide.BUY:
-                        pendingbuys_new[str(o.id)]=o.limit_price
+                        pendingbuys_new[str(o.id)]=float(o.limit_price)
 
                 print("Nová LIMITKA", state.vars.limitka)
                 if pendingbuys_new != state.vars.pendingbuys:

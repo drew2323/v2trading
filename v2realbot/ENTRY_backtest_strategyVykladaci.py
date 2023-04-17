@@ -170,6 +170,51 @@ def next(data, state: StrategyState):
     print("is falling",isfalling(state.indicators.ema,state.vars.Trend))
     print("is rising",isrising(state.indicators.ema,state.vars.Trend))
 
+    ##CONSOLIDATION PART - moved here, musí být před nákupem, jinak to dělalo nepořádek v pendingbuys
+    if state.vars.jevylozeno == 1:
+        ##CONSOLIDATION PART kazdy Nty bar dle nastaveni
+        if int(data["index"])%int(state.vars.consolidation_bar_count) == 0:
+            print("***Consolidation ENTRY***")
+
+            orderlist = state.interface.get_open_orders(symbol=state.symbol, side=None)
+            #print(orderlist)
+            pendingbuys_new = {}
+            limitka_old = state.vars.limitka
+            print("Puvodni LIMITKA", limitka_old)
+            state.vars.limitka = None
+            for o in orderlist:
+                if o.side == OrderSide.SELL:
+                    print("Nalezena LIMITKA")
+                    state.vars.limitka = o.id
+                if o.side == OrderSide.BUY:
+                    pendingbuys_new[str(o.id)]=float(o.limit_price)
+
+            print("Nová LIMITKA", state.vars.limitka)
+            if pendingbuys_new != state.vars.pendingbuys:
+                print("ROZDILNA PENDINGBUYS přepsána")
+                print("OLD",state.vars.pendingbuys)
+                state.vars.pendingbuys = unpackb(packb(pendingbuys_new))
+                print("NEW", state.vars.pendingbuys)
+            else:
+                print("PENDINGBUYS sedí - necháváme", state.vars.pendingbuys)
+            print("OLD jevylozeno", state.vars.jevylozeno)
+            if len(state.vars.pendingbuys) > 0:
+                state.vars.jevylozeno = 1
+            else:
+                state.vars.jevylozeno = 0
+            print("NEW jevylozeno", state.vars.jevylozeno)
+
+            #print(limitka)
+            #print(pendingbuys_new)
+            #print(pendingbuys)
+            #print(len(pendingbuys))
+            #print(len(pendingbuys_new))
+            #print(jevylozeno)
+            print("***CONSOLIDATION EXIT***")
+
+        else:
+            print("no time for consolidation", data["index"])
+
     #SLOPE ANGLE PROTECTION
     if slope < minimum_slope:
         print("OCHRANA SLOPE TOO HIGH")
@@ -230,48 +275,7 @@ def next(data, state: StrategyState):
                 # - pendingbuys - vsechny open orders buy
                 # - limitka - open order sell
 
-            ##CONSOLIDATION PART kazdy Nty bar dle nastaveni
-            if int(data["index"])%int(state.vars.consolidation_bar_count) == 0:
-                print("***Consolidation ENTRY***")
 
-                orderlist = state.interface.get_open_orders(symbol=state.symbol, side=None)
-                #print(orderlist)
-                pendingbuys_new = {}
-                limitka_old = state.vars.limitka
-                print("Puvodni LIMITKA", limitka_old)
-                state.vars.limitka = None
-                for o in orderlist:
-                    if o.side == OrderSide.SELL:
-                        print("Nalezena LIMITKA")
-                        state.vars.limitka = o.id
-                    if o.side == OrderSide.BUY:
-                        pendingbuys_new[str(o.id)]=float(o.limit_price)
-
-                print("Nová LIMITKA", state.vars.limitka)
-                if pendingbuys_new != state.vars.pendingbuys:
-                    print("ROZDILNA PENDINGBUYS přepsána")
-                    print("OLD",state.vars.pendingbuys)
-                    state.vars.pendingbuys = unpackb(packb(pendingbuys_new))
-                    print("NEW", state.vars.pendingbuys)
-                else:
-                    print("PENDINGBUYS sedí - necháváme", state.vars.pendingbuys)
-                print("OLD jevylozeno", state.vars.jevylozeno)
-                if len(state.vars.pendingbuys) > 0:
-                    state.vars.jevylozeno = 1
-                else:
-                    state.vars.jevylozeno = 0
-                print("NEW jevylozeno", state.vars.jevylozeno)
-
-                #print(limitka)
-                #print(pendingbuys_new)
-                #print(pendingbuys)
-                #print(len(pendingbuys))
-                #print(len(pendingbuys_new))
-                #print(jevylozeno)
-                print("***CONSOLIDATION EXIT***")
-
-            else:
-                print("no time for consolidation", data["index"])
 
 
             

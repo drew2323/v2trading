@@ -117,8 +117,7 @@ class StrategyOrderLimitVykladaci(Strategy):
                 #nejprve vyhodime z pendingbuys
                 self.state.vars.pendingbuys.pop(key, False)
                 res = self.interface.cancel(key)
-                if res < 0:
-                    print("ERROR CANCEL PENDING BUYS")
+                print("CANCEL PENDING BUYS RETURN", res)
         self.state.vars.pendingbuys={}        
         self.state.vars.jevylozeno = 0
         print("cancel pending buys end")

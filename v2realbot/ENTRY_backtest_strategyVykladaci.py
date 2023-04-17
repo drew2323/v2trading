@@ -155,14 +155,14 @@ def next(data, state: StrategyState):
         slope_lookback = int(state.vars.slope_lookback)
         minimum_slope = float(state.vars.minimum_slope)
 
-        if len(state.bars.close) > slope_lookback:
+        if len(state.indicators.ema) > slope_lookback:
             #slope = ((state.indicators.ema[-1] - state.indicators.ema[-slope_lookback])/slope_lookback)*100
             #PUVODNI slope = ((state.bars.close[-1] - state.bars.close[-slope_lookback])/slope_lookback)*100
-            slope = ((state.bars.close[-1] - state.bars.close[-slope_lookback])/state.bars.close[-slope_lookback])*100
+            slope = ((state.bars.close[-1] - state.indicators.ema[-slope_lookback])/state.indicators.ema[-slope_lookback])*100
             #roc = ((state.indicators.ema[-1] - state.indicators.ema[-roc_lookback])/state.indicators.ema[-roc_lookback])*100
             state.indicators.slope.append(slope)
             #state.indicators.roc.append(roc)
-            ic(state.indicators.slope[-5:])
+            print("slope", state.indicators.slope[-5:])
             #ic(state.indicators.roc[-5:])
     except Exception as e:
         print("Exception in NEXT Indicator section", str(e))

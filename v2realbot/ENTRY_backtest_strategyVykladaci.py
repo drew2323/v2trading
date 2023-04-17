@@ -242,6 +242,7 @@ def next(data, state: StrategyState):
                 state.vars.limitka = None
                 for o in orderlist:
                     if o.side == OrderSide.SELL:
+                        print("Nalezena LIMITKA")
                         state.vars.limitka = o.id
                     if o.side == OrderSide.BUY:
                         pendingbuys_new[str(o.id)]=float(o.limit_price)

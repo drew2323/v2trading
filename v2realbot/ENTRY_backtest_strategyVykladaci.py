@@ -156,18 +156,19 @@ def next(data, state: StrategyState):
 
         slope_lookback = int(state.vars.slope_lookback)
         minimum_slope = float(state.vars.minimum_slope)
+        lookback_offset = int(state.vars.lookback_offset)
 
-        if len(state.bars.close) > slope_lookback + state.vars.lookback_offset:
+        if len(state.bars.close) > (slope_lookback + lookback_offset):
 
             #SLOPE INDICATOR POPULATION
             #úhel stoupání a klesání vyjádřený mezi -1 až 1
             #pravý bod přímky je aktuální cena, levý je průměr X(lookback offset) starších hodnot od slope_lookback.
             #obsahuje statický indikátor pro vizualizaci
-            array_od = slope_lookback + state.vars.lookback_offset
+            array_od = slope_lookback + lookback_offset
             array_do = slope_lookback
             lookbackprice_array = state.bars.vwap[-array_od:-array_do]
             #obycejný prumer hodnot
-            lookbackprice = sum(lookbackprice_array)/state.vars.lookback_offset
+            lookbackprice = sum(lookbackprice_array)/lookback_offset
 
             #výpočet úhlu
             slope = ((state.bars.close[-1] - lookbackprice)/lookbackprice)*100
@@ -177,7 +178,7 @@ def next(data, state: StrategyState):
  
             #state.indicators.roc.append(roc)
             print("slope", state.indicators.slope[-5:])
-            state.ilog(e="Slope "+str(slope), msg="lookback price:"+str(lookbackprice), lookbackoffset=state.vars.lookback_offset, minimum_slope=minimum_slope, last_slopes=state.indicators.slope[-5:])
+            state.ilog(e="Slope "+str(slope), msg="lookback price:"+str(lookbackprice), lookbackoffset=lookback_offset, minimum_slope=minimum_slope, last_slopes=state.indicators.slope[-5:])
         else:
             state.ilog(e="Slope - not enough data", slope_lookback=slope_lookback)
 
@@ -204,26 +205,35 @@ def next(data, state: StrategyState):
             state.vars.limitka = None
             state.vars.limitka_price = None
             limitka_found = False
+            limitka_qty = 0
             for o in orderlist:
                 if o.side == OrderSide.SELL:
                     print("Nalezena LIMITKA")
                     limitka_found = True
                     state.vars.limitka = o.id
                     state.vars.limitka_price = o.limit_price
+                    limitka_qty = o.qty
                     ##TODO sem pridat upravu ceny
                 if o.side == OrderSide.BUY:
                     pendingbuys_new[str(o.id)]=float(o.limit_price)
 
-            state.ilog(e="Konzolidace limitky", msg="limitka stejna?:"+str((str(limitka_old)==str(state.vars.limitka))), limitka_old=str(limitka_old), limitka_new=str(state.vars.limitka), limitka_new_price=state.vars.limitka_price)
+            state.ilog(e="Konzolidace limitky", msg="limitka stejna?:"+str((str(limitka_old)==str(state.vars.limitka))), limitka_old=str(limitka_old), limitka_new=str(state.vars.limitka), limitka_new_price=state.vars.limitka_price, limitka_qty=limitka_qty)
             
             #neni limitka, ale mela by byt - vytváříme ji
-            if state.positions > 0 and state.vars.limitka is None:
+            if int(state.positions) > 0 and state.vars.limitka is None:
                 state.ilog(e="Limitka neni, ale mela by být.")
                 price=price2dec(float(state.avgp)+state.vars.profit)
                 state.vars.limitka = asyncio.run(state.interface.sell_l(price=price, size=state.positions))
                 state.vars.limitka_price = price
                 state.ilog(e="Vytvořena nová limitka", limitka=str(state.vars.limitka), limtka_price=state.vars.limitka_price)
- 
+
+            if int(state.positions) > 0 and (int(state.positions) != limitka_qty):
+                #limitka existuje, ale spatne mnostvi - updatujeme
+                state.ilog(e="Limitka existuje, ale spatne mnozstvi - updatujeme")
+                #snad to nespadne, kdyztak pridat exception handling
+                state.vars.limitka = asyncio.run(state.interface.repl(price=state.vars.limitka_price, orderid=state.vars.limitka, size=int(state.positions)))
+                limitka_qty = int(state.positions)
+                state.ilog(e="Změněna limitka", limitka=str(state.vars.limitka), limitka_price=state.vars.limitka_price)
             
             if pendingbuys_new != state.vars.pendingbuys:
                 state.ilog(e="Rozdilna PB prepsana", pb_new=pendingbuys_new, pb_old = state.vars.pendingbuys)
@@ -295,7 +305,7 @@ def next(data, state: StrategyState):
             if len(state.vars.pendingbuys)>0:
                 maxprice = max(state.vars.pendingbuys.values())
                 print("max cena v orderbuys", maxprice)
-                if state.interface.get_last_price(state.symbol) > float(maxprice) + state.vars.ticks2reset:
+                if state.interface.get_last_price(state.symbol) > float(maxprice) + float(state.vars.ticks2reset):
                     ##TODO toto nejak vymyslet - duplikovat?
                     res = asyncio.run(state.cancel_pending_buys())
                     state.ilog(e="UJELO to o více " + str(state.vars.ticks2reset), msg="zrusene pb buye", pb=state.vars.pendingbuys)

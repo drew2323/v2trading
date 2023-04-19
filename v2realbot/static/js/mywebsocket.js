@@ -2,8 +2,11 @@ const momentumIndicatorNames = ["roc", "slope"]
 var indList = []
 var pbiList = []
 var ws = null;
+var logcnt = 0
 var positionsPriceLine = null
 var limitkaPriceLine = null
+var angleSeries = 1
+
 function connect(event) {
     var runnerId = document.getElementById("runnerId")
     try {
@@ -21,7 +24,7 @@ function connect(event) {
     ws.onmessage = function(event) {
         var parsed_data = JSON.parse(event.data)
 
-        console.log(JSON.stringify(parsed_data))
+        //console.log(JSON.stringify(parsed_data))
 
         //check received data and display lines
         if (parsed_data.hasOwnProperty("bars")) {
@@ -38,6 +41,7 @@ function connect(event) {
         }
 
         if (parsed_data.hasOwnProperty("bars")) {
+            console.log("mame bary")
             var bar = parsed_data.bars 
             candlestickSeries.update(bar);
             volumeSeries.update({
@@ -53,7 +57,7 @@ function connect(event) {
         //loglist
         if (parsed_data.hasOwnProperty("iter_log")) { 
             iterLogList = parsed_data.iter_log
-            console.log("Incoming logline object")
+            //console.log("Incoming logline object")
 
             var lines = document.getElementById('lines')
             var line = document.createElement('div')
@@ -63,21 +67,38 @@ function connect(event) {
             lines.appendChild(line)
 
             iterLogList.forEach((logLine) => {
-                console.log("logline item")
-                console.log(JSON.stringify(logLine,null,2))
-                row = logLine.time + " <strong>" + logLine.event + "</strong>:" + logLine.message;
+                //console.log("logline item")
+                //console.log(JSON.stringify(logLine,null,2))
+
+                // <div class="line">
+                //     <div data-toggle="collapse" data-target="#rec1">12233 <strong>Event</strong></div>
+                //     <div id="rec1" class="collapse">
+                //     Detaila mozna structured
+                //     Lorem ipsum dolor sit amet, consectetur adipisicing elit,
+                //     sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
+                //     quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+                //     </div>
+                // </div>
+
+
+                logcnt++;
+                row = '<div data-toggle="collapse" data-target="#rec'+logcnt+'">'+logLine.time + " " + logLine.event + ' - '+ logLine.message+'</div>'
                 str_row = JSON.stringify(logLine.details, null, 2)
+                
+                row_detail = '<div id="rec'+logcnt+'" class="collapse pidi"><pre>' + str_row + '</pre></div>'
+
                 var lines = document.getElementById('lines')
                 var line = document.createElement('div')
                 line.classList.add("line")
-                //const newLine = document.createTextNode(row)
+                
                 line.insertAdjacentHTML( 'beforeend', row );
+                line.insertAdjacentHTML( 'beforeend', row_detail );
                 //line.appendChild(newLine)
-                var pre = document.createElement("span")
-                pre.classList.add("pidi")
-                const stLine = document.createTextNode(str_row)
-                pre.appendChild(stLine)
-                line.appendChild(pre)
+                //var pre = document.createElement("span")
+                //pre.classList.add("pidi")
+                //const stLine = document.createTextNode(str_row)
+                //pre.appendChild(stLine)
+                //line.appendChild(pre)
                 lines.appendChild(line)
             });
             $('#messages').animate({
@@ -100,7 +121,7 @@ function connect(event) {
                 candlestickSeries.removePriceLine(limitkaPriceLine)
             }
             limitkaPriceLine = candlestickSeries.createPriceLine(limitkaLine);
-            }
+        }
 
 
         if (parsed_data.hasOwnProperty("pendingbuys")) {
@@ -108,7 +129,7 @@ function connect(event) {
 
             //vymazeme vsechny predchozi instance pendingbuys
             if (pbiList.length) {
-                console.log(pbiList)
+                //console.log(pbiList)
                 pbiList.forEach((line) => {
                     candlestickSeries.removePriceLine(line)
                 });
@@ -116,9 +137,9 @@ function connect(event) {
             }
 
             //zobrazime pendingbuys a ulozime instance do pole
-            console.log("pred loopem")
+            //console.log("pred loopem")
             for (const [orderid, price] of Object.entries(pendingbuys)) {
-                console.log("v loopu", price)
+                //console.log("v loopu", price)
                 const pbLine = {
                     price: parseFloat(price),
                     color: "#e3a059",
@@ -149,52 +170,99 @@ function connect(event) {
                 candlestickSeries.removePriceLine(positionsPriceLine)
             }
             positionsPriceLine = candlestickSeries.createPriceLine(posLine);
-            }
+        }
+
+        if (parsed_data.hasOwnProperty("statinds")) { 
+            console.log("got static indicators")
+            var statinds = parsed_data.statinds
+            if (Object.keys(statinds).length > 0) {
+                    console.log("got static indicators")
+                    console.log(JSON.stringify(statinds))
+
+                    for (const [klic, hodnota] of Object.entries(statinds)) {
+                        console.log(JSON.stringify(klic))
+                        console.log(JSON.stringify(hodnota))
+                        
+                        if (klic === "angle") {
+
+                            //nejsou vsechny hodnoty
+                            if (Object.keys(hodnota).length > 0)  {
+                                console.log("angle nalezen");
+                                console.log(JSON.stringify(hodnota));
+                                if (angleSeries !== 1) {
+                                    console.log("angle neni jedna" + toString(angleSeries))
+                                    chart.removeSeries(angleSeries)
+                                }
+                                
+                                angleSeries = chart.addLineSeries({
+                                    //title: key,
+                                    lineWidth: 2,
+                                    lineStyle: 2,
+                                    color: "#d432e6",
+                                    lastValueVisible: false,
+                                    priceLineVisible: false
+                                })
+                                dataPoints = [{time: hodnota.lookbacktime, value: hodnota.lookbackprice},{ time: hodnota.time, value: hodnota.price}]
+                                console.log("pridano")
+                                console.log(toString(dataPoints))
+                                angleSeries.setData(dataPoints)
+                            }
+                        }
+                    }
+
+
+
+
+
+
+
+
+
+                }
+        }
 
         if (parsed_data.hasOwnProperty("indicators")) { 
+            console.log("jsme uvnitr indikatoru")
             var indicators = parsed_data.indicators
             //if there are indicators it means there must be at least two keys (except time which is always present)
             if (Object.keys(indicators).length > 1) {
                 for (const [key, value] of Object.entries(indicators)) {
                     if (key !== "time") {
-                        //if indicator exists in array, initialize it and store reference to array
+                        //if indicator doesnt exists in array, initialize it and store reference to array
                         const searchObject= indList.find((obj) => obj.name==key);
                         if (searchObject == undefined) {
-                            console.log("object new - init and add")
+                            //console.log("object new - init and add")
                             var obj = {name: key, series: null}
                             if (momentumIndicatorNames.includes(key)) {
                                 obj.series = chart.addLineSeries({
                                     priceScaleId: 'left',
                                     title: key,
-                                    lineWidth: 1,
-                                })                               
+                                    lineWidth: 1
+                                });                               
                             }
                             else {
                                 obj.series = chart.addLineSeries({
                                     //title: key,
                                     lineWidth: 1,
                                     lastValueVisible: false
-                                })
+                                });
                             }
                             obj.series.update({
                                 time: indicators.time,
                                 value: value});
-                            indList.push(obj)
+                            indList.push(obj);
                         }
-                        //indicator exists in an array, let update it
+                        //indicator exists in an array, lets update it
                         else {
-                        console.log("object found - update")
+                        //console.log("object found - update")
                         searchObject.series.update({
                             time: indicators.time,
                             value: value
                         });
                         }
                     }
-                
-                    console.log(`${key}: ${value}`);
                 }
             }
-        //chart.timeScale().fitContent();
         }
     }
     ws.onclose = function(event) {

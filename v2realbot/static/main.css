@@ -61,6 +61,6 @@ pre {
 }
 
 .pidi {
-  display: block;
+  /* display: block; */
   font-size: smaller;
 }

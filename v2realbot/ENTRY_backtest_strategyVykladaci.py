@@ -32,10 +32,10 @@ Více nakupuje oproti Dokupovaci. Tady vylozime a nakupujeme 5 pozic hned. Pri d
 Do budoucna vice ridit nakupy pri klesani - napr. vyložení jen 2-3 pozic a další dokupy až po triggeru.
 #
 """
-stratvars = AttributeDict(maxpozic = 250,
+stratvars = AttributeDict(maxpozic = 400,
                           chunk = 10,
-                          MA = 3,
-                          Trend = 3,
+                          MA = 2,
+                          Trend = 2,
                           profit = 0.02,
                           lastbuyindex=-6,
                           pendingbuys={},
@@ -47,8 +47,9 @@ stratvars = AttributeDict(maxpozic = 250,
                           blockbuy = 0,
                           ticks2reset = 0.04,
                           consolidation_bar_count = 10,
-                          slope_lookback = 20,
-                          minimum_slope = -0.23
+                          slope_lookback = 300,
+                          lookback_offset = 20,
+                          minimum_slope = -0.05,
                           )
 ##toto rozparsovat a strategii spustit stejne jako v main
 toml_string = """
@@ -108,6 +109,7 @@ def next(data, state: StrategyState):
         last_price = price2dec(state.interface.get_last_price(state.symbol))
         #profit = float(state.vars.profit)
         price = last_price
+        state.ilog(e="BUY Vykladame", msg="first price"+str(price) + "pozic:"+str(vykladka), curve=curve, ema=state.indicators.ema[-1], trend=state.vars.Trend, price=price, vykladka=vykladka)
         ##prvni se vyklada na aktualni cenu, další jdou podle krivky, nula v krivce zvyšuje množství pro následující iteraci
         state.buy_l(price=price, size=qty)
         print("prvni limitka na aktuální cenu. Další podle křivky", price, qty)
@@ -140,7 +142,6 @@ def next(data, state: StrategyState):
 
         ## slope vyresi rychlé sesupy - jeste je treba podchytit pomalejsi sesupy
 
-
         slope = 99
         #minimum slope disabled if -1
 
@@ -156,15 +157,30 @@ def next(data, state: StrategyState):
         slope_lookback = int(state.vars.slope_lookback)
         minimum_slope = float(state.vars.minimum_slope)
 
-        if len(state.bars.close) > slope_lookback:
-            #slope = ((state.indicators.ema[-1] - state.indicators.ema[-slope_lookback])/slope_lookback)*100
-            #PUVODNI slope = ((state.bars.close[-1] - state.bars.close[-slope_lookback])/slope_lookback)*100
-            slope = ((state.bars.close[-1] - state.bars.close[-slope_lookback])/state.bars.close[-slope_lookback])*100
-            #roc = ((state.indicators.ema[-1] - state.indicators.ema[-roc_lookback])/state.indicators.ema[-roc_lookback])*100
+        if len(state.bars.close) > slope_lookback + state.vars.lookback_offset:
+
+            #SLOPE INDICATOR POPULATION
+            #úhel stoupání a klesání vyjádřený mezi -1 až 1
+            #pravý bod přímky je aktuální cena, levý je průměr X(lookback offset) starších hodnot od slope_lookback.
+            #obsahuje statický indikátor pro vizualizaci
+            array_od = slope_lookback + state.vars.lookback_offset
+            array_do = slope_lookback
+            lookbackprice_array = state.bars.vwap[-array_od:-array_do]
+            #obycejný prumer hodnot
+            lookbackprice = sum(lookbackprice_array)/state.vars.lookback_offset
+
+            #výpočet úhlu
+            slope = ((state.bars.close[-1] - lookbackprice)/lookbackprice)*100
             state.indicators.slope.append(slope)
+ 
+            state.statinds.angle = dict(time=state.bars.time[-1], price=state.bars.close[-1], lookbacktime=state.bars.time[-slope_lookback], lookbackprice=lookbackprice)
+ 
             #state.indicators.roc.append(roc)
             print("slope", state.indicators.slope[-5:])
-            #ic(state.indicators.roc[-5:])
+            state.ilog(e="Slope "+str(slope), msg="lookback price:"+str(lookbackprice), lookbackoffset=state.vars.lookback_offset, minimum_slope=minimum_slope, last_slopes=state.indicators.slope[-5:])
+        else:
+            state.ilog(e="Slope - not enough data", slope_lookback=slope_lookback)
+
     except Exception as e:
         print("Exception in NEXT Indicator section", str(e))
         state.ilog(e="EXCEPTION", msg="Exception in NEXT Indicator section" + str(e))
@@ -177,7 +193,7 @@ def next(data, state: StrategyState):
         ##CONSOLIDATION PART kazdy Nty bar dle nastaveni
         if int(data["index"])%int(state.vars.consolidation_bar_count) == 0:
             print("***Consolidation ENTRY***")
-            state.ilog(e="Konzolidujeme")
+            state.ilog(e="***Konzolidujeme")
 
             orderlist = state.interface.get_open_orders(symbol=state.symbol, side=None)
             #print(orderlist)
@@ -198,11 +214,11 @@ def next(data, state: StrategyState):
                 if o.side == OrderSide.BUY:
                     pendingbuys_new[str(o.id)]=float(o.limit_price)
 
-            state.ilog(e="Konzolidace", limitka_old=str(limitka_old), limitka_new=str(state.vars.limitka), limitka_new_price=state.vars.limitka_price)
+            state.ilog(e="Konzolidace limitky", msg="limitka stejna?:"+str((str(limitka_old)==str(state.vars.limitka))), limitka_old=str(limitka_old), limitka_new=str(state.vars.limitka), limitka_new_price=state.vars.limitka_price)
             
             #neni limitka, ale mela by byt - vytváříme ji
             if state.positions > 0 and state.vars.limitka is None:
-                state.ilog(e="Neni limitka, ale mela by být.")
+                state.ilog(e="Limitka neni, ale mela by být.")
                 price=price2dec(float(state.avgp)+state.vars.profit)
                 state.vars.limitka = asyncio.run(state.interface.sell_l(price=price, size=state.positions))
                 state.vars.limitka_price = price
@@ -224,7 +240,7 @@ def next(data, state: StrategyState):
             else:
                 state.vars.jevylozeno = 0
             print("NEW jevylozeno", state.vars.jevylozeno)
-            state.ilog(e="Nove jevyloze", jevylozeno=state.vars.jevylozeno)
+            state.ilog(e="Nove jevylozeno", msg=state.vars.jevylozeno)
 
             #print(limitka)
             #print(pendingbuys_new)
@@ -233,25 +249,25 @@ def next(data, state: StrategyState):
             #print(len(pendingbuys_new))
             #print(jevylozeno)
             print("***CONSOLIDATION EXIT***")
-
+            state.ilog(e="***Konzolidace konec")
         else:
+            state.ilog(e="No time for consolidation", msg=data["index"])
             print("no time for consolidation", data["index"])
 
     #HLAVNI ITERACNI LOG JESTE PRED AKCI - obsahuje aktualni hodnoty vetsiny parametru
     lp = state.interface.get_last_price(symbol=state.symbol)
-    state.ilog(e="ITER_ENTRY", last_price=lp, stratvars=state.vars)
+    state.ilog(e="ENTRY", msg="AVGP:"+str(state.avgp)+ "POS:" +str(state.positions), last_price=lp, stratvars=state.vars)
 
     #SLOPE ANGLE PROTECTION
-    state.ilog(e="SLOPE", curr_slope=slope, minimum_slope=minimum_slope, last_slopes=state.indicators.slope[-5:])
     if slope < minimum_slope:
         print("OCHRANA SLOPE TOO HIGH")
-        state.ilog(e="SLOPE_EXCEEDED")
+        state.ilog(e="Slope too high "+str(slope))
         if len(state.vars.pendingbuys)>0:
             print("CANCEL PENDINGBUYS")
             ic(state.vars.pendingbuys)
             res = asyncio.run(state.cancel_pending_buys())
             ic(state.vars.pendingbuys)
-            state.ilog(e="Rusime pendingbuyes", pb=state.vars.pendingbuys)
+            state.ilog(e="Rusime pendingbuyes", pb=state.vars.pendingbuys, res=res)
         print("slope", slope)
         print("min slope", minimum_slope)
 
@@ -264,7 +280,6 @@ def next(data, state: StrategyState):
             ic(state.time)
             #zatim vykladame full
             #positions = int(int(state.vars.maxpozic)/int(state.vars.chunk))
-            state.ilog(e="BUY SIGNAL", ema=state.indicators.ema[-1], trend=state.vars.Trend)
             vyloz()
 
     ## testuje aktualni cenu od nejvyssi visici limitky
@@ -281,10 +296,9 @@ def next(data, state: StrategyState):
                 maxprice = max(state.vars.pendingbuys.values())
                 print("max cena v orderbuys", maxprice)
                 if state.interface.get_last_price(state.symbol) > float(maxprice) + state.vars.ticks2reset:
-                    print("ujelo to vice nez o " + str(state.vars.ticks2reset) + ", rusime limit buye")
-                    state.ilog(e="Ujelo to o více " + str(state.vars.ticks2reset), msg="rusime PB buye")
                     ##TODO toto nejak vymyslet - duplikovat?
                     res = asyncio.run(state.cancel_pending_buys())
+                    state.ilog(e="UJELO to o více " + str(state.vars.ticks2reset), msg="zrusene pb buye", pb=state.vars.pendingbuys)
 
 
             #PENDING BUYS SPENT - PART
@@ -336,6 +350,9 @@ def init(state: StrategyState):
     print("INIT v main",state.name)
     state.indicators['ema'] = []
     state.indicators['slope'] = []
+    #static indicators - those not series based
+    state.statinds['angle'] = {}
+
     #state.indicators['roc'] = []
     #state.ilog(e="INIT", stratvars=state.vars)
 
@@ -351,15 +368,15 @@ def main():
     name = os.path.basename(__file__)
     se = Event()
     pe = Event()
-    s = StrategyOrderLimitVykladaci(name = name, symbol = "BAC", account=Account.ACCOUNT2, next=next, init=init, stratvars=stratvars, open_rush=10, close_rush=0, pe=pe, se=se)
+    s = StrategyOrderLimitVykladaci(name = name, symbol = "BAC", account=Account.ACCOUNT1, next=next, init=init, stratvars=stratvars, open_rush=10, close_rush=0, pe=pe, se=se)
     s.set_mode(mode = Mode.BT,
                debug = False,
-               start = datetime(2023, 4, 10, 9, 30, 0, 0, tzinfo=zoneNY),
-               end =   datetime(2023, 4, 10, 9, 35, 0, 0, tzinfo=zoneNY),
+               start = datetime(2023, 4, 14, 10, 42, 0, 0, tzinfo=zoneNY),
+               end =   datetime(2023, 4, 14, 14, 35, 0, 0, tzinfo=zoneNY),
                cash=100000)
 
     #na sekundovem baru nezaokrouhlovat MAcko
-    s.add_data(symbol="BAC",rectype=RecordType.BAR,timeframe=5,minsize=100,update_ltp=True,align=StartBarAlign.ROUND,mintick=0, exthours=True)
+    s.add_data(symbol="BAC",rectype=RecordType.BAR,timeframe=2,minsize=100,update_ltp=True,align=StartBarAlign.ROUND,mintick=0, exthours=False)
     #s.add_data(symbol="C",rectype=RecordType.BAR,timeframe=1,filters=None,update_ltp=True,align=StartBarAlign.ROUND,mintick=0)
 
     s.start()

@@ -338,9 +338,16 @@ class Strategy:
                         #odchyceny pripad, kdy indikatory jsou inicializovane, ale jeste v nich nejsou data, pak do WS nic neposilame
                         try:
                             rt_out["indicators"][key]= value[-1]
+                        #zatim takto odchycene identifikatory, ktere nemaji list, ale dict - do budoucna predelat na samostatny typ "indicators_static"
                         except IndexError:
                             pass
-            
+
+            #same for static indicators
+            if len(self.state.statinds) > 0:
+                rt_out["statinds"] = dict()
+                for key, value in self.state.statinds.items():
+                    rt_out["statinds"][key] = value
+
             #vkladame average price and positions, pokud existuji
             #self.state.avgp , self.state.positions
             rt_out["positions"] = dict(time=self.state.time, positions=self.state.positions, avgp=self.state.avgp)
@@ -363,8 +370,9 @@ class Strategy:
             print("RTQUEUE INSERT")
             #send current values to Realtime display on frontend
             #all datetime values are converted to timestamp
-            self.rtqueue.put(json.dumps(rt_out, default=json_serial))
-            print("RTQUEUE", self.rtqueue)
+            if self.rtqueue is not None:
+                self.rtqueue.put(json.dumps(rt_out, default=json_serial))
+                print("RTQUEUE", self.rtqueue)
 
             #cleaning iterlog lsit
             #TODO pridat cistku i mimo RT blok
@@ -466,6 +474,7 @@ class StrategyState:
         self.bars = AttributeDict(bars)
         self.trades = AttributeDict(trades)
         self.indicators = AttributeDict(time=[])
+        self.statinds = AttributeDict()
         #these methods can be overrided by StrategyType (to add or alter its functionality)
         self.buy = self.interface.buy
         self.buy_l = self.interface.buy_l

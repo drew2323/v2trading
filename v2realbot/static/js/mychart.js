@@ -29,7 +29,7 @@ const vwapSeries = chart.addLineSeries({
     lastValueVisible: false
 })
 
-chart.timeScale().fitContent();
+//chart.timeScale().fitContent();
 
 //TBD dynamicky zobrazovat vsechny indikatory
 //document.getElementById('chart').style.display = 'inline-block';

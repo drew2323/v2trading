@@ -15,6 +15,7 @@ from typing import List
 import tomli
 from v2realbot.config import DATA_DIR
 import requests
+from uuid import UUID
 
 def send_to_telegram(message):
     apiToken = '5836666362:AAGPuzwp03tczMQTwTBiHW6VsZZ-1RCMAEE'
@@ -35,7 +36,9 @@ def json_serial(obj):
 
     if isinstance(obj, (datetime, date)):
         return obj.timestamp()
-    raise TypeError ("Type %s not serializable" % type(obj))
+    if isinstance(obj, UUID):
+        return str(obj)
+    raise TypeError (str(obj)+"Type %s not serializable" % type(obj))
 
 def parse_toml_string(tomlst: str):
     try:

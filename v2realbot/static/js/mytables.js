@@ -399,6 +399,7 @@ $("#runModal").on('submit','#runForm', function(event){
     localStorage.setItem("debug", $('#debug').val());
     event.preventDefault();
     $('#run').attr('disabled','disabled');
+    
     var formData = $(this).serializeJSON();
     //rename runid to id
     Object.defineProperty(formData, "id", Object.getOwnPropertyDescriptor(formData, "runid"));
@@ -415,7 +416,13 @@ $("#runModal").on('submit','#runForm', function(event){
         method:"PUT",
         contentType: "application/json",
         data: jsonString,
-        success:function(data){				
+        success:function(data){
+            //pokud mame subscribnuto na RT                
+            if ($('#subscribe').prop('checked')) {
+                //subscribe input value gets id of current runner
+                $('#runnerId').val($('#runid').val());
+                $( "#bt-conn" ).trigger( "click" );
+            }				
             $('#runForm')[0].reset();
             window.$('#runModal').modal('hide');				
             $('#run').attr('disabled', false);

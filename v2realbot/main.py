@@ -113,7 +113,7 @@ async def websocket_endpoint(
                     if data=="break":
                         break
                     await ws.send_text(data)
-                    print("WSTX thread received data", data)
+                    print("WSTX thread received data") #,data)
                 except Empty:
                     print("WSTX thread Heartbeat. No data received from queue.")
                     continue

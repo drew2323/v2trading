@@ -251,6 +251,7 @@ class Strategy:
             elif self.pe.is_set():
                 print(current_thread().name, "Paused.")
                 continue
+            #self.state.iter_log(event="INGEST",msg="New data ingested", item=item)
             print("New data ingested")
             #calling main loop
             self.strat_loop(item=item)
@@ -339,13 +340,35 @@ class Strategy:
                             rt_out["indicators"][key]= value[-1]
                         except IndexError:
                             pass
-            print(rt_out)
+            
+            #vkladame average price and positions, pokud existuji
+            #self.state.avgp , self.state.positions
+            rt_out["positions"] = dict(time=self.state.time, positions=self.state.positions, avgp=self.state.avgp)
+
+            #vkladame limitku a pendingbuys
+            try:
+                rt_out["pendingbuys"] = self.state.vars.pendingbuys 
+                rt_out["limitka"] = dict(id=self.state.vars.limitka, price=self.state.vars.limitka_price)
+
+            except Exception as e:
+                print(str(e))
+                pass
+
+            #vkladame iteration log (do toho si muze instance vlozit cokoliv relavantniho pro danou iteraci) a po iteraci se smaze
+            if len(self.state.iter_log_list) > 0:
+                rt_out["iter_log"] = self.state.iter_log_list
+
+            #print(rt_out)
 
             print("RTQUEUE INSERT")
             #send current values to Realtime display on frontend
             #all datetime values are converted to timestamp
             self.rtqueue.put(json.dumps(rt_out, default=json_serial))
             print("RTQUEUE", self.rtqueue)
+
+            #cleaning iterlog lsit
+            #TODO pridat cistku i mimo RT blok
+            self.state.iter_log_list = []
 
 
     # inicializace poplatna typu strategie (např. u LIMITu dotažení existující limitky)
@@ -449,3 +472,11 @@ class StrategyState:
         self.sell = self.interface.sell
         self.sell_l = self.interface.sell_l
         self.cancel_pending_buys = None
+        self.iter_log_list = []
+    
+    def ilog(self, e: str = None, msg: str = None, **kwargs):
+        if e is None:
+            row = dict(time=self.time, message=msg, details=kwargs)
+        else:
+            row = dict(time=self.time, event=e, message=msg, details=kwargs)
+        self.iter_log_list.append(row)

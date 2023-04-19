@@ -1,16 +1,18 @@
 //const chartOptions = { layout: { textColor: 'black', background: { type: 'solid', color: 'white' } } };
-const chartOptions = { width: 1200, height: 600, leftPriceScale: {visible: true}}
+const chartOptions = { width: 1045, height: 600, leftPriceScale: {visible: true}}
 const chart = LightweightCharts.createChart(document.getElementById('chart'), chartOptions);
 chart.applyOptions({ timeScale: { visible: true, timeVisible: true, secondsVisible: true }, crosshair: {
     mode: LightweightCharts.CrosshairMode.Normal, labelVisible: true
 }})
-const candlestickSeries = chart.addCandlestickSeries();
+const candlestickSeries = chart.addCandlestickSeries({ lastValueVisible: true, priceLineWidth:2, priceLineColor: "red", priceFormat: { type: 'price', precision: 2, minMove: 0.01 }});
 candlestickSeries.priceScale().applyOptions({
     scaleMargins: {
         top: 0.1, // highest point of the series will be 10% away from the top
         bottom: 0.4, // lowest point will be 40% away from the bottom
     },
 });
+
+
 const volumeSeries = chart.addHistogramSeries({title: "Volume", color: '#26a69a', priceFormat: {type: 'volume'}, priceScaleId: ''});
 volumeSeries.priceScale().applyOptions({
     // set the positioning of the volume series
@@ -21,11 +23,13 @@ volumeSeries.priceScale().applyOptions({
 });
 
 const vwapSeries = chart.addLineSeries({
-    title: "vwap",
+//    title: "vwap",
     color: '#2962FF',
     lineWidth: 1,
+    lastValueVisible: false
 })
 
+chart.timeScale().fitContent();
 
 //TBD dynamicky zobrazovat vsechny indikatory
 //document.getElementById('chart').style.display = 'inline-block';
@@ -54,7 +58,7 @@ chart.subscribeCrosshairMove((param) => {
             firstRow.innerText += item.name + " " + ind.value + " ";
         });
 
-		firstRow.innerText += 'vwap' + '  ' + vwap.toFixed(2) + " o" + bars.open + " h" + bars.high + " l" + bars.low + " c" + bars.close + " v" + volumes.value;
+		firstRow.innerText += ' vwap' + '  ' + vwap.toFixed(2) + " O" + bars.open + " H" + bars.high + " L" + bars.low + " C" + bars.close + " V" + volumes.value + "";
 	}
   else {
   	firstRow.innerText = '-';

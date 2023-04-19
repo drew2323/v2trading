@@ -40,6 +40,7 @@ stratvars = AttributeDict(maxpozic = 250,
                           lastbuyindex=-6,
                           pendingbuys={},
                           limitka = None,
+                          limitka_price = None,
                           jevylozeno=0,
                           vykladka=5,
                           curve = [0.01, 0.01, 0.01, 0, 0.02, 0.02, 0.01,0.01, 0.01,0.03, 0.01, 0.01, 0.01,0.04, 0.01,0.01, 0.01,0.05, 0.01,0.01, 0.01,0.01, 0.06,0.01, 0.01,0.01, 0.01],
@@ -155,10 +156,10 @@ def next(data, state: StrategyState):
         slope_lookback = int(state.vars.slope_lookback)
         minimum_slope = float(state.vars.minimum_slope)
 
-        if len(state.indicators.ema) > slope_lookback:
+        if len(state.bars.close) > slope_lookback:
             #slope = ((state.indicators.ema[-1] - state.indicators.ema[-slope_lookback])/slope_lookback)*100
             #PUVODNI slope = ((state.bars.close[-1] - state.bars.close[-slope_lookback])/slope_lookback)*100
-            slope = ((state.bars.close[-1] - state.indicators.ema[-slope_lookback])/state.indicators.ema[-slope_lookback])*100
+            slope = ((state.bars.close[-1] - state.bars.close[-slope_lookback])/state.bars.close[-slope_lookback])*100
             #roc = ((state.indicators.ema[-1] - state.indicators.ema[-roc_lookback])/state.indicators.ema[-roc_lookback])*100
             state.indicators.slope.append(slope)
             #state.indicators.roc.append(roc)
@@ -166,6 +167,7 @@ def next(data, state: StrategyState):
             #ic(state.indicators.roc[-5:])
     except Exception as e:
         print("Exception in NEXT Indicator section", str(e))
+        state.ilog(e="EXCEPTION", msg="Exception in NEXT Indicator section" + str(e))
 
     print("is falling",isfalling(state.indicators.ema,state.vars.Trend))
     print("is rising",isrising(state.indicators.ema,state.vars.Trend))
@@ -175,34 +177,54 @@ def next(data, state: StrategyState):
         ##CONSOLIDATION PART kazdy Nty bar dle nastaveni
         if int(data["index"])%int(state.vars.consolidation_bar_count) == 0:
             print("***Consolidation ENTRY***")
+            state.ilog(e="Konzolidujeme")
 
             orderlist = state.interface.get_open_orders(symbol=state.symbol, side=None)
             #print(orderlist)
             pendingbuys_new = {}
             limitka_old = state.vars.limitka
             print("Puvodni LIMITKA", limitka_old)
+            #zaciname s cistym stitem
             state.vars.limitka = None
+            state.vars.limitka_price = None
+            limitka_found = False
             for o in orderlist:
                 if o.side == OrderSide.SELL:
                     print("Nalezena LIMITKA")
+                    limitka_found = True
                     state.vars.limitka = o.id
+                    state.vars.limitka_price = o.limit_price
+                    ##TODO sem pridat upravu ceny
                 if o.side == OrderSide.BUY:
                     pendingbuys_new[str(o.id)]=float(o.limit_price)
 
-            print("Nová LIMITKA", state.vars.limitka)
+            state.ilog(e="Konzolidace", limitka_old=str(limitka_old), limitka_new=str(state.vars.limitka), limitka_new_price=state.vars.limitka_price)
+            
+            #neni limitka, ale mela by byt - vytváříme ji
+            if state.positions > 0 and state.vars.limitka is None:
+                state.ilog(e="Neni limitka, ale mela by být.")
+                price=price2dec(float(state.avgp)+state.vars.profit)
+                state.vars.limitka = asyncio.run(state.interface.sell_l(price=price, size=state.positions))
+                state.vars.limitka_price = price
+                state.ilog(e="Vytvořena nová limitka", limitka=str(state.vars.limitka), limtka_price=state.vars.limitka_price)
+ 
+            
             if pendingbuys_new != state.vars.pendingbuys:
+                state.ilog(e="Rozdilna PB prepsana", pb_new=pendingbuys_new, pb_old = state.vars.pendingbuys)
                 print("ROZDILNA PENDINGBUYS přepsána")
                 print("OLD",state.vars.pendingbuys)
                 state.vars.pendingbuys = unpackb(packb(pendingbuys_new))
                 print("NEW", state.vars.pendingbuys)
             else:
                 print("PENDINGBUYS sedí - necháváme", state.vars.pendingbuys)
+                state.ilog(e="PB sedi nechavame", pb_new=pendingbuys_new, pb_old = state.vars.pendingbuys)
             print("OLD jevylozeno", state.vars.jevylozeno)
             if len(state.vars.pendingbuys) > 0:
                 state.vars.jevylozeno = 1
             else:
                 state.vars.jevylozeno = 0
             print("NEW jevylozeno", state.vars.jevylozeno)
+            state.ilog(e="Nove jevyloze", jevylozeno=state.vars.jevylozeno)
 
             #print(limitka)
             #print(pendingbuys_new)
@@ -215,14 +237,21 @@ def next(data, state: StrategyState):
         else:
             print("no time for consolidation", data["index"])
 
+    #HLAVNI ITERACNI LOG JESTE PRED AKCI - obsahuje aktualni hodnoty vetsiny parametru
+    lp = state.interface.get_last_price(symbol=state.symbol)
+    state.ilog(e="ITER_ENTRY", last_price=lp, stratvars=state.vars)
+
     #SLOPE ANGLE PROTECTION
+    state.ilog(e="SLOPE", curr_slope=slope, minimum_slope=minimum_slope, last_slopes=state.indicators.slope[-5:])
     if slope < minimum_slope:
         print("OCHRANA SLOPE TOO HIGH")
+        state.ilog(e="SLOPE_EXCEEDED")
         if len(state.vars.pendingbuys)>0:
             print("CANCEL PENDINGBUYS")
             ic(state.vars.pendingbuys)
             res = asyncio.run(state.cancel_pending_buys())
             ic(state.vars.pendingbuys)
+            state.ilog(e="Rusime pendingbuyes", pb=state.vars.pendingbuys)
         print("slope", slope)
         print("min slope", minimum_slope)
 
@@ -235,6 +264,7 @@ def next(data, state: StrategyState):
             ic(state.time)
             #zatim vykladame full
             #positions = int(int(state.vars.maxpozic)/int(state.vars.chunk))
+            state.ilog(e="BUY SIGNAL", ema=state.indicators.ema[-1], trend=state.vars.Trend)
             vyloz()
 
     ## testuje aktualni cenu od nejvyssi visici limitky
@@ -252,6 +282,7 @@ def next(data, state: StrategyState):
                 print("max cena v orderbuys", maxprice)
                 if state.interface.get_last_price(state.symbol) > float(maxprice) + state.vars.ticks2reset:
                     print("ujelo to vice nez o " + str(state.vars.ticks2reset) + ", rusime limit buye")
+                    state.ilog(e="Ujelo to o více " + str(state.vars.ticks2reset), msg="rusime PB buye")
                     ##TODO toto nejak vymyslet - duplikovat?
                     res = asyncio.run(state.cancel_pending_buys())
 
@@ -268,6 +299,7 @@ def next(data, state: StrategyState):
             if len(state.vars.pendingbuys) == 0:
                 state.vars.blockbuy = 0
                 state.vars.jevylozeno = 0
+                state.ilog(e="PB se vyklepaly nastavujeme: neni vylozeno", jevylozeno=state.vars.jevylozeno)
 
             #TODO toto dodelat konzolidaci a mozna lock na limitku a pendingbuys a jevylozeno ??
 
@@ -305,6 +337,7 @@ def init(state: StrategyState):
     state.indicators['ema'] = []
     state.indicators['slope'] = []
     #state.indicators['roc'] = []
+    #state.ilog(e="INIT", stratvars=state.vars)
 
 def main():
 

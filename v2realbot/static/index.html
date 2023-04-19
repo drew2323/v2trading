@@ -16,6 +16,30 @@
     <body>
         <div id="main" class="mainConteiner flex-container">
             <div id="chartContainer" class="flex-items">
+
+
+                <div class="line">
+                    <div data-toggle="collapse" data-target="#rec1">12233 <strong>Event</strong></div>
+                    <div id="rec1" class="collapse">
+                    Detaila mozna structured
+                    Lorem ipsum dolor sit amet, consectetur adipisicing elit,
+                    sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
+                    quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+                    </div>
+                </div>
+
+                <div class="line">
+                    <div data-toggle="collapse" data-target="#rec2">12233 <strong>Event</strong></div>
+                    <div id="rec2" class="collapse">
+                    Detaila mozna structured
+                    Lorem ipsum dolor sit amet, consectetur adipisicing elit,
+                    sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
+                    quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+                    </div>
+                </div>
+
+
+
                 <h4>Status: <span id="status">Not connected</span></h4>
                 <div id="formular">
                 <form action="">
@@ -26,11 +50,16 @@
                     <button onclick="sendMessage(event)" id="bt.send" class="btn btn-success">Send</button>
                 </form>
                 </div>
-                <ul id='messages'>
-                </ul>
-                <div id="chart" style="display: None"></div>
+                <div id="chart" style="display: None; float: left; "></div>
                 <div class="legend" id="legend"></div>
+            <div id="msgContainer">
+                <div class="msgContainerInner">
+                    <div id="lines">
+                    </div>
+                </div>
             </div>
+            </div>
+
             <div id="runner-table" class="flex-items">
                 <div id="controls">
                     <label>API-KEY: <input type="password" id="api-key" autocomplete="off"/></label>

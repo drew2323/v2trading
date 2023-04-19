@@ -15,6 +15,7 @@
     align-self: auto;
     order: 0;
     margin-inline-start: 50px;
+    padding-bottom: 10px;
   }
 
  .chartContainer {
@@ -30,4 +31,36 @@
     font-size: 16px;
     line-height: 18px;
     font-weight: 300;
+}
+
+#msgContainer {
+  display: grid;
+  overflow: auto;
+  height: 568px;
+}
+
+.msgContainerInner {
+  display: flex;
+  overflow: auto;
+  height: 568px;
+  flex-direction: column-reverse;
+}
+
+pre {
+  display: block;
+  /* padding: 9.5px; */
+  /* margin: 0 0 10px; */
+  font-size: 10px;
+  /* line-height: 2.428571; */
+  color: #333;
+  word-break: break-all;
+  word-wrap: break-word;
+  /* background-color: #f5f5f5; */
+  /* border: 1px solid #ccc; */
+  border-radius: 4px;
+}
+
+.pidi {
+  display: block;
+  font-size: smaller;
 }

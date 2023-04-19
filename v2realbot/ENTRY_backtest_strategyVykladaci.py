@@ -227,9 +227,9 @@ def next(data, state: StrategyState):
                 state.vars.limitka_price = price
                 state.ilog(e="Vytvořena nová limitka", limitka=str(state.vars.limitka), limtka_price=state.vars.limitka_price)
 
-            if int(state.positions) > 0 and (int(state.positions) != limitka_qty):
+            if int(state.positions) > 0 and (int(state.positions) != int(limitka_qty)):
                 #limitka existuje, ale spatne mnostvi - updatujeme
-                state.ilog(e="Limitka existuje, ale spatne mnozstvi - updatujeme")
+                state.ilog(e="Limitka existuje, ale spatne mnozstvi - updatujeme", msg="POS"+str(state.positions)+" lim_qty:"+str(limitka_qty), pos=state.positions, limitka_qty=limitka_qty)
                 #snad to nespadne, kdyztak pridat exception handling
                 state.vars.limitka = asyncio.run(state.interface.repl(price=state.vars.limitka_price, orderid=state.vars.limitka, size=int(state.positions)))
                 limitka_qty = int(state.positions)

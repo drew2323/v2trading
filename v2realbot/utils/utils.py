@@ -4,7 +4,7 @@ from queue import Queue
 from datetime import datetime, timezone, time, timedelta, date
 import pytz
 from dateutil import tz
-from rich import print
+from rich import print as richprint
 import decimal
 from icecream import ic
 from v2realbot.enums.enums import RecordType, Mode, StartBarAlign
@@ -13,7 +13,7 @@ import os
 from v2realbot.common.model import StrategyInstance, Runner
 from typing import List
 import tomli
-from v2realbot.config import DATA_DIR
+from v2realbot.config import DATA_DIR, QUIET_MODE
 import requests
 from uuid import UUID
 
@@ -67,7 +67,11 @@ qu = Queue()
 zoneNY = tz.gettz('America/New_York')
 
 def print(*args, **kwargs):
-    ic(*args, **kwargs)
+    if QUIET_MODE:
+        pass
+    else:
+        #ic(*args, **kwargs)
+        richprint(*args, **kwargs)
 
 def price2dec(price: float) -> float:
     """

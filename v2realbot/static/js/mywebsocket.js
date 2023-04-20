@@ -182,7 +182,7 @@ function connect(event) {
                     for (const [klic, hodnota] of Object.entries(statinds)) {
                         console.log(JSON.stringify(klic))
                         console.log(JSON.stringify(hodnota))
-                        
+                        //TODO predelat na configuracni klice vizualizacni dotahovane z backendu, ktere namapuji vybrane stratvars na typ vizualizace 
                         if (klic === "angle") {
 
                             //nejsou vsechny hodnoty
@@ -233,13 +233,35 @@ function connect(event) {
                         if (searchObject == undefined) {
                             //console.log("object new - init and add")
                             var obj = {name: key, series: null}
+
+                            //predelat configuracne
+                            //inicializace indicatoru
+                            //momentum
                             if (momentumIndicatorNames.includes(key)) {
+                                
+                                
                                 obj.series = chart.addLineSeries({
                                     priceScaleId: 'left',
                                     title: key,
                                     lineWidth: 1
-                                });                               
+                                });      
+                                
+                                //natvrdo nakreslime lajnu pro min angle
+                                //TODO predelat na configuracne
+                                const minSlopeLineOptopns = {
+                                    price: parsed_data.statinds.angle.minimum_slope,
+                                    color: '#b67de8',
+                                    lineWidth: 2,
+                                    lineStyle: 2, // LineStyle.Dotted
+                                    axisLabelVisible: true,
+                                    title: "max:",
+                                };
+                    
+                                const minSlopeLine = obj.series.createPriceLine(minSlopeLineOptopns);
+
+                                
                             }
+                            //ostatni
                             else {
                                 obj.series = chart.addLineSeries({
                                     //title: key,

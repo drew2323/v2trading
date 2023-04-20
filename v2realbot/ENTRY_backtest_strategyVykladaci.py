@@ -4,10 +4,10 @@ from v2realbot.strategy.base import StrategyState
 from v2realbot.strategy.StrategyOrderLimitVykladaci import StrategyOrderLimitVykladaci
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, OrderSide
 from v2realbot.indicators.indicators import ema
-from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, dict_replace_value
+from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, dict_replace_value, print
 from datetime import datetime
 from icecream import install, ic
-from rich import print
+#from rich import print
 from threading import Event
 from msgpack import packb, unpackb
 import asyncio
@@ -119,7 +119,7 @@ def next(data, state: StrategyState):
                 qty = qty + int(state.vars.chunk)
             else:
                 state.buy_l(price=price, size=qty)
-                print(i,"BUY limitka - delta",curve[i]," cena:", price, "mnozstvi:", qty)
+                #print(i,"BUY limitka - delta",curve[i]," cena:", price, "mnozstvi:", qty)
                 qty = int(state.vars.chunk)
             last_price = price
         state.vars.blockbuy = 1
@@ -174,10 +174,10 @@ def next(data, state: StrategyState):
             slope = ((state.bars.close[-1] - lookbackprice)/lookbackprice)*100
             state.indicators.slope.append(slope)
  
-            state.statinds.angle = dict(time=state.bars.time[-1], price=state.bars.close[-1], lookbacktime=state.bars.time[-slope_lookback], lookbackprice=lookbackprice)
+            state.statinds.angle = dict(time=state.bars.time[-1], price=state.bars.close[-1], lookbacktime=state.bars.time[-slope_lookback], lookbackprice=lookbackprice, minimum_slope=minimum_slope)
  
             #state.indicators.roc.append(roc)
-            print("slope", state.indicators.slope[-5:])
+            #print("slope", state.indicators.slope[-5:])
             state.ilog(e="Slope "+str(slope), msg="lookback price:"+str(lookbackprice), lookbackoffset=lookback_offset, minimum_slope=minimum_slope, last_slopes=state.indicators.slope[-5:])
         else:
             state.ilog(e="Slope - not enough data", slope_lookback=slope_lookback)
@@ -200,7 +200,7 @@ def next(data, state: StrategyState):
             #print(orderlist)
             pendingbuys_new = {}
             limitka_old = state.vars.limitka
-            print("Puvodni LIMITKA", limitka_old)
+            #print("Puvodni LIMITKA", limitka_old)
             #zaciname s cistym stitem
             state.vars.limitka = None
             state.vars.limitka_price = None
@@ -208,7 +208,7 @@ def next(data, state: StrategyState):
             limitka_qty = 0
             for o in orderlist:
                 if o.side == OrderSide.SELL:
-                    print("Nalezena LIMITKA")
+                    #print("Nalezena LIMITKA")
                     limitka_found = True
                     state.vars.limitka = o.id
                     state.vars.limitka_price = o.limit_price
@@ -233,7 +233,7 @@ def next(data, state: StrategyState):
                 #snad to nespadne, kdyztak pridat exception handling
                 state.vars.limitka = asyncio.run(state.interface.repl(price=state.vars.limitka_price, orderid=state.vars.limitka, size=int(state.positions)))
                 limitka_qty = int(state.positions)
-                state.ilog(e="Změněna limitka", limitka=str(state.vars.limitka), limitka_price=state.vars.limitka_price)
+                state.ilog(e="Změněna limitka", limitka=str(state.vars.limitka), limitka_price=state.vars.limitka_price, limitka_qty=limitka_qty)
             
             if pendingbuys_new != state.vars.pendingbuys:
                 state.ilog(e="Rozdilna PB prepsana", pb_new=pendingbuys_new, pb_old = state.vars.pendingbuys)

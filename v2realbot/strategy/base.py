@@ -2,12 +2,12 @@
     Strategy base class
 """
 from datetime import datetime
-from v2realbot.utils.utils import AttributeDict, zoneNY, is_open_rush, is_close_rush, json_serial
+from v2realbot.utils.utils import AttributeDict, zoneNY, is_open_rush, is_close_rush, json_serial, print
 from v2realbot.utils.tlog import tlog
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Order, Account
 from v2realbot.config import BT_DELAYS, get_key, HEARTBEAT_TIMEOUT
 import queue
-from rich import print
+#from rich import print
 from v2realbot.loader.aggregator import TradeAggregator2Queue, TradeAggregator2List, TradeAggregator
 from v2realbot.loader.order_updates_streamer import LiveOrderUpdatesStreamer
 from v2realbot.loader.trade_offline_streamer import Trade_Offline_Streamer
@@ -39,6 +39,8 @@ class Strategy:
         self.state: StrategyState = None
         self.bt: Backtester = None
         self.debug = False
+        self.debug_target_iter = 0
+        self.debug_iter_cnt = 0
         #skip morning or closing rush
         self.open_rush = open_rush
         self.close_rush = close_rush
@@ -169,8 +171,18 @@ class Strategy:
         ic('time updated')
     def strat_loop(self, item):
 
+        ##TODO do samostatne funkce
         if self.debug:
-            a = input("Press key before next iteration")
+            self.debug_iter_cnt += 1
+            if (self.debug_iter_cnt >= self.debug_target_iter):
+                try:
+                    cnt = int(input("Press enter for next iteration or number to skip"))
+                    self.debug_target_iter = self.debug_iter_cnt + cnt
+                except ValueError:
+                    self.debug_target_iter = self.debug_iter_cnt + 1
+
+            
+
 
         self.update_times(item)
         ## BT - execute orders that should have been filled until this time

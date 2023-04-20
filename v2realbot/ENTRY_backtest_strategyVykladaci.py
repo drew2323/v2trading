@@ -44,6 +44,7 @@ stratvars = AttributeDict(maxpozic = 400,
                           jevylozeno=0,
                           vykladka=5,
                           curve = [0.01, 0.01, 0.01, 0, 0.02, 0.02, 0.01,0.01, 0.01,0.03, 0.01, 0.01, 0.01,0.04, 0.01,0.01, 0.01,0.05, 0.01,0.01, 0.01,0.01, 0.06,0.01, 0.01,0.01, 0.01],
+                          curve_def = [0.02, 0.02, 0.02, 0, 0, 0.02, 0, 0, 0, 0.02],
                           blockbuy = 0,
                           ticks2reset = 0.04,
                           consolidation_bar_count = 10,
@@ -96,11 +97,28 @@ def next(data, state: StrategyState):
         ##prvni se vyklada na aktualni cenu, další jdou podle krivky, nula v krivce zvyšuje množství pro následující iteraci
         #curve = [0.01, 0.01, 0, 0, 0.01, 0, 0, 0, 0.02, 0, 0, 0, 0.03, 0,0,0,0,0, 0.02, 0,0,0,0,0,0, 0.02]
         curve = state.vars.curve
-
+        ##defenzivni krivka pro 
+        curve_def = state.vars.curve_def
         #vykladani po 5ti kusech, když zbývají 2 a méně, tak děláme nový výklad
         vykladka = state.vars.vykladka
         #kolik muzu max vylozit
         kolikmuzu = int((int(state.vars.maxpozic) - int(state.positions))/int(state.vars.chunk))
+        akt_pozic = int((int(state.positions))/int(state.vars.chunk)) #20
+        max_pozic = int((int(state.vars.maxpozic))/int(state.vars.chunk)) #40
+
+        #mame polovinu a vic vylozeno, pouzivame defenzicni krivku
+        if (akt_pozic >= max_pozic/2):
+            state.ilog(e="DEF: Mame pul a vic vylozeno, pouzivame defenzivni krivku", akt_pozic=akt_pozic, max_pozic=max_pozic, curve_def=curve_def)
+            curve = curve_def
+            #zaroven docasne menime ticks2reset na defenzivni 0.06
+            state.vars.ticks2reset = 0.06
+            state.ilog(e="DEF: Menime tick2reset na 0.06", ticks2reset=state.vars.ticks2reset, ticks2reset_backup=state.vars.ticks2reset_backup)
+        else:
+            #vracime zpet, pokud bylo zmeneno
+            if state.vars.ticks2reset != state.vars.ticks2reset_backup:
+                state.vars.ticks2reset = state.vars.ticks2reset_backup
+                state.ilog(e="DEF: Menime tick2reset zpet na"+str(state.vars.ticks2reset), ticks2reset=state.vars.ticks2reset, ticks2reset_backup=state.vars.ticks2reset_backup)
+
         if kolikmuzu < vykladka: vykladka = kolikmuzu
 
         if len(curve) < vykladka:
@@ -178,7 +196,7 @@ def next(data, state: StrategyState):
  
             #state.indicators.roc.append(roc)
             #print("slope", state.indicators.slope[-5:])
-            state.ilog(e="Slope "+str(slope), msg="lookback price:"+str(lookbackprice), lookbackoffset=lookback_offset, minimum_slope=minimum_slope, last_slopes=state.indicators.slope[-5:])
+            state.ilog(e="Slope "+str(slope), msg="lookback price:"+str(lookbackprice), lookbackoffset=lookback_offset, minimum_slope=minimum_slope, last_slopes=state.indicators.slope[-10:])
         else:
             state.ilog(e="Slope - not enough data", slope_lookback=slope_lookback)
 
@@ -362,6 +380,7 @@ def init(state: StrategyState):
     state.indicators['slope'] = []
     #static indicators - those not series based
     state.statinds['angle'] = {}
+    state.vars["ticks2reset_backup"] = state.vars.ticks2reset
 
     #state.indicators['roc'] = []
     #state.ilog(e="INIT", stratvars=state.vars)

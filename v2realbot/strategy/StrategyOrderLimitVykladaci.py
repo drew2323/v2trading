@@ -111,7 +111,7 @@ class StrategyOrderLimitVykladaci(Strategy):
         if price is None: price=price2dec((self.state.interface.get_last_price(self.symbol)))
         ic(price)
         print("odesilame LIMIT s cenou/qty", price, size)
-        self.state.ilog(e="odesilame buy_l do if", price=price, size=size)
+        self.state.ilog(e="send buy to if", msg="S:"+str(size)+" P:"+str(price), price=price, size=size)
         order = self.state.interface.buy_l(price=price, size=size)
         print("ukladame pendingbuys")
         self.state.vars.pendingbuys[str(order)]=price

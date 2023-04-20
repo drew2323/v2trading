@@ -1,4 +1,4 @@
-const momentumIndicatorNames = ["roc", "slope"]
+const momentumIndicatorNames = ["roc", "slope", "slopeMA"]
 var indList = []
 var pbiList = []
 var ws = null;

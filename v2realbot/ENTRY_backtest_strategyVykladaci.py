@@ -197,6 +197,17 @@ def next(data, state: StrategyState):
             #state.indicators.roc.append(roc)
             #print("slope", state.indicators.slope[-5:])
             state.ilog(e="Slope "+str(slope), msg="lookback price:"+str(lookbackprice), lookbackoffset=lookback_offset, minimum_slope=minimum_slope, last_slopes=state.indicators.slope[-10:])
+
+
+            #slope MA - cílem je identifikovat táhlá klesání, vypnout nákupy, až budou zase růsty
+            # slope_MA_length = 150
+            # state.indicators.slopeMA = ema(state.indicators.slope, slope_MA_length) #state.bars.vwap
+            # #TODO - docasne posilam cele MA
+            # try:
+            #     state.ilog(e="Slope - MA"+str(state.indicators.slopeMA[-1]), slopeMA=str(state.indicators.slopeMA[-20:]))
+            # except Exception as e:
+            #     state.ilog(e="Slope - MA"+str(state.indicators.slopeMA[-1]))
+
         else:
             state.ilog(e="Slope - not enough data", slope_lookback=slope_lookback)
 
@@ -286,9 +297,20 @@ def next(data, state: StrategyState):
     lp = state.interface.get_last_price(symbol=state.symbol)
     state.ilog(e="ENTRY", msg="AVGP:"+str(state.avgp)+ "POS:" +str(state.positions), last_price=lp, stratvars=state.vars)
 
-    #SLOPE ANGLE PROTECTION
-    if slope < minimum_slope:
+
+    #maxSlopeMA = -0.03
+    #SLOPE ANGLE PROTECTIONs
+    #slope zachycuje rychle sestupy
+    #slopeMA zachycuje táhlé sestupy
+    # try:
+    #   slopeMA = state.indicators.slopeMA[-1]
+    # except Exception as e:
+    #     slopeMA = 99
+
+    if slope < minimum_slope: # or slopeMA<maxSlopeMA:
         print("OCHRANA SLOPE TOO HIGH")
+        # if slopeMA<maxSlopeMA:
+        #     state.ilog(e="Slope MA too high "+str(slopeMA)+" max:"+str(maxSlopeMA))
         state.ilog(e="Slope too high "+str(slope))
         if len(state.vars.pendingbuys)>0:
             print("CANCEL PENDINGBUYS")
@@ -378,6 +400,7 @@ def init(state: StrategyState):
     print("INIT v main",state.name)
     state.indicators['ema'] = []
     state.indicators['slope'] = []
+    #state.indicators['slopeMA'] = []
     #static indicators - those not series based
     state.statinds['angle'] = {}
     state.vars["ticks2reset_backup"] = state.vars.ticks2reset

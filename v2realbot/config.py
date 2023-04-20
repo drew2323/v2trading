@@ -2,7 +2,7 @@ from alpaca.data.enums import DataFeed
 from v2realbot.enums.enums import Mode, Account
 from appdirs import user_data_dir
 
-QUIET_MODE = True
+QUIET_MODE = False
 COUNT_API_REQUESTS = False
 STRATVARS_UNCHANGEABLES = ['pendingbuys', 'blockbuy', 'jevylozeno', 'limitka']
 DATA_DIR = user_data_dir("v2realbot")

@@ -48,6 +48,7 @@ class Strategy:
         self.account = account
         self.key = get_key(mode=self.mode, account=self.account)
         self.rtqueue = None
+        self.profit = 0
 
 
         #TODO predelat na dynamické queues

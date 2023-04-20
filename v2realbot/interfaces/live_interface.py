@@ -39,7 +39,7 @@ class LiveInterface(GeneralInterface):
             
             return market_order.id
         except Exception as e:
-            print("Nepodarilo se odeslat ", str(e))
+            print("Nepodarilo se odeslat buy", str(e))
             return -1
 
     """buy limit"""
@@ -86,7 +86,7 @@ class LiveInterface(GeneralInterface):
             
             return market_order.id
         except Exception as e:
-            print("Nepodarilo se odeslat ", str(e))
+            print("Nepodarilo se odeslat sell", str(e))
             return -1
 
     """sell limit"""
@@ -111,7 +111,7 @@ class LiveInterface(GeneralInterface):
             return limit_order.id
         
         except Exception as e:
-            print("Nepodarilo se odeslat ", str(e))
+            print("Nepodarilo se odeslat sell_l", str(e))
             #raise Exception(e)
             return -1
         

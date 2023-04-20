@@ -34,17 +34,32 @@
 }
 
 #msgContainer {
-  display: grid;
+  display: inline-block;
   overflow: auto;
   height: 568px;
 }
 
-.msgContainerInner {
-  display: flex;
-  overflow: auto;
-  height: 568px;
-  flex-direction: column-reverse;
+/* na male obrazovce je log pod grafem, zobrazujeme tedy prvni logy nahore */
+@media (max-width : 1680px) {
+  .msgContainerInner {
+    display: flex;
+    overflow: auto;
+    height: 568px;
+    flex-direction: column-reverse;
+  }
 }
+
+@media (min-width : 1681px) {
+  .msgContainerInner {
+    display: flex;
+    overflow: auto;
+    height: 568px;
+    flex-direction: column-reverse;
+  }
+}
+
+
+
 
 pre {
   display: block;

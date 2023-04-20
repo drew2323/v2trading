@@ -36,6 +36,9 @@ class StrategyOrderLimitVykladaci(Strategy):
                 self.state.avgp = float(data.price)
                 price=price2dec(float(o.filled_avg_price)+self.state.vars.profit)
                 self.state.vars.limitka = await self.interface.sell_l(price=price, size=o.filled_qty)
+                #obcas live vrati "held for orders", odchytime chybu a limitku nevytvarime - spravi to dalsi notifikace nebo konzolidace
+                if self.state.vars.limitka == -1:
+                    self.state.vars.limitka = None
                 self.state.vars.limitka_price = price
                 self.state.ilog(e="Příchozí BUY notif - vytvarime limitku",  msg="order status:"+o.status, orderid=str(o.id), limitka=str(self.state.vars.limitka), limtka_price=self.state.vars.limitka_price)
             else:
@@ -45,6 +48,9 @@ class StrategyOrderLimitVykladaci(Strategy):
                 try:
                     puvodni = self.state.vars.limitka
                     self.state.vars.limitka = await self.interface.repl(price=cena,orderid=self.state.vars.limitka,size=int(self.state.positions))
+                    #odchyceni pripadne chyby na live
+                    if self.state.vars.limitka == -1:
+                        self.state.vars.limitka = puvodni
                     self.state.vars.limitka_price = cena
                     self.state.ilog(e="Příchozí BUY notif - menime limitku", msg="order status:"+o.status, orderid=str(o.id), limitka=str(self.state.vars.limitka), limtka_price=self.state.vars.limitka_price, puvodni_limitka=str(puvodni))
                 except APIError as e:
@@ -60,11 +66,19 @@ class StrategyOrderLimitVykladaci(Strategy):
         if data.event == TradeEvent.PARTIAL_FILL:
             self.state.ilog(e="SELL notifikace - Partial fill", msg="pouze update pozic", orderid=str(data.order.id))
             ic("partial fill jen udpatujeme pozice")
+            #TODO tento update mozna vyhodit a pockat vzdy na plny fill - otestovat az bude cas
             self.state.avgp, self.state.positions = self.interface.pos()
         elif data.event == TradeEvent.FILL or data.event == TradeEvent.CANCELED:
             print("Příchozí SELL notifikace - complete FILL nebo CANCEL", data.event)
             #muzeme znovu nakupovat, mazeme limitku, blockbuy a pendingbuys
             #self.state.blockbuy = 0
+
+            #ADDPROFIT - datd o funkce
+            prodej = data.order.filled_qty * data.order.filled_avg_price
+            nakup = self.state.positions 
+
+
+
             ic("notifikace sell mazeme limitku a update pozic")
             #updatujeme pozice
             self.state.avgp, self.state.positions = self.interface.pos()

@@ -263,7 +263,10 @@ def next(data, state: StrategyState):
                 state.vars.limitka = asyncio.run(state.interface.repl(price=state.vars.limitka_price, orderid=state.vars.limitka, size=int(state.positions)))
                 limitka_qty = int(state.positions)
                 state.ilog(e="Změněna limitka", limitka=str(state.vars.limitka), limitka_price=state.vars.limitka_price, limitka_qty=limitka_qty)
-            
+
+            #dodelat limitka existuje, ale spatne
+
+
             if pendingbuys_new != state.vars.pendingbuys:
                 state.ilog(e="Rozdilna PB prepsana", pb_new=pendingbuys_new, pb_old = state.vars.pendingbuys)
                 print("ROZDILNA PENDINGBUYS přepsána")

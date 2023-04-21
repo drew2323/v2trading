@@ -75,6 +75,10 @@ class StrategyOrderLimitVykladaci(Strategy):
             sold_amount = data.qty * data.price
             #podle prumerne ceny, kolik stalo toto mnozstvi
             avg_costs = float(self.state.avgp) * float(data.qty)
+            if avg_costs == 0:
+                self.state.ilog(e="Nemame naklady na PROFIT, AVGP je nula. Zaznamenano jako 0", msg="naklady=utrzena cena. TBD opravit.")
+                avg_costs = sold_amount
+                
             trade_profit = (sold_amount - avg_costs)
             self.state.profit += trade_profit
             self.state.ilog(e="SELL not - PROFIT: "+str(round(float(trade_profit),3))+" celkem: "+str(round(float(self.state.profit),3)), msg=str(data.event), sold_amount=sold_amount, avg_costs=avg_costs, trade_qty=data.qty, trade_price=data.price, orderid=str(data.order.id))

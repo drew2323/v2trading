@@ -238,6 +238,7 @@ def next(data, state: StrategyState):
             state.vars.limitka_price = None
             limitka_found = False
             limitka_qty = 0
+            limitka_filled_qty = 0
             for o in orderlist:
                 if o.side == OrderSide.SELL:
                     #print("Nalezena LIMITKA")

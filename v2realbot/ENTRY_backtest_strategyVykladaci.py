@@ -311,7 +311,7 @@ def next(data, state: StrategyState):
 
     #HLAVNI ITERACNI LOG JESTE PRED AKCI - obsahuje aktualni hodnoty vetsiny parametru
     lp = state.interface.get_last_price(symbol=state.symbol)
-    state.ilog(e="ENTRY", msg="AVGP:"+str(round(state.avgp,2))+ "POS:" +str(state.positions)+" PROFIT:"+str(round(state.profit,2)), last_price=lp, stratvars=state.vars)
+    state.ilog(e="ENTRY", msg="AVGP:"+str(round(float(state.avgp),2))+ "POS:" +str(state.positions)+" PROFIT:"+str(round(float(state.profit),2)), last_price=lp, stratvars=state.vars)
 
     #maxSlopeMA = -0.03
     #SLOPE ANGLE PROTECTIONs

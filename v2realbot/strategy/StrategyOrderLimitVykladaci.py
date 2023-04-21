@@ -77,7 +77,7 @@ class StrategyOrderLimitVykladaci(Strategy):
             avg_costs = float(self.state.avgp) * float(data.qty)
             trade_profit = (sold_amount - avg_costs)
             self.state.profit += trade_profit
-            self.state.ilog(e="SELL not - PROFIT: "+str(round(trade_profit,3))+" celkem: "+str(round(self.state.profit,3)), msg=str(data.event), sold_amount=sold_amount, avg_costs=avg_costs, trade_qty=data.qty, trade_price=data.price, orderid=str(data.order.id))
+            self.state.ilog(e="SELL not - PROFIT: "+str(round(float(trade_profit),3))+" celkem: "+str(round(float(self.state.profit),3)), msg=str(data.event), sold_amount=sold_amount, avg_costs=avg_costs, trade_qty=data.qty, trade_price=data.price, orderid=str(data.order.id))
 
         if data.event == TradeEvent.PARTIAL_FILL:
             self.state.ilog(e="SELL notifikace - Partial fill", msg="pouze update pozic", orderid=str(data.order.id))

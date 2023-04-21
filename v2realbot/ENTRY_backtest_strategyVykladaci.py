@@ -244,13 +244,13 @@ def next(data, state: StrategyState):
                     limitka_found = True
                     state.vars.limitka = o.id
                     state.vars.limitka_price = o.limit_price
-                    limitka_qty = o.qty
-                    limitka_filled_qty = o.filled_qty
+                    limitka_qty = int(o.qty)
+                    limitka_filled_qty = int(o.filled_qty)
 
                     #aktualni mnozstvi = puvodni minus filled
                     if limitka_filled_qty is not None:
                         print("prepocitavam filledmnozstvi od limitka_qty a filled_qty", limitka_qty, limitka_filled_qty)
-                        limitka_qty = limitka_qty - limitka_filled_qty
+                        limitka_qty = int(limitka_qty) - int(limitka_filled_qty)
                     ##TODO sem pridat upravu ceny
                 if o.side == OrderSide.BUY:
                     pendingbuys_new[str(o.id)]=float(o.limit_price)

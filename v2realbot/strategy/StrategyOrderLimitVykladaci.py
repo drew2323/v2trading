@@ -66,7 +66,7 @@ class StrategyOrderLimitVykladaci(Strategy):
                         print("Neslo nahradit profitku. Problem",str(e))
                         raise Exception(e)
 
-    async def orderUpdateSell(self, data: TradeUpdate):
+    async def orderUpdateSell(self, data: TradeUpdate): 
 
         #PROFIT
         #profit pocitame z TradeUpdate.price a TradeUpdate.qty - aktualne provedene mnozstvi a cena

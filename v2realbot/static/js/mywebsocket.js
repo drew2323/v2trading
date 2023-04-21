@@ -41,7 +41,7 @@ function connect(event) {
         }
 
         if (parsed_data.hasOwnProperty("bars")) {
-            console.log("mame bary")
+            // console.log("mame bary")
             var bar = parsed_data.bars 
             candlestickSeries.update(bar);
             volumeSeries.update({
@@ -173,24 +173,24 @@ function connect(event) {
         }
 
         if (parsed_data.hasOwnProperty("statinds")) { 
-            console.log("got static indicators")
+            // console.log("got static indicators")
             var statinds = parsed_data.statinds
             if (Object.keys(statinds).length > 0) {
-                    console.log("got static indicators")
-                    console.log(JSON.stringify(statinds))
+                    // console.log("got static indicators")
+                    // console.log(JSON.stringify(statinds))
 
                     for (const [klic, hodnota] of Object.entries(statinds)) {
-                        console.log(JSON.stringify(klic))
-                        console.log(JSON.stringify(hodnota))
+                        // console.log(JSON.stringify(klic))
+                        // console.log(JSON.stringify(hodnota))
                         //TODO predelat na configuracni klice vizualizacni dotahovane z backendu, ktere namapuji vybrane stratvars na typ vizualizace 
                         if (klic === "angle") {
 
                             //nejsou vsechny hodnoty
                             if (Object.keys(hodnota).length > 0)  {
-                                console.log("angle nalezen");
-                                console.log(JSON.stringify(hodnota));
+                                // console.log("angle nalezen");
+                                // console.log(JSON.stringify(hodnota));
                                 if (angleSeries !== 1) {
-                                    console.log("angle neni jedna" + toString(angleSeries))
+                                    // console.log("angle neni jedna" + toString(angleSeries))
                                     chart.removeSeries(angleSeries)
                                 }
                                 
@@ -200,11 +200,13 @@ function connect(event) {
                                     lineStyle: 2,
                                     color: "#d432e6",
                                     lastValueVisible: false,
-                                    priceLineVisible: false
+                                    priceLineVisible: false,
+                                    priceLineWidth: 0,
+                                    priceLineStyle: 3
                                 })
                                 dataPoints = [{time: hodnota.lookbacktime, value: hodnota.lookbackprice},{ time: hodnota.time, value: hodnota.price}]
-                                console.log("pridano")
-                                console.log(toString(dataPoints))
+                                // console.log("pridano")
+                                // console.log(toString(dataPoints))
                                 angleSeries.setData(dataPoints)
                             }
                         }
@@ -222,7 +224,7 @@ function connect(event) {
         }
 
         if (parsed_data.hasOwnProperty("indicators")) { 
-            console.log("jsme uvnitr indikatoru")
+            // console.log("jsme uvnitr indikatoru")
             var indicators = parsed_data.indicators
             //if there are indicators it means there must be at least two keys (except time which is always present)
             if (Object.keys(indicators).length > 1) {

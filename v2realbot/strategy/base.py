@@ -5,7 +5,7 @@ from datetime import datetime
 from v2realbot.utils.utils import AttributeDict, zoneNY, is_open_rush, is_close_rush, json_serial, print
 from v2realbot.utils.tlog import tlog
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Order, Account
-from v2realbot.config import BT_DELAYS, get_key, HEARTBEAT_TIMEOUT
+from v2realbot.config import BT_DELAYS, get_key, HEARTBEAT_TIMEOUT, QUIET_MODE
 import queue
 #from rich import print
 from v2realbot.loader.aggregator import TradeAggregator2Queue, TradeAggregator2List, TradeAggregator
@@ -48,7 +48,6 @@ class Strategy:
         self.account = account
         self.key = get_key(mode=self.mode, account=self.account)
         self.rtqueue = None
-        self.profit = 0
 
 
         #TODO predelat na dynamické queues
@@ -495,6 +494,7 @@ class StrategyState:
         self.sell_l = self.interface.sell_l
         self.cancel_pending_buys = None
         self.iter_log_list = []
+        self.profit = 0
     
     def ilog(self, e: str = None, msg: str = None, **kwargs):
         if e is None:
@@ -502,3 +502,4 @@ class StrategyState:
         else:
             row = dict(time=self.time, event=e, message=msg, details=kwargs)
         self.iter_log_list.append(row)
+        print(row)

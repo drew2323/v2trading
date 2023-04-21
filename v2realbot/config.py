@@ -2,8 +2,11 @@ from alpaca.data.enums import DataFeed
 from v2realbot.enums.enums import Mode, Account
 from appdirs import user_data_dir
 
+#no print in console
 QUIET_MODE = False
+#backend counter of api requests
 COUNT_API_REQUESTS = False
+#stratvars that cannot be changed in gui
 STRATVARS_UNCHANGEABLES = ['pendingbuys', 'blockbuy', 'jevylozeno', 'limitka']
 DATA_DIR = user_data_dir("v2realbot")
 #BT DELAYS

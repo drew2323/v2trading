@@ -26,7 +26,7 @@ class StrategyOrderLimitVykladaci(Strategy):
                 self.state.ilog(e="Příchozí BUY notifikace - mazeme ji z pb", msg="order status:"+o.status, orderid=str(o.id), pb=self.state.vars.pendingbuys)
                 print("limit buy filled or cancelled. Vyhazujeme z pendingbuys.")
                 ic(self.state.vars.pendingbuys)
-    
+
         if data.event == TradeEvent.FILL or data.event == TradeEvent.PARTIAL_FILL:
             ic("vstupujeme do orderupdatebuy")
             print(data)
@@ -67,6 +67,18 @@ class StrategyOrderLimitVykladaci(Strategy):
                         raise Exception(e)
 
     async def orderUpdateSell(self, data: TradeUpdate):
+
+        #PROFIT
+        #profit pocitame z TradeUpdate.price a TradeUpdate.qty - aktualne provedene mnozstvi a cena
+        #naklady vypocteme z prumerne ceny, kterou mame v pozicich
+        if data.event == TradeEvent.FILL or data.event == TradeEvent.PARTIAL_FILL:
+            sold_amount = data.qty * data.price
+            #podle prumerne ceny, kolik stalo toto mnozstvi
+            avg_costs = self.state.avgp * data.qty
+            trade_profit = (sold_amount - avg_costs)
+            self.state.profit += trade_profit
+            self.state.ilog(e="SELL not - PROFIT: "+str(round(trade_profit,3))+" celkem: "+str(round(self.state.profit,3)), msg=str(data.event), sold_amount=sold_amount, avg_costs=avg_costs, trade_qty=data.qty, trade_price=data.price, orderid=str(data.order.id))
+
         if data.event == TradeEvent.PARTIAL_FILL:
             self.state.ilog(e="SELL notifikace - Partial fill", msg="pouze update pozic", orderid=str(data.order.id))
             ic("partial fill jen udpatujeme pozice")
@@ -76,10 +88,6 @@ class StrategyOrderLimitVykladaci(Strategy):
             print("Příchozí SELL notifikace - complete FILL nebo CANCEL", data.event)
             #muzeme znovu nakupovat, mazeme limitku, blockbuy a pendingbuys
             #self.state.blockbuy = 0
-
-            #ADDPROFIT - datd o funkce, zatim vraci chybu
-            #prodej = data.order.filled_qty * data.order.filled_avg_price
-            #nakup = self.state.positions 
 
             ic("notifikace sell mazeme limitku a update pozic")
             #updatujeme pozice

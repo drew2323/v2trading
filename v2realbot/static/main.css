@@ -34,7 +34,7 @@
 }
 
 #msgContainer {
-  display: inline-block;
+  /* display: inline-block; */
   overflow: auto;
   height: 568px;
 }

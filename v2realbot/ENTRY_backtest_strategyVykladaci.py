@@ -222,10 +222,13 @@ def next(data, state: StrategyState):
     if state.vars.jevylozeno == 1:
         ##CONSOLIDATION PART kazdy Nty bar dle nastaveni
         if int(data["index"])%int(state.vars.consolidation_bar_count) == 0:
-            print("***Consolidation ENTRY***")
-            state.ilog(e="***Konzolidujeme")
+            print("***CONSOLIDATION ENTRY***")
+            state.ilog(e="CONSOLIDATION ENTRY ***")
 
             orderlist = state.interface.get_open_orders(symbol=state.symbol, side=None)
+            #pro jistotu jeste dotahneme aktualni pozice
+            state.avgp, state.positions = state.interface.pos()            
+
             #print(orderlist)
             pendingbuys_new = {}
             limitka_old = state.vars.limitka
@@ -254,18 +257,28 @@ def next(data, state: StrategyState):
                 price=price2dec(float(state.avgp)+state.vars.profit)
                 state.vars.limitka = asyncio.run(state.interface.sell_l(price=price, size=state.positions))
                 state.vars.limitka_price = price
-                state.ilog(e="Vytvořena nová limitka", limitka=str(state.vars.limitka), limtka_price=state.vars.limitka_price)
+                if state.vars.limitka == -1:
+                    state.ilog(e="Vytvoreni limitky neprobehlo, vracime None", msg=str(state.vars.limitka))
+                    state.vars.limitka = None
+                    state.vars.limitka_price = None
+                else:
+                    state.ilog(e="Vytvořena nová limitka", limitka=str(state.vars.limitka), limtka_price=state.vars.limitka_price)
 
-            if int(state.positions) > 0 and (int(state.positions) != int(limitka_qty)):
+            elif state.vars.limitka is not None and int(state.positions) > 0 and (int(state.positions) != int(limitka_qty)):
                 #limitka existuje, ale spatne mnostvi - updatujeme
                 state.ilog(e="Limitka existuje, ale spatne mnozstvi - updatujeme", msg="POS"+str(state.positions)+" lim_qty:"+str(limitka_qty), pos=state.positions, limitka_qty=limitka_qty)
                 #snad to nespadne, kdyztak pridat exception handling
+                puvodni = state.vars.limitka
                 state.vars.limitka = asyncio.run(state.interface.repl(price=state.vars.limitka_price, orderid=state.vars.limitka, size=int(state.positions)))
-                limitka_qty = int(state.positions)
-                state.ilog(e="Změněna limitka", limitka=str(state.vars.limitka), limitka_price=state.vars.limitka_price, limitka_qty=limitka_qty)
+                
+                if state.vars.limitka == -1:
+                    state.ilog(e="Replace limitky neprobehl, vracime puvodni", msg=str(state.vars.limitka), puvodni=puvodni)
+                    state.vars.limitka = puvodni
+                else:   
+                    limitka_qty = int(state.positions)
+                    state.ilog(e="Změněna limitka", limitka=str(state.vars.limitka), limitka_price=state.vars.limitka_price, limitka_qty=limitka_qty)
 
-            #dodelat limitka existuje, ale spatne
-
+            #tbd pokud se bude vyskytovat pak pridat ještě konzolidaci ceny limitky
 
             if pendingbuys_new != state.vars.pendingbuys:
                 state.ilog(e="Rozdilna PB prepsana", pb_new=pendingbuys_new, pb_old = state.vars.pendingbuys)
@@ -291,15 +304,14 @@ def next(data, state: StrategyState):
             #print(len(pendingbuys_new))
             #print(jevylozeno)
             print("***CONSOLIDATION EXIT***")
-            state.ilog(e="***Konzolidace konec")
+            state.ilog(e="CONSOLIDATION EXIT ***")
         else:
             state.ilog(e="No time for consolidation", msg=data["index"])
             print("no time for consolidation", data["index"])
 
     #HLAVNI ITERACNI LOG JESTE PRED AKCI - obsahuje aktualni hodnoty vetsiny parametru
     lp = state.interface.get_last_price(symbol=state.symbol)
-    state.ilog(e="ENTRY", msg="AVGP:"+str(state.avgp)+ "POS:" +str(state.positions), last_price=lp, stratvars=state.vars)
-
+    state.ilog(e="ENTRY", msg="AVGP:"+str(round(state.avgp,2))+ "POS:" +str(state.positions)+" PROFIT:"+str(round(state.profit,2)), last_price=lp, stratvars=state.vars)
 
     #maxSlopeMA = -0.03
     #SLOPE ANGLE PROTECTIONs

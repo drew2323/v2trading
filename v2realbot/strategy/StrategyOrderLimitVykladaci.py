@@ -74,7 +74,7 @@ class StrategyOrderLimitVykladaci(Strategy):
         if data.event == TradeEvent.FILL or data.event == TradeEvent.PARTIAL_FILL:
             sold_amount = data.qty * data.price
             #podle prumerne ceny, kolik stalo toto mnozstvi
-            avg_costs = self.state.avgp * data.qty
+            avg_costs = float(self.state.avgp) * float(data.qty)
             trade_profit = (sold_amount - avg_costs)
             self.state.profit += trade_profit
             self.state.ilog(e="SELL not - PROFIT: "+str(round(trade_profit,3))+" celkem: "+str(round(self.state.profit,3)), msg=str(data.event), sold_amount=sold_amount, avg_costs=avg_costs, trade_qty=data.qty, trade_price=data.price, orderid=str(data.order.id))

@@ -245,28 +245,36 @@ def next(data, state: StrategyState):
                     state.vars.limitka = o.id
                     state.vars.limitka_price = o.limit_price
                     limitka_qty = o.qty
+                    limitka_filled_qty = o.filled_qty
+
+                    #aktualni mnozstvi = puvodni minus filled
+                    if limitka_filled_qty is not None:
+                        print("prepocitavam filledmnozstvi od limitka_qty a filled_qty", limitka_qty, limitka_filled_qty)
+                        limitka_qty = limitka_qty - limitka_filled_qty
                     ##TODO sem pridat upravu ceny
                 if o.side == OrderSide.BUY:
                     pendingbuys_new[str(o.id)]=float(o.limit_price)
 
-            state.ilog(e="Konzolidace limitky", msg="limitka stejna?:"+str((str(limitka_old)==str(state.vars.limitka))), limitka_old=str(limitka_old), limitka_new=str(state.vars.limitka), limitka_new_price=state.vars.limitka_price, limitka_qty=limitka_qty)
+            state.ilog(e="Konzolidace limitky", msg="limitka stejna?:"+str((str(limitka_old)==str(state.vars.limitka))), limitka_old=str(limitka_old), limitka_new=str(state.vars.limitka), limitka_new_price=state.vars.limitka_price, limitka_qty=limitka_qty, limitka_filled_qty=limitka_filled_qty)
             
+            #pokud mame 
+
             #neni limitka, ale mela by byt - vytváříme ji
             if int(state.positions) > 0 and state.vars.limitka is None:
-                state.ilog(e="Limitka neni, ale mela by být.")
+                state.ilog(e="Limitka neni, ale mela by být.", msg="počet pozic aktualnich" + str(int(state.positions)))
                 price=price2dec(float(state.avgp)+state.vars.profit)
-                state.vars.limitka = asyncio.run(state.interface.sell_l(price=price, size=state.positions))
+                state.vars.limitka = asyncio.run(state.interface.sell_l(price=price, size=int(state.positions)))
                 state.vars.limitka_price = price
                 if state.vars.limitka == -1:
                     state.ilog(e="Vytvoreni limitky neprobehlo, vracime None", msg=str(state.vars.limitka))
                     state.vars.limitka = None
                     state.vars.limitka_price = None
                 else:
-                    state.ilog(e="Vytvořena nová limitka", limitka=str(state.vars.limitka), limtka_price=state.vars.limitka_price)
+                    state.ilog(e="Vytvořena nová limitka", limitka=str(state.vars.limitka), limtka_price=state.vars.limitka_price, qty=state.positions)
 
             elif state.vars.limitka is not None and int(state.positions) > 0 and (int(state.positions) != int(limitka_qty)):
                 #limitka existuje, ale spatne mnostvi - updatujeme
-                state.ilog(e="Limitka existuje, ale spatne mnozstvi - updatujeme", msg="POS"+str(state.positions)+" lim_qty:"+str(limitka_qty), pos=state.positions, limitka_qty=limitka_qty)
+                state.ilog(e="Limitka existuje, ale spatne mnozstvi - updatujeme", msg="POS"+str(int(state.positions))+" lim_qty:"+str(limitka_qty), pos=state.positions, limitka_qty=limitka_qty)
                 #snad to nespadne, kdyztak pridat exception handling
                 puvodni = state.vars.limitka
                 state.vars.limitka = asyncio.run(state.interface.repl(price=state.vars.limitka_price, orderid=state.vars.limitka, size=int(state.positions)))

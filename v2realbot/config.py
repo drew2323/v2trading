@@ -3,11 +3,12 @@ from v2realbot.enums.enums import Mode, Account, FillCondition
 from appdirs import user_data_dir
 
 
-#how many consecutive trades with the fill price are necessary for limit fill to happen()
+#how many consecutive trades with the fill price are necessary for LIMIT fill to happen()
 #0 - optimistic, every knot high will fill the order
 #N - N consecutive trades required
 #not impl.yet
-FILL_CONS_TRADES_REQUIRED = 0
+#minimum is 1
+FILL_CONS_TRADES_REQUIRED = 2
 #during trade execution logs X-surrounding trades of the one that triggers the fill
 FILL_LOG_SURROUNDING_TRADES = 10
 #fill condition for limit order

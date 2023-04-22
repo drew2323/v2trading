@@ -219,6 +219,8 @@ class Backtester:
 
         if o.order_type == OrderType.LIMIT:
             if o.side == OrderSide.BUY:
+                #counter for consecutive trades
+                consec_cnt = 0
                 for index, i in enumerate(work_range):
                 #print(i)
                 ##najde prvni nejvetsi čas vetsi nez minfill a majici odpovídající cenu
@@ -242,17 +244,23 @@ class Backtester:
                         return -1
 
                     if float(i[0]) > float(order_min_fill_time+BT_DELAYS.limit_order_offset) and fill_condition:
-                        #(1679081919.381649, 27.88)
-                        ic(i)
-                        fill_time = i[0]
-                        fill_price = i[1]
-                        print("FILL LIMIT BUY at", fill_time, datetime.fromtimestamp(fill_time).astimezone(zoneNY), "at",i[1])
-                        if FILL_LOG_SURROUNDING_TRADES != 0:
-                            #TODO loguru
-                            print("FILL SURR TRADES: before",work_range[index-FILL_LOG_SURROUNDING_TRADES:index])
-                            print("FILL SURR TRADES: fill and after",work_range[index:index+FILL_LOG_SURROUNDING_TRADES])
-                        break
+                        consec_cnt += 1
+                        if consec_cnt == FILL_CONS_TRADES_REQUIRED:
+
+                            #(1679081919.381649, 27.88)
+                            ic(i)
+                            fill_time = i[0]
+                            fill_price = i[1]
+                            print("FILL LIMIT BUY at", fill_time, datetime.fromtimestamp(fill_time).astimezone(zoneNY), "at",i[1])
+                            if FILL_LOG_SURROUNDING_TRADES != 0:
+                                #TODO loguru
+                                print("FILL SURR TRADES: before",work_range[index-FILL_LOG_SURROUNDING_TRADES:index])
+                                print("FILL SURR TRADES: fill and after",work_range[index:index+FILL_LOG_SURROUNDING_TRADES])
+                            break
+                    else:
+                        consec_cnt = 0
             else:
+                consec_cnt = 0
                 for index, i in enumerate(work_range):
                 #print(i)
                     #NASTVENI PODMINEK PLNENI
@@ -267,16 +275,20 @@ class Backtester:
                         return -1
 
                     if float(i[0]) > float(order_min_fill_time+BT_DELAYS.limit_order_offset) and fill_condition:
-                        #(1679081919.381649, 27.88)
-                        ic(i)
-                        fill_time = i[0]
-                        fill_price = i[1]
-                        print("FILL LIMIT SELL at", fill_time, datetime.fromtimestamp(fill_time).astimezone(zoneNY), "at",i[1])
-                        if FILL_LOG_SURROUNDING_TRADES != 0:
-                            #TODO loguru
-                            print("FILL SELL SURR TRADES: before",work_range[index-FILL_LOG_SURROUNDING_TRADES:index])
-                            print("FILL SELL SURR TRADES: fill and after",work_range[index:index+FILL_LOG_SURROUNDING_TRADES])
-                        break
+                        consec_cnt += 1
+                        if consec_cnt == FILL_CONS_TRADES_REQUIRED:
+                            #(1679081919.381649, 27.88)
+                            ic(i)
+                            fill_time = i[0]
+                            fill_price = i[1]
+                            print("FILL LIMIT SELL at", fill_time, datetime.fromtimestamp(fill_time).astimezone(zoneNY), "at",i[1])
+                            if FILL_LOG_SURROUNDING_TRADES != 0:
+                                #TODO loguru
+                                print("FILL SELL SURR TRADES: before",work_range[index-FILL_LOG_SURROUNDING_TRADES:index])
+                                print("FILL SELL SURR TRADES: fill and after",work_range[index:index+FILL_LOG_SURROUNDING_TRADES])
+                            break
+                    else:
+                        consec_cnt = 0
         
         elif o.order_type == OrderType.MARKET:
             for i in work_range:

@@ -250,7 +250,7 @@ class Backtester:
                         if FILL_LOG_SURROUNDING_TRADES != 0:
                             #TODO loguru
                             print("FILL SURR TRADES: before",work_range[index-FILL_LOG_SURROUNDING_TRADES:index])
-                            print("FILL SURR TRADES: after",work_range[index+1:index+FILL_LOG_SURROUNDING_TRADES+1])
+                            print("FILL SURR TRADES: fill and after",work_range[index:index+FILL_LOG_SURROUNDING_TRADES])
                         break
             else:
                 for index, i in enumerate(work_range):
@@ -275,7 +275,7 @@ class Backtester:
                         if FILL_LOG_SURROUNDING_TRADES != 0:
                             #TODO loguru
                             print("FILL SELL SURR TRADES: before",work_range[index-FILL_LOG_SURROUNDING_TRADES:index])
-                            print("FILL SELL SURR TRADES: after",work_range[index+1:index+FILL_LOG_SURROUNDING_TRADES+1])
+                            print("FILL SELL SURR TRADES: fill and after",work_range[index:index+FILL_LOG_SURROUNDING_TRADES])
                         break
         
         elif o.order_type == OrderType.MARKET:

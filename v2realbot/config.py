@@ -1,7 +1,20 @@
 from alpaca.data.enums import DataFeed
-from v2realbot.enums.enums import Mode, Account
+from v2realbot.enums.enums import Mode, Account, FillCondition
 from appdirs import user_data_dir
 
+
+#how many consecutive trades with the fill price are necessary for limit fill to happen()
+#0 - optimistic, every knot high will fill the order
+#N - N consecutive trades required
+#not impl.yet
+FILL_CONS_TRADES_REQUIRED = 0
+#during trade execution logs X-surrounding trades of the one that triggers the fill
+FILL_LOG_SURROUNDING_TRADES = 10
+#fill condition for limit order
+# fast - price has to be equal or bigger <=
+# slow - price has to be bigger <
+FILL_CONDITION_BUY_LIMIT = FillCondition.FAST
+FILL_CONDITION_SELL_LIMIT = FillCondition.FAST
 #no print in console
 QUIET_MODE = False
 #backend counter of api requests

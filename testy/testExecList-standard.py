@@ -11,34 +11,34 @@ btdata = [(1679081913.290388, 27.8634), (1679081913.68588, 27.865), (1679081913.
 
 from bisect import bisect_left
 
-def get_last_price(time: float, symbol: str = None):
-    """""
-    returns equity price in timestamp. Used for validations later.
-    TODO: optimalize
-    """""
-    for i in range(len(btdata)):
-        #print(btdata[i][0])
-        #print(i)
-        if btdata[i][0] >= time:
-            break
-    return btdata[i-1]
+# def get_last_price(time: float, symbol: str = None):
+#     """""
+#     returns equity price in timestamp. Used for validations later.
+#     TODO: optimalize
+#     """""
+#     for i in range(len(btdata)):
+#         #print(btdata[i][0])
+#         #print(i)
+#         if btdata[i][0] >= time:
+#             break
+#     return btdata[i-1]
 
-def take_closest(myList, myNumber):
-    """
-    Assumes myList is sorted. Returns first lower value to the number.
-    """
-    pos = bisect_left(myList, (myNumber,))
-    if pos == 0:
-        return myList[0]
-    # if pos == len(myList):
-    #     return myList[-1]
-    after, afterPrice = myList[pos-1]
-    return after,afterPrice
+# def take_closest(myList, myNumber):
+#     """
+#     Assumes myList is sorted. Returns first lower value to the number.
+#     """
+#     pos = bisect_left(myList, (myNumber,))
+#     if pos == 0:
+#         return myList[0]
+#     # if pos == len(myList):
+#     #     return myList[-1]
+#     after, afterPrice = myList[pos-1]
+#     return after,afterPrice
 
-print("bisect price")
-print(take_closest(btdata, 1679081913.986395))
-print("stamdard price")
-print(get_last_price(1679081913.986395))
+# print("bisect price")
+# print(take_closest(btdata, 1679081913.986395))
+# print("stamdard price")
+# print(get_last_price(1679081913.986395))
 
 #(1679081919.018929, 27.87), (1679081919.018932, 27.87), (1679081919.018938, 27.87), 
 
@@ -122,61 +122,66 @@ print(get_last_price(1679081913.986395))
 
 
 
-# def get_index_bisect(myList, time):
-#     """
-#     Assumes myList is sorted. Returns first biggeer value to the number.
-#     """
-#     pos = bisect_left(myList, (time,))
-#     if pos == 0:
-#         return myList[0]
-#     if pos == len(myList):
-#         return myList[-1]
-#     return pos
-#     #after, afterPrice = myList[pos]
-#     #return after,afterPrice
+def get_index_bisect(myList, time):
+    """
+    Assumes myList is sorted. Returns first biggeer value to the number.
+    """
+    pos = bisect_left(myList, (time,))
+    if pos == 0:
+        return myList[0]
+    if pos == len(myList):
+        return myList[-1]
+    return pos
+    #after, afterPrice = myList[pos]
+    #return after,afterPrice
 
 
-# def get_index(btdata, time: float):
-#     index_end = None #
-#     range_end = time
-#     print("range_end",range_end)
+def get_index(btdata, time: float):
+    index_end = None #
+    range_end = time
+    print("range_end",range_end)
 
-#     for i in range(len(btdata)):
-#         #print(btdata[i][0])
-#         #print(i)
-#         if btdata[i][0] >= range_end:
-#             index_end = i
-#             break
+    for i in range(len(btdata)):
+        #print(btdata[i][0])
+        #print(i)
+        if btdata[i][0] >= range_end:
+            index_end = i
+            break
 
-#     print("index_end", index_end)
-#     print("oriznuto",btdata[0:index_end+1])
-#     return index_end
+    print("index_end", index_end)
+    print("oriznuto",btdata[0:index_end+1])
+    return index_end
 
-# index_end = get_index(btdata, 1679081919.018939)
-# print("get_index", index_end)
-# index_end = get_index_bisect(btdata, 1679081919.018939)
-# print("get_index_bisect", index_end)
-# new_range = btdata[0:index_end+1]
+index_end = get_index(btdata, 1679081919.018939)
+print("get_index", index_end)
+index_end = get_index_bisect(btdata, 1679081919.018939)
+print("get_index_bisect", index_end)
+new_range = btdata[0:index_end+1]
 
-# print("novy rozsah?", len(new_range))
-# print("puvodni pole", len(btdata))
+print("novy rozsah?", len(new_range))
+print("puvodni pole", len(btdata))
 
-# #LIMIT FILL - BUY
-# submitted_at: float = 1679081914.739644
-# limit_price: float = 27.865
-# fill_time = None
-# for i in new_range:
-#     #print(i)
-#     ##najde prvni nejvetsi čas vetsi nez minfill a majici
-#     ## pro LIMITku uděláme nějaký spešl BT_DELAY.LIMIT_OFFSET, aby se nevyplnilo hned jako prvni s touto cenou 
-#     ## tzn. o kolik se prumerne vyplni limitka pozdeji
-#     if float(i[0]) > float(float(submitted_at) + float(0.020)) and i[1] <= limit_price:
-#         #(1679081919.381649, 27.88)
-#         print(i)
-#         fill_time = i[0]
-#         print("FILL LIMIT BUY at", fill_time, "at",i[1])
-#         break
-# if not fill_time: print("NO FILL for ", limit_price)
+#LIMIT FILL - BUY
+submitted_at: float = 1679081914.739644
+limit_price: float = 27.865
+fill_time = None
+for index, i in enumerate(new_range):
+#for i in new_range:
+    #print(i)
+    ##najde prvni nejvetsi čas vetsi nez minfill a majici
+    ## pro LIMITku uděláme nějaký spešl BT_DELAY.LIMIT_OFFSET, aby se nevyplnilo hned jako prvni s touto cenou 
+    ## tzn. o kolik se prumerne vyplni limitka pozdeji
+    if float(i[0]) > float(float(submitted_at) + float(0.020)) and i[1] <= limit_price:
+        #(1679081919.381649, 27.88)
+        print("pět předtím",new_range[index-5:index])
+        print(i)
+        print("pět potom",new_range[index+1:index+6])
+        # print(index)
+        fill_time = i[0]
+        ##zalogovat fill time
+        print("FILL LIMIT BUY at", fill_time, "at",i[1])
+        break
+if not fill_time: print("NO FILL for ", limit_price)
 
 # #LIMIT FILL - SELL
 # for i in new_range:

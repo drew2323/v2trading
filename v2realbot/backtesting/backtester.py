@@ -43,9 +43,10 @@ from v2realbot.common.model import TradeUpdate, Order
 #from rich import print
 import threading
 import asyncio
-from v2realbot.config import BT_DELAYS, DATA_DIR
+from v2realbot.config import BT_DELAYS, DATA_DIR, FILL_CONDITION_BUY_LIMIT, FILL_CONDITION_SELL_LIMIT, FILL_LOG_SURROUNDING_TRADES, FILL_CONS_TRADES_REQUIRED
 from v2realbot.utils.utils import AttributeDict, ltp, zoneNY, trunc, count_decimals,print
 from v2realbot.utils.tlog import tlog
+from v2realbot.enums.enums import FillCondition
 from datetime import datetime, timedelta
 import pandas as pd
 #import matplotlib.pyplot as plt
@@ -192,7 +193,8 @@ class Backtester:
 
         #TEST zkusime to nemazat, jak ovlivni performance
         #Mazeme, jinak je to hruza
-        del self.btdata[0:index_end-2]
+        #nechavame na konci trady, které muzeme potrebovat pro consekutivni pravidlo
+        del self.btdata[0:index_end-2-FILL_CONS_TRADES_REQUIRED]
         #ic("after delete",len(self.btdata[0:index_end]))
     
         if changes: return 1
@@ -217,29 +219,63 @@ class Backtester:
 
         if o.order_type == OrderType.LIMIT:
             if o.side == OrderSide.BUY:
-                for i in work_range:
+                for index, i in enumerate(work_range):
                 #print(i)
                 ##najde prvni nejvetsi čas vetsi nez minfill a majici odpovídající cenu
                 ## pro LIMITku nejspíš přidat BT_DELAY.LIMIT_OFFSET, aby se nevyplnilo hned jako prvni s touto cenou
                 ## offest by se pocital od nize nalezeneho casu, zvetsil by ho o LIMIT_OFFSET a zjistil, zda by
                 ##v novem case doslo take k plneni a tam ho vyplnil. Uvidime az jestli bude aktualni prilis optimisticke.
                 ## TBD zjistit na LIVE jaky je tento offset
-                    if float(i[0]) > float(order_min_fill_time+BT_DELAYS.limit_order_offset) and i[1] <= o.limit_price:
+
+                    #TODO pridat pokud je EXECUTION_DEBUG zalogování okolnich tradu (5 z kazde strany) od toho, který triggeroval plnění
+                    #TODO pridat jako dalsi nastavovaci atribut pocet tradu po ktere musi byt cena zde (aby to nevyplnil knot high)
+
+                    #NASTVENI PODMINEK PLNENI
+                    fast_fill_condition = i[1] <= o.limit_price
+                    slow_fill_condition = i[1] < o.limit_price
+                    if FILL_CONDITION_BUY_LIMIT == FillCondition.FAST:
+                        fill_condition = fast_fill_condition
+                    elif FILL_CONDITION_BUY_LIMIT == FillCondition.SLOW:
+                        fill_condition = slow_fill_condition
+                    else:
+                        print("unknow fill condition")
+                        return -1
+
+                    if float(i[0]) > float(order_min_fill_time+BT_DELAYS.limit_order_offset) and fill_condition:
                         #(1679081919.381649, 27.88)
                         ic(i)
                         fill_time = i[0]
                         fill_price = i[1]
                         print("FILL LIMIT BUY at", fill_time, datetime.fromtimestamp(fill_time).astimezone(zoneNY), "at",i[1])
+                        if FILL_LOG_SURROUNDING_TRADES != 0:
+                            #TODO loguru
+                            print("FILL SURR TRADES: before",work_range[index-FILL_LOG_SURROUNDING_TRADES:index])
+                            print("FILL SURR TRADES: after",work_range[index+1:index+FILL_LOG_SURROUNDING_TRADES+1])
                         break
             else:
-                for i in work_range:
+                for index, i in enumerate(work_range):
                 #print(i)
-                    if float(i[0]) > float(order_min_fill_time+BT_DELAYS.limit_order_offset) and i[1] >= o.limit_price:
+                    #NASTVENI PODMINEK PLNENI
+                    fast_fill_condition = i[1] >= o.limit_price
+                    slow_fill_condition = i[1] > o.limit_price
+                    if FILL_CONDITION_SELL_LIMIT == FillCondition.FAST:
+                        fill_condition = fast_fill_condition
+                    elif FILL_CONDITION_SELL_LIMIT == FillCondition.SLOW:
+                        fill_condition = slow_fill_condition
+                    else:
+                        print("unknown fill condition")
+                        return -1
+
+                    if float(i[0]) > float(order_min_fill_time+BT_DELAYS.limit_order_offset) and fill_condition:
                         #(1679081919.381649, 27.88)
                         ic(i)
                         fill_time = i[0]
                         fill_price = i[1]
                         print("FILL LIMIT SELL at", fill_time, datetime.fromtimestamp(fill_time).astimezone(zoneNY), "at",i[1])
+                        if FILL_LOG_SURROUNDING_TRADES != 0:
+                            #TODO loguru
+                            print("FILL SELL SURR TRADES: before",work_range[index-FILL_LOG_SURROUNDING_TRADES:index])
+                            print("FILL SELL SURR TRADES: after",work_range[index+1:index+FILL_LOG_SURROUNDING_TRADES+1])
                         break
         
         elif o.order_type == OrderType.MARKET:
@@ -410,9 +446,9 @@ class Backtester:
             reserved = 0
             #with lock:
             for o in self.open_orders:
-                if o.qty == OrderSide.SELL and o.symbol == symbol:
+                if o.side == OrderSide.SELL and o.symbol == symbol and o.canceled_at is None:
                     reserved += o.qty
-            #print("blokovano v open orders pro sell: ", reserved)
+                print("blokovano v open orders pro sell: ", reserved)
             
             if int(self.account[symbol][0]) - reserved - int(size) < 0:
                 print("not enough shares having",self.account[symbol][0],"reserved",reserved,"available",int(self.account[symbol][0]) - reserved,"selling",size)
@@ -423,10 +459,10 @@ class Backtester:
             reserved = 0
             #with lock:
             for o in self.open_orders:
-                if o.qty == OrderSide.BUY:
+                if o.side == OrderSide.BUY and o.canceled_at is None:
                     cena = o.limit_price if o.limit_price else self.get_last_price(time, o.symbol)
                     reserved += o.qty * cena
-                #print("blokovano v open orders: ", reserved)
+                    print("blokovano v open orders: ", reserved)
 
             cena = price if price else self.get_last_price(time, self.symbol)
             if (self.cash - reserved - float(int(size)*float(cena))) < 0:
@@ -441,6 +477,7 @@ class Backtester:
                     status = OrderStatus.ACCEPTED,
                     side=side,
                     qty=int(size),
+                    filled_qty=0,
                     limit_price=(float(price) if price else None))
         
         self.open_orders.append(order)

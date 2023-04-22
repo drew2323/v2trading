@@ -12,6 +12,16 @@ class Order:
         self.filled_time = filled_time 
         self.limit_price = limit_price
 
+
+class FillCondition(Enum):
+    """
+    Execution settings:
+        fast = pro vyplneni limi orderu musi byt cena stejne
+        slow = vetsi (prip. mensi pro sell)
+        TBD nejspis pridat jeste stredni cestu - musi byt stejna
+    """
+    FAST = "fast"
+    SLOW = "slow"
 class Account(Enum):
     """
     Accounts - keys to config

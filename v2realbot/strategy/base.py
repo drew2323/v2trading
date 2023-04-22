@@ -334,6 +334,7 @@ class Strategy:
     ##kroky po iteraci
     def after_iteration(self, item):
         
+        #DAT DO VNORENE FUNKCE
         ##check if real time chart is requested
         ##posilame dict s objekty: bars, trades podle cbaru, a dale indicators naplnene time a pripadnymi identifikatory (EMA)
         if self.rtqueue is not None:
@@ -389,7 +390,9 @@ class Strategy:
             #cleaning iterlog lsit
             #TODO pridat cistku i mimo RT blok
             self.state.iter_log_list = []
-
+        else:
+            #mazeme logy pokud neni na ws pozadovano
+            self.state.iter_log_list = []
 
     # inicializace poplatna typu strategie (např. u LIMITu dotažení existující limitky)
     def strat_init(self):
@@ -502,4 +505,6 @@ class StrategyState:
         else:
             row = dict(time=self.time, event=e, message=msg, details=kwargs)
         self.iter_log_list.append(row)
+        row["name"] = self.name
         print(row)
+        #TBD mozna odsud to posilat do nejakeho struct logger jako napr. structlog

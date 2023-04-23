@@ -16,6 +16,24 @@ import tomli
 from v2realbot.config import DATA_DIR, QUIET_MODE
 import requests
 from uuid import UUID
+from enum import Enum
+#from v2realbot.enums.enums import Order
+from v2realbot.common.model import Order, TradeUpdate
+
+def safe_get(collection, key, default=None):
+    """Get values from a collection without raising errors"""
+
+    try:
+        return collection.get(key, default)
+    except TypeError:
+        pass
+
+    try:
+        return collection[key]
+    except (IndexError, TypeError):
+        pass
+
+    return default
 
 def send_to_telegram(message):
     apiToken = '5836666362:AAGPuzwp03tczMQTwTBiHW6VsZZ-1RCMAEE'
@@ -38,6 +56,12 @@ def json_serial(obj):
         return obj.timestamp()
     if isinstance(obj, UUID):
         return str(obj)
+    if isinstance(obj, Enum):
+        return str(obj)
+    if type(obj) is Order:
+        return obj.__dict__
+    if type(obj) is TradeUpdate:
+        return obj.__dict__
     raise TypeError (str(obj)+"Type %s not serializable" % type(obj))
 
 def parse_toml_string(tomlst: str):

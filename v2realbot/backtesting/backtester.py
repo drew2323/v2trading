@@ -43,8 +43,8 @@ from v2realbot.common.model import TradeUpdate, Order
 #from rich import print
 import threading
 import asyncio
-from v2realbot.config import BT_DELAYS, DATA_DIR, FILL_CONDITION_BUY_LIMIT, FILL_CONDITION_SELL_LIMIT, FILL_LOG_SURROUNDING_TRADES, FILL_CONS_TRADES_REQUIRED
-from v2realbot.utils.utils import AttributeDict, ltp, zoneNY, trunc, count_decimals,print
+from v2realbot.config import BT_DELAYS, DATA_DIR, BT_FILL_CONDITION_BUY_LIMIT, BT_FILL_CONDITION_SELL_LIMIT, BT_FILL_LOG_SURROUNDING_TRADES, BT_FILL_CONS_TRADES_REQUIRED
+from v2realbot.utils.utils import AttributeDict, ltp, zoneNY, trunc, count_decimals, print
 from v2realbot.utils.tlog import tlog
 from v2realbot.enums.enums import FillCondition
 from datetime import datetime, timedelta
@@ -194,7 +194,7 @@ class Backtester:
         #TEST zkusime to nemazat, jak ovlivni performance
         #Mazeme, jinak je to hruza
         #nechavame na konci trady, které muzeme potrebovat pro consekutivni pravidlo
-        del self.btdata[0:index_end-2-FILL_CONS_TRADES_REQUIRED]
+        del self.btdata[0:index_end-2-BT_FILL_CONS_TRADES_REQUIRED]
         #ic("after delete",len(self.btdata[0:index_end]))
     
         if changes: return 1
@@ -235,9 +235,9 @@ class Backtester:
                     #NASTVENI PODMINEK PLNENI
                     fast_fill_condition = i[1] <= o.limit_price
                     slow_fill_condition = i[1] < o.limit_price
-                    if FILL_CONDITION_BUY_LIMIT == FillCondition.FAST:
+                    if BT_FILL_CONDITION_BUY_LIMIT == FillCondition.FAST:
                         fill_condition = fast_fill_condition
-                    elif FILL_CONDITION_BUY_LIMIT == FillCondition.SLOW:
+                    elif BT_FILL_CONDITION_BUY_LIMIT == FillCondition.SLOW:
                         fill_condition = slow_fill_condition
                     else:
                         print("unknow fill condition")
@@ -245,17 +245,17 @@ class Backtester:
 
                     if float(i[0]) > float(order_min_fill_time+BT_DELAYS.limit_order_offset) and fill_condition:
                         consec_cnt += 1
-                        if consec_cnt == FILL_CONS_TRADES_REQUIRED:
+                        if consec_cnt == BT_FILL_CONS_TRADES_REQUIRED:
 
                             #(1679081919.381649, 27.88)
                             ic(i)
                             fill_time = i[0]
                             fill_price = i[1]
                             print("FILL LIMIT BUY at", fill_time, datetime.fromtimestamp(fill_time).astimezone(zoneNY), "at",i[1])
-                            if FILL_LOG_SURROUNDING_TRADES != 0:
+                            if BT_FILL_LOG_SURROUNDING_TRADES != 0:
                                 #TODO loguru
-                                print("FILL SURR TRADES: before",work_range[index-FILL_LOG_SURROUNDING_TRADES:index])
-                                print("FILL SURR TRADES: fill and after",work_range[index:index+FILL_LOG_SURROUNDING_TRADES])
+                                print("FILL SURR TRADES: before",work_range[index-BT_FILL_LOG_SURROUNDING_TRADES:index])
+                                print("FILL SURR TRADES: fill and after",work_range[index:index+BT_FILL_LOG_SURROUNDING_TRADES])
                             break
                     else:
                         consec_cnt = 0
@@ -266,9 +266,9 @@ class Backtester:
                     #NASTVENI PODMINEK PLNENI
                     fast_fill_condition = i[1] >= o.limit_price
                     slow_fill_condition = i[1] > o.limit_price
-                    if FILL_CONDITION_SELL_LIMIT == FillCondition.FAST:
+                    if BT_FILL_CONDITION_SELL_LIMIT == FillCondition.FAST:
                         fill_condition = fast_fill_condition
-                    elif FILL_CONDITION_SELL_LIMIT == FillCondition.SLOW:
+                    elif BT_FILL_CONDITION_SELL_LIMIT == FillCondition.SLOW:
                         fill_condition = slow_fill_condition
                     else:
                         print("unknown fill condition")
@@ -276,16 +276,16 @@ class Backtester:
 
                     if float(i[0]) > float(order_min_fill_time+BT_DELAYS.limit_order_offset) and fill_condition:
                         consec_cnt += 1
-                        if consec_cnt == FILL_CONS_TRADES_REQUIRED:
+                        if consec_cnt == BT_FILL_CONS_TRADES_REQUIRED:
                             #(1679081919.381649, 27.88)
                             ic(i)
                             fill_time = i[0]
                             fill_price = i[1]
                             print("FILL LIMIT SELL at", fill_time, datetime.fromtimestamp(fill_time).astimezone(zoneNY), "at",i[1])
-                            if FILL_LOG_SURROUNDING_TRADES != 0:
+                            if BT_FILL_LOG_SURROUNDING_TRADES != 0:
                                 #TODO loguru
-                                print("FILL SELL SURR TRADES: before",work_range[index-FILL_LOG_SURROUNDING_TRADES:index])
-                                print("FILL SELL SURR TRADES: fill and after",work_range[index:index+FILL_LOG_SURROUNDING_TRADES])
+                                print("FILL SELL SURR TRADES: before",work_range[index-BT_FILL_LOG_SURROUNDING_TRADES:index])
+                                print("FILL SELL SURR TRADES: fill and after",work_range[index:index+BT_FILL_LOG_SURROUNDING_TRADES])
                             break
                     else:
                         consec_cnt = 0

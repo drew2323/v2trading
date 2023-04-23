@@ -222,12 +222,13 @@ def save_history(id: UUID, st: object, runner: Runner, reason: str = None):
     #zkousime precist profit z objektu
     try:
         profit = st.state.profit
+        trade_count = len(st.tradeList)
     except Exception as e:
         profit = str(e)
     
     for i in db.stratins:
         if str(i.id) == str(id):
-            i.history += "START:"+str(runner.run_started)+"STOP:"+str(runner.run_stopped)+"ACC:"+runner.run_account.value+"M:"+runner.run_mode.value+"PROFIT:"+str(profit)+ "REASON:" + str(reason)
+            i.history += "START:"+str(runner.run_started)+"STOP:"+str(runner.run_stopped)+"ACC:"+runner.run_account.value+"M:"+runner.run_mode.value+"PROFIT:"+str(round(profit,2))+ "TradeCNT:"+str(trade_count) + "REASON:" + str(reason)
             #i.history += str(runner.__dict__)+"<BR>"
             db.save()
  

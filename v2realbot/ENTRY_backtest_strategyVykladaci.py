@@ -4,7 +4,7 @@ from v2realbot.strategy.base import StrategyState
 from v2realbot.strategy.StrategyOrderLimitVykladaci import StrategyOrderLimitVykladaci
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, OrderSide
 from v2realbot.indicators.indicators import ema
-from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, dict_replace_value, print
+from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, dict_replace_value, print, safe_get
 from datetime import datetime
 from icecream import install, ic
 #from rich import print
@@ -51,6 +51,7 @@ stratvars = AttributeDict(maxpozic = 400,
                           slope_lookback = 300,
                           lookback_offset = 20,
                           minimum_slope = -0.05,
+                          first_buy_market = False
                           )
 ##toto rozparsovat a strategii spustit stejne jako v main
 toml_string = """
@@ -129,7 +130,12 @@ def next(data, state: StrategyState):
         price = last_price
         state.ilog(e="BUY Vykladame", msg="first price"+str(price) + "pozic:"+str(vykladka), curve=curve, ema=state.indicators.ema[-1], trend=state.vars.Trend, price=price, vykladka=vykladka)
         ##prvni se vyklada na aktualni cenu, další jdou podle krivky, nula v krivce zvyšuje množství pro následující iteraci
-        state.buy_l(price=price, size=qty)
+        
+        ##VAR - na zaklade conf. muzeme jako prvni posilat MARKET
+        if safe_get(state.vars, "first_buy_market") == True:
+            state.buy(size=qty)
+        else:
+            state.buy_l(price=price, size=qty)
         print("prvni limitka na aktuální cenu. Další podle křivky", price, qty)
         for i in range(0,vykladka-1):
             price = price2dec(float(price - curve[i]))

@@ -17,6 +17,8 @@ from v2realbot.interfaces.backtest_interface import BacktestInterface
 from v2realbot.interfaces.live_interface import LiveInterface
 from alpaca.trading.enums import OrderSide
 from v2realbot.backtesting.backtester import Backtester
+from alpaca.trading.models import TradeUpdate
+from alpaca.trading.enums import TradeEvent, OrderStatus
 from threading import Event, current_thread
 import json
 
@@ -48,6 +50,7 @@ class Strategy:
         self.account = account
         self.key = get_key(mode=self.mode, account=self.account)
         self.rtqueue = None
+        self.tradeList = []
 
 
         #TODO predelat na dynamické queues
@@ -308,7 +311,7 @@ class Strategy:
     #for order updates from LIVE or BACKTEST
     #updates are sent only for SYMBOL of strategy
 
-    async def order_updates(self, data):
+    async def order_updates(self, data: TradeUpdate):
         if self.mode == Mode.LIVE or self.mode == Mode.PAPER:
             now = datetime.now().timestamp()
         else:
@@ -316,10 +319,16 @@ class Strategy:
 
         print("NOTIFICATION ARRIVED AT:", now)
 
+        #pokud jde o FILL zapisujeme do self.trades a notifikujeme
+        if data.event == TradeEvent.FILL:
+            self.tradeList.append(data)
+                
         ##TradeUpdate objekt better?
         order: Order = data.order
-        if order.side == OrderSide.BUY: await self.orderUpdateBuy(data)
-        if order.side == OrderSide.SELL: await self.orderUpdateSell(data)
+        if order.side == OrderSide.BUY:
+            await self.orderUpdateBuy(data)
+        if order.side == OrderSide.SELL:
+            await self.orderUpdateSell(data)
 
     async def orderUpdateBuy(self, data):
         print(data)

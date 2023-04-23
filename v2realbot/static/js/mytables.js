@@ -1,6 +1,35 @@
 
 API_KEY = localStorage.getItem("api-key")
 
+//KEY shortcuts
+Mousetrap.bind('e', function() { 
+    $( "#button_edit" ).trigger( "click" );
+});
+Mousetrap.bind('a', function() { 
+    $( "#button_add" ).trigger( "click" );
+});
+Mousetrap.bind('d', function() { 
+    $( "#button_dup" ).trigger( "click" );
+});
+Mousetrap.bind('c', function() { 
+    $( "#button_copy" ).trigger( "click" );
+});
+Mousetrap.bind('r', function() { 
+    $( "#button_run" ).trigger( "click" );
+});
+Mousetrap.bind('p', function() { 
+    $( "#button_pause" ).trigger( "click" );
+});
+Mousetrap.bind('s', function() { 
+    $( "#button_stop" ).trigger( "click" );
+});
+Mousetrap.bind('j', function() { 
+    $( "#button_add_json" ).trigger( "click" );
+});
+Mousetrap.bind('x', function() { 
+    $( "#button_delete" ).trigger( "click" );
+});
+
 //on button
 function store_api_key(event) {
     key = document.getElementById("api-key").value;

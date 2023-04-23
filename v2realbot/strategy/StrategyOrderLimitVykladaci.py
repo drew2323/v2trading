@@ -1,15 +1,17 @@
 from v2realbot.strategy.base import Strategy
-from v2realbot.utils.utils import parse_alpaca_timestamp, ltp, AttributeDict,trunc,price2dec, zoneNY, print
+from v2realbot.utils.utils import parse_alpaca_timestamp, ltp, AttributeDict,trunc,price2dec, zoneNY, print, json_serial
 from v2realbot.utils.tlog import tlog, tlog_exception
 from v2realbot.enums.enums import Mode, Order, Account
 from alpaca.trading.models import TradeUpdate
 from alpaca.trading.enums import TradeEvent, OrderStatus
 from v2realbot.indicators.indicators import ema
+import json
 #from rich import print
 from random import randrange
 from alpaca.common.exceptions import APIError
 import copy
 from threading import Event
+
 
 
 class StrategyOrderLimitVykladaci(Strategy):
@@ -18,7 +20,8 @@ class StrategyOrderLimitVykladaci(Strategy):
 
     async def orderUpdateBuy(self, data: TradeUpdate):
         o: Order = data.order
-        self.state.ilog(e="Příchozí BUY notifikace", msg="order status:"+o.status, status=o.status, orderid=str(o.id))
+        ##nejak to vymyslet, aby se dal poslat cely Trade a serializoval se
+        self.state.ilog(e="Příchozí BUY notifikace", msg="order status:"+o.status, trade=json.loads(json.dumps(data, default=json_serial)))
         if o.status == OrderStatus.FILLED or o.status == OrderStatus.CANCELED:
             
             #pokud existuje objednavka v pendingbuys - vyhodime ji
@@ -68,6 +71,7 @@ class StrategyOrderLimitVykladaci(Strategy):
 
     async def orderUpdateSell(self, data: TradeUpdate): 
 
+        self.state.ilog(e="Příchozí SELL notifikace", msg="order status:"+data.order.status, trade=json.loads(json.dumps(data, default=json_serial)))
         #PROFIT
         #profit pocitame z TradeUpdate.price a TradeUpdate.qty - aktualne provedene mnozstvi a cena
         #naklady vypocteme z prumerne ceny, kterou mame v pozicich
@@ -117,19 +121,19 @@ class StrategyOrderLimitVykladaci(Strategy):
     def buy(self, size = None, repeat: bool = False):
         print("overriden method to size&check maximum ")
         if int(self.state.positions) >= self.state.vars.maxpozic:
-            self.state.ilog(e="buy Maxim mnozstvi naplneno", curr_positions=self.state.positions)
+            self.state.ilog(e="buy Maxim mnozstvi naplneno", positions=self.state.positions)
             print("max mnostvi naplneno")
             return 0
         if size is None:
             sizer = self.state.vars.chunk
         else:
             sizer = size
+
         self.state.blockbuy = 1
         self.state.vars.lastbuyindex = self.state.bars['index'][-1]
-        ic(self.state.blockbuy)
-        ic(self.state.vars.lastbuyindex)
+        self.state.ilog(e="send MARKET buy to if", msg="S:"+str(size), ltp=self.state.interface.get_last_price(self.state.symbol))
         return self.state.interface.buy(size=sizer)
-    
+
     def buy_l(self, price: float = None, size = None, repeat: bool = False):
         print("entering overriden BUY")
         if int(self.state.positions) >= self.state.vars.maxpozic:
@@ -139,7 +143,7 @@ class StrategyOrderLimitVykladaci(Strategy):
         if price is None: price=price2dec((self.state.interface.get_last_price(self.symbol)))
         ic(price)
         print("odesilame LIMIT s cenou/qty", price, size)
-        self.state.ilog(e="send buy to if", msg="S:"+str(size)+" P:"+str(price), price=price, size=size)
+        self.state.ilog(e="send LIMIT buy to if", msg="S:"+str(size)+" P:"+str(price), price=price, size=size)
         order = self.state.interface.buy_l(price=price, size=size)
         print("ukladame pendingbuys")
         self.state.vars.pendingbuys[str(order)]=price

@@ -3,7 +3,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from v2realbot.enums.enums import Mode, Account
 from v2realbot.config import WEB_API_KEY
 from datetime import datetime
-from icecream import install, ic
+#from icecream import install, ic
 import os
 from rich import print
 from threading import current_thread
@@ -26,12 +26,12 @@ from threading import Thread
 import asyncio
 #from async io import Queue, QueueEmpty
                    
-install()
-ic.configureOutput(includeContext=True)
-def threadName():
-    return '%s |> ' % str(current_thread().name)
-ic.configureOutput(prefix=threadName)
-ic.disable()
+# install()
+# ic.configureOutput(includeContext=True)
+# def threadName():
+#     return '%s |> ' % str(current_thread().name)
+# ic.configureOutput(prefix=threadName)
+# ic.disable()
 """""   
 Main entry point of the bot. Starts strategies according to config file, each
 in separate thread.

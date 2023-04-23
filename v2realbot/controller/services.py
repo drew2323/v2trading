@@ -222,7 +222,7 @@ def save_history(id: UUID, st: object, runner: Runner, reason: str = None):
     #zkousime precist profit z objektu
     try:
         profit = st.state.profit
-        trade_count = len(st.tradeList)
+        trade_count = len(st.state.tradeList)
     except Exception as e:
         profit = str(e)
     

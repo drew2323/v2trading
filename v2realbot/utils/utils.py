@@ -6,7 +6,6 @@ import pytz
 from dateutil import tz
 from rich import print as richprint
 import decimal
-from icecream import ic
 from v2realbot.enums.enums import RecordType, Mode, StartBarAlign
 import pickle
 import os
@@ -94,7 +93,7 @@ def print(*args, **kwargs):
     if QUIET_MODE:
         pass
     else:
-        #ic(*args, **kwargs)
+        ####ic(*args, **kwargs)
         richprint(*args, **kwargs)
 
 def price2dec(price: float) -> float:

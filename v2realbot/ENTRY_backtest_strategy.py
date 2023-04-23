@@ -16,10 +16,10 @@ Simple strategie pro test backtesting
 
 def next(data, state: StrategyState):
     print(10*"*","NEXT START",10*"*")
-    ic(state.avgp, state.positions)
-    ic(state.vars.limitka)
-    ic(state.vars.lastbuyindex)
-    ic(data)
+    #ic(state.avgp, state.positions)
+    #ic(state.vars.limitka)
+    #ic(state.vars.lastbuyindex)
+    #ic(data)
     #print("last trade price")
     #print(state.interface.get_last_price("BAC"))
     #print(state.vars.novaprom)
@@ -35,7 +35,7 @@ def next(data, state: StrategyState):
         state.indicators.ema = ema(state.bars.hlcc4, state.vars.MA) #state.bars.vwap
         #trochu prasarna, EMAcko trunc na 3 mista - kdyz se osvedci, tak udelat efektivne
         state.indicators.ema = [trunc(i,3) for i in state.indicators.ema]
-        ic(state.vars.MA, state.vars.Trend, state.indicators.ema[-5:])
+        #ic(state.vars.MA, state.vars.Trend, state.indicators.ema[-5:])
     except Exception as e:
         print("No data for MA yet", str(e))
 
@@ -57,8 +57,8 @@ def next(data, state: StrategyState):
 
     if isfalling(state.indicators.ema,state.vars.Trend) and data['index'] > state.vars.lastbuyindex+state.vars.Trend: #and state.blockbuy == 0
         print("BUY MARKET")
-        ic(data['updated'])
-        ic(state.time)
+        #ic(data['updated'])
+        #ic(state.time)
         state.buy_l()
 
     

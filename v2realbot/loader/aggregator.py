@@ -93,8 +93,8 @@ class TradeAggregator:
 
         #pokud projde TRADE s cenou 0.33% rozdilna oproti predchozi, pak vyhazujeme v ramci cisteni dat (cca 10ticku na 30USD)
         pct_off = 0.33
-        #ic(ltp.price)
-        #ic(ltp.price[symbol])
+        ##ic(ltp.price)
+        ##ic(ltp.price[symbol])
         
         try:
             ltp.price[symbol]

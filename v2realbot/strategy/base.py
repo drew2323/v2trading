@@ -50,7 +50,6 @@ class Strategy:
         self.account = account
         self.key = get_key(mode=self.mode, account=self.account)
         self.rtqueue = None
-        self.tradeList = []
 
 
         #TODO predelat na dynamické queues
@@ -89,7 +88,7 @@ class Strategy:
 
     """Allow client to set LIVE or BACKTEST mode"""
     def set_mode(self, mode: Mode, start: datetime = None, end: datetime = None, cash = None, debug: bool = False):
-        ic(f"mode {mode} selected")
+        #ic(f"mode {mode} selected")
 
         if mode == Mode.BT and (not start or not end):
             print("start/end required")
@@ -171,7 +170,7 @@ class Strategy:
             self.state.time = self.state.last_trade_time + BT_DELAYS.trigger_to_strat
         elif self.mode == Mode.LIVE or self.mode == Mode.PAPER:
             self.state.time = datetime.now().timestamp()
-        ic('time updated')
+        #ic('time updated')
     def strat_loop(self, item):
 
         ##TODO do samostatne funkce
@@ -191,24 +190,25 @@ class Strategy:
         ## BT - execute orders that should have been filled until this time
         ##do objektu backtest controller?
 
-        ic(self.state.time)
+        #ic(self.state.time)
 
         if self.mode == Mode.BT:
-            ic(self.bt.time)
+            self.state.ilog(e="Before BT iter", msg=f"{self.bt.time=}")
             #pozor backtester muze volat order_updates na minuly cas - nastavi si bt.time
             self.bt.execute_orders_and_callbacks(self.state.time)
-            ic(self.bt.time)
+            #ic(self.bt.time)
 
-        ic(self.state.time)
+        #ic(self.state.time)
 
         #volame jeste jednou update_times, kdyby si BT nastavil interfaces na jiny cas (v ramci callbacku notifikací)
         self.update_times(item)
-        ic(self.state.time)
+        #ic(self.state.time)
 
         if self.mode == Mode.BT:
-            ic(self.bt.time)
-            ic(len(self.btdata))
-            ic(self.bt.cash)
+            self.state.ilog(e="After BT iter", msg=f"{self.bt.time=}")
+            #ic(self.bt.time)
+            #ic(len(self.btdata))
+            #ic(self.bt.cash)
 
         self.save_item_history(item)
         #nevyhodit ten refresh do TypeLimit? asi ANO
@@ -321,7 +321,7 @@ class Strategy:
 
         #pokud jde o FILL zapisujeme do self.trades a notifikujeme
         if data.event == TradeEvent.FILL:
-            self.tradeList.append(data)
+            self.state.tradeList.append(data)
                 
         ##TradeUpdate objekt better?
         order: Order = data.order
@@ -342,9 +342,16 @@ class Strategy:
 
     ##kroky po iteraci
     def after_iteration(self, item):
-        
-        #DAT DO VNORENE FUNKCE
-        ##check if real time chart is requested
+        #sends real time updates to frontend if requested
+        self.send_rt_updates(item)       
+ 
+
+    # inicializace poplatna typu strategie (např. u LIMITu dotažení existující limitky)
+    def strat_init(self):
+        pass
+
+    def send_rt_updates(self, item):
+        ##if real time chart is requested
         ##posilame dict s objekty: bars, trades podle cbaru, a dale indicators naplnene time a pripadnymi identifikatory (EMA)
         if self.rtqueue is not None:
             rt_out = dict()
@@ -402,10 +409,6 @@ class Strategy:
         else:
             #mazeme logy pokud neni na ws pozadovano
             self.state.iter_log_list = []
-
-    # inicializace poplatna typu strategie (např. u LIMITu dotažení existující limitky)
-    def strat_init(self):
-        pass
 
     @staticmethod
     def append_bar(history_reference, new_bar: dict):
@@ -507,13 +510,20 @@ class StrategyState:
         self.cancel_pending_buys = None
         self.iter_log_list = []
         self.profit = 0
+        self.tradeList = []
     
     def ilog(self, e: str = None, msg: str = None, **kwargs):
         if e is None:
-            row = dict(time=self.time, message=msg, details=kwargs)
+            if msg is None:
+                row = dict(time=self.time, details=kwargs)
+            else:
+                row = dict(time=self.time, message=msg, details=kwargs)
         else:
-            row = dict(time=self.time, event=e, message=msg, details=kwargs)
+            if msg is None:
+                row = dict(time=self.time, event=e, details=kwargs)
+            else:
+                row = dict(time=self.time, event=e, message=msg, details=kwargs)
         self.iter_log_list.append(row)
         row["name"] = self.name
         print(row)
-        #TBD mozna odsud to posilat do nejakeho struct logger jako napr. structlog
+        #TBD mozna odsud to posilat do nejakeho struct logger jako napr. structlog nebo loguru, separatni file podle name

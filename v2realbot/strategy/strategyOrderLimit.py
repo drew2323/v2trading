@@ -31,7 +31,7 @@ class StrategyOrderLimit(Strategy):
 
     async def orderUpdateBuy(self, data: TradeUpdate):
         if data.event == TradeEvent.FILL or data.event == TradeEvent.PARTIAL_FILL:
-            ic("vstupujeme do orderupdatebuy")
+            #ic("vstupujeme do orderupdatebuy")
             print(data)
             o: Order = data.order
             #dostavame zde i celkové akutální množství - ukládáme
@@ -54,18 +54,18 @@ class StrategyOrderLimit(Strategy):
 
     async def orderUpdateSell(self, data: TradeUpdate):
         if data.event == TradeEvent.PARTIAL_FILL:
-            ic("partial fill udpatujeme pozice")
+            #ic("partial fill udpatujeme pozice")
             self.state.avgp, self.state.positions = self.interface.pos()
         elif data.event == TradeEvent.FILL:
             #muzeme znovu nakupovat, mazeme limitku
             #self.state.blockbuy = 0
-            ic("notifikace sell mazeme limitku")
+            #ic("notifikace sell mazeme limitku")
             self.state.vars.limitka = None
             self.state.vars.lastbuyindex = -5
     
     #this parent method is called by strategy just once before waiting for first data
     def strat_init(self):
-        ic("strat INI function")
+        #ic("strat INI function")
         #lets connect method overrides
         self.state.buy = self.buy
         self.state.buy_l = self.buy_l
@@ -82,8 +82,8 @@ class StrategyOrderLimit(Strategy):
             sizer = size
         self.state.blockbuy = 1
         self.state.vars.lastbuyindex = self.state.bars['index'][-1]
-        ic(self.state.blockbuy)
-        ic(self.state.vars.lastbuyindex)
+        #ic(self.state.blockbuy)
+        #ic(self.state.vars.lastbuyindex)
         return self.state.interface.buy(size=sizer)
     
     #pro experiment - nemame zde max mnozstvi
@@ -91,9 +91,9 @@ class StrategyOrderLimit(Strategy):
         print("overriden buy limitka")
         if size is None: size=self.state.vars.chunk
         if price is None: price=trunc(self.state.interface.get_last_price(self.symbol)-0.01,2)
-        ic(price)
+        #ic(price)
         self.state.blockbuy = 1
         self.state.vars.lastbuyindex = self.state.bars['index'][-1]
-        ic(self.state.blockbuy)
-        ic(self.state.vars.lastbuyindex)
+        #ic(self.state.blockbuy)
+        #ic(self.state.vars.lastbuyindex)
         return self.state.interface.buy_l(price=price, size=size)

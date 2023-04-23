@@ -15,7 +15,7 @@ class StrategyOrderLimitWatched(Strategy):
 
     async def orderUpdateBuy(self, data: TradeUpdate):
         if data.event == TradeEvent.FILL:
-            ic("orderbuyfill callback")
+            #ic("orderbuyfill callback")
             print(data)
             o: Order = data.order
             #dostavame zde i celkové akutální množství - ukládáme
@@ -30,11 +30,11 @@ class StrategyOrderLimitWatched(Strategy):
             self.state.positions = data.position_qty
             self.state.vars.watched = None
             self.state.vars.wait = False
-            ic("SELL notifikace callback - prodano - muzeme znovu nakupovat")
+            #ic("SELL notifikace callback - prodano - muzeme znovu nakupovat")
     
     #this parent method is called by strategy just once before waiting for first data
     def strat_init(self):
-        ic("strat INI function")
+        #ic("strat INI function")
         #lets connect method overrides
         self.state.buy = self.buy
         self.state.buy_l = self.buy_l
@@ -51,8 +51,8 @@ class StrategyOrderLimitWatched(Strategy):
             sizer = size
         self.state.blockbuy = 1
         self.state.vars.lastbuyindex = self.state.bars['index'][-1]
-        ic(self.state.blockbuy)
-        ic(self.state.vars.lastbuyindex)
+        #ic(self.state.blockbuy)
+        #ic(self.state.vars.lastbuyindex)
         return self.state.interface.buy(size=sizer)
     
     #pro experiment - nemame zde max mnozstvi
@@ -60,9 +60,9 @@ class StrategyOrderLimitWatched(Strategy):
         print("overriden buy limitka")
         if size is None: size=self.state.vars.chunk
         if price is None: price=trunc(self.state.interface.get_last_price(self.symbol)-0.01,2)
-        ic(price)
+        #ic(price)
         self.state.blockbuy = 1
         self.state.vars.lastbuyindex = self.state.bars['index'][-1]
-        ic(self.state.blockbuy)
-        ic(self.state.vars.lastbuyindex)
+        #ic(self.state.blockbuy)
+        #ic(self.state.vars.lastbuyindex)
         return self.state.interface.buy_l(price=price, size=size)

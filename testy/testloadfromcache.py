@@ -56,14 +56,14 @@ for day in cal_dates:
             #odesíláme do queue
             #jinak pass
     else:
-        ic("cache not exists")
+        ##"cache not exists")
         #denni file není - loadujeme den z Alpacy
         #ukládáme do cache s daily_file jako název
             #pokud jde o dnešní den a nebyl konec trhu tak cache neukládáme
         if datetime.now() < day.close:
             print("not saving the cache, market still open today")
-            ic(datetime.now())
-            ic(day.close)
+            #ic(datetime.now())
+            #ic(day.close)
         else:
             pass
             #save to daily cache file curr_dir+'/'+daily_file

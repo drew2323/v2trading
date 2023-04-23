@@ -82,7 +82,7 @@ function connect(event) {
 
 
                 logcnt++;
-                row = '<div data-toggle="collapse" data-target="#rec'+logcnt+'">'+logLine.time + " " + logLine.event + ' - '+ logLine.message+'</div>'
+                row = '<div data-toggle="collapse" data-target="#rec'+logcnt+'">'+logLine.time + " " + logLine.event + ' - '+ (logLine.message == undefined ? "" : logLine.message) +'</div>'
                 str_row = JSON.stringify(logLine.details, null, 2)
                 row_detail = '<div id="rec'+logcnt+'" data-toggle="collapse" data-target="#rec'+logcnt+'"class="collapse pidi"><pre>' + str_row + '</pre></div>'
 

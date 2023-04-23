@@ -63,7 +63,7 @@ class Trade_Offline_Streamer(Thread):
         for i in self.streams:
             self.uniquesymbols.add(i.symbol)
 
-        ic(self.uniquesymbols)
+        #ic(self.uniquesymbols)
         ##z unikatnich symbolu naplnime keys pro dictionary
         # for i in self.uniquesymbols:
         #     self.to_run
@@ -77,14 +77,14 @@ class Trade_Offline_Streamer(Thread):
         for i in self.streams:
             self.to_run[i.symbol].append(i)
         
-        ic(self.to_run)
+        #ic(self.to_run)
         #prepare data
         symbpole = []
         for key in self.uniquesymbols:
             symbpole.append(key)
         #print(symbpole))
-        ic(self.time_from.astimezone(tz=zoneNY))
-        ic(self.time_to.astimezone(tz=zoneNY))
+        #ic(self.time_from.astimezone(tz=zoneNY))
+        #ic(self.time_to.astimezone(tz=zoneNY))
 
         ##PREPSAT jednoduse tak, aby podporovalo jen jeden symbol
         #agregator2list bude mit vstup list
@@ -92,7 +92,7 @@ class Trade_Offline_Streamer(Thread):
         #REFACTOR STARTS HERE
         calendar_request = GetCalendarRequest(start=self.time_from,end=self.time_to)
         cal_dates = self.clientTrading.get_calendar(calendar_request)
-        ic(cal_dates)
+        #ic(cal_dates)
         #zatim podpora pouze main session
 
         #zatim podpora pouze 1 symbolu, predelat na froloop vsech symbolu ze symbpole
@@ -134,8 +134,8 @@ class Trade_Offline_Streamer(Thread):
                 #pokud jde o dnešní den a nebyl konec trhu tak cache neukládáme
                 if day.open < datetime.now().astimezone(zoneNY) < day.close:
                     print("not saving the cache, market still open today")
-                    ic(datetime.now().astimezone(zoneNY))
-                    ic(day.open, day.close)
+                    #ic(datetime.now().astimezone(zoneNY))
+                    #ic(day.open, day.close)
                 else:
                     with open(file_path, 'wb') as fp:
                         pickle.dump(tradesResponse, fp)
@@ -157,13 +157,13 @@ class Trade_Offline_Streamer(Thread):
                 wait_for_q = False
             else:
                 wait_for_q = True
-            ic(wait_for_q)
+            #ic(wait_for_q)
 
         # v tradesResponse je dict = Trades identifikovane symbolem
             for symbol in tradesResponse:
                 #print(tradesResponse[symbol])
                 celkem = len(tradesResponse[symbol])
-                ic(symbol, celkem)
+                #ic(symbol, celkem)
                 #print("POCET: ", celkem)
                 cnt = 1
                 
@@ -173,13 +173,13 @@ class Trade_Offline_Streamer(Thread):
                     #protoze je zde cely den, poustime dal, jen ty relevantni
                     #pokud je    start_time < trade < end_time
                     #datetime.fromtimestamp(parse_alpaca_timestamp(t['t']))
-                    #ic(t['t'])
+                    ##ic(t['t'])
                     if self.time_from < to_datetime(t['t']) < self.time_to:
                         #poustime dal, jinak ne
                         if wait_for_q:
                             if 'Q' not in t['c']: continue
                             else:
-                                ic("Q found poustime dal")
+                                #ic("Q found poustime dal")
                                 wait_for_q = False
                         
                         #homogenizace timestampu s online streamem

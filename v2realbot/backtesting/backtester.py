@@ -126,7 +126,7 @@ class Backtester:
         # print("list before execution", self.open_orders)
 
         if len(self.open_orders) == 0:
-            ic("no pend orders")
+            #ic("no pend orders")
             return 0
 
         changes = 0
@@ -155,10 +155,10 @@ class Backtester:
         #         break
 
         #pracovni list
-        ic("work_range 0:index_end")
-        ic(index_end)
+        #ic("work_range 0:index_end")
+        #ic(index_end)
         work_range = self.btdata[0:index_end]
-        ic(len(work_range))
+        #ic(len(work_range))
         #print("index_end", i)
         #print("oriznuto",self.btdata[0:i+1])
 
@@ -166,36 +166,37 @@ class Backtester:
             #pokud je vyplneny symbol, tak jedeme jen tyto, jinak vsechny
             print(order.id, datetime.timestamp(order.submitted_at), order.symbol, order.side, order.order_type, order.qty, order.limit_price, order.submitted_at)
             if order.canceled_at:
-                ic("deleting canceled order",order.id)
+                #ic("deleting canceled order",order.id)
                 todel.append(order)
             elif not self.symbol or order.symbol == self.symbol:
                 #pricteme mininimalni latency od submittu k fillu
                 if order.submitted_at.timestamp() + BT_DELAYS.sub_to_fill > float(intime):
-                    ic("too soon for",order.id)
+                    print(f"too soon for {order.id}")
                 #try to execute
                 else:
                     #try to execute specific order
                     a = self._execute_order(o = order, intime=intime, work_range=work_range)
                     if a == 1:
-                        ic("EXECUTED")
+                        #ic("EXECUTED")
                         todel.append(order)
                         changes = 1
                     else:
-                        ic("NOT EXECUTED",a)
-        #ic("istodel",todel)
+                        print("NOT EXECUTED {a}")
+                        #ic("NOT EXECUTED",a)
+        ##ic("istodel",todel)
         #vymazu z pending orderu vschny zprocesovane nebo ty na výmaz
         for i in todel:
             self.open_orders.remove(i)
         todel = {}
 
         #tady udelat pripadny ořez self.btdata - priste zaciname od zacatku
-        #ic("before delete", len(self.btdata))
+        ##ic("before delete", len(self.btdata))
 
         #TEST zkusime to nemazat, jak ovlivni performance
         #Mazeme, jinak je to hruza
         #nechavame na konci trady, které muzeme potrebovat pro consekutivni pravidlo
         del self.btdata[0:index_end-2-BT_FILL_CONS_TRADES_REQUIRED]
-        #ic("after delete",len(self.btdata[0:index_end]))
+        ##ic("after delete",len(self.btdata[0:index_end]))
     
         if changes: return 1
         else: return 0 
@@ -214,8 +215,8 @@ class Backtester:
         fill_time = None
         fill_price = None
         order_min_fill_time = o.submitted_at.timestamp() + BT_DELAYS.sub_to_fill
-        ic(order_min_fill_time)
-        ic(len(work_range))
+        #ic(order_min_fill_time)
+        #ic(len(work_range))
 
         if o.order_type == OrderType.LIMIT:
             if o.side == OrderSide.BUY:
@@ -248,7 +249,7 @@ class Backtester:
                         if consec_cnt == BT_FILL_CONS_TRADES_REQUIRED:
 
                             #(1679081919.381649, 27.88)
-                            ic(i)
+                            #ic(i)
                             fill_time = i[0]
                             fill_price = i[1]
                             print("FILL LIMIT BUY at", fill_time, datetime.fromtimestamp(fill_time).astimezone(zoneNY), "at",i[1])
@@ -278,7 +279,7 @@ class Backtester:
                         consec_cnt += 1
                         if consec_cnt == BT_FILL_CONS_TRADES_REQUIRED:
                             #(1679081919.381649, 27.88)
-                            ic(i)
+                            #ic(i)
                             fill_time = i[0]
                             fill_price = i[1]
                             print("FILL LIMIT SELL at", fill_time, datetime.fromtimestamp(fill_time).astimezone(zoneNY), "at",i[1])
@@ -296,7 +297,7 @@ class Backtester:
                 #najde prvni nejvetsi čas vetsi nez minfill
                 if i[0] > float(order_min_fill_time):
                     #(1679081919.381649, 27.88)
-                    ic(i)
+                    #ic(i)
                     fill_time = i[0]
                     fill_price = i[1]
                     print("FILL ",o.side,"MARKET at", fill_time, datetime.fromtimestamp(fill_time).astimezone(zoneNY), "cena", i[1])
@@ -306,7 +307,7 @@ class Backtester:
             return -1
         
         if not fill_time:
-            ic("not FILLED")
+            #ic("not FILLED")
             return 0
         else:
 
@@ -316,7 +317,7 @@ class Backtester:
             o.filled_avg_price = float(fill_price)
             o.status = OrderStatus.FILLED
 
-            ic(o.filled_at, o.filled_avg_price)
+            #ic(o.filled_at, o.filled_avg_price)
 
             a = self.update_account(o = o)
             if a < 0:
@@ -396,13 +397,13 @@ class Backtester:
         optimalized as bisect left
         """""
         pos = bisect_left(self.btdata, (time,))
-        ic("vracime last price")
-        ic(time)
+        #ic("vracime last price")
+        #ic(time)
         if pos == 0:
-            ic(self.btdata[0][1])
+            #ic(self.btdata[0][1])
             return self.btdata[0][1]
         afterTime, afterPrice = self.btdata[pos-1]
-        ic(afterPrice)
+        #ic(afterPrice)
         return afterPrice
 
 
@@ -412,8 +413,8 @@ class Backtester:
         #     #print(i)
         #     if self.btdata[i][0] >= time:
         #         break
-        # ic(time, self.btdata[i-1][1])
-        # ic("get last price")
+        # #ic(time, self.btdata[i-1][1])
+        # #ic("get last price")
         # return self.btdata[i-1][1]
 
     def submit_order(self, time: float, symbol: str, side: OrderSide, size: int, order_type: OrderType, price: float = None):
@@ -493,7 +494,7 @@ class Backtester:
                     limit_price=(float(price) if price else None))
         
         self.open_orders.append(order)
-        ic("order SUBMITTED", order)
+        #ic("order SUBMITTED", order)
         return id
 
 

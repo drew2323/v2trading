@@ -106,7 +106,7 @@ class Strategy:
             #propojujeme notifice s interfacem (pro callback)
             self.order_notifs.connect_callback(self)
             self.state = StrategyState(name=self.name, symbol = self.symbol, stratvars = self.stratvars, interface=self.interface, rectype=self.rectype)
-            
+
         elif mode == Mode.BT:
             self.dataloader = Trade_Offline_Streamer(start, end, btdata=self.btdata)
             self.bt = Backtester(symbol = self.symbol, order_fill_callback= self.order_updates, btdata=self.btdata, cash=cash, bp_from=start, bp_to=end)
@@ -121,6 +121,7 @@ class Strategy:
             return -1
         
         self.mode = mode
+        self.state.mode = self.mode
 
     """SAVE record to respective STATE variables (bar or trades)
     ukládáme i index pro případné indikátory - pro zobrazení v grafu
@@ -517,8 +518,12 @@ class StrategyState:
         self.iter_log_list = []
         self.profit = 0
         self.tradeList = []
+        self.mode = None
     
     def ilog(self, e: str = None, msg: str = None, **kwargs):
+        if self.mode == Mode.LIVE or self.mode == Mode.PAPER:
+            self.time = datetime.now().timestamp()
+
         if e is None:
             if msg is None:
                 row = dict(time=self.time, details=kwargs)

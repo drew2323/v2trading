@@ -59,7 +59,11 @@ chart.subscribeCrosshairMove((param) => {
         });
 
 		firstRow.innerText += ' vwap' + '  ' + vwap.toFixed(2) + " O" + bars.open + " H" + bars.high + " L" + bars.low + " C" + bars.close + " V" + volumes.value + "";
-	}
+	
+        //display timestamp in trade-timestamp input field
+        $('#trade-timestamp').val(param.time)
+    
+    }
   else {
   	firstRow.innerText = '-';
   }

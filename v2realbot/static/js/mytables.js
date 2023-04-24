@@ -9,6 +9,11 @@ function findCommonElements3(arr1, arr2) {
 return arr1.some(item => arr2.includes(item))
 }
 
+function set_timestamp(timestamp) {
+    //console.log(timestamp);
+    $('#trade-timestamp').val(timestamp);
+}
+
 //KEY shortcuts
 Mousetrap.bind('e', function() { 
     $( "#button_edit" ).trigger( "click" );
@@ -221,6 +226,14 @@ $(document).ready(function () {
         }
     })
 });
+
+    //on hover of each logline move timestamp to trade history input field
+    //   $('.line').click(function () {
+    //     timestamp = $(this).data("timestamp");
+    //     console.log(timestamp);
+    //     $('#trade-timestamp').val(timestamp);
+    // })
+
 
     //button refresh
     $('#button_refresh').click(function () {

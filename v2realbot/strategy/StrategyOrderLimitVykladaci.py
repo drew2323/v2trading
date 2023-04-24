@@ -59,7 +59,7 @@ class StrategyOrderLimitVykladaci(Strategy):
                         self.state.vars.limitka = puvodni
                     else:
                         self.state.vars.limitka_price = cena
-                        self.state.ilog(e="Příchozí BUY notif - menime limitku", msg=o.status, status=o.status, orderid=str(o.id), limitka=str(self.state.vars.limitka), limtka_price=self.state.vars.limitka_price, puvodni_limitka=str(puvodni))
+                        self.state.ilog(e="Příchozí BUY notif - menime limitku", msg=o.status, status=o.status, orderid=str(o.id), limitka=str(self.state.vars.limitka), limtka_price=self.state.vars.limitka_price, size=int(self.state.positions), puvodni_limitka=str(puvodni))
                 except APIError as e:
                     self.state.ilog(e="API ERROR pri zmene limitky", msg=str(e), orderid=str(o.id), limitka=str(self.state.vars.limitka), limitka_price=self.state.vars.limitka_price, puvodni_limitka=str(puvodni))
 
@@ -80,19 +80,23 @@ class StrategyOrderLimitVykladaci(Strategy):
             #podle prumerne ceny, kolik stalo toto mnozstvi
             avg_costs = float(self.state.avgp) * float(data.qty)
             if avg_costs == 0:
-                self.state.ilog(e="Nemame naklady na PROFIT, AVGP je nula. Zaznamenano jako 0", msg="naklady=utrzena cena. TBD opravit.")
+                self.state.ilog(e="ERR: Nemame naklady na PROFIT, AVGP je nula. Zaznamenano jako 0", msg="naklady=utrzena cena. TBD opravit.")
                 avg_costs = sold_amount
                 
             trade_profit = (sold_amount - avg_costs)
             self.state.profit += trade_profit
-            self.state.ilog(e=f"SELL not - PROFIT:{round(float(trade_profit),3)} celkem:{round(float(self.state.profit),3)}", msg=str(data.event), sold_amount=sold_amount, avg_costs=avg_costs, trade_qty=data.qty, trade_price=data.price, orderid=str(data.order.id))
+            self.state.ilog(e=f"SELL notif - PROFIT:{round(float(trade_profit),3)} celkem:{round(float(self.state.profit),3)}", msg=str(data.event), sold_amount=sold_amount, avg_costs=avg_costs, trade_qty=data.qty, trade_price=data.price, orderid=str(data.order.id))
 
-        if data.event == TradeEvent.PARTIAL_FILL:
-            self.state.ilog(e="SELL notifikace - Partial fill", msg="pouze update pozic", orderid=str(data.order.id))
-            #ic("partial fill jen udpatujeme pozice")
-            #TODO tento update mozna vyhodit a pockat vzdy na plny fill - otestovat az bude cas
-            self.state.avgp, self.state.positions = self.interface.pos()
-        elif data.event == TradeEvent.FILL or data.event == TradeEvent.CANCELED:
+            #update pozic, v trade update je i pocet zbylych pozic
+            old_avgp = self.state.avgp
+            old_pos = self.state.positions
+            self.state.positions = int(data.position_qty)
+            if int(data.position_qty) == 0:
+                self.state.avgp = 0
+            self.state.ilog(e="SELL notifikace "+str(data.order.status), msg="update pozic", old_avgp=old_avgp, old_pos=old_pos, avgp=self.state.avgp, pos=self.state.positions, orderid=str(data.order.id))
+            #self.state.avgp, self.state.positions = self.interface.pos()
+
+        if data.event == TradeEvent.FILL or data.event == TradeEvent.CANCELED:
             print("Příchozí SELL notifikace - complete FILL nebo CANCEL", data.event)
             #muzeme znovu nakupovat, mazeme limitku, blockbuy a pendingbuys
             #self.state.blockbuy = 0

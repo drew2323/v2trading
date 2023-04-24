@@ -318,6 +318,7 @@ class Strategy:
             now = self.bt.time
 
         print("NOTIFICATION ARRIVED AT:", now)
+        self.update_live_timenow()
 
         #pokud jde o FILL zapisujeme do self.trades a notifikujeme
         if data.event == TradeEvent.FILL:
@@ -336,9 +337,14 @@ class Strategy:
     async def orderUpdateSell(self,data):   
         print(data)
 
+    #pouze pro live a paper
+    def update_live_timenow(self):
+            if self.mode == Mode.LIVE or self.mode == Mode.PAPER:
+                self.state.time = datetime.now().timestamp()
+
     ##method to override by child class. Allows to call specific code right before running next iteration.
     def before_iteration(self):
-        pass
+        self.update_live_timenow()
 
     ##kroky po iteraci
     def after_iteration(self, item):

@@ -114,11 +114,14 @@ def next(data, state: StrategyState):
             #zaroven docasne menime ticks2reset na defenzivni 0.06
             state.vars.ticks2reset = 0.06
             state.ilog(e="DEF: Menime tick2reset na 0.06", ticks2reset=state.vars.ticks2reset, ticks2reset_backup=state.vars.ticks2reset_backup)
+            defense = True
         else:
+            defense = False
             #vracime zpet, pokud bylo zmeneno
             if state.vars.ticks2reset != state.vars.ticks2reset_backup:
                 state.vars.ticks2reset = state.vars.ticks2reset_backup
                 state.ilog(e="DEF: Menime tick2reset zpet na"+str(state.vars.ticks2reset), ticks2reset=state.vars.ticks2reset, ticks2reset_backup=state.vars.ticks2reset_backup)
+
 
         if kolikmuzu < vykladka: vykladka = kolikmuzu
 
@@ -131,9 +134,13 @@ def next(data, state: StrategyState):
         state.ilog(e="BUY Vykladame", msg=f"first price {price=} {vykladka=}", curve=curve, ema=state.indicators.ema[-1], trend=state.vars.Trend, price=price, vykladka=vykladka)
         ##prvni se vyklada na aktualni cenu, další jdou podle krivky, nula v krivce zvyšuje množství pro následující iteraci
         
-        ##VAR - na zaklade conf. muzeme jako prvni posilat MARKET
+        ##VAR - na zaklade conf. muzeme jako prvni posilat MARKET order
         if safe_get(state.vars, "first_buy_market") == True:
-            state.buy(size=qty)
+            #pri defenzivnim rezimu pouzivame vzdy LIMIT order
+            if defense:
+                state.buy_l(price=price, size=qty)
+            else:
+                state.buy(size=qty)
         else:
             state.buy_l(price=price, size=qty)
         print("prvni limitka na aktuální cenu. Další podle křivky", price, qty)

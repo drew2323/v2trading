@@ -8,7 +8,7 @@ QUIET_MODE = False
 #0 - optimistic, every knot high will fill the order
 #N - N consecutive trades required
 #not impl.yet
-#minimum is 1
+#minimum is 1, na alpace live to vetsinou vychazi 7-8 u BAC, je to hodne podobne tomu, nez je cena překonaná pul centu. tzn. 7-8 a nebo FillCondition.SLOW
 BT_FILL_CONS_TRADES_REQUIRED = 3
 #during bt trade execution logs X-surrounding trades of the one that triggers the fill
 BT_FILL_LOG_SURROUNDING_TRADES = 10

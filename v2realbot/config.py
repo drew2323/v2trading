@@ -2,13 +2,14 @@ from alpaca.data.enums import DataFeed
 from v2realbot.enums.enums import Mode, Account, FillCondition
 from appdirs import user_data_dir
 
-
+#no print in console
+QUIET_MODE = False
 #how many consecutive trades with the fill price are necessary for LIMIT fill to happen in backtesting
 #0 - optimistic, every knot high will fill the order
 #N - N consecutive trades required
 #not impl.yet
 #minimum is 1
-BT_FILL_CONS_TRADES_REQUIRED = 2
+BT_FILL_CONS_TRADES_REQUIRED = 3
 #during bt trade execution logs X-surrounding trades of the one that triggers the fill
 BT_FILL_LOG_SURROUNDING_TRADES = 10
 #fill condition for limit order in bt
@@ -16,8 +17,6 @@ BT_FILL_LOG_SURROUNDING_TRADES = 10
 # slow - price has to be bigger <
 BT_FILL_CONDITION_BUY_LIMIT = FillCondition.FAST
 BT_FILL_CONDITION_SELL_LIMIT = FillCondition.FAST
-#no print in console
-QUIET_MODE = True
 #backend counter of api requests
 COUNT_API_REQUESTS = False
 #stratvars that cannot be changed in gui

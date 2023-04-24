@@ -207,8 +207,8 @@ def next(data, state: StrategyState):
 
 
             #slope MA - cílem je identifikovat táhlá klesání, vypnout nákupy, až budou zase růsty
-            # slope_MA_length = 150
-            # state.indicators.slopeMA = ema(state.indicators.slope, slope_MA_length) #state.bars.vwap
+            slope_MA_length = 5
+            state.indicators.slopeMA = ema(state.indicators.slope, slope_MA_length) #state.bars.vwap
             # #TODO - docasne posilam cele MA
             # try:
             #     state.ilog(e="Slope - MA"+str(state.indicators.slopeMA[-1]), slopeMA=str(state.indicators.slopeMA[-20:]))
@@ -428,7 +428,7 @@ def init(state: StrategyState):
     print("INIT v main",state.name)
     state.indicators['ema'] = []
     state.indicators['slope'] = []
-    #state.indicators['slopeMA'] = []
+    state.indicators['slopeMA'] = []
     #static indicators - those not series based
     state.statinds['angle'] = {}
     state.vars["ticks2reset_backup"] = state.vars.ticks2reset

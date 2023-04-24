@@ -17,7 +17,8 @@ import requests
 from uuid import UUID
 from enum import Enum
 #from v2realbot.enums.enums import Order
-from v2realbot.common.model import Order, TradeUpdate
+from v2realbot.common.model import Order as btOrder, TradeUpdate as btTradeUpdate
+from alpaca.trading.models import Order, TradeUpdate
 
 def safe_get(collection, key, default=None):
     """Get values from a collection without raising errors"""
@@ -60,6 +61,10 @@ def json_serial(obj):
     if type(obj) is Order:
         return obj.__dict__
     if type(obj) is TradeUpdate:
+        return obj.__dict__
+    if type(obj) is btOrder:
+        return obj.__dict__
+    if type(obj) is btTradeUpdate:
         return obj.__dict__
     raise TypeError (str(obj)+"Type %s not serializable" % type(obj))
 

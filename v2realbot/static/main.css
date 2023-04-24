@@ -84,3 +84,7 @@ pre {
   height: 350px;
   overflow: auto;
 }
+
+.highlighted {
+  font-weight: bold;
+}

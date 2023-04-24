@@ -190,17 +190,20 @@ $(document).ready(function () {
             console.log(filterList)
             console.log(minsize)
             var row = ""
-            var puvodni = parseFloat($('#trade-timestamp').val())
+            //zakrouhleno na milisekundy
+            var puvodni = parseFloat(parseInt(parseFloat($('#trade-timestamp').val())*1000))/1000
+            console.log(puvodni)
             $('#trades-data-table').html(row);
             data.forEach((tradeLine) => {
                 //console.log(JSON.stringify(tradeLine))
                 date = new Date(tradeLine.timestamp)
                 timestamp = date.getTime()/1000
+                console.log(timestamp)
 
-                //trade contains filtered condition
-                bg = (findCommonElements3(filterList, tradeLine.conditions) ? 'style="background-color: #e6e6e6;"' : '')
+                //trade contains filtered condition or size<minsize
+                bg = (findCommonElements3(filterList, tradeLine.conditions) || (parseInt(tradeLine.size) < minsize) ? 'style="background-color: #e6e6e6;"' : '')
 
-                row += '<tr role="row" '+ ((timestamp == puvodni) ? 'class="selected"' : '') +' ' + bg + '><td>' + timestamp + '</td><td>' + tradeLine.price + '</td>' +
+                row += '<tr role="row" '+ ((timestamp == puvodni) ? 'class="highlighted"' : '') +' ' + bg + '><td>' + timestamp + '</td><td>' + tradeLine.price + '</td>' +
                             '<td>' + tradeLine.size + '</td><td>' + tradeLine.id + '</td>' +
                             '<td>' + tradeLine.conditions + '</td><td>' + tradeLine.tape + '</td>' +
                             '<td>' + tradeLine.timestamp + '</td></tr>';

@@ -193,7 +193,7 @@ class Strategy:
         #ic(self.state.time)
 
         if self.mode == Mode.BT:
-            self.state.ilog(e="Before BT iter", msg=f"{self.bt.time=}")
+            self.state.ilog(e="----- BT exec START", msg=f"{self.bt.time=}")
             #pozor backtester muze volat order_updates na minuly cas - nastavi si bt.time
             self.bt.execute_orders_and_callbacks(self.state.time)
             #ic(self.bt.time)
@@ -205,7 +205,7 @@ class Strategy:
         #ic(self.state.time)
 
         if self.mode == Mode.BT:
-            self.state.ilog(e="After BT iter", msg=f"{self.bt.time=}")
+            self.state.ilog(e="----- BT exec FINISH", msg=f"{self.bt.time=}")
             #ic(self.bt.time)
             #ic(len(self.btdata))
             #ic(self.bt.cash)

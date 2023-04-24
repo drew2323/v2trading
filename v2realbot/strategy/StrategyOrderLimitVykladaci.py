@@ -21,12 +21,12 @@ class StrategyOrderLimitVykladaci(Strategy):
     async def orderUpdateBuy(self, data: TradeUpdate):
         o: Order = data.order
         ##nejak to vymyslet, aby se dal poslat cely Trade a serializoval se
-        self.state.ilog(e="Příchozí BUY notif", msg=f"{o.status=}", trade=json.loads(json.dumps(data, default=json_serial)))
+        self.state.ilog(e="Příchozí BUY notif", msg=o.status, trade=json.loads(json.dumps(data, default=json_serial)))
         if o.status == OrderStatus.FILLED or o.status == OrderStatus.CANCELED:
             
             #pokud existuje objednavka v pendingbuys - vyhodime ji
             if self.state.vars.pendingbuys.pop(str(o.id), False):
-                self.state.ilog(e="Příchozí BUY notif - mazeme ji z pb", msg=f"{o.status=}", orderid=str(o.id), pb=self.state.vars.pendingbuys)
+                self.state.ilog(e="Příchozí BUY notif - mazeme ji z pb", msg=o.status, status=o.status, orderid=str(o.id), pb=self.state.vars.pendingbuys)
                 print("limit buy filled or cancelled. Vyhazujeme z pendingbuys.")
                 #ic(self.state.vars.pendingbuys)
 
@@ -45,7 +45,7 @@ class StrategyOrderLimitVykladaci(Strategy):
                     self.state.vars.limitka = None
                 else:
                     self.state.vars.limitka_price = price
-                    self.state.ilog(e="Příchozí BUY notif - vytvarime limitku",  msg="order status:"+o.status, orderid=str(o.id), limitka=str(self.state.vars.limitka), limtka_price=self.state.vars.limitka_price)
+                    self.state.ilog(e="Příchozí BUY notif - vytvarime limitku",  msg=o.status, status=o.status, orderid=str(o.id), limitka=str(self.state.vars.limitka), limtka_price=self.state.vars.limitka_price)
             else:
                 #avgp, pos
                 self.state.avgp, self.state.positions = self.state.interface.pos()
@@ -59,7 +59,7 @@ class StrategyOrderLimitVykladaci(Strategy):
                         self.state.vars.limitka = puvodni
                     else:
                         self.state.vars.limitka_price = cena
-                        self.state.ilog(e="Příchozí BUY notif - menime limitku", msg=f"{o.status=}", orderid=str(o.id), limitka=str(self.state.vars.limitka), limtka_price=self.state.vars.limitka_price, puvodni_limitka=str(puvodni))
+                        self.state.ilog(e="Příchozí BUY notif - menime limitku", msg=o.status, status=o.status, orderid=str(o.id), limitka=str(self.state.vars.limitka), limtka_price=self.state.vars.limitka_price, puvodni_limitka=str(puvodni))
                 except APIError as e:
                     self.state.ilog(e="API ERROR pri zmene limitky", msg=str(e), orderid=str(o.id), limitka=str(self.state.vars.limitka), limitka_price=self.state.vars.limitka_price, puvodni_limitka=str(puvodni))
 
@@ -71,7 +71,7 @@ class StrategyOrderLimitVykladaci(Strategy):
 
     async def orderUpdateSell(self, data: TradeUpdate): 
 
-        self.state.ilog(e="Příchozí SELL notif", msg=f"{data.order.status=}", trade=json.loads(json.dumps(data, default=json_serial)))
+        self.state.ilog(e="Příchozí SELL notif", msg=data.order.status, trade=json.loads(json.dumps(data, default=json_serial)))
         #PROFIT
         #profit pocitame z TradeUpdate.price a TradeUpdate.qty - aktualne provedene mnozstvi a cena
         #naklady vypocteme z prumerne ceny, kterou mame v pozicich
@@ -106,7 +106,7 @@ class StrategyOrderLimitVykladaci(Strategy):
             self.state.vars.lastbuyindex = -5
             self.state.vars.jevylozeno = 0
             await self.state.cancel_pending_buys()
-            self.state.ilog(e="Příchozí SELL - FILL nebo CANCEL - mazeme limitku a pb", msg=f"{data.order.status=}", orderid=str(data.order.id), pb=self.state.vars.pendingbuys)
+            self.state.ilog(e="Příchozí SELL - FILL nebo CANCEL - mazeme limitku a pb", msg=data.order.status, orderid=str(data.order.id), pb=self.state.vars.pendingbuys)
     
     #this parent method is called by strategy just once before waiting for first data
     def strat_init(self):
@@ -165,7 +165,7 @@ class StrategyOrderLimitVykladaci(Strategy):
                 #nejprve vyhodime z pendingbuys
                 self.state.vars.pendingbuys.pop(key, False)
                 res = self.interface.cancel(key)
-                self.state.ilog(e=f"Pendingy zrusen pro{key=}", orderid=str(key), res=str(res))
+                self.state.ilog(e=f"Pendingy zrusen pro {key=}", orderid=str(key), res=str(res))
                 print("CANCEL PENDING BUYS RETURN", res)
         self.state.vars.pendingbuys={}        
         self.state.vars.jevylozeno = 0

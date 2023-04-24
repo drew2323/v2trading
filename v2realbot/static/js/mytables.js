@@ -1,6 +1,14 @@
 
 API_KEY = localStorage.getItem("api-key")
 
+// Iterate through each element in the
+// first array and if some of them
+// include the elements in the second
+// array then return true.
+function findCommonElements3(arr1, arr2) {
+return arr1.some(item => arr2.includes(item))
+}
+
 //KEY shortcuts
 Mousetrap.bind('e', function() { 
     $( "#button_edit" ).trigger( "click" );
@@ -88,6 +96,13 @@ $(document).ready(function () {
     stratinRecords.ajax.reload();
     runnerRecords.ajax.reload();
 
+    $('#trade-timestamp').val(localStorage.getItem("trade_timestamp"));
+    $('#trade-count').val(localStorage.getItem("trade_count"));
+    $('#trade-symbol').val(localStorage.getItem("trade_symbol"));
+    $('#trade-minsize').val(localStorage.getItem("trade_minsize"));
+    $('#trade-filter').val(localStorage.getItem("trade_filter"));
+
+
     //disable buttons (enable on row selection)
     $('#button_pause').attr('disabled','disabled');
     $('#button_stop').attr('disabled','disabled');
@@ -131,13 +146,86 @@ $(document).ready(function () {
         }
     });
 
+
+   //button get historical trades
+   $('#bt-trade').click(function () {
+    event.preventDefault();
+    $('#bt-trade').attr('disabled','disabled');
+    $( "#trades-data").addClass("in");
+
+    localStorage.setItem("trade_timestamp",$('#trade-timestamp').val());
+    localStorage.setItem("trade_count",$('#trade-count').val());
+    localStorage.setItem("trade_symbol",$('#trade-symbol').val());
+    localStorage.setItem("trade_minsize",$('#trade-minsize').val());
+    localStorage.setItem("trade_filter",$('#trade-filter').val());
+
+    const rec = new Object()
+    rec.timestamp_from = parseFloat($('#trade-timestamp').val())-parseInt($('#trade-count').val())
+    rec.timestamp_to = parseFloat($('#trade-timestamp').val())+parseInt($('#trade-count').val())
+    symbol = $('#trade-symbol').val()
+    //jsonString = JSON.stringify(rec);
+    //alert(JSON.stringify(rec))
+    $.ajax({
+        url:"/tradehistory/"+symbol+"/",
+        beforeSend: function (xhr) {
+            xhr.setRequestHeader('X-API-Key',
+            API_KEY); },
+        method:"GET",
+        contentType: "application/json",
+        dataType: "json",
+        data: rec,
+        success:function(data){							
+            $('#bt-trade').attr('disabled', false);
+            $('#trades-data').show();
+            //$('#trades-data').text("")
+            var minsize = parseInt($('#trade-minsize').val());
+            //filter string to filter array
+            var valueInserted = $("#trade-filter").val(); // "tag1,tag2,tag3, "two words""
+            var filterList = valueInserted.split(",");  // ["tag1", "tag2", "tag3", "two words"]
+            for (var i in filterList) {
+                filterList[i] = filterList[i].trim();
+            }
+
+            console.log("filter list")
+            console.log(filterList)
+            console.log(minsize)
+            var row = ""
+            var puvodni = parseFloat($('#trade-timestamp').val())
+            $('#trades-data-table').html(row);
+            data.forEach((tradeLine) => {
+                //console.log(JSON.stringify(tradeLine))
+                date = new Date(tradeLine.timestamp)
+                timestamp = date.getTime()/1000
+
+                //trade contains filtered condition
+                bg = (findCommonElements3(filterList, tradeLine.conditions) ? 'style="background-color: #e6e6e6;"' : '')
+
+                row += '<tr role="row" '+ ((timestamp == puvodni) ? 'class="selected"' : '') +' ' + bg + '><td>' + timestamp + '</td><td>' + tradeLine.price + '</td>' +
+                            '<td>' + tradeLine.size + '</td><td>' + tradeLine.id + '</td>' +
+                            '<td>' + tradeLine.conditions + '</td><td>' + tradeLine.tape + '</td>' +
+                            '<td>' + tradeLine.timestamp + '</td></tr>';
+            
+            });
+            //console.log(row);
+            $('#trades-data-table').html(row);
+            // $('#trades-data').html(row)
+        },
+        error: function(xhr, status, error) {
+            var err = eval("(" + xhr.responseText + ")");
+            window.alert(JSON.stringify(xhr));
+            console.log(JSON.stringify(xhr));
+            $('#bt-trade').attr('disabled', false);
+        }
+    })
+});
+
     //button refresh
     $('#button_refresh').click(function () {
         runnerRecords.ajax.reload();
         stratinRecords.ajax.reload();
     })
 
-    //button refresh
+    //button copy
     $('#button_copy').click(function () {
         event.preventDefault();
         $('#button_copy').attr('disabled','disabled');

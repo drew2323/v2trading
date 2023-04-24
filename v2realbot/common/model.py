@@ -6,6 +6,7 @@ from typing import Any, Optional, List, Union
 from datetime import datetime, date
 from pydantic import BaseModel
 from v2realbot.enums.enums import Mode, Account
+from alpaca.data.enums import Exchange
 
 #tu samou variantu pak UpdateStrategyInstanceWhileRunning
 
@@ -22,6 +23,19 @@ from v2realbot.enums.enums import Mode, Account
 #  user.roles = user_update.roles
 #  return user.id
 #  raise HTTPException(status_code=404, detail=f"Could not find user with id: {id}")
+
+
+#for GUI
+class Trade(BaseModel):
+    symbol: str
+    timestamp: datetime
+    exchange: Optional[Union[Exchange, str]]
+    price: float
+    size: float
+    id: int
+    conditions: Optional[List[str]]
+    tape: Optional[str]
+
 
 #persisted object in pickle
 class StrategyInstance(BaseModel):

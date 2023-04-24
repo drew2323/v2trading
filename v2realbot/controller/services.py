@@ -1,12 +1,15 @@
 from typing import Any, List
 from uuid import UUID, uuid4
 import pickle
+from alpaca.data.historical import StockHistoricalDataClient
+from alpaca.data.requests import StockTradesRequest
+from alpaca.data.enums import DataFeed
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account
 from v2realbot.common.model import StrategyInstance, Runner, RunRequest
 from v2realbot.utils.utils import AttributeDict, zoneNY, dict_replace_value, Store, parse_toml_string
 from datetime import datetime
 from threading import Thread, current_thread, Event, enumerate
-from v2realbot.config import STRATVARS_UNCHANGEABLES
+from v2realbot.config import STRATVARS_UNCHANGEABLES, ACCOUNT1_LIVE_API_KEY, ACCOUNT1_LIVE_SECRET_KEY
 import importlib
 from queue import Queue
 db = Store()
@@ -352,3 +355,17 @@ def run_stratin(id: UUID, runReq: RunRequest):
             except Exception as e:
                 return (-2, "Exception: "+str(e))
     return (-2, "not found")
+
+def get_trade_history(symbol: str, timestamp_from: float, timestamp_to:float):
+    try:
+        datetime_object_from = datetime.fromtimestamp(timestamp_from, zoneNY)
+        datetime_object_to = datetime.fromtimestamp(timestamp_to, zoneNY)
+        #datetime_object_from = datetime(2023, 4, 14, 15, 51, 38, tzinfo=zoneNY)
+        #datetime_object_to = datetime(2023, 4, 14, 15, 51, 39, tzinfo=zoneNY)   
+        client = StockHistoricalDataClient(ACCOUNT1_LIVE_API_KEY, ACCOUNT1_LIVE_SECRET_KEY, raw_data=False)
+        trades_request = StockTradesRequest(symbol_or_symbols=symbol, feed = DataFeed.SIP, start=datetime_object_from, end=datetime_object_to)
+        all_trades = client.get_stock_trades(trades_request)
+        #print(all_trades[symbol])
+        return 0, all_trades[symbol]
+    except Exception as e:
+        return (-2, f"problem {e}")

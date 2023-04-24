@@ -79,3 +79,8 @@ pre {
   /* display: block; */
   font-size: smaller;
 }
+
+#trades-data {
+  height: 350px;
+  overflow: auto;
+}

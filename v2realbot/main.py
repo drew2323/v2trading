@@ -12,7 +12,7 @@ from fastapi.security import APIKeyHeader
 import uvicorn
 from uuid import UUID
 import v2realbot.controller.services as cs
-from v2realbot.common.model import StrategyInstance, RunnerView, RunRequest
+from v2realbot.common.model import StrategyInstance, RunnerView, RunRequest, Trade
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status, WebSocketException, Cookie, Query
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -253,6 +253,14 @@ def stop_all_stratins():
     if res == 0: return id
     elif res < 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Error: {res}:{id}")
+
+@app.get("/tradehistory/{symbol}", dependencies=[Depends(api_key_auth)])
+def get_trade_history(symbol: str, timestamp_from: float, timestamp_to:float) -> list[Trade]:
+    res, set = cs.get_trade_history(symbol, timestamp_from, timestamp_to)
+    if res == 0:
+        return set
+    else:
+        raise HTTPException(status_code=404, detail=f"No trades found {res}")
 
 #join cekej na dokonceni vsech
 for i in cs.db.runners:

@@ -36,7 +36,19 @@
                 </div>
             </div>
             </div>
-
+            <div id="hist-trades" class="flex-items">
+                <div id="form-trades">
+                    <label data-toggle="collapse" data-target="#trades-data">Trade history</label>
+                    <label>Timestamp: <input type="text" id="trade-timestamp" autocomplete="off"/></label>
+                    <label>SYM: <input type="text" id="trade-symbol" autocomplete="off"/></label>
+                    <label>Count: <input type="number" id="trade-count" autocomplete="off" value="2"/></label>
+                    <label>Minsize: <input type="number" id="trade-minsize" autocomplete="off" value="100"/></label>
+                    <label>Filter: <input type="text" id="trade-filter" autocomplete="off"/></label>
+                    <button id="bt-trade" class="btn btn-success">Show</button></div>
+                <div id="trades-data" style="display: none" class="collapse in">
+                            <table id="trades-data-table" class="display dataTable no-footer" style="width: 300px;display: contents;"></table>
+                </div>
+            </div>
             <div id="runner-table" class="flex-items">
                 <div id="controls">
                     <label>API-KEY: <input type="password" id="api-key" autocomplete="off"/></label>

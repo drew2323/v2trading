@@ -251,7 +251,11 @@ class Backtester:
                             #(1679081919.381649, 27.88)
                             #ic(i)
                             fill_time = i[0]
-                            fill_price = i[1]
+                            
+                            #v BT nikdy nekoupime za lepsi cenu nez LIMIT price (TBD mozna zmenit na parametr)
+                            fill_price = o.limit_price
+                            #fill_price = i[1]
+
                             print("FILL LIMIT BUY at", fill_time, datetime.fromtimestamp(fill_time).astimezone(zoneNY), "at",i[1])
                             if BT_FILL_LOG_SURROUNDING_TRADES != 0:
                                 #TODO loguru
@@ -281,7 +285,13 @@ class Backtester:
                             #(1679081919.381649, 27.88)
                             #ic(i)
                             fill_time = i[0]
-                            fill_price = i[1]
+
+                            #support pomaleho plneni
+                            #v BT nikdy neprodame za lepsi cenu nez LIMIT price (TBD mozna zmenit na parametr)
+                            fill_price = o.limit_price
+
+
+                            #fill_price = i[1]
                             print("FILL LIMIT SELL at", fill_time, datetime.fromtimestamp(fill_time).astimezone(zoneNY), "at",i[1])
                             if BT_FILL_LOG_SURROUNDING_TRADES != 0:
                                 #TODO loguru
@@ -572,6 +582,7 @@ class Backtester:
                     res.append(o)
         return res
 
+    ##toto bude predelano na display_results(ve variantach) umozni zobrazit result jak BT tak LIVE
     def display_backtest_result(self, state):
         """
         Displays backtest results chart, trades and orders with option to save the result as static HTML.
@@ -755,6 +766,13 @@ class Backtester:
             Open orders:''' + str(len(self.open_orders)))
         textik7 = html.Div('''
             Trades:''' + str(len(self.trades)))
+        textik8 = html.Div('''
+            Profit:''' + str(state.profit))
+        textik9 = html.Div(f"{BT_FILL_CONS_TRADES_REQUIRED=}")
+        textik10 = html.Div(f"{BT_FILL_LOG_SURROUNDING_TRADES=}")
+        textik11 = html.Div(f"{BT_FILL_CONDITION_BUY_LIMIT=}")
+        textik12 = html.Div(f"{BT_FILL_CONDITION_SELL_LIMIT=}")
+        
         orders_title = dcc.Markdown('## Open orders')
         trades_title = dcc.Markdown('## Trades')
         ## Define the graph
@@ -867,7 +885,7 @@ class Backtester:
                 return 'saved'
 
         ## Customize your layout
-        app.layout = dbc.Container([mytitle,button,saved, textik1, textik2, textik3, textik35, textik4, textik5, textik55, textik6,textik7, mygraph, trades_title, trades_table, orders_title, open_orders_table])
+        app.layout = dbc.Container([mytitle,button,saved, textik1, textik2, textik3, textik35, textik4, textik5, textik55, textik6,textik7, textik8, textik9, textik10, textik11, textik12, mygraph, trades_title, trades_table, orders_title, open_orders_table])
 
         port = 9050
         print("Backtest FINSIHED"+str(self.backtest_end-self.backtest_start))

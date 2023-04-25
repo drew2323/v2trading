@@ -9,14 +9,14 @@ QUIET_MODE = False
 #N - N consecutive trades required
 #not impl.yet
 #minimum is 1, na alpace live to vetsinou vychazi 7-8 u BAC, je to hodne podobne tomu, nez je cena překonaná pul centu. tzn. 7-8 a nebo FillCondition.SLOW
-BT_FILL_CONS_TRADES_REQUIRED = 3
+BT_FILL_CONS_TRADES_REQUIRED = 2
 #during bt trade execution logs X-surrounding trades of the one that triggers the fill
 BT_FILL_LOG_SURROUNDING_TRADES = 10
 #fill condition for limit order in bt
 # fast - price has to be equal or bigger <=
 # slow - price has to be bigger <
-BT_FILL_CONDITION_BUY_LIMIT = FillCondition.FAST
-BT_FILL_CONDITION_SELL_LIMIT = FillCondition.FAST
+BT_FILL_CONDITION_BUY_LIMIT = FillCondition.SLOW
+BT_FILL_CONDITION_SELL_LIMIT = FillCondition.SLOW
 #backend counter of api requests
 COUNT_API_REQUESTS = False
 #stratvars that cannot be changed in gui

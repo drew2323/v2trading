@@ -33,10 +33,12 @@ Do budoucna vice ridit nakupy pri klesani - napr. vyložení jen 2-3 pozic a dal
 #
 """
 stratvars = AttributeDict(maxpozic = 400,
+                          def_mode_from = 200,
                           chunk = 10,
                           MA = 2,
                           Trend = 2,
                           profit = 0.02,
+                          def_profit = 0.01,
                           lastbuyindex=-6,
                           pendingbuys={},
                           limitka = None,
@@ -93,6 +95,27 @@ def next(data, state: StrategyState):
     #ic(state.vars)
     #ic(data)
 
+    #
+    def is_defensive_mode():
+        akt_pozic = int(state.positions)
+        max_pozic = int(state.vars.maxpozic)
+        def_mode_from = safe_get(state.vars, "def_mode_from")
+        if def_mode_from == None: def_mode_from = max_pozic/2
+        if akt_pozic >= int(def_mode_from):
+            state.ilog(e=f"DEFENSIVE mode ACTIVE {state.vars.def_mode_from=}", msg=state.positions)
+            return True
+        else:
+            state.ilog(e=f"STANDARD mode ACTIVE {state.vars.def_mode_from=}", msg=state.positions)
+            return False
+
+    def get_limitka_price():
+        def_profit = safe_get(state.vars, "def_profit") 
+        if def_profit == None: def_profit = state.vars.profit
+        if is_defensive_mode():
+            return price2dec(float(state.avgp)+float(def_profit))
+        else:
+            return price2dec(float(state.avgp)+float(state.vars.profit))
+
     #mozna presunout o level vys
     def vyloz():
         ##prvni se vyklada na aktualni cenu, další jdou podle krivky, nula v krivce zvyšuje množství pro následující iteraci
@@ -104,24 +127,21 @@ def next(data, state: StrategyState):
         vykladka = state.vars.vykladka
         #kolik muzu max vylozit
         kolikmuzu = int((int(state.vars.maxpozic) - int(state.positions))/int(state.vars.chunk))
-        akt_pozic = int((int(state.positions))/int(state.vars.chunk)) #20
-        max_pozic = int((int(state.vars.maxpozic))/int(state.vars.chunk)) #40
+        akt_pozic = int(state.positions)
+        max_pozic = int(state.vars.maxpozic)
 
         #mame polovinu a vic vylozeno, pouzivame defenzicni krivku
-        if (akt_pozic >= max_pozic/2):
-            state.ilog(e="DEF: Mame pul a vic vylozeno, pouzivame defenzivni krivku", akt_pozic=akt_pozic, max_pozic=max_pozic, curve_def=curve_def)
+        if is_defensive_mode():
+            state.ilog(e="DEF: Pouzivame defenzivni krivku", akt_pozic=akt_pozic, max_pozic=max_pozic, curve_def=curve_def)
             curve = curve_def
             #zaroven docasne menime ticks2reset na defenzivni 0.06
             state.vars.ticks2reset = 0.06
             state.ilog(e="DEF: Menime tick2reset na 0.06", ticks2reset=state.vars.ticks2reset, ticks2reset_backup=state.vars.ticks2reset_backup)
-            defense = True
         else:
-            defense = False
             #vracime zpet, pokud bylo zmeneno
             if state.vars.ticks2reset != state.vars.ticks2reset_backup:
                 state.vars.ticks2reset = state.vars.ticks2reset_backup
                 state.ilog(e="DEF: Menime tick2reset zpet na"+str(state.vars.ticks2reset), ticks2reset=state.vars.ticks2reset, ticks2reset_backup=state.vars.ticks2reset_backup)
-
 
         if kolikmuzu < vykladka: vykladka = kolikmuzu
 
@@ -137,9 +157,11 @@ def next(data, state: StrategyState):
         ##VAR - na zaklade conf. muzeme jako prvni posilat MARKET order
         if safe_get(state.vars, "first_buy_market") == True:
             #pri defenzivnim rezimu pouzivame vzdy LIMIT order
-            if defense:
+            if is_defensive_mode():
+                state.ilog(e="DEF mode on, odesilame jako prvni limitku")
                 state.buy_l(price=price, size=qty)
             else:
+                state.ilog(e="Posilame jako prvni MARKET order")
                 state.buy(size=qty)
         else:
             state.buy_l(price=price, size=qty)
@@ -277,7 +299,7 @@ def next(data, state: StrategyState):
             #neni limitka, ale mela by byt - vytváříme ji
             if int(state.positions) > 0 and state.vars.limitka is None:
                 state.ilog(e="Limitka neni, ale mela by být.", msg=f"{state.positions=}")
-                price=price2dec(float(state.avgp)+state.vars.profit)
+                price=get_limitka_price()
                 state.vars.limitka = asyncio.run(state.interface.sell_l(price=price, size=int(state.positions)))
                 state.vars.limitka_price = price
                 if state.vars.limitka == -1:
@@ -287,12 +309,13 @@ def next(data, state: StrategyState):
                 else:
                     state.ilog(e="Vytvořena nová limitka", limitka=str(state.vars.limitka), limtka_price=state.vars.limitka_price, qty=state.positions)
 
-            elif state.vars.limitka is not None and int(state.positions) > 0 and (int(state.positions) != int(limitka_qty)):
+            #existuje a nesedi mnozstvi nebo cena
+            elif state.vars.limitka is not None and int(state.positions) > 0 and ((int(state.positions) != int(limitka_qty)) or float(state.vars.limitka_price) != float(get_limitka_price())):
                 #limitka existuje, ale spatne mnostvi - updatujeme
-                state.ilog(e=f"Limitka existuje, ale spatne mnozstvi - updatujeme", msg=f"{state.positions=} {limitka_qty=}", pos=state.positions, limitka_qty=limitka_qty)
+                state.ilog(e=f"Limitka existuje, ale spatne mnozstvi nebo CENA - updatujeme", msg=f"{state.positions=} {limitka_qty=} {state.vars.limitka_price=}", nastavenacena=state.vars.limitka_price, spravna_cena=get_limitka_price(), pos=state.positions, limitka_qty=limitka_qty)
                 #snad to nespadne, kdyztak pridat exception handling
                 puvodni = state.vars.limitka
-                state.vars.limitka = asyncio.run(state.interface.repl(price=state.vars.limitka_price, orderid=state.vars.limitka, size=int(state.positions)))
+                state.vars.limitka = asyncio.run(state.interface.repl(price=get_limitka_price(), orderid=state.vars.limitka, size=int(state.positions)))
                 
                 if state.vars.limitka == -1:
                     state.ilog(e="Replace limitky neprobehl, vracime puvodni", msg=f"{state.vars.limitka=}", puvodni=puvodni)
@@ -334,7 +357,7 @@ def next(data, state: StrategyState):
 
     #HLAVNI ITERACNI LOG JESTE PRED AKCI - obsahuje aktualni hodnoty vetsiny parametru
     lp = state.interface.get_last_price(symbol=state.symbol)
-    state.ilog(e="ENTRY", msg=f"LP:{lp} P:{state.positions}/{round(float(state.avgp),2)} profit:{round(float(state.profit),2)} Trades:{len(state.tradeList)}", last_price=lp, stratvars=state.vars)
+    state.ilog(e="ENTRY", msg=f"LP:{lp} P:{state.positions}/{round(float(state.avgp),2)} profit:{round(float(state.profit),2)} Trades:{len(state.tradeList)} DEF:{str(is_defensive_mode())}", last_price=lp, stratvars=state.vars)
 
     #maxSlopeMA = -0.03
     #SLOPE ANGLE PROTECTIONs
@@ -362,10 +385,11 @@ def next(data, state: StrategyState):
     if state.vars.jevylozeno == 0:
         print("Neni vylozeno, muzeme testovat nakup")
 
+        #pokud je defenziva, buy triggeruje defenzivni def_trend
+        #TBD
+
+
         if isfalling(state.indicators.ema,state.vars.Trend) and slope > minimum_slope:
-            print("BUY MARKET")
-            #zatim vykladame full
-            #positions = int(int(state.vars.maxpozic)/int(state.vars.chunk))
             vyloz()
 
     ## testuje aktualni cenu od nejvyssi visici limitky

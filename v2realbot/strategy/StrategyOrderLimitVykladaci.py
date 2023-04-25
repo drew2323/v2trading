@@ -1,5 +1,5 @@
 from v2realbot.strategy.base import Strategy
-from v2realbot.utils.utils import parse_alpaca_timestamp, ltp, AttributeDict,trunc,price2dec, zoneNY, print, json_serial
+from v2realbot.utils.utils import parse_alpaca_timestamp, ltp, AttributeDict,trunc,price2dec, zoneNY, print, json_serial, safe_get
 from v2realbot.utils.tlog import tlog, tlog_exception
 from v2realbot.enums.enums import Mode, Order, Account
 from alpaca.trading.models import TradeUpdate
@@ -37,7 +37,8 @@ class StrategyOrderLimitVykladaci(Strategy):
             self.state.positions = data.position_qty
             if self.state.vars.limitka is None:
                 self.state.avgp = float(data.price)
-                price=price2dec(float(o.filled_avg_price)+self.state.vars.profit)
+                #price=price2dec(float(o.filled_avg_price)+self.state.vars.profit)
+                price = await self.get_limitka_price()
                 self.state.vars.limitka = await self.interface.sell_l(price=price, size=o.filled_qty)
                 #obcas live vrati "held for orders", odchytime chybu a limitku nevytvarime - spravi to dalsi notifikace nebo konzolidace
                 if self.state.vars.limitka == -1:
@@ -49,7 +50,8 @@ class StrategyOrderLimitVykladaci(Strategy):
             else:
                 #avgp, pos
                 self.state.avgp, self.state.positions = self.state.interface.pos()
-                cena = price2dec(float(self.state.avgp) + float(self.state.vars.profit))
+                #cena = price2dec(float(self.state.avgp) + float(self.state.vars.profit))
+                cena = await self.get_limitka_price()
                 try:
                     puvodni = self.state.vars.limitka
                     self.state.vars.limitka = await self.interface.repl(price=cena,orderid=self.state.vars.limitka,size=int(self.state.positions))
@@ -175,3 +177,24 @@ class StrategyOrderLimitVykladaci(Strategy):
         self.state.vars.jevylozeno = 0
         print("cancel pending buys end")
         self.state.ilog(e="Dokončeno zruseni vsech pb", pb=self.state.vars.pendingbuys)
+
+    #kopie funkci co jsou v next jen async, nejak vymyslet, aby byly jen jedny
+    async def is_defensive_mode(self):
+        akt_pozic = int(self.state.positions)
+        max_pozic = int(self.state.vars.maxpozic)
+        def_mode_from = safe_get(self.state.vars, "def_mode_from")
+        if def_mode_from == None: def_mode_from = max_pozic/2
+        if akt_pozic >= int(def_mode_from):
+            self.state.ilog(e=f"DEFENSIVE MODE active {self.state.vars.def_mode_from=}", msg=self.state.positions)
+            return True
+        else:
+            self.state.ilog(e=f"STANDARD MODE active {self.state.vars.def_mode_from=}", msg=self.state.positions)
+            return False
+
+    async def get_limitka_price(self):
+        def_profit = safe_get(self.state.vars, "def_profit") 
+        if def_profit == None: def_profit = self.state.vars.profit
+        if await self.is_defensive_mode():
+            return price2dec(float(self.state.avgp)+float(def_profit))
+        else:
+            return price2dec(float(self.state.avgp)+float(self.state.vars.profit))

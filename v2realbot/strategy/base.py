@@ -17,7 +17,8 @@ from v2realbot.interfaces.backtest_interface import BacktestInterface
 from v2realbot.interfaces.live_interface import LiveInterface
 from alpaca.trading.enums import OrderSide
 from v2realbot.backtesting.backtester import Backtester
-from alpaca.trading.models import TradeUpdate
+#from alpaca.trading.models import TradeUpdate
+from v2realbot.common.model import TradeUpdate
 from alpaca.trading.enums import TradeEvent, OrderStatus
 from threading import Event, current_thread
 import json

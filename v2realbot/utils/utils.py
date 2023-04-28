@@ -9,7 +9,7 @@ import decimal
 from v2realbot.enums.enums import RecordType, Mode, StartBarAlign
 import pickle
 import os
-from v2realbot.common.model import StrategyInstance, Runner
+from v2realbot.common.model import StrategyInstance, Runner, RunArchive, RunArchiveDetail
 from typing import List
 import tomli
 from v2realbot.config import DATA_DIR, QUIET_MODE
@@ -66,6 +66,11 @@ def json_serial(obj):
         return obj.__dict__
     if type(obj) is btTradeUpdate:
         return obj.__dict__
+    if type(obj) is RunArchive:
+        return obj.__dict__
+    if type(obj) is RunArchiveDetail:
+        return obj.__dict__
+    
     raise TypeError (str(obj)+"Type %s not serializable" % type(obj))
 
 def parse_toml_string(tomlst: str):

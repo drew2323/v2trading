@@ -12,7 +12,7 @@ from fastapi.security import APIKeyHeader
 import uvicorn
 from uuid import UUID
 import v2realbot.controller.services as cs
-from v2realbot.common.model import StrategyInstance, RunnerView, RunRequest, Trade
+from v2realbot.common.model import StrategyInstance, RunnerView, RunRequest, Trade, RunArchive, RunArchiveDetail
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status, WebSocketException, Cookie, Query
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -261,6 +261,44 @@ def get_trade_history(symbol: str, timestamp_from: float, timestamp_to:float) ->
         return set
     else:
         raise HTTPException(status_code=404, detail=f"No trades found {res}")
+
+#ARCHIVE RUNNERS SECTION
+
+#get all archived runners header
+@app.get("/archived_runners/", dependencies=[Depends(api_key_auth)])
+def _get_all_archived_runners() -> list[RunArchive]:
+    res, set =cs.get_all_archived_runners()
+    if res == 0:
+        return set
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No data found")
+
+#delete archive runner from header and detail
+@app.delete("/archived_runners/{runner_id}", dependencies=[Depends(api_key_auth)], status_code=status.HTTP_200_OK)
+def _delete_archived_runners_byID(runner_id):
+    res, id = cs.delete_archived_runners_byID(id=runner_id)
+    if res == 0: return id
+    elif res < 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Error: {res}:{id}")
+
+#get all archived runners detail
+@app.get("/archived_runners_detail/", dependencies=[Depends(api_key_auth)])
+def _get_all_archived_runners_detail() -> list[RunArchiveDetail]:
+    res, set =cs.get_all_archived_runners_detail()
+    if res == 0:
+        return set
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No data found")
+
+#get archived runners detail by id
+@app.get("/archived_runners_detail/{runner_id}", dependencies=[Depends(api_key_auth)])
+def _get_archived_runner_details_byID(runner_id) -> RunArchiveDetail:
+    res, set = cs.get_archived_runner_details_byID(runner_id)
+    if res == 0:
+        return set
+    else:
+        raise HTTPException(status_code=404, detail=f"No runner with id: {runner_id} a {set}")
+
 
 #join cekej na dokonceni vsech
 for i in cs.db.runners:

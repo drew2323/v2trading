@@ -25,7 +25,7 @@ from alpaca.data.enums import Exchange
 #  raise HTTPException(status_code=404, detail=f"Could not find user with id: {id}")
 
 
-#for GUI
+#for GUI to fetch historical trades on given symbol
 class Trade(BaseModel):
     symbol: str
     timestamp: datetime
@@ -56,15 +56,21 @@ class RunRequest(BaseModel):
     id: UUID
     account: Account
     mode: Mode
+    note: Optional[str] = None
     debug: bool = False
     bt_from: datetime = None
     bt_to: datetime = None
     cash: int = 100000
 
+
+
+
 class RunnerView(BaseModel):
     id: UUID
     run_started: Optional[datetime] = None
     run_mode: Mode
+    run_name: Optional[str] = None
+    run_note: Optional[str] = None
     run_account: Account
     run_stopped: Optional[datetime] = None
     run_paused: Optional[datetime] = None    
@@ -75,6 +81,8 @@ class Runner(BaseModel):
     run_started: Optional[datetime] = None
     run_mode: Mode
     run_account: Account
+    run_name: Optional[str] = None
+    run_note: Optional[str] = None
     run_stopped: Optional[datetime] = None
     run_paused: Optional[datetime] = None   
     run_thread: Optional[object] = None
@@ -107,6 +115,37 @@ class TradeUpdate(BaseModel):
     value: Optional[float]
     cash: Optional[float]
     pos_avg_price: Optional[float]
+
+#Contains archive of running strategies (runner) - master
+class RunArchive(BaseModel):
+    #unique id of algorun
+    id: UUID
+    #id of running strategy (stratin/runner)
+    strat_id: UUID
+    name: str
+    note: Optional[str] = None
+    started: datetime
+    stopped: Optional[datetime] = None
+    mode: Mode
+    account: Account
+    bt_from: Optional[datetime] = None
+    bt_to: Optional[datetime] = None
+    stratvars: Optional[dict] = None
+    profit: float = 0
+    trade_count: int = 0
+    end_positions: int = 0
+    end_positions_avgp: float = 0
+    open_orders: int = 0
+
+#Contains archive of running strategies (runner) - detail data
+class RunArchiveDetail(BaseModel):
+    id: UUID
+    name: str
+    bars: dict
+    #trades: Optional[dict]
+    indicators: dict
+    statinds: dict
+    trades: List[TradeUpdate]
 
 # class Trade(BaseModel):
 #     order: Order

@@ -16,6 +16,7 @@ function connect(event) {
         console.log("nejaky error" + err)
     }
     ws.onopen = function(event) {
+        populate_real_time_chart()
         document.getElementById("status").textContent = "Connected to" + runnerId.value
         document.getElementById("bt-disc").style.display = "initial"
         document.getElementById("bt-conn").style.display = "none"

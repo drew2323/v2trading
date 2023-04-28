@@ -17,24 +17,27 @@
     <body>
         <div id="main" class="mainConteiner flex-container">
             <div id="chartContainer" class="flex-items">
-                <h4>Status: <span id="status">Not connected</span></h4>
-                <div id="formular">
-                <form action="">
-                    <input type="text" id="runnerId" autocomplete="off" placeholder="StrategyID" value=""/>
-                    <button onclick="connect(event)" id="bt-conn" class="btn btn-success">Connect</button>
-                    <button onclick="disconnect(event)" id="bt-disc" style="display: None" class="btn btn-success">Disconnect</button>
-                    <!-- <label>Message: --> <input type="text" id="messageText" autocomplete="off" placeholder="WS out message"/> 
-                    <button onclick="sendMessage(event)" id="bt.send" class="btn btn-success">Send</button>
-                </form>
-                </div>
-                <div id="chart" style="display: None; float: left; "></div>
-                <div class="legend" id="legend"></div>
-            <div id="msgContainer">
-                <div class="msgContainerInner">
-                    <div id="lines">
+                <label data-toggle="collapse" data-target="#chartContainerInner">Realtime chart</label>
+                <h5>Status: <span id="status">Not connected</span></h5>
+                <div id="chartContainerInner" class="collapsed collapse in">
+                    <div id="formular">
+                    <form action="">
+                        <input type="text" id="runnerId" autocomplete="off" placeholder="StrategyID" value=""/>
+                        <button onclick="connect(event)" id="bt-conn" class="btn btn-success">Connect</button>
+                        <button onclick="disconnect(event)" id="bt-disc" style="display: None" class="btn btn-success">Disconnect</button>
+                        <!-- <label>Message: --> <input type="text" id="messageText" autocomplete="off" placeholder="WS out message"/> 
+                        <button onclick="sendMessage(event)" id="bt.send" class="btn btn-success">Send</button>
+                    </form>
+                    </div>
+                    <div id="chart" style="display: None; float: left; "></div>
+                    <div class="legend" id="legend"></div>
+                    <div id="msgContainer">
+                        <div class="msgContainerInner">
+                            <div id="lines">
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
             </div>
             <div id="hist-trades" class="flex-items">
                 <div id="form-trades">
@@ -50,15 +53,16 @@
                 </div>
             </div>
             <div id="runner-table" class="flex-items">
-                <div id="controls">
-                    <label>API-KEY: <input type="password" id="api-key" autocomplete="off"/></label>
-                    <button onclick="store_api_key(event)" id="bt-store" class="btn btn-success">Store</button>
-                    <button id="button_pause" class="btn btn-success">Pause/Unpause</button>
-                    <button id="button_stop" class="btn btn-success">Stop</button>
-                    <button id="button_stopall" class="btn btn-success">Stop All</button>
-                    <button id="button_refresh" class="btn btn-success">Refresh</button>
-                </div>
-                <div id="runner-table">
+                <label data-toggle="collapse" data-target="#runner-table-inner">Running</label>
+                <div id="runner-table-inner" class="collapsed">
+                    <div id="controls">
+                        <label>API-KEY: <input type="password" id="api-key" autocomplete="off"/></label>
+                        <button onclick="store_api_key(event)" id="bt-store" class="btn btn-success">Store</button>
+                        <button id="button_pause" class="btn btn-success">Pause/Unpause</button>
+                        <button id="button_stop" class="btn btn-success">Stop</button>
+                        <button id="button_stopall" class="btn btn-success">Stop All</button>
+                        <button id="button_refresh" class="btn btn-success">Refresh</button>
+                    </div>
                     <table id="runnerTable" class="display" style="width:100%">
                         <thead>
                             <tr>
@@ -95,36 +99,97 @@
                     </div>
                 </div>
             </div>
+
+            <div id="archive-table" class="flex-items">
+                <label data-toggle="collapse" data-target="#archive-table-inner">Run Archive</label>
+                <div id="archive-table-inner" class="collapsed">
+                    <div id="archive-chart">
+                        <div id="chartArchive" style="position: relative;">BT chart</div>
+                        <div class="legend" id="legendArchive"></div>
+                    </div>
+                    <div id="controls">
+                        <button id="button_show_arch" class="btn btn-success">Show</button>
+                        <button id="button_delete_arch" class="btn btn-success">Delete</button>
+                        <!-- <button id="button_stopall" class="btn btn-success">Stop All</button>
+                        <button id="button_refresh" class="btn btn-success">Refresh</button> -->
+                    </div>
+                    <table id="archiveTable" class="display" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>Id</th>
+                                <th>Name</th>
+                                <th>Note</th>					
+                                <th>started</th>					
+                                <th>stopped</th>
+                                <th>mode</th>	
+                                <th>account</th>	
+                                <th>bt_from</th>	
+                                <th>bt_to</th>	
+                                <th>stratvars</th>	
+                                <th>profit</th>
+                                <th>tradecnt</th>	
+                                <th>end_pos</th>	
+                                <th>end_pos_avgp</th>	
+                                <th>open</th>	
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div id="delModalArchive" class="modal fade">
+                    <div class="modal-dialog">
+                        <form method="post" id="delFormArchive">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <button type="button" class="close" data-dismiss="modal">×</button>
+                                    <h4 class="modal-title_del"><i class="fa fa-plus"></i> Delete Archive</h4>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="form-group">
+                                        <label for="delidarchive" class="control-label">Id</label>
+                                        <input type="text" class="form-control" id="delidarchive" name="delidarchive" placeholder="id">			
+                                    </div>				
+                                </div>
+                                <div class="modal-footer">
+                                    <input type="submit" name="delete" id="deletearchive" class="btn btn-info" value="Delete" />
+                                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
             <div id="stratin-table" class="flex-items">
-                <div id="stratin-table">
-                <button id="button_add" class="btn btn-success">Add</button>
-                <button id="button_add_json" class="btn btn-success">Add JSON</button>
-                <button id="button_edit" class="btn btn-success">Edit</button>
-                <button id="button_dup" class="btn btn-success">Duplicate</button>
-                <button id="button_copy" class="btn btn-success">Copy JSON</button>
-                <button id="button_delete" class="btn btn-success">Delete</button>
-                <button id="button_run" class="btn btn-success">Run Strategy</button>
-                <table id="stratinTable" class="display" style="width:100%">
-                    <thead>
-                        <tr>
-                            <th>Id</th>
-                            <th>Id2</th>
-                            <th>Name</th>					
-                            <th>Symbol</th>					
-                            <th>class</th>
-                            <th>script</th>
-                            <th>OR</th>					
-                            <th>CR</th>
-                            <th>Stratvars</th>
-                            <th>add_data</th>
-                            <th>note</th>
-                            <th>history</th>
-                            <th></th>
-                            <th></th>					
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+                <label data-toggle="collapse" data-target="#stratin-table-inner">Strategies</label>
+                <div id="stratin-table-inner" class="collapsed">
+                    <button id="button_add" class="btn btn-success">Add</button>
+                    <button id="button_add_json" class="btn btn-success">Add JSON</button>
+                    <button id="button_edit" class="btn btn-success">Edit</button>
+                    <button id="button_dup" class="btn btn-success">Duplicate</button>
+                    <button id="button_copy" class="btn btn-success">Copy JSON</button>
+                    <button id="button_delete" class="btn btn-success">Delete</button>
+                    <button id="button_run" class="btn btn-success">Run Strategy</button>
+                    <table id="stratinTable" class="display" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>Id</th>
+                                <th>Id2</th>
+                                <th>Name</th>					
+                                <th>Symbol</th>					
+                                <th>class</th>
+                                <th>script</th>
+                                <th>OR</th>					
+                                <th>CR</th>
+                                <th>Stratvars</th>
+                                <th>add_data</th>
+                                <th>note</th>
+                                <th>history</th>
+                                <th></th>
+                                <th></th>					
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
                 </div>
                 <div id="recordModal" class="modal fade">
                     <div class="modal-dialog">
@@ -292,7 +357,9 @@
                     </div>
                 </div>
             </div>
-  
+            <div id="bottomContainer" class="flex-items" style="height: 800px">
+                <BR>
+            </div>
         </div>
         <script type="text/javascript" src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
         <script src="/static/js/mywebsocket.js"></script>

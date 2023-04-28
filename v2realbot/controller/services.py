@@ -5,13 +5,24 @@ from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockTradesRequest
 from alpaca.data.enums import DataFeed
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account
-from v2realbot.common.model import StrategyInstance, Runner, RunRequest
-from v2realbot.utils.utils import AttributeDict, zoneNY, dict_replace_value, Store, parse_toml_string
+from v2realbot.common.model import StrategyInstance, Runner, RunRequest, RunArchive, RunArchiveDetail
+from v2realbot.utils.utils import AttributeDict, zoneNY, dict_replace_value, Store, parse_toml_string, json_serial
 from datetime import datetime
 from threading import Thread, current_thread, Event, enumerate
-from v2realbot.config import STRATVARS_UNCHANGEABLES, ACCOUNT1_LIVE_API_KEY, ACCOUNT1_LIVE_SECRET_KEY
+from v2realbot.config import STRATVARS_UNCHANGEABLES, ACCOUNT1_LIVE_API_KEY, ACCOUNT1_LIVE_SECRET_KEY, DATA_DIR
 import importlib
 from queue import Queue
+from tinydb import TinyDB, Query, where
+from tinydb.operations import set
+import json
+
+arch_header_file = DATA_DIR + "/arch_header.json"
+arch_detail_file = DATA_DIR + "/arch_detail.json"
+#db layer to store runner archive
+db_arch_h = TinyDB(arch_header_file, default=json_serial)
+db_arch_d = TinyDB(arch_detail_file, default=json_serial)
+
+#db layer to store stratins, TBD zmigrovat do TinyDB
 db = Store()
 
 def get_all_threads():
@@ -259,6 +270,8 @@ def capsule(target: object, db: object):
                 i.run_stop_ev = None
                 #ukladame radek do historie (pozdeji refactor)
                 save_history(id=i.id, st=target, runner=i, reason=reason)
+                #store in archive header and archive detail
+                archive_runner(runner=i, strat=target)
                 #mazeme runner po skonceni instance
                 db.runners.remove(i)
 
@@ -342,6 +355,8 @@ def run_stratin(id: UUID, runReq: RunRequest):
                 runner = Runner(id = i.id,
                         run_started = datetime.now(zoneNY),
                         run_pause_ev = pe,
+                        run_name = name,
+                        run_note = runReq.note,
                         run_stop_ev = se,
                         run_thread = vlakno,
                         run_account = runReq.account,
@@ -369,3 +384,78 @@ def get_trade_history(symbol: str, timestamp_from: float, timestamp_to:float):
         return 0, all_trades[symbol]
     except Exception as e:
         return (-2, f"problem {e}")
+    
+#archives runner and details
+def archive_runner(runner: Runner, strat: StrategyInstance):
+    print("inside archive_runner")
+    try:
+        if strat.bt is not None:
+            bp_from = strat.bt.bp_from
+            bp_to = strat.bt.bp_to
+        else:
+            bp_from = None
+            bp_to = None
+        id = uuid4()
+        runArchive: RunArchive = RunArchive(id = id,
+                                            strat_id = runner.id,
+                                            name=runner.run_name,
+                                            note=runner.run_note,
+                                            started=runner.run_started,
+                                            stopped=runner.run_stopped,
+                                            mode=runner.run_mode,
+                                            account=runner.run_account,
+                                            bt_from=bp_from,
+                                            bt_to = bp_to,
+                                            stratvars = strat.state.vars,
+                                            profit=round(strat.state.profit,2),
+                                            trade_count=len(strat.state.tradeList),
+                                            end_positions=strat.state.positions,
+                                            end_positions_avgp=round(strat.state.avgp,3),
+                                            open_orders=9999
+                                            )
+        
+        runArchiveDetail: RunArchiveDetail = RunArchiveDetail(id = id,
+                                                            name=runner.run_name,
+                                                            bars=strat.state.bars,
+                                                            indicators=strat.state.indicators,
+                                                            statinds=strat.state.statinds,
+                                                            trades=strat.state.tradeList)
+        resh = db_arch_h.insert(runArchive.__dict__)
+        resd = db_arch_d.insert(runArchiveDetail.__dict__)
+        print("archive runner finished")
+        return 0, str(resh) + " " + str(resd)
+    except Exception as e:
+        print(str(e))
+        return -2, str(e)
+
+def get_all_archived_runners():
+    res = db_arch_h.all()
+    return 0, res
+
+#delete runner in archive and archive detail
+def delete_archived_runners_byID(id: UUID):
+    try:
+            resh = db_arch_h.remove(where('id') == id)
+            resd = db_arch_d.remove(where('id') == id)
+            if len(resh) == 0 or len(resd) == 0:
+                return -1, "not found "+str(resh) + " " + str(resd)
+            return 0, str(resh) + " " + str(resd)
+    except Exception as e:
+        return -2, str(e)
+
+def get_all_archived_runners_detail():
+    res = db_arch_d.all()
+    return 0, res
+
+def get_archived_runner_details_byID(id: UUID):
+    res = db_arch_d.get(where('id') == id)
+    if res==None:
+        return -2, "not found"
+    else:
+        return 0, res
+
+
+# change_archived_runner
+# delete_archived_runner_details
+
+

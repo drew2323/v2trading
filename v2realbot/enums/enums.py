@@ -13,7 +13,7 @@ class Order:
         self.limit_price = limit_price
 
 
-class FillCondition(Enum):
+class FillCondition(str, Enum):
     """
     Execution settings:
         fast = pro vyplneni limi orderu musi byt cena stejne
@@ -22,13 +22,13 @@ class FillCondition(Enum):
     """
     FAST = "fast"
     SLOW = "slow"
-class Account(Enum):
+class Account(str, Enum):
     """
     Accounts - keys to config
     """
     ACCOUNT1 = "ACCOUNT1"
     ACCOUNT2 = "ACCOUNT2"
-class RecordType(Enum):
+class RecordType(str, Enum):
     """
     Represents output of aggregator
     """
@@ -37,7 +37,7 @@ class RecordType(Enum):
     CBAR = "continuosbar"
     TRADE = "trade"
 
-class Mode(Enum):
+class Mode(str, Enum):
     """
     LIVE or BT
     """
@@ -47,7 +47,7 @@ class Mode(Enum):
     BT = "backtest"
 
 
-class StartBarAlign(Enum):
+class StartBarAlign(str, Enum):
     """
     Represents first bar start time alignement according to timeframe
         ROUND = bar starts at 0,5,10 (for 5s timeframe)

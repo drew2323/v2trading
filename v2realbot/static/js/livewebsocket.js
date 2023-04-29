@@ -6,6 +6,37 @@ var logcnt = 0
 var positionsPriceLine = null
 var limitkaPriceLine = null
 var angleSeries = 1
+var candlestickSeries
+var volumeSeries
+var vwapSeries
+
+//get details of runner to populate chart status
+//fetch necessary - it could be initiated by manually inserting runnerId
+function populate_rt_status_header(runnerId) {
+    $.ajax({
+        url:"/runners/"+runnerId,
+        beforeSend: function (xhr) {
+            xhr.setRequestHeader('X-API-Key',
+                API_KEY); },
+        method:"GET",
+        contentType: "application/json",
+        success:function(data){
+            console.log(JSON.stringify(data))
+            //add status on chart
+            $("#statusRegime").text("REALTIME")
+            $("#statusName").text(data.run_name)
+            $("#statusMode").text(data.run_mode)
+            $("#statusAccount").text(data.run_account)
+            //$("#statusStratvars").text(JSON.stringify(data.stratvars,null,2))
+        },
+        error: function(xhr, status, error) {
+            var err = eval("(" + xhr.responseText + ")");
+            window.alert(JSON.stringify(xhr));
+            console.log(JSON.stringify(xhr));
+        }
+    })    
+}
+
 
 function connect(event) {
     var runnerId = document.getElementById("runnerId")
@@ -21,6 +52,7 @@ function connect(event) {
         document.getElementById("bt-disc").style.display = "initial"
         document.getElementById("bt-conn").style.display = "none"
         document.getElementById("chart").style.display = "block"
+        populate_rt_status_header(runnerId.value)
     }
     ws.onmessage = function(event) {
         var parsed_data = JSON.parse(event.data)

@@ -8,11 +8,13 @@
         <link rel="manifest" href="/static/site.webmanifest">
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
         <link href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet">
         <script src="/static/js/jquery.dataTables.min.js"></script>
         <link rel="stylesheet" href="/static/main.css">
         <script src="https://cdnjs.cloudflare.com/ajax/libs/mousetrap/1.4.6/mousetrap.min.js"></script>
+        <!-- <script src="https://cdn.datatables.net/select/1.6.2/js/dataTables.select.min.js"></script> -->
     </head>
     <body>
         <div id="main" class="mainConteiner flex-container">
@@ -28,6 +30,13 @@
                         <!-- <label>Message: --> <input type="text" id="messageText" autocomplete="off" placeholder="WS out message"/> 
                         <button onclick="sendMessage(event)" id="bt.send" class="btn btn-success">Send</button>
                     </form>
+                    </div>
+                    <div id="statusHeader"  data-toggle="collapse" data-target="#statusStratvars">
+                        <div id="statusRegime" class="headerItem"></div>
+                        <div id="statusName" class="headerItem"></div>
+                        <div id="statusMode" class="headerItem"></div>
+                        <div id="statusAccount" class="headerItem"></div>
+                        <pre id="statusStratvars" class="headerItem collapse"></pre>
                     </div>
                     <div id="chart" style="display: None; float: left; "></div>
                     <div class="legend" id="legend"></div>
@@ -70,7 +79,11 @@
                                 <th>Started</th>
                                 <th>Mode</th>					
                                 <th>Account</th>					
-                                <th>Paused</th>					
+                                <th>Paused</th>
+                                <th>Profit</th>
+                                <th>Trades</th>
+                                <th>Pos</th>
+                                <th>AVGP</th>				
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -362,9 +375,12 @@
             </div>
         </div>
         <script type="text/javascript" src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
-        <script src="/static/js/mywebsocket.js"></script>
-        <script src="/static/js/mychart.js"></script>
-        <script src="/static/js/mytables.js"></script>
         <script src="/static/js/jquery.serializejson.js"></script>
+        <script src="/static/js/utils.js"></script>
+        <script src="/static/js/archivechart.js"></script>
+        <script src="/static/js/archivetables.js"></script>
+        <script src="/static/js/livewebsocket.js"></script>
+        <script src="/static/js/realtimechart.js"></script>
+        <script src="/static/js/mytables.js"></script>
     </body>
 </html>

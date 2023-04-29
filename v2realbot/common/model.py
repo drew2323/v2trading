@@ -72,6 +72,10 @@ class RunnerView(BaseModel):
     run_name: Optional[str] = None
     run_note: Optional[str] = None
     run_account: Account
+    run_trade_count: Optional[int] = 0
+    run_profit: Optional[float] = 0
+    run_positions: Optional[int] = 0
+    run_avgp: Optional[float] = 0
     run_stopped: Optional[datetime] = None
     run_paused: Optional[datetime] = None    
  
@@ -83,6 +87,10 @@ class Runner(BaseModel):
     run_account: Account
     run_name: Optional[str] = None
     run_note: Optional[str] = None
+    run_trade_count: Optional[int]
+    run_profit: Optional[float]
+    run_positions: Optional[int]
+    run_avgp: Optional[float]
     run_stopped: Optional[datetime] = None
     run_paused: Optional[datetime] = None   
     run_thread: Optional[object] = None

@@ -1,17 +1,19 @@
 
 //it is called after population
+
 function populate_real_time_chart() {
     if (chart !== null) {
-        chart.remove()
+        chart.remove();
+        clear_status_header();
     }
 
     //const chartOptions = { layout: { textColor: 'black', background: { type: 'solid', color: 'white' } } };
-    const chartOptions = { width: 1045, height: 600, leftPriceScale: {visible: true}}
+    var chartOptions = { width: 1045, height: 600, leftPriceScale: {visible: true}}
     chart = LightweightCharts.createChart(document.getElementById('chart'), chartOptions);
     chart.applyOptions({ timeScale: { visible: true, timeVisible: true, secondsVisible: true }, crosshair: {
         mode: LightweightCharts.CrosshairMode.Normal, labelVisible: true
     }})
-    const candlestickSeries = chart.addCandlestickSeries({ lastValueVisible: true, priceLineWidth:2, priceLineColor: "red", priceFormat: { type: 'price', precision: 2, minMove: 0.01 }});
+    candlestickSeries = chart.addCandlestickSeries({ lastValueVisible: true, priceLineWidth:2, priceLineColor: "red", priceFormat: { type: 'price', precision: 2, minMove: 0.01 }});
     candlestickSeries.priceScale().applyOptions({
         scaleMargins: {
             top: 0.1, // highest point of the series will be 10% away from the top
@@ -20,7 +22,7 @@ function populate_real_time_chart() {
     });
 
 
-    const volumeSeries = chart.addHistogramSeries({title: "Volume", color: '#26a69a', priceFormat: {type: 'volume'}, priceScaleId: ''});
+    volumeSeries = chart.addHistogramSeries({title: "Volume", color: '#26a69a', priceFormat: {type: 'volume'}, priceScaleId: ''});
     volumeSeries.priceScale().applyOptions({
         // set the positioning of the volume series
         scaleMargins: {
@@ -29,7 +31,7 @@ function populate_real_time_chart() {
         },
     });
 
-    const vwapSeries = chart.addLineSeries({
+    vwapSeries = chart.addLineSeries({
     //    title: "vwap",
         color: '#2962FF',
         lineWidth: 1,

@@ -34,7 +34,12 @@ def get_all_threads():
     
 def get_all_runners():
     if len(db.runners) > 0:
-        print(db.runners)
+        #print(db.runners)
+        for i in db.runners:
+            i.run_profit = round(i.run_instance.state.profit,2)
+            i.run_trade_count = len(i.run_instance.state.tradeList)
+            i.run_positions = i.run_instance.state.positions
+            i.run_avgp = round(i.run_instance.state.avgp,3)
         return (0, db.runners)
     else:
         return (0, [])
@@ -54,6 +59,10 @@ def get_stratin(id: UUID):
 def get_runner(id: UUID):
     for i in db.runners:
         if str(i.id) == str(id):
+            i.run_profit = round(i.run_instance.state.profit,2)
+            i.run_trade_count = len(i.run_instance.state.tradeList)
+            i.run_positions = i.run_instance.state.positions
+            i.run_avgp = round(i.run_instance.state.avgp,3)
             return (0, i)
     return (-2, "not found")
 

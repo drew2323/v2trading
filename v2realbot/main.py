@@ -2,6 +2,7 @@ import os,sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from v2realbot.enums.enums import Mode, Account
 from v2realbot.config import WEB_API_KEY
+from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from datetime import datetime
 #from icecream import install, ic
 import os
@@ -12,7 +13,7 @@ from fastapi.security import APIKeyHeader
 import uvicorn
 from uuid import UUID
 import v2realbot.controller.services as cs
-from v2realbot.common.model import StrategyInstance, RunnerView, RunRequest, Trade, RunArchive, RunArchiveDetail
+from v2realbot.common.model import StrategyInstance, RunnerView, RunRequest, Trade, RunArchive, RunArchiveDetail, Bar
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status, WebSocketException, Cookie, Query
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -298,6 +299,15 @@ def _get_archived_runner_details_byID(runner_id) -> RunArchiveDetail:
         return set
     else:
         raise HTTPException(status_code=404, detail=f"No runner with id: {runner_id} a {set}")
+
+#get alpaca history bars
+@app.get("/history_bars/", dependencies=[Depends(api_key_auth)])
+def _get_alpaca_history_bars(symbol: str, datetime_object_from: datetime, datetime_object_to: datetime, timeframe_amount: int, timeframe_unit: TimeFrameUnit) -> list[Bar]:
+    res, set =cs.get_alpaca_history_bars(symbol, datetime_object_from, datetime_object_to, TimeFrame(amount=timeframe_amount,unit=timeframe_unit))
+    if res == 0:
+        return set
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No data found")
 
 
 #join cekej na dokonceni vsech

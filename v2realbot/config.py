@@ -3,7 +3,7 @@ from v2realbot.enums.enums import Mode, Account, FillCondition
 from appdirs import user_data_dir
 
 #no print in console
-QUIET_MODE = False
+QUIET_MODE = True
 #how many consecutive trades with the fill price are necessary for LIMIT fill to happen in backtesting
 #0 - optimistic, every knot high will fill the order
 #N - N consecutive trades required

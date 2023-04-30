@@ -1,3 +1,40 @@
+:root {
+  --dt-row-selected: 18, 143, 175;
+}
+
+tbody, td, tfoot, th, thead, tr {
+  border-color: inherit;
+  border-style: solid;
+  border-width: 0;
+  padding: 4px;
+}
+
+.secondary-bg {
+  --bs-bg-opacity: 1;
+  background-color: #128faf;
+}
+
+.btn-outline-success {
+  --bs-btn-color: #316164;
+  --bs-btn-border-color: #247e85;
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: #3996a4;
+  --bs-btn-hover-border-color: #198754;
+  --bs-btn-focus-shadow-rgb: 25,135,84;
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: #40929d;
+  --bs-btn-active-border-color: #446379;
+  --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+  --bs-btn-disabled-color: #697d81;
+  --bs-btn-disabled-bg: transparent;
+  --bs-btn-disabled-border-color: #839498;
+  --bs-gradient: none;
+}
+
+html {
+  font-size: 14px;
+}
+
 .flex-container {
     display: inline-grid;
     flex-direction: row;
@@ -81,15 +118,19 @@ pre {
 }
 
 #trades-data {
-  height: 350px;
+  height: 40s0px;
   overflow: auto;
 }
 
 #statusHeader {
-  margin-left: 55px;
+  margin-left: 0px;
   font-size: normal;
-  font-weight: bold;
-  display: flex;
+  /* font-weight: bold; */
+  display: -webkit-inline-box;
+  background-color: #128faf;
+  /* color: white; */
+  padding: 1px;
+  padding-left: 5px;
 }
 
 .headerItem {
@@ -103,6 +144,7 @@ pre {
 .switcher {
 	display: flex;
 	align-items: center;
+  margin-left: 54px;
 	height: 30px;
 	margin-top: 8px;
 	color: #2196F3;

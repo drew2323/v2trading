@@ -72,6 +72,7 @@ class RunnerView(BaseModel):
     run_name: Optional[str] = None
     run_note: Optional[str] = None
     run_account: Account
+    run_symbol: Optional[str] = None
     run_trade_count: Optional[int] = 0
     run_profit: Optional[float] = 0
     run_positions: Optional[int] = 0
@@ -85,6 +86,7 @@ class Runner(BaseModel):
     run_started: Optional[datetime] = None
     run_mode: Mode
     run_account: Account
+    run_symbol: Optional[str] = None
     run_name: Optional[str] = None
     run_note: Optional[str] = None
     run_trade_count: Optional[int]
@@ -97,6 +99,33 @@ class Runner(BaseModel):
     run_instance: Optional[object] = None
     run_pause_ev: Optional[object] = None
     run_stop_ev: Optional[object] = None
+
+
+class Bar(BaseModel):
+    """Represents one bar/candlestick of aggregated trade data over a specified interval.
+
+    Attributes:
+        symbol (str): The ticker identifier for the security whose data forms the bar.
+        timestamp (datetime): The closing timestamp of the bar.
+        open (float): The opening price of the interval.
+        high (float): The high price during the interval.
+        low (float): The low price during the interval.
+        close (float): The closing price of the interval.
+        volume (float): The volume traded over the interval.
+        trade_count (Optional[float]): The number of trades that occurred.
+        vwap (Optional[float]): The volume weighted average price.
+        exchange (Optional[float]): The exchange the bar was formed on.
+    """
+
+    symbol: str
+    timestamp: datetime
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: float
+    trade_count: Optional[float]
+    vwap: Optional[float]
 
 class Order(BaseModel):
     id: UUID
@@ -130,6 +159,7 @@ class RunArchive(BaseModel):
     id: UUID
     #id of running strategy (stratin/runner)
     strat_id: UUID
+    symbol: str
     name: str
     note: Optional[str] = None
     started: datetime

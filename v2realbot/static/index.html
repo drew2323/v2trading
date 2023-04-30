@@ -1,37 +1,57 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en" data-bs-theme="light">
     <head>
+            <!-- Required meta tags -->
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
         <title>V2realbot</title>
         <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
         <link rel="icon" type="image/png" sizes="32x32" href="/static//favicon-32x32.png">
         <link rel="icon" type="image/png" sizes="16x16" href="/static//favicon-16x16.png">
         <link rel="manifest" href="/static/site.webmanifest">
-        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
 
+
+
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KK94CHFLLe+nY2dmCWGMq91rCGa5gtU4mk92HdvYe+M/SXH301p5ILy+dN9+nJOZ" crossorigin="anonymous">
+
+        <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+        <!-- <script src="https://code.jquery.com/jquery-3.5.1.js"></script> -->
+        <script src="https://code.jquery.com/jquery-3.6.4.js" integrity="sha256-a9jBBRygX1Bh5lt8GZjXDzyOB+bWve9EiO7tROUtj/E=" crossorigin="anonymous"></script>
+        <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe" crossorigin="anonymous"></script>
+
+
+        <!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
         <link href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet">
-        <script src="/static/js/jquery.dataTables.min.js"></script>
+        <script src="/static/js/jquery.dataTables.min.js"></script> -->
+
+
+
         <link rel="stylesheet" href="/static/main.css">
         <script src="https://cdnjs.cloudflare.com/ajax/libs/mousetrap/1.4.6/mousetrap.min.js"></script>
         <!-- <script src="https://cdn.datatables.net/select/1.6.2/js/dataTables.select.min.js"></script> -->
     </head>
     <body>
-        <div id="main" class="mainConteiner flex-container">
+        <div id="main" class="mainConteiner flex-container content">
             <div id="chartContainer" class="flex-items">
-                <label data-toggle="collapse" data-target="#chartContainerInner">Realtime chart</label>
-                <h5>Status: <span id="status">Not connected</span></h5>
-                <div id="chartContainerInner" class="collapsed collapse in">
+                <label data-bs-toggle="collapse" data-bs-target="#chartContainerInner" aria-expanded="true">
+                    <h4><span class="badge secondary-bg">Chart</span></h4>
+                </label>
+                <div>Status: <span id="status">Not connected</span></div>
+                <div id="chartContainerInner" class="collapse">
                     <div id="formular">
                     <form action="">
                         <input type="text" id="runnerId" autocomplete="off" placeholder="StrategyID" value=""/>
-                        <button onclick="connect(event)" id="bt-conn" class="btn btn-success">Connect</button>
-                        <button onclick="disconnect(event)" id="bt-disc" style="display: None" class="btn btn-success">Disconnect</button>
+                        <button onclick="connect(event)" id="bt-conn" class="btn btn-outline-success btn-sm">Connect</button>
+                        <button onclick="disconnect(event)" id="bt-disc" style="display: None" class="btn btn-outline-success btn-sm">Disconnect</button>
                         <!-- <label>Message: --> <input type="text" id="messageText" autocomplete="off" placeholder="WS out message"/> 
-                        <button onclick="sendMessage(event)" id="bt.send" class="btn btn-success">Send</button>
+                        <button onclick="sendMessage(event)" id="bt.send" class="btn btn-outline-success btn-sm">Send</button>
                     </form>
                     </div>
-                    <div id="statusHeader"  data-toggle="collapse" data-target="#statusStratvars">
+                    <div id="statusHeader"  data-bs-toggle="collapse" data-bs-target="#statusStratvars">
                         <div id="statusRegime" class="headerItem"></div>
                         <div id="statusName" class="headerItem"></div>
                         <div id="statusMode" class="headerItem"></div>
@@ -50,34 +70,40 @@
             </div>
             <div id="hist-trades" class="flex-items">
                 <div id="form-trades">
-                    <label data-toggle="collapse" data-target="#trades-data">Trade history</label>
+                    <label data-bs-toggle="collapse" data-bs-target="#trades-data">
+                        <h4><span class="badge secondary-bg">Trade History</span></h4>
+                    </label>
                     <label>Timestamp: <input type="text" id="trade-timestamp" autocomplete="off"/></label>
                     <label>SYM: <input type="text" id="trade-symbol" autocomplete="off"/></label>
                     <label>Count: <input type="number" id="trade-count" autocomplete="off" value="2"/></label>
                     <label>Minsize: <input type="number" id="trade-minsize" autocomplete="off" value="100"/></label>
                     <label>Filter: C,O,4,B,7,V,P<input type="text" id="trade-filter" autocomplete="off"/></label>
-                    <button id="bt-trade" class="btn btn-success">Show</button></div>
-                <div id="trades-data" style="display: none" class="collapse in">
-                            <table id="trades-data-table" class="display dataTable no-footer" style="width: 300px;display: contents;"></table>
+                    <button id="bt-trade" class="btn btn-outline-success btn-sm">Show</button></div>
+                <div id="trades-data" style="display: none" class="collapse show">
+                        <table id="trades-data-table" class="dataTable no-footer" style="width:300px; border-color: #dce1dc; display:contents"></table>
+                        <!-- <table id="trades-data-table" class="dataTable no-footer" style="width: 300px;display: contents;"></table> -->
                 </div>
             </div>
             <div id="runner-table" class="flex-items">
-                <label data-toggle="collapse" data-target="#runner-table-inner">Running</label>
-                <div id="runner-table-inner" class="collapsed">
+                <label data-bs-toggle="collapse" data-bs-target="#runner-table-inner">
+                    <h4><span class="badge secondary-bg">Running Strategies</span></h4>
+                </label>
+                <div id="runner-table-inner" class="collapse show">
                     <div id="controls">
                         <label>API-KEY: <input type="password" id="api-key" autocomplete="off"/></label>
-                        <button onclick="store_api_key(event)" id="bt-store" class="btn btn-success">Store</button>
-                        <button id="button_pause" class="btn btn-success">Pause/Unpause</button>
-                        <button id="button_stop" class="btn btn-success">Stop</button>
-                        <button id="button_stopall" class="btn btn-success">Stop All</button>
-                        <button id="button_refresh" class="btn btn-success">Refresh</button>
+                        <button onclick="store_api_key(event)" id="bt-store" class="btn btn-outline-success btn-sm">Store</button>
+                        <button id="button_pause" class="btn btn-outline-success btn-sm">Pause/Unpause</button>
+                        <button id="button_stop" class="btn btn-outline-success btn-sm">Stop</button>
+                        <button id="button_stopall" class="btn btn-outline-success btn-sm">Stop All</button>
+                        <button id="button_refresh" class="btn btn-outline-success btn-sm">Refresh</button>
                     </div>
-                    <table id="runnerTable" class="display" style="width:100%">
+                    <table id="runnerTable" class="table-striped table-bordered dataTable" style="width:100%; border-color: #dce1dc;">
                         <thead>
                             <tr>
                                 <th>Id</th>
                                 <th>Started</th>
-                                <th>Mode</th>					
+                                <th>Mode</th>
+                                <th>Symbol</th>					
                                 <th>Account</th>					
                                 <th>Paused</th>
                                 <th>Profit</th>
@@ -94,18 +120,18 @@
                         <form method="post" id="stopForm">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <button type="button" class="close" data-dismiss="modal">×</button>
-                                    <h4 class="modal-title_stop"><i class="fa fa-plus"></i> Stop Strategy</h4>
+                                    <h4 class="modal-title"><i class="fa fa-plus"></i> Stop Strategy</h4>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
                                     <div class="form-group">
-                                        <label for="runnerid" class="control-label">Id</label>
+                                        <label for="runnerid" class="form-label">Id</label>
                                         <input type="text" class="form-control" id="runnerid" name="runnerid" placeholder="id">			
                                     </div>				
                                 </div>
                                 <div class="modal-footer">
-                                    <input type="submit" name="stop" id="stop" class="btn btn-info" value="stop" />
-                                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                                    <input type="submit" name="stop" id="stop" class="btn btn-primary" value="stop" />
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                                 </div>
                             </div>
                         </form>
@@ -114,23 +140,26 @@
             </div>
 
             <div id="archive-table" class="flex-items">
-                <label data-toggle="collapse" data-target="#archive-table-inner">Run Archive</label>
-                <div id="archive-table-inner" class="collapsed">
+                <label data-bs-toggle="collapse" data-bs-target="#archive-table-inner">
+                    <h4><span class="badge secondary-bg">Past Runs</span></h4>
+                </label>
+                <div id="archive-table-inner" class="collapse show">
                     <div id="archive-chart">
-                        <div id="chartArchive" style="position: relative;">BT chart</div>
+                        <div id="chartArchive" style="position: relative;"></div>
                         <div class="legend" id="legendArchive"></div>
                     </div>
                     <div id="controls">
-                        <button id="button_show_arch" class="btn btn-success">Show</button>
-                        <button id="button_delete_arch" class="btn btn-success">Delete</button>
-                        <!-- <button id="button_stopall" class="btn btn-success">Stop All</button>
-                        <button id="button_refresh" class="btn btn-success">Refresh</button> -->
+                        <button id="button_show_arch" class="btn btn-outline-success btn-sm">Show</button>
+                        <button id="button_delete_arch" class="btn btn-outline-success btn-sm">Delete</button>
+                        <!-- <button id="button_stopall" class="btn btn-outline-success btn-sm">Stop All</button>
+                        <button id="button_refresh" class="btn btn-outline-success btn-sm">Refresh</button> -->
                     </div>
-                    <table id="archiveTable" class="display" style="width:100%">
+                    <table id="archiveTable" class="table-striped table-bordered dataTable" style="width:100%; border-color: #dce1dc;">
                         <thead>
                             <tr>
                                 <th>Id</th>
                                 <th>Name</th>
+                                <th>Symbol</th>
                                 <th>Note</th>					
                                 <th>started</th>					
                                 <th>stopped</th>
@@ -154,18 +183,18 @@
                         <form method="post" id="delFormArchive">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <button type="button" class="close" data-dismiss="modal">×</button>
-                                    <h4 class="modal-title_del"><i class="fa fa-plus"></i> Delete Archive</h4>
+                                    <h4 class="modal-title"><i class="fa fa-plus"></i> Delete Archive</h4>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
                                     <div class="form-group">
-                                        <label for="delidarchive" class="control-label">Id</label>
+                                        <label for="delidarchive" class="form-label">Id</label>
                                         <input type="text" class="form-control" id="delidarchive" name="delidarchive" placeholder="id">			
                                     </div>				
                                 </div>
                                 <div class="modal-footer">
-                                    <input type="submit" name="delete" id="deletearchive" class="btn btn-info" value="Delete" />
-                                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                                    <input type="submit" name="delete" id="deletearchive" class="btn btn-primary" value="Delete" />
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                                 </div>
                             </div>
                         </form>
@@ -173,16 +202,18 @@
                 </div>
             </div>
             <div id="stratin-table" class="flex-items">
-                <label data-toggle="collapse" data-target="#stratin-table-inner">Strategies</label>
-                <div id="stratin-table-inner" class="collapsed">
-                    <button id="button_add" class="btn btn-success">Add</button>
-                    <button id="button_add_json" class="btn btn-success">Add JSON</button>
-                    <button id="button_edit" class="btn btn-success">Edit</button>
-                    <button id="button_dup" class="btn btn-success">Duplicate</button>
-                    <button id="button_copy" class="btn btn-success">Copy JSON</button>
-                    <button id="button_delete" class="btn btn-success">Delete</button>
-                    <button id="button_run" class="btn btn-success">Run Strategy</button>
-                    <table id="stratinTable" class="display" style="width:100%">
+                <label data-bs-toggle="collapse" data-bs-target="#stratin-table-inner">
+                    <h4><span class="badge secondary-bg">Strategies</span></h4>
+                </label>
+                <div id="stratin-table-inner" class="collapse show">
+                    <button id="button_add" class="btn btn-outline-success btn-sm">Add</button>
+                    <button id="button_add_json" class="btn btn-outline-success btn-sm">Add JSON</button>
+                    <button id="button_edit" class="btn btn-outline-success btn-sm">Edit</button>
+                    <button id="button_dup" class="btn btn-outline-success btn-sm">Duplicate</button>
+                    <button id="button_copy" class="btn btn-outline-success btn-sm">Copy JSON</button>
+                    <button id="button_delete" class="btn btn-outline-success btn-sm">Delete</button>
+                    <button id="button_run" class="btn btn-outline-success btn-sm">Run Strategy</button>
+                    <table id="stratinTable" class="table-striped table-bordered dataTable" style="width:100%; border-color: #dce1dc;">
                         <thead>
                             <tr>
                                 <th>Id</th>
@@ -209,64 +240,64 @@
                         <form method="post" id="recordForm">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <button type="button" class="close" data-dismiss="modal">×</button>
                                     <h4 class="modal-title"><i class="fa fa-plus"></i> Add Record</h4>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
                                     <div class="form-group">
-                                        <label for="id" class="control-label">Id</label>
+                                        <label for="id" class="form-label">Id</label>
                                         <input type="text" class="form-control" id="id" name="id" placeholder="id" readonly>			
                                     </div>
                                     <div class="form-group">
-                                        <label for="id2" class="control-label">Id2</label>
+                                        <label for="id2" class="form-label">Id2</label>
                                         <input type="text" class="form-control" id="id2" name="id2" placeholder="id2" required>			
                                     </div>
                                     <div class="form-group">
-                                        <label for="name" class="control-label">Name</label>
+                                        <label for="name" class="form-label">Name</label>
                                         <input type="text" class="form-control" id="name" name="name" placeholder="Name" required>			
                                     </div>
                                     <div class="form-group">
-                                        <label for="symbol" class="control-label">symbol</label>							
+                                        <label for="symbol" class="form-label">symbol</label>							
                                         <input type="text" class="form-control" id="symbol" name="symbol" placeholder="Symbol" required>							
                                     </div>	
                                     <div class="form-group">
-                                        <label for="class_name" class="control-label">class_name</label>							
+                                        <label for="class_name" class="form-label">class_name</label>							
                                         <input type="text" class="form-control" id="class_name" name="class_name" placeholder="class_name" required>							
                                     </div>	   	
                                     <div class="form-group">
-                                        <label for="script" class="control-label">script</label>							
+                                        <label for="script" class="form-label">script</label>							
                                         <input type="text" class="form-control" id="script" name="script" placeholder="script" required>							
                                     </div>
                                     <div class="form-group">
-                                        <label for="open_rush" class="control-label">open_rush</label>							
+                                        <label for="open_rush" class="form-label">open_rush</label>							
                                         <input type="number" class="form-control" id="open_rush" name="open_rush" placeholder="open_rush" value=0 required>							
                                     </div>	 
                                     <div class="form-group">
-                                        <label for="close_rush" class="control-label">close_rush</label>							
+                                        <label for="close_rush" class="form-label">close_rush</label>							
                                         <input type="number" class="form-control" id="close_rush" name="close_rush" placeholder="close_rush" value=0 required>							
                                     </div>	  	 
                                     <div class="form-group">
-                                        <label for="stratvars_conf" class="control-label">stratvars_conf</label>							
+                                        <label for="stratvars_conf" class="form-label">stratvars_conf</label>							
                                         <textarea class="form-control" rows="8" id="stratvars_conf" name="stratvars_conf" required></textarea>							
                                     </div>
                                     <div class="form-group">
-                                        <label for="add_data_conf" class="control-label">add_data_conf</label>							
+                                        <label for="add_data_conf" class="form-label">add_data_conf</label>							
                                         <textarea class="form-control" rows="7" id="add_data_conf" name="add_data_conf" required></textarea>							
                                     </div>
                                     <div class="form-group">
-                                        <label for="note" class="control-label">note</label>							
+                                        <label for="note" class="form-label">note</label>							
                                         <textarea class="form-control" rows="2" id="note" name="note"></textarea>							
                                     </div>
                                     <div class="form-group">
-                                        <label for="history" class="control-label">history</label>							
+                                        <label for="history" class="form-label">history</label>							
                                         <textarea class="form-control" rows="3" id="history" name="history"></textarea>							
                                     </div>					
                                 </div>
                                 <div class="modal-footer">
                                     <!--<input type="hidden" name="id" id="id" />-->
                                     <!--<input type="hidden" name="action" id="action" value="" />-->
-                                    <input type="submit" name="save" id="save" class="btn btn-info" value="Save" />
-                                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                                    <input type="submit" name="save" id="save" class="btn btn-primary" value="Save" />
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                                 </div>
                             </div>
                         </form>
@@ -277,18 +308,18 @@
                         <form method="post" id="delForm">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <button type="button" class="close" data-dismiss="modal">×</button>
                                     <h4 class="modal-title_del"><i class="fa fa-plus"></i> Delete Record</h4>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
                                     <div class="form-group">
-                                        <label for="delid" class="control-label">Id</label>
+                                        <label for="delid" class="form-label">Id</label>
                                         <input type="text" class="form-control" id="delid" name="delid" placeholder="id">			
                                     </div>				
                                 </div>
                                 <div class="modal-footer">
-                                    <input type="submit" name="delete" id="delete" class="btn btn-info" value="Delete" />
-                                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                                    <input type="submit" name="delete" id="delete" class="btn btn-primary" value="Delete" />
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                                 </div>
                             </div>
                         </form>
@@ -299,18 +330,18 @@
                         <form method="post" id="jsonForm">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <button type="button" class="close" data-dismiss="modal">×</button>
                                     <h4 class="modal-title_json"><i class="fa fa-plus"></i> Add JSON Record</h4>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
                                     <div class="form-group">
-                                        <label for="jsontext" class="control-label">JSON</label>
+                                        <label for="jsontext" class="form-label">JSON</label>
                                         <textarea class="form-control" rows="7" id="jsontext" name="jsontext" required></textarea>		
                                     </div>				
                                 </div>
                                 <div class="modal-footer">
-                                    <input type="submit" name="json_add" id="json_add" class="btn btn-info" value="Add" />
-                                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                                    <input type="submit" name="json_add" id="json_add" class="btn btn-primary" value="Add" />
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                                 </div>
                             </div>
                         </form>
@@ -321,49 +352,49 @@
                         <form method="post" id="runForm">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <button type="button" class="close" data-dismiss="modal">×</button>
                                     <h4 class="modal-title_run"><i class="fa fa-plus"></i> Run strategy</h4>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
                                     <div class="form-group">
-                                        <label for="runid" class="control-label">Id</label>
+                                        <label for="runid" class="form-label">Id</label>
                                         <input type="text" class="form-control" id="runid" name="runid" placeholder="id" readonly>			
                                     </div>
                                     <div class="form-group">
-                                        <label for="mode" class="control-label">Mode</label>
+                                        <label for="mode" class="form-label">Mode</label>
                                         <select class="form-control" id="mode" name="mode"><option value="paper">paper</option><option value="live">live</option><option value="backtest">backtest</option></select>		
                                     </div>
                                     <div class="form-group">
-                                        <label for="account" class="control-label">Account</label>
+                                        <label for="account" class="form-label">Account</label>
                                         <select class="form-control" id="account" name="account"><option value="ACCOUNT1">ACCOUNT1</option><option value="ACCOUNT2">ACCOUNT2</option></select>		
                                     </div>
         
                                     <div class="form-group">
-                                        <label for="debug" class="control-label">debug</label>		
+                                        <label for="debug" class="form-label">debug</label>		
                                         <select class="form-control" id="debug" name="debug"><option value="true">true</option><option value="false" selected>false</option></select>												
                                     </div>	
                                     <div class="form-group">
-                                        <label for="bt_from" class="control-label">bt_from</label>							
+                                        <label for="bt_from" class="form-label">bt_from</label>							
                                         <input type="datetime-local" class="form-control" id="bt_from" name="bt_from" placeholder="2023-04-06T09:00:00Z">							
                                     </div>	   	
                                     <div class="form-group">
-                                        <label for="bt_to" class="control-label">bt_to</label>							
+                                        <label for="bt_to" class="form-label">bt_to</label>							
                                         <input type="datetime-local" class="form-control" id="bt_to" name="bt_to" placeholder="2023-04-06T09:00:00Z">							
                                     </div>
                                     <div class="form-group">
-                                        <label for="cash" class="control-label">cash</label>							
+                                        <label for="cash" class="form-label">cash</label>							
                                         <input type="number" class="form-control" id="cash" name="cash" placeholder="cash" value="100000">							
                                     </div>
                                     <div class="form-group">
-                                        <label for="cash" class="control-label">Subscribe for RT</label>							
-                                        <input type="checkbox" class="form-control" id="subscribe" name="subscribe">							
+                                        <label for="cash" class="form-label">Subscribe for RT</label>							
+                                        <input type="checkbox" class="form-check-input mt-0" id="subscribe" name="subscribe" aria-label="Real time subscribe">							
                                     </div>				
                                 </div>
                                 <div class="modal-footer">
                                     <!--<input type="hidden" name="id" id="id" />-->
                                     <!--<input type="hidden" name="action" id="action" value="" />-->
-                                    <input type="submit" name="run" id="run" class="btn btn-info" value="Run" />
-                                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                                    <input type="submit" name="run" id="run" class="btn btn-primary" value="Run" />
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                                 </div>
                             </div>
                         </form>

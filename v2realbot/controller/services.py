@@ -2,8 +2,9 @@ from typing import Any, List
 from uuid import UUID, uuid4
 import pickle
 from alpaca.data.historical import StockHistoricalDataClient
-from alpaca.data.requests import StockTradesRequest
+from alpaca.data.requests import StockTradesRequest, StockBarsRequest
 from alpaca.data.enums import DataFeed
+from alpaca.data.timeframe import TimeFrame
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account
 from v2realbot.common.model import StrategyInstance, Runner, RunRequest, RunArchive, RunArchiveDetail
 from v2realbot.utils.utils import AttributeDict, zoneNY, dict_replace_value, Store, parse_toml_string, json_serial
@@ -365,6 +366,7 @@ def run_stratin(id: UUID, runReq: RunRequest):
                         run_started = datetime.now(zoneNY),
                         run_pause_ev = pe,
                         run_name = name,
+                        run_symbol = symbol,
                         run_note = runReq.note,
                         run_stop_ev = se,
                         run_thread = vlakno,
@@ -409,6 +411,7 @@ def archive_runner(runner: Runner, strat: StrategyInstance):
                                             strat_id = runner.id,
                                             name=runner.run_name,
                                             note=runner.run_note,
+                                            symbol=runner.run_symbol,
                                             started=runner.run_started,
                                             stopped=runner.run_stopped,
                                             mode=runner.run_mode,
@@ -463,6 +466,19 @@ def get_archived_runner_details_byID(id: UUID):
     else:
         return 0, res
 
+#returns b
+def get_alpaca_history_bars(symbol: str, datetime_object_from: datetime, datetime_object_to: datetime, timeframe: TimeFrame):
+    """Returns Bar object
+    """
+    try:
+        client = StockHistoricalDataClient(ACCOUNT1_LIVE_API_KEY, ACCOUNT1_LIVE_SECRET_KEY, raw_data=False)
+        #datetime_object_from = datetime(2023, 2, 27, 18, 51, 38, tzinfo=datetime.timezone.utc)
+        #datetime_object_to = datetime(2023, 2, 27, 21, 51, 39, tzinfo=datetime.timezone.utc)
+        bar_request = StockBarsRequest(symbol_or_symbols=symbol,timeframe=timeframe, start=datetime_object_from, end=datetime_object_to, feed=DataFeed.SIP)
+        bars = client.get_stock_bars(bar_request)
+        return 0, bars.data[symbol]
+    except Exception as e:
+        return -2, str(e)
 
 # change_archived_runner
 # delete_archived_runner_details

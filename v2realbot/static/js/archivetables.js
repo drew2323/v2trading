@@ -43,9 +43,12 @@ $(document).ready(function () {
             dataType: "json",
             success:function(data){							
                 $('#button_show_arch').attr('disabled',false);
+                $('#chartContainerInner').addClass("show");
                 //$('#chartArchive').append(JSON.stringify(data,null,2));
                 console.log(JSON.stringify(data,null,2));
-                chart_archived_run(row, data);
+                //if lower res is required call prepare_data otherwise call chart_archived_run()
+                //get other base resolutions
+                prepare_data(row, 1, "Min", data)
             },
             error: function(xhr, status, error) {
                 var err = eval("(" + xhr.responseText + ")");
@@ -103,6 +106,7 @@ var archiveRecords =
             },
         columns: [{ data: 'id' },
                     {data: 'name'},
+                    {data: 'symbol'},
                     {data: 'note'},
                     {data: 'started'},
                     {data: 'stopped'},
@@ -118,12 +122,12 @@ var archiveRecords =
                     {data: 'open_orders', visible: true}
                 ],
         columnDefs: [{
-            targets: [3,4,7,8],
+            targets: [4,5,8,9],
             render: function ( data, type, row ) {
                 return format_date(data)
             },
             }],
-        order: [[4, 'desc']],
+        order: [[5, 'desc']],
         paging: true,
         lengthChange: false,
         // createdRow: function( row, data, dataIndex){

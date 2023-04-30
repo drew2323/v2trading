@@ -154,7 +154,7 @@ $(document).ready(function () {
                 bg = (findCommonElements3(filterList, tradeLine.conditions) || (parseInt(tradeLine.size) < minsize) ? 'style="background-color: #e6e6e6;"' : '')
 
                 row += '<tr role="row" '+ ((timestamp == puvodni) ? 'class="highlighted"' : '') +' ' + bg + '><td>' + timestamp + '</td><td>' + tradeLine.price + '</td>' +
-                            '<td>' + tradeLine.size + '</td><td>' + tradeLine.id + '</td>' +
+                            '<td class="dt-center">' + tradeLine.size + '</td><td>' + tradeLine.id + '</td>' +
                             '<td>' + tradeLine.conditions + '</td><td>' + tradeLine.tape + '</td>' +
                             '<td>' + tradeLine.timestamp + '</td></tr>';
             
@@ -467,6 +467,7 @@ var runnerRecords =
         columns: [{ data: 'id' },
                     {data: 'run_started'},
                     {data: 'run_mode'},
+                    {data: 'run_symbol'},
                     {data: 'run_account'},
                     {data: 'run_paused'},
                     {data: 'run_profit'},

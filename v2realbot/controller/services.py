@@ -16,6 +16,7 @@ from queue import Queue
 from tinydb import TinyDB, Query, where
 from tinydb.operations import set
 import json
+from numpy import ndarray
 
 arch_header_file = DATA_DIR + "/arch_header.json"
 arch_detail_file = DATA_DIR + "/arch_detail.json"
@@ -426,10 +427,21 @@ def archive_runner(runner: Runner, strat: StrategyInstance):
                                             open_orders=9999
                                             )
         
+        #flatten indicators from numpy array
+        flattened_indicators = {}
+        for key, value in strat.state.indicators.items():
+                if isinstance(value, ndarray):
+                    print("is numpy", key,value)
+                    flattened_indicators[key]= value.tolist()
+                    print("changed numpy:",value.tolist())
+                else:
+                    print("is not numpy", key, value)
+                    flattened_indicators[key]= value    
+
         runArchiveDetail: RunArchiveDetail = RunArchiveDetail(id = id,
                                                             name=runner.run_name,
                                                             bars=strat.state.bars,
-                                                            indicators=strat.state.indicators,
+                                                            indicators=flattened_indicators,
                                                             statinds=strat.state.statinds,
                                                             trades=strat.state.tradeList)
         resh = db_arch_h.insert(runArchive.__dict__)

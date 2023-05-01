@@ -6,7 +6,7 @@ from alpaca.data.requests import StockTradesRequest, StockBarsRequest
 from alpaca.data.enums import DataFeed
 from alpaca.data.timeframe import TimeFrame
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account
-from v2realbot.common.model import StrategyInstance, Runner, RunRequest, RunArchive, RunArchiveDetail
+from v2realbot.common.model import StrategyInstance, Runner, RunRequest, RunArchive, RunArchiveDetail, RunArchiveChange
 from v2realbot.utils.utils import AttributeDict, zoneNY, dict_replace_value, Store, parse_toml_string, json_serial
 from datetime import datetime
 from threading import Thread, current_thread, Event, enumerate
@@ -37,10 +37,10 @@ def get_all_runners():
     if len(db.runners) > 0:
         #print(db.runners)
         for i in db.runners:
-            i.run_profit = round(i.run_instance.state.profit,2)
+            i.run_profit = round(float(i.run_instance.state.profit),2)
             i.run_trade_count = len(i.run_instance.state.tradeList)
             i.run_positions = i.run_instance.state.positions
-            i.run_avgp = round(i.run_instance.state.avgp,3)
+            i.run_avgp = round(float(i.run_instance.state.avgp),3)
         return (0, db.runners)
     else:
         return (0, [])
@@ -419,10 +419,10 @@ def archive_runner(runner: Runner, strat: StrategyInstance):
                                             bt_from=bp_from,
                                             bt_to = bp_to,
                                             stratvars = strat.state.vars,
-                                            profit=round(strat.state.profit,2),
+                                            profit=round(float(strat.state.profit),2),
                                             trade_count=len(strat.state.tradeList),
                                             end_positions=strat.state.positions,
-                                            end_positions_avgp=round(strat.state.avgp,3),
+                                            end_positions_avgp=round(float(strat.state.avgp),3),
                                             open_orders=9999
                                             )
         
@@ -437,7 +437,7 @@ def archive_runner(runner: Runner, strat: StrategyInstance):
         print("archive runner finished")
         return 0, str(resh) + " " + str(resd)
     except Exception as e:
-        print(str(e))
+        print("Exception in archive_runner: " + str(e))
         return -2, str(e)
 
 def get_all_archived_runners():
@@ -454,13 +454,23 @@ def delete_archived_runners_byID(id: UUID):
             return 0, str(resh) + " " + str(resd)
     except Exception as e:
         return -2, str(e)
+    
+#edit archived runner note
+def edit_archived_runners(runner_id: UUID, archChange: RunArchiveChange):
+    try:
+        res = db_arch_h.update(set('note', archChange.note), where('id') == str(runner_id))
+        if len(res) == 0:
+            return -1, "not found "+str(runner_id)
+        return 0, runner_id
+    except Exception as e:
+        return -2, str(e)
 
 def get_all_archived_runners_detail():
     res = db_arch_d.all()
     return 0, res
 
 def get_archived_runner_details_byID(id: UUID):
-    res = db_arch_d.get(where('id') == id)
+    res = db_arch_d.get(where('id') == str(id))
     if res==None:
         return -2, "not found"
     else:

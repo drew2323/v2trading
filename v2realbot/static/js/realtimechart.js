@@ -8,26 +8,26 @@ function populate_real_time_chart() {
 
     $('#chartContainerInner').addClass("show");
     //const chartOptions = { layout: { textColor: 'black', background: { type: 'solid', color: 'white' } } };
-    //var chartOptions = { width: 1045, height: 600, leftPriceScale: {visible: true}}
-    var chartOptions = { width: 1045,
-                        height: 600,
-                        leftPriceScale: {visible: true},
-                        layout: {
-                            background: {
-                                type: 'solid',
-                                color: '#000000',
-                            },
-                            textColor: '#d1d4dc',
-                        },
-                        grid: {
-                            vertLines: {
-                                visible: false,
-                            },
-                            horzLines: {
-                                color: 'rgba(42, 46, 57, 0.5)',
-                            },
-                        },
-                    }    
+    var chartOptions = { width: 1045, height: 600, leftPriceScale: {visible: true}}
+    // var chartOptions = { width: 1045,
+    //                     height: 600,
+    //                     leftPriceScale: {visible: true},
+    //                     layout: {
+    //                         background: {
+    //                             type: 'solid',
+    //                             color: '#000000',
+    //                         },
+    //                         textColor: '#d1d4dc',
+    //                     },
+    //                     grid: {
+    //                         vertLines: {
+    //                             visible: false,
+    //                         },
+    //                         horzLines: {
+    //                             color: 'rgba(42, 46, 57, 0.5)',
+    //                         },
+    //                     },
+    //                 }    
     
     
     chart = LightweightCharts.createChart(document.getElementById('chart'), chartOptions);

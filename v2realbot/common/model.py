@@ -153,6 +153,11 @@ class TradeUpdate(BaseModel):
     cash: Optional[float]
     pos_avg_price: Optional[float]
 
+
+class RunArchiveChange(BaseModel):
+    id: UUID
+    note: str
+
 #Contains archive of running strategies (runner) - master
 class RunArchive(BaseModel):
     #unique id of algorun

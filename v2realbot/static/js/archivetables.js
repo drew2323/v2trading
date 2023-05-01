@@ -5,6 +5,7 @@ $(document).ready(function () {
     //disable buttons (enable on row selection)
     $('#button_show_arch').attr('disabled','disabled');
     $('#button_delete_arch').attr('disabled','disabled');
+    $('#button_edit_arch').attr('disabled','disabled');
 
 
     //selectable rows in archive table
@@ -13,11 +14,13 @@ $(document).ready(function () {
             $(this).removeClass('selected');
             $('#button_show_arch').attr('disabled','disabled');
             $('#button_delete_arch').attr('disabled','disabled');
+            $('#button_edit_arch').attr('disabled','disabled');
         } else {
             stratinRecords.$('tr.selected').removeClass('selected');
             $(this).addClass('selected');
             $('#button_show_arch').attr('disabled',false);
             $('#button_delete_arch').attr('disabled',false);
+            $('#button_edit_arch').attr('disabled',false);
         }
     });
 
@@ -28,6 +31,13 @@ $(document).ready(function () {
         $('#delidarchive').val(row.id);
     });
 
+    //edit button
+    $('#button_edit_arch').click(function () {
+        row = archiveRecords.row('.selected').data();
+        window.$('#editModalArchive').modal('show');
+        $('#editidarchive').val(row.id);
+        $('#editstratvars').val(JSON.stringify(row.stratvars,null,2));
+    });
 
     //show button
     $('#button_show_arch').click(function () {
@@ -44,6 +54,8 @@ $(document).ready(function () {
             success:function(data){							
                 $('#button_show_arch').attr('disabled',false);
                 $('#chartContainerInner').addClass("show");
+                $("#lines").html("<pre>"+JSON.stringify(row.stratvars,null,2)+"</pre>")
+                
                 //$('#chartArchive').append(JSON.stringify(data,null,2));
                 console.log(JSON.stringify(data,null,2));
                 //if lower res is required call prepare_data otherwise call chart_archived_run()
@@ -59,6 +71,43 @@ $(document).ready(function () {
         })
     });
 })
+
+//edit modal
+$("#editModalArchive").on('submit','#editFormArchive', function(event){
+    event.preventDefault();
+    $('#editarchive').attr('disabled','disabled');
+    trow = archiveRecords.row('.selected').data();
+    note = $('#editnote').val()
+    var formData = $(this).serializeJSON();
+    row = {}
+    row["id"] = trow.id
+    row["note"] = note
+    jsonString = JSON.stringify(row);
+    console.log("pred odeslanim json string", jsonString)
+    $.ajax({
+        url:"/archived_runners/"+trow.id,
+        beforeSend: function (xhr) {
+            xhr.setRequestHeader('X-API-Key',
+                API_KEY); },
+        method:"PATCH",
+        contentType: "application/json",
+        // dataType: "json",
+        data: jsonString,
+        success:function(data){				
+            $('#editFormArchive')[0].reset();
+            window.$('#editModalArchive').modal('hide');				
+            $('#editarchive').attr('disabled', false);
+            archiveRecords.ajax.reload();
+        },
+        error: function(xhr, status, error) {
+            var err = eval("(" + xhr.responseText + ")");
+            window.alert(JSON.stringify(xhr));
+            console.log(JSON.stringify(xhr));
+            $('#editarchive').attr('disabled', false);
+        }
+    })
+});
+
 
 //delete modal
 $("#delModalArchive").on('submit','#delFormArchive', function(event){
@@ -121,12 +170,12 @@ var archiveRecords =
                     {data: 'end_positions_avgp', visible: true},
                     {data: 'open_orders', visible: true}
                 ],
-        columnDefs: [{
-            targets: [4,5,8,9],
-            render: function ( data, type, row ) {
-                return format_date(data)
-            },
-            }],
+        // columnDefs: [{
+        //     targets: [4,5,8,9],
+        //     render: function ( data, type, row ) {
+        //         return format_date(data)
+        //     },
+        //     }],
         order: [[5, 'desc']],
         paging: true,
         lengthChange: false,

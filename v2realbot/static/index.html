@@ -149,8 +149,9 @@
                         <div class="legend" id="legendArchive"></div>
                     </div>
                     <div id="controls">
-                        <button id="button_show_arch" class="btn btn-outline-success btn-sm">Show</button>
+                        <button id="button_edit_arch" class="btn btn-outline-success btn-sm">Edit</button>
                         <button id="button_delete_arch" class="btn btn-outline-success btn-sm">Delete</button>
+                        <button id="button_show_arch" class="btn btn-outline-success btn-sm">Show</button>
                         <!-- <button id="button_stopall" class="btn btn-outline-success btn-sm">Stop All</button>
                         <button id="button_refresh" class="btn btn-outline-success btn-sm">Refresh</button> -->
                     </div>
@@ -194,13 +195,44 @@
                                 </div>
                                 <div class="modal-footer">
                                     <input type="submit" name="delete" id="deletearchive" class="btn btn-primary" value="Delete" />
-                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                                 </div>
                             </div>
                         </form>
                     </div>
                 </div>
             </div>
+            <div id="editModalArchive" class="modal fade">
+                <div class="modal-dialog">
+                    <form method="post" id="editFormArchive">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h4 class="modal-title"><i class="fa fa-plus"></i> Edit Archive</h4>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="form-group">
+                                    <label for="editidarchive" class="form-label">Id</label>
+                                    <input type="text" class="form-control" id="editidarchive" name="id" placeholder="id" readonly>			
+                                </div>
+                                <div class="form-group">
+                                    <label for="note" class="form-label">note</label>							
+                                    <textarea class="form-control" rows="2" id="editnote" name="note"></textarea>							
+                                </div>
+                                <div class="form-group">
+                                    <label for="stratvars" class="form-label">Stratvars</label>							
+                                    <textarea class="form-control" rows="4" id="editstratvars" name="stratvars"></textarea>							
+                                </div>		
+                            </div>
+                            <div class="modal-footer">
+                                <input type="submit" name="delete" id="editarchive" class="btn btn-primary" value="Edit" />
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
             <div id="stratin-table" class="flex-items">
                 <label data-bs-toggle="collapse" data-bs-target="#stratin-table-inner">
                     <h4><span class="badge secondary-bg">Strategies</span></h4>
@@ -297,7 +329,7 @@
                                     <!--<input type="hidden" name="id" id="id" />-->
                                     <!--<input type="hidden" name="action" id="action" value="" />-->
                                     <input type="submit" name="save" id="save" class="btn btn-primary" value="Save" />
-                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                                 </div>
                             </div>
                         </form>
@@ -319,7 +351,7 @@
                                 </div>
                                 <div class="modal-footer">
                                     <input type="submit" name="delete" id="delete" class="btn btn-primary" value="Delete" />
-                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                                 </div>
                             </div>
                         </form>
@@ -341,7 +373,7 @@
                                 </div>
                                 <div class="modal-footer">
                                     <input type="submit" name="json_add" id="json_add" class="btn btn-primary" value="Add" />
-                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                                 </div>
                             </div>
                         </form>
@@ -375,11 +407,11 @@
                                     </div>	
                                     <div class="form-group">
                                         <label for="bt_from" class="form-label">bt_from</label>							
-                                        <input type="datetime-local" class="form-control" id="bt_from" name="bt_from" placeholder="2023-04-06T09:00:00Z">							
+                                        <input type="datetime-local" class="form-control" id="bt_from" name="bt_from" placeholder="2023-04-06T09:00:00Z" step="1">							
                                     </div>	   	
                                     <div class="form-group">
                                         <label for="bt_to" class="form-label">bt_to</label>							
-                                        <input type="datetime-local" class="form-control" id="bt_to" name="bt_to" placeholder="2023-04-06T09:00:00Z">							
+                                        <input type="datetime-local" class="form-control" id="bt_to" name="bt_to" placeholder="2023-04-06T09:00:00Z" step="1">							
                                     </div>
                                     <div class="form-group">
                                         <label for="cash" class="form-label">cash</label>							
@@ -394,7 +426,7 @@
                                     <!--<input type="hidden" name="id" id="id" />-->
                                     <!--<input type="hidden" name="action" id="action" value="" />-->
                                     <input type="submit" name="run" id="run" class="btn btn-primary" value="Run" />
-                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                                 </div>
                             </div>
                         </form>

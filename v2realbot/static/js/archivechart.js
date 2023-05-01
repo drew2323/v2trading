@@ -1,5 +1,6 @@
 var tradeDetails = new Map();
 var toolTip = null
+var CHART_SHOW_TEXT = false
 //TRANSFORM object returned from RESTA PI get_arch_run_detail
 //to series and markers required by lightweigth chart
 //input array object bars = { high: [1,2,3], time: [1,2,3], close: [2,2,2]...}
@@ -46,19 +47,23 @@ function transform_data(data) {
         a_markers = {}
         timestamp = Date.parse(trade.order.filled_at)/1000
         if (trade.order.side == "buy") {
-            //line pro avgp markers
-            obj["time"] = timestamp;
-            obj["value"] = trade.pos_avg_price;
-            avgp_buy_line.push(obj)
+                //avgp lajnu vytvarime jen pokud je v tradeventu prumerna cena
+                if (trade.pos_avg_price !== null) {
+                //line pro avgp markers
+                obj["time"] = timestamp;
+                obj["value"] = trade.pos_avg_price;
+                avgp_buy_line.push(obj)
 
-            //avgp markers pro prumernou cenu aktualnich pozic
-            a_markers["time"] = timestamp
-            a_markers["position"] = "aboveBar"
-            a_markers["color"] = "#e8c76d"
-            a_markers["shape"] = "arrowDown"
-//          a_markers["text"] = trade.position_qty + " " + parseFloat(trade.pos_avg_price).toFixed(3)
-            a_markers["text"] = trade.position_qty
-            avgp_markers.push(a_markers)
+                //avgp markers pro prumernou cenu aktualnich pozic
+                a_markers["time"] = timestamp
+                a_markers["position"] = "aboveBar"
+                a_markers["color"] = "#e8c76d"
+                a_markers["shape"] = "arrowDown"
+                if (CHART_SHOW_TEXT) 
+    //          a_markers["text"] = trade.position_qty + " " + parseFloat(trade.pos_avg_price).toFixed(3)
+                a_markers["text"] = CHART_SHOW_TEXT ? trade.position_qty + "/" + parseFloat(trade.pos_avg_price).toFixed(3) :trade.position_qty
+                avgp_markers.push(a_markers)
+            }
         }
 
         //buy sell markery
@@ -66,11 +71,11 @@ function transform_data(data) {
         marker["time"] = timestamp;
         // marker["position"] = (trade.order.side == "buy") ? "belowBar" : "aboveBar" 
         marker["position"] = (trade.order.side == "buy") ? "inBar" : "aboveBar" 
-        marker["color"] = (trade.order.side == "buy") ? "blue" : "red"
+        marker["color"] = (trade.order.side == "buy") ? "#cfcbc2" : "red"
         //marker["shape"] = (trade.order.side == "buy") ? "arrowUp" : "arrowDown"
         marker["shape"] = (trade.order.side == "buy") ? "circle" : "arrowDown"
-        //marker["text"] =  trade.qty + " " + trade.price
-        marker["text"] =  trade.qty
+        //marker["text"] =  trade.qty + "/" + trade.price
+        marker["text"] =  CHART_SHOW_TEXT ? trade.qty + "/" + trade.price : trade.qty
         markers.push(marker)
 
         //prevedeme iso data na timestampy
@@ -107,8 +112,16 @@ function transform_data(data) {
 function prepare_data(archRunner, timeframe_amount, timeframe_unit, archivedRunnerDetail) {
    req = {}
    req["symbol"] = archRunner.symbol
-   req["datetime_object_from"] = archRunner.bt_from
-   req["datetime_object_to"] = archRunner.bt_to
+
+    if (archRunner.mode == "backtest") {
+        req["datetime_object_from"] = archRunner.bt_from
+        req["datetime_object_to"] = archRunner.bt_to
+    }
+    else 
+    {
+        req["datetime_object_from"] = archRunner.started
+        req["datetime_object_to"] = archRunner.stopped
+    }
    req["timeframe_amount"] = timeframe_amount
    req["timeframe_unit"] = timeframe_unit
     $.ajax({
@@ -120,13 +133,13 @@ function prepare_data(archRunner, timeframe_amount, timeframe_unit, archivedRunn
         contentType: "application/json",
         data: req,
         success:function(data){
-            //console.log("bars", JSON.stringify(data))
+            console.log("one minute bars", JSON.stringify(data))
             data.map((el)=>{
                 cas = new Date(el.timestamp)
                 el.time = cas.getTime()/1000;
                 delete el.timestamp
                 });
-            //console.log("bars_after_transformation", JSON.stringify(data))
+            console.log("one min bars_after_transformation", JSON.stringify(data))
             oneMinuteBars = data
             chart_archived_run(archRunner, archivedRunnerDetail, oneMinuteBars);
             //call function to continue
@@ -151,6 +164,7 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
             toolTip.style.display = 'none';
         }
     }
+
     var transformed_data = transform_data(data)
 
     //initialize resolutions
@@ -262,16 +276,20 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
         },
     });
     
+    console.log("avgp_buy_line",transformed_data["avgp_buy_line"])
+    console.log("avgp_markers",transformed_data["avgp_markers"])
 
-    var avgBuyLine = chart.addLineSeries({
-        //    title: "avgpbuyline",
-            color: '#e8c76d',
-        //    color: 'transparent',
-            lineWidth: 1,
-            lastValueVisible: false
-        });
-    avgBuyLine.setData(transformed_data["avgp_buy_line"]);
-    avgBuyLine.setMarkers(transformed_data["avgp_markers"])
+    if (transformed_data["avgp_buy_line"].length > 0) {
+        var avgBuyLine = chart.addLineSeries({
+            //    title: "avgpbuyline",
+                color: '#e8c76d',
+            //    color: 'transparent',
+                lineWidth: 1,
+                lastValueVisible: false
+            });
+        avgBuyLine.setData(transformed_data["avgp_buy_line"]);
+        avgBuyLine.setMarkers(transformed_data["avgp_markers"])
+    }
 
     var markersLine = chart.addLineSeries({
           //  title: "avgpbuyline",

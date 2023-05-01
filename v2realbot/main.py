@@ -13,7 +13,7 @@ from fastapi.security import APIKeyHeader
 import uvicorn
 from uuid import UUID
 import v2realbot.controller.services as cs
-from v2realbot.common.model import StrategyInstance, RunnerView, RunRequest, Trade, RunArchive, RunArchiveDetail, Bar
+from v2realbot.common.model import StrategyInstance, RunnerView, RunRequest, Trade, RunArchive, RunArchiveDetail, Bar, RunArchiveChange
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status, WebSocketException, Cookie, Query
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -282,6 +282,16 @@ def _delete_archived_runners_byID(runner_id):
     elif res < 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Error: {res}:{id}")
 
+#edit archived runner ("note",..)
+@app.patch("/archived_runners/{runner_id}", dependencies=[Depends(api_key_auth)])
+def _edit_archived_runners(archChange: RunArchiveChange, runner_id: UUID):
+    res, id = cs.edit_archived_runners(runner_id=runner_id, archChange=archChange)
+    if res == 0: return runner_id
+    elif res == -1:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Error not found: {res}:{runner_id}")
+    else:
+        raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error not changed: {res}:{runner_id}")
+    
 #get all archived runners detail
 @app.get("/archived_runners_detail/", dependencies=[Depends(api_key_auth)])
 def _get_all_archived_runners_detail() -> list[RunArchiveDetail]:

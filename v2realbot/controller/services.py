@@ -315,10 +315,6 @@ def run_stratin(id: UUID, runReq: RunRequest):
                 symbol = i.symbol
                 open_rush = i.open_rush
                 close_rush = i.close_rush
-                #do budoucna vylepsit konfiguraci, udelat na frontendu jedno pole config
-                #obsahujici cely toml dane strategie
-                #nyni predpokladame, ze stratvars a add_data sloupce v gui obsahuji
-                #dany TOML element
                 try:            
                     stratvars = AttributeDict(stp["stratvars"])
                 except KeyError:

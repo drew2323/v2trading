@@ -6,11 +6,12 @@ from alpaca.data.requests import StockTradesRequest, StockBarsRequest
 from alpaca.data.enums import DataFeed
 from alpaca.data.timeframe import TimeFrame
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account
-from v2realbot.common.model import StrategyInstance, Runner, RunRequest, RunArchive, RunArchiveDetail, RunArchiveChange
-from v2realbot.utils.utils import AttributeDict, zoneNY, dict_replace_value, Store, parse_toml_string, json_serial
+from v2realbot.common.model import StrategyInstance, Runner, RunRequest, RunArchive, RunArchiveDetail, RunArchiveChange, Bar
+from v2realbot.utils.utils import AttributeDict, zoneNY, dict_replace_value, Store, parse_toml_string, json_serial, is_open_hours
+from v2realbot.utils.ilog import delete_logs
 from datetime import datetime
 from threading import Thread, current_thread, Event, enumerate
-from v2realbot.config import STRATVARS_UNCHANGEABLES, ACCOUNT1_LIVE_API_KEY, ACCOUNT1_LIVE_SECRET_KEY, DATA_DIR
+from v2realbot.config import STRATVARS_UNCHANGEABLES, ACCOUNT1_LIVE_API_KEY, ACCOUNT1_LIVE_SECRET_KEY, DATA_DIR,BT_FILL_CONS_TRADES_REQUIRED,BT_FILL_LOG_SURROUNDING_TRADES,BT_FILL_CONDITION_BUY_LIMIT,BT_FILL_CONDITION_SELL_LIMIT
 import importlib
 from queue import Queue
 from tinydb import TinyDB, Query, where
@@ -117,7 +118,7 @@ def delete_stratin(id: UUID):
 
 def inject_stratvars(id: UUID, stratvars_parsed_new: AttributeDict, stratvars_parsed_old: AttributeDict):
     for i in db.runners:
-        if str(i.id) == str(id):
+        if str(i.strat_id) == str(id):
             #inject only those changed, some of them cannot be changed (for example pendingbuys)
 
             changed_keys = []
@@ -180,7 +181,7 @@ def modify_stratin_running(si: StrategyInstance, id: UUID):
 
 ##enable realtime chart - inject given queue for strategy instance
 ##webservice listens to this queue
-async def stratin_realtime_on(id: UUID, rtqueue: Queue):
+async def runner_realtime_on(id: UUID, rtqueue: Queue):
     for i in db.runners:
         if str(i.id) == str(id):
             i.run_instance.rtqueue = rtqueue
@@ -189,7 +190,7 @@ async def stratin_realtime_on(id: UUID, rtqueue: Queue):
     print("ERROR NOT FOUND")
     return -2
 
-async def stratin_realtime_off(id: UUID):
+async def runner_realtime_off(id: UUID):
     for i in db.runners:
         if str(i.id) == str(id):
             i.run_instance.rtqueue = None
@@ -199,7 +200,7 @@ async def stratin_realtime_off(id: UUID):
     return -2
 
 ##controller (run_stratefy, pause, stop, reload_params)
-def pause_stratin(id: UUID):
+def pause_runner(id: UUID):
     for i in db.runners:
         print(i.id)
         if str(i.id) == id:
@@ -215,7 +216,7 @@ def pause_stratin(id: UUID):
     print("no ID found")
     return (-1, "not running instance found")
 
-def stop_stratin(id: UUID = None):
+def stop_runner(id: UUID = None):
     chng = []
     for i in db.runners:
         #print(i['id'])
@@ -236,6 +237,13 @@ def stop_stratin(id: UUID = None):
         return (-2, "not found" + str(id))
 
 def is_stratin_running(id: UUID):
+    for i in db.runners:
+        if str(i.strat_id) == str(id):
+            if i.run_started is not None and i.run_stopped is None:
+                return True
+    return False
+
+def is_runner_running(id: UUID):
     for i in db.runners:
         if str(i.id) == str(id):
             if i.run_started is not None and i.run_stopped is None:
@@ -280,14 +288,14 @@ def capsule(target: object, db: object):
                 i.run_pause_ev = None
                 i.run_stop_ev = None
                 #ukladame radek do historie (pozdeji refactor)
-                save_history(id=i.id, st=target, runner=i, reason=reason)
+                save_history(id=i.strat_id, st=target, runner=i, reason=reason)
                 #store in archive header and archive detail
                 archive_runner(runner=i, strat=target)
                 #mazeme runner po skonceni instance
                 db.runners.remove(i)
 
     print("Runner STOPPED")
-
+#stratin run
 def run_stratin(id: UUID, runReq: RunRequest):
     if runReq.mode == Mode.BT:
         if runReq.bt_from is None:
@@ -336,7 +344,12 @@ def run_stratin(id: UUID, runReq: RunRequest):
                                             next=next,
                                             init=init,
                                             stratvars=stratvars,
-                                            open_rush=open_rush, close_rush=close_rush, pe=pe, se=se)
+                                            open_rush=open_rush,
+                                            close_rush=close_rush,
+                                            pe=pe,
+                                            se=se,
+                                            runner_id=id,
+                                            ilog_save=runReq.ilog_save)
                 print("instance vytvorena", instance)
                 #set mode
                 if runReq.mode == Mode.LIVE or runReq.mode == Mode.PAPER:
@@ -359,7 +372,9 @@ def run_stratin(id: UUID, runReq: RunRequest):
                 vlakno.start()
                 print("Spuštěna", instance.name)
                 ##storing the attributtes - pozor pri stopu je zase odstranit
-                runner = Runner(id = i.id,
+                #id runneru je nove id, stratin se dava dalsiho parametru
+                runner = Runner(id = id,
+                        strat_id = i.id,
                         run_started = datetime.now(zoneNY),
                         run_pause_ev = pe,
                         run_name = name,
@@ -368,13 +383,14 @@ def run_stratin(id: UUID, runReq: RunRequest):
                         run_stop_ev = se,
                         run_thread = vlakno,
                         run_account = runReq.account,
+                        run_ilog_save = runReq.ilog_save,
                         run_mode = runReq.mode,
                         run_instance = instance)
                 db.runners.append(runner)
                 print(db.runners)
                 print(i)
                 print(enumerate())
-                return (0, i.id)
+                return (0, id)
             except Exception as e:
                 return (-2, "Exception: "+str(e))
     return (-2, "not found")
@@ -403,9 +419,17 @@ def archive_runner(runner: Runner, strat: StrategyInstance):
         else:
             bp_from = None
             bp_to = None
-        id = uuid4()
-        runArchive: RunArchive = RunArchive(id = id,
-                                            strat_id = runner.id,
+
+        settings = dict(resolution=strat.state.timeframe,
+                        rectype=strat.state.rectype,
+                        configs=dict(
+                            BT_FILL_CONS_TRADES_REQUIRED=BT_FILL_CONS_TRADES_REQUIRED,
+                            BT_FILL_LOG_SURROUNDING_TRADES=BT_FILL_LOG_SURROUNDING_TRADES,
+                            BT_FILL_CONDITION_BUY_LIMIT=BT_FILL_CONDITION_BUY_LIMIT,
+                            BT_FILL_CONDITION_SELL_LIMIT=BT_FILL_CONDITION_SELL_LIMIT))
+
+        runArchive: RunArchive = RunArchive(id = runner.id,
+                                            strat_id = runner.strat_id,
                                             name=runner.run_name,
                                             note=runner.run_note,
                                             symbol=runner.run_symbol,
@@ -413,9 +437,11 @@ def archive_runner(runner: Runner, strat: StrategyInstance):
                                             stopped=runner.run_stopped,
                                             mode=runner.run_mode,
                                             account=runner.run_account,
+                                            ilog_save=runner.run_ilog_save,
                                             bt_from=bp_from,
                                             bt_to = bp_to,
                                             stratvars = strat.state.vars,
+                                            settings = settings,
                                             profit=round(float(strat.state.profit),2),
                                             trade_count=len(strat.state.tradeList),
                                             end_positions=strat.state.positions,
@@ -434,7 +460,7 @@ def archive_runner(runner: Runner, strat: StrategyInstance):
                     print("is not numpy", key, value)
                     flattened_indicators[key]= value    
 
-        runArchiveDetail: RunArchiveDetail = RunArchiveDetail(id = id,
+        runArchiveDetail: RunArchiveDetail = RunArchiveDetail(id = runner.id,
                                                             name=runner.run_name,
                                                             bars=strat.state.bars,
                                                             indicators=flattened_indicators,
@@ -452,14 +478,15 @@ def get_all_archived_runners():
     res = db_arch_h.all()
     return 0, res
 
-#delete runner in archive and archive detail
+#delete runner in archive and archive detail and runner logs
 def delete_archived_runners_byID(id: UUID):
     try:
             resh = db_arch_h.remove(where('id') == id)
             resd = db_arch_d.remove(where('id') == id)
-            if len(resh) == 0 or len(resd) == 0:
-                return -1, "not found "+str(resh) + " " + str(resd)
-            return 0, str(resh) + " " + str(resd)
+            reslogs = delete_logs(id) 
+            if len(resh) == 0 or len(resd) == 0 or reslogs ==0:
+                return -1, "not found "+str(resh) + " " + str(resd) + " " + str(reslogs)
+            return 0, str(resh) + " " + str(resd) + " " + str(reslogs)
     except Exception as e:
         return -2, str(e)
     
@@ -493,7 +520,30 @@ def get_alpaca_history_bars(symbol: str, datetime_object_from: datetime, datetim
         #datetime_object_from = datetime(2023, 2, 27, 18, 51, 38, tzinfo=datetime.timezone.utc)
         #datetime_object_to = datetime(2023, 2, 27, 21, 51, 39, tzinfo=datetime.timezone.utc)
         bar_request = StockBarsRequest(symbol_or_symbols=symbol,timeframe=timeframe, start=datetime_object_from, end=datetime_object_to, feed=DataFeed.SIP)
+        #print("before df")
         bars = client.get_stock_bars(bar_request)
+        result = []
+        for row in bars.data[symbol]:
+            if is_open_hours(row.timestamp):
+                result.append(row)
+
+        # print("df", bars)
+        # print(bars.info())
+        # bars = bars.droplevel(0)
+        # print("after drop", bars)
+        # print(bars.info())
+        # print("before tz", bars)
+        # bars = bars.tz_convert('America/New_York')
+        # print("before time", bars)
+        # bars = bars.between_time("9:30","16:00")
+        # print("after time", bars)
+        # bars = bars.reset_index()
+        # bars = bars.to_dict(orient="records")
+        #print(ohlcvList)
+        #ohlcvList = {}
+
+        #bars = {}
+
         return 0, bars.data[symbol]
     except Exception as e:
         return -2, str(e)

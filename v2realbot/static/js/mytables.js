@@ -10,7 +10,7 @@ function get_status(id) {
     runnerRecords.rows().iterator('row', function ( context, index ) {
         var data = this.row(index).data();
         //window.alert(JSON.stringify(data))
-        if (data.id == id) {
+        if (data.strat_id == id) {
             //window.alert("found");
             if ((data.run_mode) == "backtest") { status_detail = data.run_mode}
             else { status_detail = data.run_mode + " | " + data.run_account}
@@ -25,12 +25,12 @@ function get_status(id) {
     return status
 }
 
-function is_running(id) {
+function is_stratin_running(id) {
     var running = false
     runnerRecords.rows().iterator('row', function ( context, index ) {
         var data = this.row(index).data();
         //window.alert(JSON.stringify(data))
-        if (data.id == id) {
+        if (data.strat_id == id) {
             running = true    
         }
             //window.alert("found") }
@@ -181,7 +181,7 @@ $(document).ready(function () {
 
 
     //button refresh
-    $('#button_refresh').click(function () {
+    $('.refresh').click(function () {
         runnerRecords.ajax.reload();
         stratinRecords.ajax.reload();
         archiveRecords.ajax.reload();
@@ -255,7 +255,7 @@ $(document).ready(function () {
         event.preventDefault();
         $('#button_pause').attr('disabled','disabled');
         $.ajax({
-            url:"/stratins/"+row.id+"/pause",
+            url:"/runners/"+row.id+"/pause",
             beforeSend: function (xhr) {
                 xhr.setRequestHeader('X-API-Key',
                 API_KEY); },
@@ -282,7 +282,7 @@ $(document).ready(function () {
         event.preventDefault();
         $('#button_stop').attr('disabled','disabled');
         $.ajax({
-            url:"/stratins/"+row.id+"/stop",
+            url:"/runners/"+row.id+"/stop",
             beforeSend: function (xhr) {
                 xhr.setRequestHeader('X-API-Key',
                     API_KEY); },
@@ -310,7 +310,7 @@ $(document).ready(function () {
         event.preventDefault();
         $('#buttonall_stop').attr('disabled','disabled');
         $.ajax({
-            url:"/stratins/stop",
+            url:"/runners/stop",
             beforeSend: function (xhr) {
                 xhr.setRequestHeader('X-API-Key',
                     API_KEY); },
@@ -343,6 +343,7 @@ $(document).ready(function () {
         $('#mode').val(localStorage.getItem("mode"));
         $('#account').val(localStorage.getItem("account"));
         $('#debug').val(localStorage.getItem("debug"));
+        $('#ilog_save').val(localStorage.getItem("ilog_save"));
         $('#runid').val(row.id);
     });
 
@@ -465,10 +466,12 @@ var runnerRecords =
             // },
             },
         columns: [{ data: 'id' },
+                    {data: 'strat_id'},
                     {data: 'run_started'},
                     {data: 'run_mode'},
                     {data: 'run_symbol'},
                     {data: 'run_account'},
+                    {data: 'run_ilog_save'},
                     {data: 'run_paused'},
                     {data: 'run_profit'},
                     {data: 'run_trade_count'},
@@ -489,6 +492,7 @@ $("#runModal").on('submit','#runForm', function(event){
     localStorage.setItem("mode", $('#mode').val());
     localStorage.setItem("account", $('#account').val());
     localStorage.setItem("debug", $('#debug').val());
+    localStorage.setItem("ilog_save", $('#ilog_save').val());
     event.preventDefault();
     $('#run').attr('disabled','disabled');
     
@@ -496,9 +500,19 @@ $("#runModal").on('submit','#runForm', function(event){
     //rename runid to id
     Object.defineProperty(formData, "id", Object.getOwnPropertyDescriptor(formData, "runid"));
     delete formData["runid"];
+    //console.log(formData)
+    if ($('#ilog_save').prop('checked')) {
+        formData.ilog_save = true;
+    }
+    else 
+    {
+        formData.ilog_save = false;
+    }
+    // $('#subscribe').prop('checked')
     if (formData.bt_from == "") {delete formData["bt_from"];}
     if (formData.bt_to == "") {delete formData["bt_to"];}
     jsonString = JSON.stringify(formData);
+    //console.log(jsonString)
     //window.alert(jsonString);
     $.ajax({
         url:"/stratins/"+formData.id+"/run",
@@ -512,7 +526,10 @@ $("#runModal").on('submit','#runForm', function(event){
             //pokud mame subscribnuto na RT                
             if ($('#subscribe').prop('checked')) {
                 //subscribe input value gets id of current runner
-                $('#runnerId').val($('#runid').val());
+                //$('#runid').val()
+                //data obsuje ID runneru - na ten se subscribneme
+                console.log("vysledek z run:", data)
+                $('#runnerId').val(data);
                 $( "#bt-conn" ).trigger( "click" );
             }				
             $('#runForm')[0].reset();

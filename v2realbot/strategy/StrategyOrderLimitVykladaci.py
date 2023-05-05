@@ -11,12 +11,12 @@ from random import randrange
 from alpaca.common.exceptions import APIError
 import copy
 from threading import Event
-
+from uuid import UUID
 
 
 class StrategyOrderLimitVykladaci(Strategy):
-    def __init__(self, name: str, symbol: str, next: callable, init: callable, account: Account, mode: Mode = Mode.PAPER, stratvars: AttributeDict = None, open_rush: int = 30, close_rush: int = 30, pe: Event = None, se: Event = None) -> None:
-        super().__init__(name, symbol, next, init, account, mode, stratvars, open_rush, close_rush, pe, se)
+    def __init__(self, name: str, symbol: str, next: callable, init: callable, account: Account, mode: Mode = Mode.PAPER, stratvars: AttributeDict = None, open_rush: int = 30, close_rush: int = 30, pe: Event = None, se: Event = None, runner_id: UUID = None, ilog_save: bool = False) -> None:
+        super().__init__(name, symbol, next, init, account, mode, stratvars, open_rush, close_rush, pe, se, runner_id, ilog_save)
 
     async def orderUpdateBuy(self, data: TradeUpdate):
         o: Order = data.order

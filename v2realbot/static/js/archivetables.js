@@ -7,7 +7,6 @@ $(document).ready(function () {
     $('#button_delete_arch').attr('disabled','disabled');
     $('#button_edit_arch').attr('disabled','disabled');
 
-
     //selectable rows in archive table
     $('#archiveTable tbody').on('click', 'tr', function () {
         if ($(this).hasClass('selected')) {
@@ -36,6 +35,7 @@ $(document).ready(function () {
         row = archiveRecords.row('.selected').data();
         window.$('#editModalArchive').modal('show');
         $('#editidarchive').val(row.id);
+        $('#editnote').val(row.note);
         $('#editstratvars').val(JSON.stringify(row.stratvars,null,2));
     });
 
@@ -54,7 +54,7 @@ $(document).ready(function () {
             success:function(data){							
                 $('#button_show_arch').attr('disabled',false);
                 $('#chartContainerInner').addClass("show");
-                $("#lines").html("<pre>"+JSON.stringify(row.stratvars,null,2)+"</pre>")
+                //$("#lines").html("<pre>"+JSON.stringify(row.stratvars,null,2)+"</pre>")
                 
                 //$('#chartArchive').append(JSON.stringify(data,null,2));
                 console.log(JSON.stringify(data,null,2));
@@ -134,6 +134,7 @@ $("#delModalArchive").on('submit','#delFormArchive', function(event){
             window.alert(JSON.stringify(xhr));
             console.log(JSON.stringify(xhr));
             $('#deletearchive').attr('disabled', false);
+            archiveRecords.ajax.reload();
         }
     })
 });
@@ -154,6 +155,7 @@ var archiveRecords =
             }
             },
         columns: [{ data: 'id' },
+                    {data: 'strat_id'},
                     {data: 'name'},
                     {data: 'symbol'},
                     {data: 'note'},
@@ -163,6 +165,7 @@ var archiveRecords =
                     {data: 'account', visible: true},
                     {data: 'bt_from', visible: true},
                     {data: 'bt_to', visible: true},
+                    {data: 'ilog_save', visible: true},
                     {data: 'stratvars', visible: true},
                     {data: 'profit'},
                     {data: 'trade_count', visible: true},
@@ -176,7 +179,7 @@ var archiveRecords =
         //         return format_date(data)
         //     },
         //     }],
-        order: [[5, 'desc']],
+        order: [[6, 'desc']],
         paging: true,
         lengthChange: false,
         // createdRow: function( row, data, dataIndex){

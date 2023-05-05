@@ -2,6 +2,8 @@ from alpaca.data.enums import DataFeed
 from v2realbot.enums.enums import Mode, Account, FillCondition
 from appdirs import user_data_dir
 
+
+LOG_RUNNER_EVENTS = False
 #no print in console
 QUIET_MODE = False
 #how many consecutive trades with the fill price are necessary for LIMIT fill to happen in backtesting

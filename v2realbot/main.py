@@ -13,6 +13,7 @@ from fastapi.security import APIKeyHeader
 import uvicorn
 from uuid import UUID
 import v2realbot.controller.services as cs
+from v2realbot.utils.ilog import get_log_window
 from v2realbot.common.model import StrategyInstance, RunnerView, RunRequest, Trade, RunArchive, RunArchiveDetail, Bar, RunArchiveChange
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status, WebSocketException, Cookie, Query
 from fastapi.responses import HTMLResponse, FileResponse
@@ -95,14 +96,14 @@ async def websocket_endpoint(
     api_key: Annotated[str, Depends(get_api_key)],
 ):
     await websocket.accept()
-    if not cs.is_stratin_running(runner_id):
+    if not cs.is_runner_running(runner_id):
         #await websocket.close(code=status.WS_1003_UNSUPPORTED_DATA, reason="Strat not running")
-        raise WebSocketException(code=status.WS_1003_UNSUPPORTED_DATA, reason="Stratin not running.")
+        raise WebSocketException(code=status.WS_1003_UNSUPPORTED_DATA, reason="Runner not running.")
         return
     else:
         print("stratin exists")
         q: Queue = Queue()
-        await cs.stratin_realtime_on(id=runner_id, rtqueue=q)
+        await cs.runner_realtime_on(id=runner_id, rtqueue=q)
 
         # tx task; reads data from queue and sends to websocket
         async def websocket_tx_task(ws, _q):
@@ -158,7 +159,7 @@ async def websocket_endpoint(
             print("CLIENT DISCONNECTED for", runner_id)
         finally:
             q.put("break")
-            await cs.stratin_realtime_off(runner_id)
+            await cs.runner_realtime_off(runner_id)
 
 @app.get("/threads/", dependencies=[Depends(api_key_auth)])
 def _get_all_threads():
@@ -227,16 +228,16 @@ def _run_stratin(stratin_id: UUID, runReq: RunRequest):
     elif res < 0:
         raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error: {res}:{id}")
 
-@app.put("/stratins/{stratin_id}/pause", dependencies=[Depends(api_key_auth)], status_code=status.HTTP_200_OK)
-def _pause_stratin(stratin_id):
-    res, id = cs.pause_stratin(id=stratin_id)
+@app.put("/runners/{runner_id}/pause", dependencies=[Depends(api_key_auth)], status_code=status.HTTP_200_OK)
+def _pause_runner(runner_id):
+    res, id = cs.pause_runner(id=runner_id)
     if res == 0: return id
     elif res < 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Error: {res}:{id}")
 
-@app.put("/stratins/{stratin_id}/stop", dependencies=[Depends(api_key_auth)], status_code=status.HTTP_200_OK)
-def _stop_stratin(stratin_id):
-    res, id = cs.stop_stratin(id=stratin_id)
+@app.put("/runners/{runner_id}/stop", dependencies=[Depends(api_key_auth)], status_code=status.HTTP_200_OK)
+def _stop_runner(runner_id):
+    res, id = cs.stop_runner(id=runner_id)
     if res == 0: return id
     elif res < 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Error: {res}:{id}")
@@ -248,9 +249,9 @@ def _delete_stratin(stratin_id):
     elif res < 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Error: {res}:{id}")
 
-@app.put("/stratins/stop", dependencies=[Depends(api_key_auth)], status_code=status.HTTP_200_OK)
-def stop_all_stratins():
-    res, id = cs.stop_stratin()
+@app.put("/runners/stop", dependencies=[Depends(api_key_auth)], status_code=status.HTTP_200_OK)
+def stop_all_runners():
+    res, id = cs.stop_runner()
     if res == 0: return id
     elif res < 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Error: {res}:{id}")
@@ -310,6 +311,15 @@ def _get_archived_runner_details_byID(runner_id) -> RunArchiveDetail:
     else:
         raise HTTPException(status_code=404, detail=f"No runner with id: {runner_id} a {set}")
 
+#get archived runners detail by id
+@app.get("/archived_runners_log/{runner_id}", dependencies=[Depends(api_key_auth)])
+def _get_archived_runner_log_byID(runner_id: UUID, timestamp_from: float, timestamp_to: float) -> list[dict]:
+    res = get_log_window(runner_id,timestamp_from, timestamp_to)
+    if len(res) > 0:
+        return res
+    else:
+        raise HTTPException(status_code=404, detail=f"No logs found with id: {runner_id} and between {timestamp_from} and {timestamp_to}")
+
 #get alpaca history bars
 @app.get("/history_bars/", dependencies=[Depends(api_key_auth)])
 def _get_alpaca_history_bars(symbol: str, datetime_object_from: datetime, datetime_object_to: datetime, timeframe_amount: int, timeframe_unit: TimeFrameUnit) -> list[Bar]:
@@ -317,7 +327,7 @@ def _get_alpaca_history_bars(symbol: str, datetime_object_from: datetime, dateti
     if res == 0:
         return set
     else:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No data found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No data found {res} {set}")
 
 
 #join cekej na dokonceni vsech

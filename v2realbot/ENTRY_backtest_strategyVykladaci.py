@@ -191,6 +191,8 @@ def next(data, state: StrategyState):
             state.vars.blockbuy = 0
             return 0
 
+    state.ilog(e="-----")
+
     try:
 
         ## slope vyresi rychlé sesupy - jeste je treba podchytit pomalejsi sesupy
@@ -245,6 +247,10 @@ def next(data, state: StrategyState):
             #     state.ilog(e="Slope - MA"+str(state.indicators.slopeMA[-1]))
 
         else:
+            #pokud plnime historii musime ji plnit od zacatku, vsehcny idenitifkatory maji spolecny time
+            #kvuli spravnemu zobrazovani na gui
+            state.indicators.slope.append(0)
+            state.indicators.slopeMA.append(0)
             state.ilog(e="Slope - not enough data", slope_lookback=slope_lookback)
 
     except Exception as e:
@@ -357,7 +363,7 @@ def next(data, state: StrategyState):
 
     #HLAVNI ITERACNI LOG JESTE PRED AKCI - obsahuje aktualni hodnoty vetsiny parametru
     lp = state.interface.get_last_price(symbol=state.symbol)
-    state.ilog(e="ENTRY", msg=f"LP:{lp} P:{state.positions}/{round(float(state.avgp),3)} profit:{round(float(state.profit),2)} Trades:{len(state.tradeList)} DEF:{str(is_defensive_mode())}", last_price=lp, stratvars=state.vars)
+    state.ilog(e="ENTRY", msg=f"LP:{lp} P:{state.positions}/{round(float(state.avgp),3)} profit:{round(float(state.profit),2)} Trades:{len(state.tradeList)} DEF:{str(is_defensive_mode())}", last_price=lp, data=data, stratvars=state.vars)
 
     #maxSlopeMA = -0.03
     #SLOPE ANGLE PROTECTIONs
@@ -461,7 +467,7 @@ def init(state: StrategyState):
     state.indicators['slope'] = []
     state.indicators['slopeMA'] = []
     #static indicators - those not series based
-    state.statinds['angle'] = {}
+    state.statinds['angle'] = dict(minimum_slope=state.vars["minimum_slope"])
     state.vars["ticks2reset_backup"] = state.vars.ticks2reset
 
 def main():
@@ -475,7 +481,7 @@ def main():
     name = os.path.basename(__file__)
     se = Event()
     pe = Event()
-    s = StrategyOrderLimitVykladaci(name = name, symbol = "BAC", account=Account.ACCOUNT1, next=next, init=init, stratvars=stratvars, open_rush=10, close_rush=0, pe=pe, se=se)
+    s = StrategyOrderLimitVykladaci(name = name, symbol = "BAC", account=Account.ACCOUNT1, next=next, init=init, stratvars=stratvars, open_rush=10, close_rush=0, pe=pe, se=se, ilog_save=True)
     s.set_mode(mode = Mode.BT,
                debug = False,
                start = datetime(2023, 4, 14, 10, 42, 0, 0, tzinfo=zoneNY),

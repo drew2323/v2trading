@@ -1,6 +1,144 @@
 
 API_KEY = localStorage.getItem("api-key")
 var chart = null
+var colors = ["#8B1874","#B71375","#B46060","#61c740","#BE6DB7","#898121","#4389d9","#00425A","#B5D5C5","#e61957"]
+var reset_colors = colors
+var indList = []
+
+indConfig = {}
+settings = {}
+settings
+//ostatni indicatory nez vwap, volume a bary
+indConfig = [ {name: "ema", titlevisible: false, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},
+              {name: "slope", titlevisible: true, embed: true, display: false, priceScaleId: "left", lastValueVisible: false},
+              {name: "slopeMA", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},]
+
+function get_ind_config(indName) {
+    const i = indConfig.findIndex(e => e.name === indName);
+    if (i>-1)
+        {
+            return indConfig[i]
+        }
+    return null
+}
+
+
+//LEGEND INIT
+var legendlist = document.getElementById('legend');
+var firstRow = document.createElement('div');
+firstRow.innerHTML = '-';
+// firstRow.style.color = 'white';
+legendlist.appendChild(firstRow);
+
+function update_chart_legend(param) {
+
+    function name(val) {
+        return '<div class="legendItemName">' + val + '</>' 
+    }
+    function val(val) {
+        return '<div class="legendItemValue">' + val + '</>'
+    }
+
+    if (param.time) {
+        firstRow.innerHTML = "";
+        //BASIC INDICATORS
+        const bars = param.seriesData.get(candlestickSeries);
+        if (bars !== undefined) {
+            firstRow.innerHTML += name("O") + val(bars.open) + name("H") + val(bars.high) + name("L") + val(bars.low) + name("C") + val(bars.close)
+        }       
+        
+        const volumes = param.seriesData.get(volumeSeries);
+        if (volumes !== undefined) {
+            firstRow.innerHTML += name("Vol") +val(volumes.value)
+        } 
+        const data = param.seriesData.get(vwapSeries);
+        if (data !== undefined) {
+            const vwap = data.value !== undefined ? data.value : data.close;
+            firstRow.innerHTML += name('vwap') + val(vwap.toFixed(2))
+        }
+        //ADDITIONAL CUSTOM INDICATORS
+        //iterate of custom indicators dictionary to get values of custom lines
+        // var customIndicator = {name: key, series: null}
+        indList.forEach(function (item) {
+            var ind = param.seriesData.get(item.series)
+            if (ind !== undefined) { firstRow.innerHTML += name(item.name) + val(ind.value.toFixed(3))}
+        }); 
+    }
+    else {
+    firstRow.innerHTML = '';
+    }
+}
+
+function initialize_chart() {
+    $('#chartContainerInner').addClass("show");
+    //PUVODNI BILY MOD
+    //var chartOptions = { width: 1045, height: 600, leftPriceScale: {visible: true}}
+
+    //TMAVY MOD
+    var chartOptions = { width: 1080,
+        height: 600,
+        leftPriceScale: {visible: true},
+        layout: {
+            background: {
+                type: 'solid',
+                color: '#000000',
+            },
+            textColor: '#d1d4dc',
+        },
+        grid: {
+            vertLines: {
+                visible: true,
+                color: "#434d46"
+            },
+            horzLines: {
+                color: "#667069",
+                visible:true
+            },
+        },
+    }
+
+    chart = LightweightCharts.createChart(document.getElementById('chart'), chartOptions);
+    chart.applyOptions({ timeScale: { visible: true, timeVisible: true, secondsVisible: true }, crosshair: {
+        mode: LightweightCharts.CrosshairMode.Normal, labelVisible: true
+    }})
+}
+
+//mozna atributy last value visible
+function intitialize_candles() {
+    candlestickSeries = chart.addCandlestickSeries({ lastValueVisible: false, priceLineWidth:1, priceLineColor: "red", priceFormat: { type: 'price', precision: 2, minMove: 0.01 }});
+    candlestickSeries.priceScale().applyOptions({
+        scaleMargins: {
+            top: 0.1, // highest point of the series will be 10% away from the top
+            bottom: 0.4, // lowest point will be 40% away from the bottom
+        },
+    });
+    candlestickSeries.applyOptions({
+        lastValueVisible: true,
+        priceLineVisible: true,
+    });
+
+}
+
+function initialize_volume() {
+    volumeSeries = chart.addHistogramSeries({title: "Volume", color: '#26a69a', priceFormat: {type: 'volume'}, priceScaleId: ''});
+    volumeSeries.priceScale().applyOptions({
+        // set the positioning of the volume series
+        scaleMargins: {
+            top: 0.7, // highest point of the series will be 70% away from the top
+            bottom: 0,
+        },
+    });
+}
+
+function initialize_vwap() {
+    vwapSeries = chart.addLineSeries({
+        //    title: "vwap",
+            color: '#2962FF',
+            lineWidth: 1,
+            lastValueVisible: false,
+            priceLineVisible: false
+        })
+}
 
 //range switch pro chart https://jsfiddle.net/TradingView/qrb9a850/
 function createSimpleSwitcher(items, activeItem, activeItemChangedCallback) {
@@ -67,6 +205,7 @@ function clear_status_header() {
     $("#statusName").text("")
     $("#statusMode").text("")
     $("#statusAccount").text("")
+    $("#statusIlog").text("")
     $("#statusStratvars").text("")
     //clear previous logs from rt
     $("#lines").empty()

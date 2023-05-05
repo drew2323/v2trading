@@ -58,20 +58,21 @@ class RunRequest(BaseModel):
     mode: Mode
     note: Optional[str] = None
     debug: bool = False
+    ilog_save: bool = False
     bt_from: datetime = None
     bt_to: datetime = None
     cash: int = 100000
 
 
-
-
 class RunnerView(BaseModel):
     id: UUID
+    strat_id: UUID
     run_started: Optional[datetime] = None
     run_mode: Mode
     run_name: Optional[str] = None
     run_note: Optional[str] = None
     run_account: Account
+    run_ilog_save: Optional[bool] = False
     run_symbol: Optional[str] = None
     run_trade_count: Optional[int] = 0
     run_profit: Optional[float] = 0
@@ -83,12 +84,14 @@ class RunnerView(BaseModel):
 #Running instance - not persisted
 class Runner(BaseModel):
     id: UUID
+    strat_id: UUID
     run_started: Optional[datetime] = None
     run_mode: Mode
     run_account: Account
     run_symbol: Optional[str] = None
     run_name: Optional[str] = None
     run_note: Optional[str] = None
+    run_ilog_save: Optional[bool] = False
     run_trade_count: Optional[int]
     run_profit: Optional[float]
     run_positions: Optional[int]
@@ -174,6 +177,8 @@ class RunArchive(BaseModel):
     bt_from: Optional[datetime] = None
     bt_to: Optional[datetime] = None
     stratvars: Optional[dict] = None
+    settings: Optional[dict] = None
+    ilog_save: Optional[bool] = False
     profit: float = 0
     trade_count: int = 0
     end_positions: int = 0

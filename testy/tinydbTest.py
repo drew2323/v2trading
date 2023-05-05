@@ -114,6 +114,10 @@ db = TinyDB(db_file, default=json_serial)
 db.truncate()
 insert = {'datum': datetime.now(), 'side': OrderSide.BUY, 'name': 'david','id': uuid4(), 'order': orderList}
 
+
+
+
+
 #insert record
 db.insert(a.__dict__)
 

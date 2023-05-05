@@ -1,14 +1,13 @@
 const momentumIndicatorNames = ["roc", "slope", "slopeMA"]
-var indList = []
 var pbiList = []
 var ws = null;
 var logcnt = 0
 var positionsPriceLine = null
 var limitkaPriceLine = null
 var angleSeries = 1
-var candlestickSeries
-var volumeSeries
-var vwapSeries
+var candlestickSeries = null
+var volumeSeries = null
+var vwapSeries = null
 
 //get details of runner to populate chart status
 //fetch necessary - it could be initiated by manually inserting runnerId
@@ -92,12 +91,12 @@ function connect(event) {
             iterLogList = parsed_data.iter_log
             //console.log("Incoming logline object")
 
-            var lines = document.getElementById('lines')
-            var line = document.createElement('div')
-            line.classList.add("line")
-            const newLine = document.createTextNode("---------------")
-            line.appendChild(newLine)
-            lines.appendChild(line)
+            // var lines = document.getElementById('lines')
+            // var line = document.createElement('div')
+            // line.classList.add("line")
+            // const newLine = document.createTextNode("---------------")
+            // line.appendChild(newLine)
+            // lines.appendChild(line)
 
             iterLogList.forEach((logLine) => {
                 //console.log("logline item")
@@ -194,7 +193,7 @@ function connect(event) {
             positions = parsed_data.positions
             const posLine = {
                 price: positions.avgp,
-                color: 'black',
+                color: '#918686',
                 lineWidth: 1,
                 lineStyle: 1, // LineStyle.Dotted
                 axisLabelVisible: true,
@@ -221,7 +220,7 @@ function connect(event) {
                         if (klic === "angle") {
 
                             //nejsou vsechny hodnoty
-                            if (Object.keys(hodnota).length > 0)  {
+                            if (Object.keys(hodnota).length > 1)  {
                                 // console.log("angle nalezen");
                                 // console.log(JSON.stringify(hodnota));
                                 if (angleSeries !== 1) {
@@ -271,49 +270,52 @@ function connect(event) {
                             //console.log("object new - init and add")
                             var obj = {name: key, series: null}
 
-                            //predelat configuracne
-                            //inicializace indicatoru
-                            //momentum
-                            if (momentumIndicatorNames.includes(key)) {
-                                
-                                
-                                obj.series = chart.addLineSeries({
-                                    priceScaleId: 'left',
-                                    title: key,
-                                    lineWidth: 1
-                                });      
-                                
-                                //natvrdo nakreslime lajnu pro min angle
-                                //TODO predelat na configuracne
-                                const minSlopeLineOptopns = {
-                                    price: parsed_data.statinds.angle.minimum_slope,
-                                    color: '#b67de8',
-                                    lineWidth: 2,
-                                    lineStyle: 2, // LineStyle.Dotted
-                                    axisLabelVisible: true,
-                                    title: "max:",
-                                };
-                    
-                                const minSlopeLine = obj.series.createPriceLine(minSlopeLineOptopns);
+                            //get configuation of indicator to display
+                            conf = get_ind_config(key)
 
-                                
+                            //INIT INDICATOR BASED on CONFIGURATION
+
+                            //MOVE TO UTILS ro reuse??
+                            if (conf && conf.display) {
+                                if (conf.embed)  {
+                                    obj.series = chart.addLineSeries({
+                                        color: colors.shift(),
+                                        priceScaleId: conf.priceScaleId,
+                                        lastValueVisible: conf.lastValueVisible,
+                                        title: (conf.titlevisible?conf.name:""),
+                                        lineWidth: 1
+                                    });   
+
+                                    //tady add data
+                                    obj.series.update({
+                                        time: indicators.time,
+                                        value: value});
+                                    indList.push(obj);
+
+                                    //toto nejak vymyslet konfiguracne, additional threshold lines
+                                    if (key == "slopeMA") {
+                                        //natvrdo nakreslime lajnu pro min angle
+                                        //TODO predelat na configuracne
+                                        const minSlopeLineOptopns = {
+                                            price: parsed_data.statinds.angle.minimum_slope,
+                                            color: '#b67de8',
+                                            lineWidth: 1,
+                                            lineStyle: 2, // LineStyle.Dotted
+                                            axisLabelVisible: true,
+                                            title: "max:",
+                                        };
+                            
+                                        const minSlopeLine = obj.series.createPriceLine(minSlopeLineOptopns);
+                                    }
+                                }
+                                //INDICATOR on new pane
+                                else { console.log("not implemented")}
                             }
-                            //ostatni
-                            else {
-                                obj.series = chart.addLineSeries({
-                                    //title: key,
-                                    lineWidth: 1,
-                                    lastValueVisible: false
-                                });
-                            }
-                            obj.series.update({
-                                time: indicators.time,
-                                value: value});
-                            indList.push(obj);
                         }
                         //indicator exists in an array, lets update it
                         else {
                         //console.log("object found - update")
+                        //tady add data
                         searchObject.series.update({
                             time: indicators.time,
                             value: value

@@ -1,6 +1,10 @@
 var tradeDetails = new Map();
 var toolTip = null
 var CHART_SHOW_TEXT = false
+// var vwapSeries = null
+// var volumeSeries = null
+var markersLine = null
+var avgBuyLine = null
 //TRANSFORM object returned from RESTA PI get_arch_run_detail
 //to series and markers required by lightweigth chart
 //input array object bars = { high: [1,2,3], time: [1,2,3], close: [2,2,2]...}
@@ -42,10 +46,25 @@ function transform_data(data) {
     var avgp_markers = []
     var markers = []
     var markers_line = []
+    var last_timestamp = 0.1
+    var iterator = 0.001
     data.trades.forEach((trade, index, array) => {
         obj = {};
         a_markers = {}
         timestamp = Date.parse(trade.order.filled_at)/1000
+        //light chart neumi vice zaznamu ve stejny cas
+        //protoze v BT se muze stat vice tradu v jeden cas, testujeme stejne hodnoty a pripadne pricteme jednu ms
+        //tradu s jednim casem muze byt za sebou vic, proto iterator 
+        if (last_timestamp == timestamp) {
+            last_timestamp = timestamp
+            timestamp = timestamp + iterator
+            iterator += 0.001
+        }
+        else {
+            last_timestamp = timestamp
+            iterator = 0.001
+        }
+
         if (trade.order.side == "buy") {
                 //avgp lajnu vytvarime jen pokud je v tradeventu prumerna cena
                 if (trade.pos_avg_price !== null) {
@@ -103,12 +122,11 @@ function transform_data(data) {
     transformed["markers_line"] = markers_line
     transformed["avgp_markers"] = avgp_markers
     //get additional indicators
-    //TBD
     return transformed
 }
 
 //unit: Min, Hour, Day, Week, Month
-//prepare data before displaying archived chart - fetch history bars if necessary
+//prepares data before displaying archived chart - fetch history bars if necessary
 function prepare_data(archRunner, timeframe_amount, timeframe_unit, archivedRunnerDetail) {
    req = {}
    req["symbol"] = archRunner.symbol
@@ -133,7 +151,7 @@ function prepare_data(archRunner, timeframe_amount, timeframe_unit, archivedRunn
         contentType: "application/json",
         data: req,
         success:function(data){
-            console.log("one minute bars", JSON.stringify(data))
+            console.log("one minute bars before", JSON.stringify(data))
             data.map((el)=>{
                 cas = new Date(el.timestamp)
                 el.time = cas.getTime()/1000;
@@ -153,7 +171,6 @@ function prepare_data(archRunner, timeframe_amount, timeframe_unit, archivedRunn
         }
     })  
 }
-
 
 //render chart of archived runs
 function chart_archived_run(archRecord, data, oneMinuteBars) {
@@ -203,105 +220,270 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
     //initialize chart
     document.getElementById("chart").style.display = "block"
 
-    var chartOptions = { width: 1300,
-                        height: 600,
-                        leftPriceScale: {visible: true},
-                        layout: {
-                            background: {
-                                type: 'solid',
-                                color: '#000000',
-                            },
-                            textColor: '#d1d4dc',
-                        },
-                        grid: {
-                            vertLines: {
-                                visible: true,
-                                color: "#434d46"
-                            },
-                            horzLines: {
-                                color: "#667069",
-                                visible:true
-                            },
-	                    },
-                    }
-    chart = LightweightCharts.createChart(container1, chartOptions);
-    chart.applyOptions({ timeScale: { visible: true, timeVisible: true, secondsVisible: true }, crosshair: {
-        mode: LightweightCharts.CrosshairMode.Normal, labelVisible: true
-    }})
+    initialize_chart()
 
     container1.append(switcherElement)
 
-    var archCandlestickSeries = null
+    candlestickSeries = null
 
     switch_to_interval(intervals[1])
     chart.timeScale().fitContent();
 
     function switch_to_interval(interval) {
-        //prip prenuti prepisujeme candlestick a markery
-
-        if (archCandlestickSeries) {
+        //prip prpenuti prepisujeme candlestick a markery
+        if (candlestickSeries) {
             last_range = chart.timeScale().getVisibleRange()
-            chart.removeSeries(archCandlestickSeries);
-            archCandlestickSeries = null
+            chart.removeSeries(candlestickSeries);
+            candlestickSeries = null
         }
         else {
             last_range = null
         }
-        archCandlestickSeries = chart.addCandlestickSeries({ lastValueVisible: true, priceLineWidth:2, priceLineColor: "red", priceFormat: { type: 'price', precision: 2, minMove: 0.01 }});
-        archCandlestickSeries.priceScale().applyOptions({
-            scaleMargins: {
-                top: 0.1, // highest point of the series will be 10% away from the top
-                bottom: 0.4, // lowest point will be 40% away from the bottom
-            },
-        });
-        archCandlestickSeries.setData(AllCandleSeriesesData.get(interval));
+
+        if (interval == native_resolution) {
+            //indicators are in native resolution only
+            display_indicators(data);
+        }
+        else {
+            remove_indicators();
+        }
+
+        intitialize_candles()
+        candlestickSeries.setData(AllCandleSeriesesData.get(interval));
+
         if (last_range) {
             chart.timeScale().setVisibleRange(last_range);
         }
     }
 
-    var archVwapSeries = chart.addLineSeries({
-        //    title: "vwap",
-            color: '#2962FF',
-            lineWidth: 1,
-            lastValueVisible: false
-        });
-
-    var archVolumeSeries = chart.addHistogramSeries({title: "Volume", color: '#26a69a', priceFormat: {type: 'volume'}, priceScaleId: ''});
-    archVolumeSeries.priceScale().applyOptions({
-        // set the positioning of the volume series
-        scaleMargins: {
-            top: 0.7, // highest point of the series will be 70% away from the top
-            bottom: 0,
-        },
-    });
+    //TBD
+    //pro kazdy identifikator zobrazime button na vypnuti zapnuti
+    //vybereme barvu pro kazdy identifikator
+    //zjistime typ idenitfikatoru - zatim right vs left
+    function display_indicators(data) {
+        console.log("indikatory", JSON.stringify(data.indicators,null,2))
+        //podobne v livewebsokcets.js - dat do jedne funkce
+        if (data.hasOwnProperty("indicators")) { 
+            // console.log("jsme uvnitr indikatoru")
+            var indicators = data.indicators
+            //if there are indicators it means there must be at least two keys (time which is always present)
+            if (Object.keys(indicators).length > 1) {
+                for (const [key, value] of Object.entries(indicators)) {
+                    if (key !== "time") {
+                            //initialize indicator and store reference to array
+                            var obj = {name: key, series: null}
     
+                            //start
+                            //console.log(key)
+                            //get configuation of indicator to display
+                            conf = get_ind_config(key)
+
+                            //INIT INDICATOR BASED on CONFIGURATION
+
+                            //MOVE TO UTILS ro reuse??
+                            if (conf && conf.display) {
+
+                                //tranform data do správného formátru
+                                items = []
+                                value.forEach((element, index, array) => {
+                                    item = {}
+                            
+                                    item["time"] = indicators.time[index]
+                                    item["value"] = element
+                                    //console.log("objekt indicatoru",item)
+                                    items.push(item)
+                                });
+
+                                if (conf.embed)  {
+                                    obj.series = chart.addLineSeries({
+                                        color: colors.shift(),
+                                        priceScaleId: conf.priceScaleId,
+                                        title: (conf.titlevisible?conf.name:""),
+                                        lineWidth: 1
+                                    });   
+
+                                    //toto nejak vymyslet konfiguracne, additional threshold lines
+                                    if (key == "slopeMA") {
+                                        //natvrdo nakreslime lajnu pro min angle
+                                        //TODO predelat na configuracne
+                                        const minSlopeLineOptopns = {
+                                            price: data.statinds.angle.minimum_slope,
+                                            color: '#b67de8',
+                                            lineWidth: 1,
+                                            lineStyle: 2, // LineStyle.Dotted
+                                            axisLabelVisible: true,
+                                            title: "max:",
+                                        };
+                            
+                                        const minSlopeLine = obj.series.createPriceLine(minSlopeLineOptopns);
+                                    }
+                                }
+                                //INDICATOR on new pane
+                                else { console.log("not implemented")}
+                            
+                            //add options
+                            obj.series.applyOptions({
+                                lastValueVisible: false,
+                                priceLineVisible: false,
+                            });
+                            //add data
+                            obj.series.setData(items)
+
+                            // add to indList array - pole zobrazovanych indikatoru    
+                            indList.push(obj);
+                            
+                            
+                        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                            // if (momentumIndicatorNames.includes(key)) {
+                            //     obj.series = chart.addLineSeries({
+                            //         priceScaleId: 'left',
+                            //         color: colors.shift(),
+                            //         title: key,
+                            //         lineWidth: 1,
+                            //         lastValueVisible: false
+                            //     });
+
+                            //     if (key == "slopeMA") {
+                            //         const minSlopeLineOptopns = {
+                            //             //vzit odnekud jinud?
+                            //             price: data.statinds.angle.minimum_slope,
+                            //             color: colors.shift(),
+                            //             lineWidth: 1,
+                            //             lineStyle: 2, // LineStyle.Dotted
+                            //             axisLabelVisible: true,
+                            //             title: "max:",
+                            //         };
+                    
+                            //         const minSlopeLine = obj.series.createPriceLine(minSlopeLineOptopns);
+                            //     }
+                            // }
+                            // //ostatni
+                            // else {
+                            //     obj.series = chart.addLineSeries({
+                            //         title: key,
+                            //         color: colors.shift(),
+                            //         lineWidth: 1,
+                            //         lastValueVisible: false
+                            //     });
+                            // }
+
+                            // obj.series.applyOptions({
+                            //     lastValueVisible: false,
+                            //     priceLineVisible: false,
+                            // });
+
+                            // try {
+                            //     obj.series.setData(items)
+                            // }
+                            // catch (error) {
+                            //     console.log("obj.series.setData(items)", items)
+                            //     console.error(error)
+                            // }
+                            
+                            // //add to indList array - pole zobrazovanych indikatoru    
+                            // indList.push(obj);
+    
+                    }
+                }
+            }
+        }
+
+        //display vwap and volume
+        initialize_vwap()
+        vwapSeries.setData(transformed_data["vwap"])
+
+        initialize_volume()
+        volumeSeries.setData(transformed_data["volume"])
+        console.log("volume")        
+    }
+
+    function remove_indicators() {
+        //reset COLORS
+        colors = reset_colors
+
+        //remove CUSTOMS indicators if exists
+        indList.forEach((element, index, array) => {
+            chart.removeSeries(element.series);
+        }
+        );
+        indList = [];
+        //remove BASIC indicators
+        if (vwapSeries !== null) {
+            chart.removeSeries(vwapSeries)
+        }
+        if (volumeSeries !== null) {
+            chart.removeSeries(volumeSeries)
+        }
+    }
+
+    //gets indicators from archived data and displays them on the chart
+
+
     console.log("avgp_buy_line",transformed_data["avgp_buy_line"])
     console.log("avgp_markers",transformed_data["avgp_markers"])
 
     if (transformed_data["avgp_buy_line"].length > 0) {
-        var avgBuyLine = chart.addLineSeries({
+        avgBuyLine = chart.addLineSeries({
             //    title: "avgpbuyline",
                 color: '#e8c76d',
             //    color: 'transparent',
                 lineWidth: 1,
                 lastValueVisible: false
             });
+
+        avgBuyLine.applyOptions({
+            lastValueVisible: false,
+            priceLineVisible: false,
+        });
+
+
+        try {
         avgBuyLine.setData(transformed_data["avgp_buy_line"]);
+        }
+        catch (error) {
+            console.log("avgbuyline")
+        }
+        
         avgBuyLine.setMarkers(transformed_data["avgp_markers"])
     }
 
-    var markersLine = chart.addLineSeries({
+    markersLine = chart.addLineSeries({
           //  title: "avgpbuyline",
           //  color: '#d6d1c3',
             color: 'transparent',
             lineWidth: 1,
             lastValueVisible: false
         });
-    markersLine.setData(transformed_data["markers_line"]);
+
+
+    
+    try {
+        markersLine.setData(transformed_data["markers_line"]);
+    }
+    catch (error) {
+        console.log("markersLine")
+    }
+
+
     markersLine.setMarkers(transformed_data["markers"])
 
-
+    
 
     //TBD dynamicky
     //pokud je nazev atributu X_candles vytvorit candles
@@ -333,6 +515,11 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
 
     //chart.subscribeCrosshairMove(param => {
         chart.subscribeCrosshairMove(param => {
+            //LEGEND SECTIOIN
+            firstRow.style.color = 'white';
+            update_chart_legend(param);
+
+            //TOOLTIP SECTION
             //$('#trade-timestamp').val(param.time)
             if (
                 param.point === undefined ||
@@ -390,15 +577,11 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
             }
         });
 
-
-
-
-
-
-
-
     chart.subscribeClick(param => {
         $('#trade-timestamp').val(param.time)
+        if (archRecord.ilog_save == "true") {
+            fetch_log_data(param.time, archRecord.id);
+            }
         if (
             param.point === undefined ||
             !param.time ||
@@ -458,9 +641,90 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
     $("#statusName").text(archRecord.name)
     $("#statusMode").text(archRecord.mode)
     $("#statusAccount").text(archRecord.account)
+    $("#statusIlog").text("Logged:" + archRecord.ilog_save)
     $("#statusStratvars").text(JSON.stringify(archRecord.stratvars,null,2))
-
+    $("#statusSettings").text(JSON.stringify(archRecord.settings,null,2))
     
     //TBD other dynamically created indicators
+
+}
+
+
+function fetch_log_data(timestamp, runner_id) {
+    timestamp_from = timestamp - 20
+    timestamp_to = timestamp + 20
+    req = {}
+    req["runner_id"] = runner_id;
+    req["timestamp_from"] = timestamp_from;
+    req["timestamp_to"] = timestamp_to;
+    $.ajax({
+        url:"/archived_runners_log/"+runner_id,
+        beforeSend: function (xhr) {
+            xhr.setRequestHeader('X-API-Key',
+                API_KEY); },
+        method:"GET",
+        contentType: "application/json",
+        data: req,
+        success:function(data){
+            console.log("archived logs", JSON.stringify(data))
+            display_log(data, timestamp)
+        },
+        error: function(xhr, status, error) {
+            var err = eval("(" + xhr.responseText + ")");
+            window.alert(JSON.stringify(xhr));
+            console.log(JSON.stringify(xhr));
+        }
+    })  
+}
+
+function display_log(iterLogList, timestamp) {
+        //console.log("Incoming logline object")
+
+        var lines = document.getElementById('lines')
+        var line = document.createElement('div')
+        line.classList.add("line")
+        const newLine = document.createTextNode("---------------")
+        line.appendChild(newLine)
+        lines.appendChild(line)
+
+        iterLogList.forEach((logLine) => {
+            //console.log("logline item")
+            //console.log(JSON.stringify(logLine,null,2))
+
+            // <div class="line">
+            //     <div data-toggle="collapse" data-target="#rec1">12233 <strong>Event</strong></div>
+            //     <div id="rec1" class="collapse">
+            //     Detaila mozna structured
+            //     Lorem ipsum dolor sit amet, consectetur adipisicing elit,
+            //     sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
+            //     quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+            //     </div>
+            // </div>
+
+            highlighted = (parseInt(logLine.time) == parseInt(timestamp)) ? "highlighted" : ""
+            logcnt++;
+            row = '<div data-bs-toggle="collapse" class="'+ highlighted + '" onclick="set_timestamp(' + logLine.time + ')" data-bs-target="#rec'+logcnt+'">'+logLine.time + " " + logLine.event + ' - '+ (logLine.message == undefined ? "" : logLine.message) +'</div>'
+            str_row = JSON.stringify(logLine.details, null, 2)
+            //row_detail = '<div id="rec'+logcnt+'" data-toggle="collapse" data-target="#rec'+logcnt+'"class="collapse pidi"><pre>' + str_row + '</pre></div>'
+
+            row_detail = '<div id="rec'+logcnt+'" class="collapse pidi"><pre>' + str_row + '</pre></div>'
+
+            var lines = document.getElementById('lines')
+            var line = document.createElement('div')
+            line.classList.add("line")
+            line.dataset.timestamp = logLine.time
+            
+            line.insertAdjacentHTML( 'beforeend', row );
+            line.insertAdjacentHTML( 'beforeend', row_detail );
+            //line.appendChild(newLine)
+            //var pre = document.createElement("span")
+            //pre.classList.add("pidi")
+            //const stLine = document.createTextNode(str_row)
+            //pre.appendChild(stLine)
+            //line.appendChild(pre)
+            lines.appendChild(line)
+        });
+        $('#messages').animate({
+            scrollTop: $('#lines')[0].scrollHeight}, 2000);
 
 }

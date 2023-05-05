@@ -1,9 +1,12 @@
-:root {
+/* :root {
   --dt-row-selected: 18, 143, 175;
+} */
+:root {
+  --dt-row-selected: 37, 120, 114;
 }
 
 tbody, td, tfoot, th, thead, tr {
-  border-color: inherit;
+  border-color: #7d7d8a;
   border-style: solid;
   border-width: 0;
   padding: 4px;
@@ -11,10 +14,29 @@ tbody, td, tfoot, th, thead, tr {
 
 .secondary-bg {
   --bs-bg-opacity: 1;
-  background-color: #128faf;
+  background-color: #414749;
 }
 
+/* #128faf; */
+
 .btn-outline-success {
+  --bs-btn-color: #75a9ac;
+  --bs-btn-border-color: #8b8b8b;
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: #3996a4;
+  --bs-btn-hover-border-color: #198754;
+  --bs-btn-focus-shadow-rgb: 25,135,84;
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: #40929d;
+  --bs-btn-active-border-color: #446379;
+  --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+  --bs-btn-disabled-color: #4e7c85;
+  --bs-btn-disabled-bg: transparent;
+  --bs-btn-disabled-border-color: #839498;
+  --bs-gradient: none;
+}
+
+/* .btn-outline-success {
   --bs-btn-color: #316164;
   --bs-btn-border-color: #247e85;
   --bs-btn-hover-color: #fff;
@@ -29,6 +51,25 @@ tbody, td, tfoot, th, thead, tr {
   --bs-btn-disabled-bg: transparent;
   --bs-btn-disabled-border-color: #839498;
   --bs-gradient: none;
+} */
+
+.badge {
+  --bs-badge-padding-x: 0.65em;
+  --bs-badge-padding-y: 0.35em;
+  --bs-badge-font-size: 0.75em;
+  --bs-badge-font-weight: 700;
+  --bs-badge-color: #fff;
+  --bs-badge-border-radius: var(--bs-border-radius);
+  display: inline-block;
+  padding: var(--bs-badge-padding-y) var(--bs-badge-padding-x);
+  font-size: var(--bs-badge-font-size);
+  font-weight: var(--bs-badge-font-weight);
+  line-height: 1;
+  color: var(--bs-body-color);
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: baseline;
+  border-radius: var(--bs-badge-border-radius);
 }
 
 html {
@@ -63,11 +104,21 @@ html {
     position: absolute;
     color: #050505;
     left: 115px;
-    top: 99px;
+    top: 115px;
     z-index: 1;
-    font-size: 16px;
+    font-size: 12px;
     line-height: 18px;
     font-weight: 300;
+}
+
+.legendItemName {
+  margin-left: 5px;
+  display: flex;
+}
+
+.legendItemValue {
+  margin-left: 5px;
+  display: flex;
 }
 
 #msgContainer {
@@ -83,16 +134,17 @@ html {
     overflow: auto;
     height: 568px;
     flex-direction: column-reverse;
+    margin-left: 28px;
   }
 }
 
-@media (min-width : 1681px) {
-  .msgContainerInner {
+@media (min-width: 1681px) {}
+ .msgContainerInner {
     display: flex;
     overflow: auto;
     height: 568px;
     flex-direction: column-reverse;
-  }
+    margin-left: 28px;
 }
 
 
@@ -104,7 +156,7 @@ pre {
   /* margin: 0 0 10px; */
   font-size: 10px;
   /* line-height: 2.428571; */
-  color: #333;
+  /* color: #333; */
   word-break: break-all;
   word-wrap: break-word;
   /* background-color: #f5f5f5; */
@@ -126,11 +178,12 @@ pre {
   margin-left: 0px;
   font-size: normal;
   /* font-weight: bold; */
-  display: -webkit-inline-box;
+  display: flex;
   background-color: #dfe4e6;
   /* color: white; */
   padding: 1px;
   padding-left: 5px;
+  width: max-content;
 }
 
 .headerItem {

@@ -20,7 +20,7 @@ function populate_rt_status_header(runnerId) {
         method:"GET",
         contentType: "application/json",
         success:function(data){
-            console.log(JSON.stringify(data))
+            //console.log(JSON.stringify(data))
             //add status on chart
             $("#statusRegime").text("REALTIME")
             $("#statusName").text(data.run_name)
@@ -31,7 +31,7 @@ function populate_rt_status_header(runnerId) {
         error: function(xhr, status, error) {
             var err = eval("(" + xhr.responseText + ")");
             window.alert(JSON.stringify(xhr));
-            console.log(JSON.stringify(xhr));
+            //console.log(JSON.stringify(xhr));
         }
     })    
 }

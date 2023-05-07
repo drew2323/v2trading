@@ -92,7 +92,7 @@
                 <label data-bs-toggle="collapse" data-bs-target="#runner-table-inner">
                     <h4><span class="badge secondary-bg">Running Strategies</span></h4>
                 </label>
-                <div id="runner-table-inner" class="collapse show">
+                <div id="runner-table-inner" class="collapse show" style="width:70%">
                     <div id="controls">
                         <label>API-KEY: <input type="password" id="api-key" autocomplete="off"/></label>
                         <button onclick="store_api_key(event)" id="bt-store" class="btn btn-outline-success btn-sm">Store</button>
@@ -101,7 +101,7 @@
                         <button id="button_stopall" class="btn btn-outline-success btn-sm">Stop All</button>
                         <button id="button_refresh" class="refresh btn btn-outline-success btn-sm">Refresh</button>
                     </div>
-                    <table id="runnerTable" class="table-striped table-bordered dataTable" style="width:100%; border-color: #dce1dc;">
+                    <table id="runnerTable" class="table-striped table dataTable" style="width:100%; border-color: #dce1dc;">
                         <thead>
                             <tr>
                                 <th>Id</th>
@@ -149,11 +149,11 @@
                 <label data-bs-toggle="collapse" data-bs-target="#archive-table-inner">
                     <h4><span class="badge secondary-bg">Past Runs</span></h4>
                 </label>
-                <div id="archive-table-inner" class="collapse show">
-                    <div id="archive-chart">
+                <div id="archive-table-inner" class="collapse show" style="width:70%">
+                    <!-- <div id="archive-chart">
                         <div id="chartArchive" style="position: relative;"></div>
                         <div class="legend" id="legendArchive"></div>
-                    </div>
+                    </div> -->
                     <div id="controls">
                         <button id="button_edit_arch" class="btn btn-outline-success btn-sm">Edit</button>
                         <button id="button_delete_arch" class="btn btn-outline-success btn-sm">Delete</button>
@@ -162,7 +162,7 @@
                         <!-- <button id="button_stopall" class="btn btn-outline-success btn-sm">Stop All</button>
                         <button id="button_refresh" class="btn btn-outline-success btn-sm">Refresh</button> -->
                     </div>
-                    <table id="archiveTable" class="table-striped table-bordered dataTable" style="width:100%; border-color: #dce1dc;">
+                    <table id="archiveTable" class="table-striped table dataTable" style="width:100%; border-color: #dce1dc;">
                         <thead>
                             <tr>
                                 <th>Id</th>
@@ -210,43 +210,42 @@
                         </form>
                     </div>
                 </div>
-            </div>
-            <div id="editModalArchive" class="modal fade">
-                <div class="modal-dialog">
-                    <form method="post" id="editFormArchive">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h4 class="modal-title"><i class="fa fa-plus"></i> Edit Archive</h4>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="form-group">
-                                    <label for="editidarchive" class="form-label">Id</label>
-                                    <input type="text" class="form-control" id="editidarchive" name="id" placeholder="id" readonly>			
+                <div id="editModalArchive" class="modal fade">
+                    <div class="modal-dialog">
+                        <form method="post" id="editFormArchive">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h4 class="modal-title"><i class="fa fa-plus"></i> Edit Archive</h4>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
-                                <div class="form-group">
-                                    <label for="editnote" class="form-label">note</label>							
-                                    <textarea class="form-control" rows="2" id="editnote" name="note"></textarea>							
+                                <div class="modal-body">
+                                    <div class="form-group">
+                                        <label for="editidarchive" class="form-label">Id</label>
+                                        <input type="text" class="form-control" id="editidarchive" name="id" placeholder="id" readonly>			
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="editnote" class="form-label">note</label>							
+                                        <textarea class="form-control" rows="2" id="editnote" name="note"></textarea>							
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="stratvars" class="form-label">Stratvars</label>							
+                                        <textarea class="form-control" rows="4" id="editstratvars" name="stratvars"></textarea>							
+                                    </div>		
                                 </div>
-                                <div class="form-group">
-                                    <label for="stratvars" class="form-label">Stratvars</label>							
-                                    <textarea class="form-control" rows="4" id="editstratvars" name="stratvars"></textarea>							
-                                </div>		
+                                <div class="modal-footer">
+                                    <input type="submit" name="delete" id="editarchive" class="btn btn-primary" value="Edit" />
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                </div>
                             </div>
-                            <div class="modal-footer">
-                                <input type="submit" name="delete" id="editarchive" class="btn btn-primary" value="Edit" />
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                            </div>
-                        </div>
-                    </form>
+                        </form>
+                    </div>
                 </div>
             </div>
-        </div>
             <div id="stratin-table" class="flex-items">
                 <label data-bs-toggle="collapse" data-bs-target="#stratin-table-inner">
                     <h4><span class="badge secondary-bg">Strategies</span></h4>
                 </label>
-                <div id="stratin-table-inner" class="collapse show">
+                <div id="stratin-table-inner" class="collapse show" style="width:70%">
                     <button id="button_add" class="btn btn-outline-success btn-sm">Add</button>
                     <button id="button_add_json" class="btn btn-outline-success btn-sm">Add JSON</button>
                     <button id="button_edit" class="btn btn-outline-success btn-sm">Edit</button>
@@ -255,7 +254,7 @@
                     <button id="button_delete" class="btn btn-outline-success btn-sm">Delete</button>
                     <button id="button_run" class="btn btn-outline-success btn-sm">Run Strategy</button>
                     <button id="button_refresh" class="refresh btn btn-outline-success btn-sm">Refresh</button>
-                    <table id="stratinTable" class="table-striped table-bordered dataTable" style="width:100%; border-color: #dce1dc;">
+                    <table id="stratinTable" class="table-striped table dataTable" style="width:100%; border-color: #dce1dc;">
                         <thead>
                             <tr>
                                 <th>Id</th>
@@ -428,12 +427,16 @@
                                         <input type="number" class="form-control" id="cash" name="cash" placeholder="cash" value="100000">							
                                     </div>
                                     <div class="form-group">
-                                        <label for="ilog_save" class="form-label">Enable logs</label>							
-                                        <input type="checkbox" class="form-check" id="ilog_save" name="ilog_save" aria-label="Enable logs">							
+                                        <div style="display:inline-flex">
+                                          <label for="ilog_save" class="form-label">Enable logs</label>							
+                                          <input type="checkbox" class="form-check" id="ilog_save" name="ilog_save" aria-label="Enable logs">							
+                                        </div>
                                     </div>
                                     <div class="form-group">
-                                        <label for="subscribe" class="form-label">Subscribe for RT</label>							
-                                        <input type="checkbox" class="form-check" id="subscribe" name="subscribe" aria-label="Real time subscribe">							
+                                        <div style="display:inline-flex">
+                                            <label for="subscribe" class="form-label">Show real time</label>							
+                                            <input type="checkbox" class="form-check" id="subscribe" name="subscribe" aria-label="Real time subscribe">							
+                                        </div>
                                     </div>
                                     <div class="form-group">
                                         <label for="note" class="form-label">note</label>							

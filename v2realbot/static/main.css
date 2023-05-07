@@ -2,7 +2,60 @@
   --dt-row-selected: 18, 143, 175;
 } */
 :root {
-  --dt-row-selected: 37, 120, 114;
+  --dt-row-selected: 140,142,141;
+}
+
+[data-bs-theme=dark] {
+  color-scheme: dark;
+  --bs-body-color: #adb5bd;
+  --bs-body-color-rgb: 173,181,189;
+  --bs-body-bg: #2a2e39;
+  --bs-body-bg-rgb: 33,37,41;
+  --bs-emphasis-color: #fff;
+  --bs-emphasis-color-rgb: 255,255,255;
+  --bs-secondary-color: rgba(173, 181, 189, 0.75);
+  --bs-secondary-color-rgb: 173,181,189;
+  --bs-secondary-bg: #343a40;
+  --bs-secondary-bg-rgb: 52,58,64;
+  --bs-tertiary-color: rgba(173, 181, 189, 0.5);
+  --bs-tertiary-color-rgb: 173,181,189;
+  --bs-tertiary-bg: #2b3035;
+  --bs-tertiary-bg-rgb: 43,48,53;
+  --bs-primary-text-emphasis: #6ea8fe;
+  --bs-secondary-text-emphasis: #a7acb1;
+  --bs-success-text-emphasis: #75b798;
+  --bs-info-text-emphasis: #6edff6;
+  --bs-warning-text-emphasis: #ffda6a;
+  --bs-danger-text-emphasis: #ea868f;
+  --bs-light-text-emphasis: #f8f9fa;
+  --bs-dark-text-emphasis: #dee2e6;
+  --bs-primary-bg-subtle: #031633;
+  --bs-secondary-bg-subtle: #161719;
+  --bs-success-bg-subtle: #051b11;
+  --bs-info-bg-subtle: #032830;
+  --bs-warning-bg-subtle: #332701;
+  --bs-danger-bg-subtle: #2c0b0e;
+  --bs-light-bg-subtle: #343a40;
+  --bs-dark-bg-subtle: #1a1d20;
+  --bs-primary-border-subtle: #084298;
+  --bs-secondary-border-subtle: #41464b;
+  --bs-success-border-subtle: #0f5132;
+  --bs-info-border-subtle: #087990;
+  --bs-warning-border-subtle: #997404;
+  --bs-danger-border-subtle: #842029;
+  --bs-light-border-subtle: #495057;
+  --bs-dark-border-subtle: #343a40;
+  --bs-link-color: #6ea8fe;
+  --bs-link-hover-color: #8bb9fe;
+  --bs-link-color-rgb: 110,168,254;
+  --bs-link-hover-color-rgb: 139,185,254;
+  --bs-code-color: #e685b5;
+  --bs-border-color: #495057;
+  --bs-border-color-translucent: rgba(255, 255, 255, 0.15);
+  --bs-form-valid-color: #75b798;
+  --bs-form-valid-border-color: #75b798;
+  --bs-form-invalid-color: #ea868f;
+  --bs-form-invalid-border-color: #ea868f;
 }
 
 tbody, td, tfoot, th, thead, tr {
@@ -10,6 +63,18 @@ tbody, td, tfoot, th, thead, tr {
   border-style: solid;
   border-width: 0;
   padding: 4px;
+}
+
+.tdnowrap {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 68px;
+  white-space: nowrap;
+}
+
+table.dataTable thead th, table.dataTable thead td, table.dataTable tfoot th, table.dataTable tfoot td {
+  text-align: left;
+  color: #787b86;
 }
 
 .secondary-bg {
@@ -73,7 +138,11 @@ tbody, td, tfoot, th, thead, tr {
 }
 
 html {
-  font-size: 14px;
+  font-size: 12px;
+}
+
+.table>:not(caption)>*>* {
+  padding: 0.32rem 0.32rem;
 }
 
 .flex-container {
@@ -179,7 +248,7 @@ pre {
   font-size: normal;
   /* font-weight: bold; */
   display: flex;
-  background-color: #dfe4e6;
+  /* background-color: #dfe4e6; */
   /* color: white; */
   padding: 1px;
   padding-left: 5px;

@@ -484,7 +484,7 @@ def delete_archived_runners_byID(id: UUID):
             resh = db_arch_h.remove(where('id') == id)
             resd = db_arch_d.remove(where('id') == id)
             reslogs = delete_logs(id) 
-            if len(resh) == 0 or len(resd) == 0 or reslogs ==0:
+            if len(resh) == 0 or len(resd) == 0:
                 return -1, "not found "+str(resh) + " " + str(resd) + " " + str(reslogs)
             return 0, str(resh) + " " + str(resd) + " " + str(reslogs)
     except Exception as e:

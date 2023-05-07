@@ -166,22 +166,50 @@ var archiveRecords =
                     {data: 'bt_from', visible: true},
                     {data: 'bt_to', visible: true},
                     {data: 'ilog_save', visible: true},
-                    {data: 'stratvars', visible: true},
+                    {data: 'stratvars', visible: false},
                     {data: 'profit'},
                     {data: 'trade_count', visible: true},
                     {data: 'end_positions', visible: true},
                     {data: 'end_positions_avgp', visible: true},
                     {data: 'open_orders', visible: true}
                 ],
-        // columnDefs: [{
-        //     targets: [4,5,8,9],
-        //     render: function ( data, type, row ) {
-        //         return format_date(data)
-        //     },
-        //     }],
+        paging: false,
+        processing: false,
+        columnDefs: [            {
+            targets: [0,1],
+            render: function ( data, type, row ) {
+                return '<div class="tdnowrap" title="'+data+'">'+data+'</i>'
+            },
+            },
+            {
+                targets: [5,6],
+                render: function ( data, type, row ) {
+                    now = new Date(data)
+                    if (isToday(now)) {
+                        //return local time only
+                        return 'dnes ' + format_date(data,false,true)
+                    }
+                    else
+                    {
+                        //return  local datetime
+                        return format_date(data,false,false)
+                    }
+                    
+                    
+                },
+                },
+            {
+                targets: [9,10],
+                render: function ( data, type, row ) {
+                    //market datetime
+                    return format_date(data, true)
+                },
+                },
+        ],
         order: [[6, 'desc']],
-        paging: true,
-        lengthChange: false,
+        // paging: true,
+        // lengthChange: false,
+        // select: true,
         // createdRow: function( row, data, dataIndex){
         //     if (is_running(data.id) ){
         //         alert("runner");

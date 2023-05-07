@@ -81,17 +81,17 @@ function initialize_chart() {
         layout: {
             background: {
                 type: 'solid',
-                color: '#000000',
+                color: '#2a2e39',
             },
             textColor: '#d1d4dc',
         },
         grid: {
             vertLines: {
                 visible: true,
-                color: "#434d46"
+                color: "#434651"
             },
             horzLines: {
-                color: "#667069",
+                color: "#434651",
                 visible:true
             },
         },
@@ -191,14 +191,34 @@ JSON.safeStringify = (obj, indent = 2) => {
     return retVal;
   };
 
+ function isToday(someDate) {
+    const today = new Date()
+    return someDate.getDate() == today.getDate() &&
+      someDate.getMonth() == today.getMonth() &&
+      someDate.getFullYear() == today.getFullYear()
+  }
+
 //https://www.w3schools.com/jsref/jsref_tolocalestring.asp
-function format_date(datum) {
+function format_date(datum, markettime = false, timeonly = false) {
     //const options = { weekday: 'long', year: 'numeric', month: 'numeric', day: 'numeric', };
-    const options = {dateStyle: "short", timeStyle: "short"}
+    // date.toLocaleString('en-US', {
+    //     timeZone: 'America/New_York',
+    //   })
+    //'Europe/Berlin'
+    var options = {}
+    if (timeonly) {
+        options = {hour: '2-digit',   hour12: false, minute: '2-digit'}
+    }
+    else {
+        options = {dateStyle: "short", timeStyle: "short"}  
+    }
+
+    if (markettime) {
+        options["timeZone"] = 'America/New_York'
+    }
     const date = new Date(datum);
     return date.toLocaleString('cs-CZ', options);
 }
-
 
 function clear_status_header() {
     $("#statusRegime").text("")

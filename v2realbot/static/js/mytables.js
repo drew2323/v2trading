@@ -41,8 +41,6 @@ function is_stratin_running(id) {
 
 //STRATIN and RUNNERS TABELS
 $(document).ready(function () {
-    //reaload hlavni tabulky
-
     stratinRecords.ajax.reload();
     runnerRecords.ajax.reload();
 
@@ -411,8 +409,8 @@ var stratinRecords =
                     {data: 'id2'},
                     {data: 'name'},
                     {data: 'symbol'},
-                    {data: 'class_name'},
-                    {data: 'script'},
+                    {data: 'class_name', visible: false},
+                    {data: 'script', visible: false},
                     {data: 'open_rush', visible: false},
                     {data: 'close_rush', visible: false},
                     {data: 'stratvars_conf', visible: false},
@@ -427,7 +425,14 @@ var stratinRecords =
                 var status = get_status(data)
                 return '<i class="fas fa-check-circle">'+status+'</i>'
             },
-            }],
+            },
+            {
+                targets: 0,
+                render: function ( data, type, row ) {
+                    return '<div class="tdnowrap" data-bs-toggle="tooltip" data-bs-placement="top" title="'+data+'">'+data+'</i>'
+                },
+                },
+            ],
         order: [[1, 'asc']],
         paging: false,
         // select: {
@@ -480,6 +485,19 @@ var runnerRecords =
                 ],
         paging: false,
         processing: false,
+        columnDefs: [            {
+            targets: [0,1],
+            render: function ( data, type, row ) {
+                return '<div class="tdnowrap" title="'+data+'">'+data+'</i>'
+            },
+            },
+            {
+                targets: [2],
+                render: function ( data, type, row ) {
+                    return format_date(data)
+                },
+                },
+        ],
         // select: {
         //     style: 'multi'
         // },

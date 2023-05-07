@@ -213,9 +213,10 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
     toolTip = document.createElement('div');
     //width: 90px; , height: 80px; 
     toolTip.style = `position: absolute; display: none; padding: 8px; box-sizing: border-box; font-size: 12px; text-align: left; z-index: 1000; top: 12px; left: 12px; pointer-events: none; border: 1px solid; border-radius: 2px;font-family: -apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;`;
-    toolTip.style.background = 'white';
-    toolTip.style.color = 'black';
-    toolTip.style.borderColor = '#2962FF';
+    toolTip.style.backgroundColor = '#2d323e';
+    toolTip.style.color = '#babfcd';
+    toolTip.style.borderColor = "#a7a9b0";
+    //'#2962FF';
     container1.appendChild(toolTip);
     //initialize chart
     document.getElementById("chart").style.display = "block"
@@ -579,7 +580,7 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
 
     chart.subscribeClick(param => {
         $('#trade-timestamp').val(param.time)
-        if (archRecord.ilog_save == "true") {
+        if (archRecord.ilog_save == true) {
             fetch_log_data(param.time, archRecord.id);
             }
         if (
@@ -666,13 +667,13 @@ function fetch_log_data(timestamp, runner_id) {
         contentType: "application/json",
         data: req,
         success:function(data){
-            console.log("archived logs", JSON.stringify(data))
+            //console.log("archived logs", JSON.stringify(data))
             display_log(data, timestamp)
         },
         error: function(xhr, status, error) {
             var err = eval("(" + xhr.responseText + ")");
             window.alert(JSON.stringify(xhr));
-            console.log(JSON.stringify(xhr));
+            //console.log(JSON.stringify(xhr));
         }
     })  
 }

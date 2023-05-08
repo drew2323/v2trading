@@ -90,7 +90,7 @@ function transform_data(data) {
         marker["time"] = timestamp;
         // marker["position"] = (trade.order.side == "buy") ? "belowBar" : "aboveBar" 
         marker["position"] = (trade.order.side == "buy") ? "inBar" : "aboveBar" 
-        marker["color"] = (trade.order.side == "buy") ? "#cfcbc2" : "red"
+        marker["color"] = (trade.order.side == "buy") ? "#37cade" : "red"
         //marker["shape"] = (trade.order.side == "buy") ? "arrowUp" : "arrowDown"
         marker["shape"] = (trade.order.side == "buy") ? "circle" : "arrowDown"
         //marker["text"] =  trade.qty + "/" + trade.price
@@ -177,6 +177,7 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
     if (chart !== null) {
         chart.remove()
         clear_status_header()
+        indList = [];
         if (toolTip !== null) {
             toolTip.style.display = 'none';
         }
@@ -251,6 +252,8 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
 
         intitialize_candles()
         candlestickSeries.setData(AllCandleSeriesesData.get(interval));
+
+        display_buy_markers();
 
         if (last_range) {
             chart.timeScale().setVisibleRange(last_range);
@@ -433,150 +436,119 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
         }
     }
 
-    //gets indicators from archived data and displays them on the chart
+    //displays (redraws) buy markers
+    function display_buy_markers() {
+        if (avgBuyLine !== null) {
+            chart.removeSeries(avgBuyLine)
+        }
+
+        if (markersLine !== null) {
+            chart.removeSeries(markersLine)
+        }      
+
+        console.log("avgp_buy_line",transformed_data["avgp_buy_line"])
+        console.log("avgp_markers",transformed_data["avgp_markers"])
+
+        if (transformed_data["avgp_buy_line"].length > 0) {
+            avgBuyLine = chart.addLineSeries({
+                //    title: "avgpbuyline",
+                    color: '#e8c76d',
+                //    color: 'transparent',
+                    lineWidth: 1,
+                    lastValueVisible: false
+                });
+
+            avgBuyLine.applyOptions({
+                lastValueVisible: false,
+                priceLineVisible: false,
+            });
 
 
-    console.log("avgp_buy_line",transformed_data["avgp_buy_line"])
-    console.log("avgp_markers",transformed_data["avgp_markers"])
+            try {
+            avgBuyLine.setData(transformed_data["avgp_buy_line"]);
+            }
+            catch (error) {
+                console.log("avgbuyline")
+            }
+            
+            avgBuyLine.setMarkers(transformed_data["avgp_markers"])
+        }
 
-    if (transformed_data["avgp_buy_line"].length > 0) {
-        avgBuyLine = chart.addLineSeries({
-            //    title: "avgpbuyline",
-                color: '#e8c76d',
-            //    color: 'transparent',
+        markersLine = chart.addLineSeries({
+            //  title: "avgpbuyline",
+            //  color: '#d6d1c3',
+                color: 'transparent',
                 lineWidth: 1,
                 lastValueVisible: false
             });
 
-        avgBuyLine.applyOptions({
-            lastValueVisible: false,
-            priceLineVisible: false,
-        });
-
-
-        try {
-        avgBuyLine.setData(transformed_data["avgp_buy_line"]);
-        }
-        catch (error) {
-            console.log("avgbuyline")
-        }
-        
-        avgBuyLine.setMarkers(transformed_data["avgp_markers"])
-    }
-
-    markersLine = chart.addLineSeries({
-          //  title: "avgpbuyline",
-          //  color: '#d6d1c3',
-            color: 'transparent',
-            lineWidth: 1,
-            lastValueVisible: false
-        });
-
-
-    
-    try {
         markersLine.setData(transformed_data["markers_line"]);
-    }
-    catch (error) {
-        console.log("markersLine")
-    }
+        markersLine.setMarkers(transformed_data["markers"])
 
+        //chart.subscribeCrosshairMove(param => {
+            chart.subscribeCrosshairMove(param => {
+                //LEGEND SECTIOIN
+                firstRow.style.color = 'white';
+                update_chart_legend(param);
 
-    markersLine.setMarkers(transformed_data["markers"])
-
-    
-
-    //TBD dynamicky
-    //pokud je nazev atributu X_candles vytvorit candles
-    //pokud je objekt Y_line pak vytvorit lajnu
-    //pokud je objekt Z_markers pak vytvorit markers
-        //pokud je Z = X nebo Y, pak markers dat na danou lajnu (priklad vvwap_line, avgp_line, avgp_markers)
-    //udelat si nahodny vyber barev z listu
-
-        //DO BUDOUCNA MARKERS
-    // chart.subscribeCrosshairMove(param => {
-    //     console.log(param.hoveredObjectId);
-    // });
-    
-
-
-
-    //TODO onlick zkopirovat timestamp param.time
-    // chart.subscribeClick(param => {
-    //     $('#trade-timestamp').val(param.time)
-    //     //alert(JSON.safeStringify(param))
-    //     //console.log(param.hoveredObjectId);
-    // });
-
-    //TODO
-    // - legend
-    // - identifikatory
-    // - volume
-
-
-    //chart.subscribeCrosshairMove(param => {
-        chart.subscribeCrosshairMove(param => {
-            //LEGEND SECTIOIN
-            firstRow.style.color = 'white';
-            update_chart_legend(param);
-
-            //TOOLTIP SECTION
-            //$('#trade-timestamp').val(param.time)
-            if (
-                param.point === undefined ||
-                !param.time ||
-                param.point.x < 0 ||
-                param.point.x > container1.clientWidth ||
-                param.point.y < 0 ||
-                param.point.y > container1.clientHeight
-            ) {
-                toolTip.style.display = 'none';
-            } else {
-                //vyber serie s jakou chci pracovat - muzu i dynamicky
-                //je to mapa https://tradingview.github.io/lightweight-charts/docs/api/interfaces/MouseEventParams
-    
-                //key = series (key.seriestype vraci Line/Candlestick atp.)  https://tradingview.github.io/lightweight-charts/docs/api/interfaces/SeriesOptionsMap
-    
-                toolTip.style.display = 'none';
-                toolTip.innerHTML = "";
-                var data = param.seriesData.get(markersLine);
-                var data2 = param.seriesData.get(avgBuyLine);
-                if ((data !== undefined) || (data2 !== undefined)) {
-                //param.seriesData.forEach((value, key) => {
-                    //console.log("key",key)
-                    //console.log("value",value)
-                   
-                    //data = value
-                    //DOCASNE VYPNUTO
-                    toolTip.style.display = 'block';
+                //TOOLTIP SECTION
+                //$('#trade-timestamp').val(param.time)
+                if (
+                    param.point === undefined ||
+                    !param.time ||
+                    param.point.x < 0 ||
+                    param.point.x > container1.clientWidth ||
+                    param.point.y < 0 ||
+                    param.point.y > container1.clientHeight
+                ) {
+                    toolTip.style.display = 'none';
+                } else {
+                    //vyber serie s jakou chci pracovat - muzu i dynamicky
+                    //je to mapa https://tradingview.github.io/lightweight-charts/docs/api/interfaces/MouseEventParams
+        
+                    //key = series (key.seriestype vraci Line/Candlestick atp.)  https://tradingview.github.io/lightweight-charts/docs/api/interfaces/SeriesOptionsMap
+        
+                    toolTip.style.display = 'none';
+                    toolTip.innerHTML = "";
+                    var data = param.seriesData.get(markersLine);
+                    var data2 = param.seriesData.get(avgBuyLine);
+                    if ((data !== undefined) || (data2 !== undefined)) {
+                    //param.seriesData.forEach((value, key) => {
+                        //console.log("key",key)
+                        //console.log("value",value)
                     
-                    //console.log(JSON.safeStringify(key))
-                    // if (toolTip.innerHTML == "") {
-                    //     toolTip.innerHTML = `<div>${param.time}</div>`
-                    // }
-                    buy_price = 0
-                    //u sell markeru nemame avgBuyLine
-                    if (data2 !== undefined) {
-                        buy_price = parseFloat(data2.value).toFixed(3)
-                    }
+                        //data = value
+                        //DOCASNE VYPNUTO
+                        toolTip.style.display = 'block';
+                        
+                        //console.log(JSON.safeStringify(key))
+                        // if (toolTip.innerHTML == "") {
+                        //     toolTip.innerHTML = `<div>${param.time}</div>`
+                        // }
+                        buy_price = 0
+                        //u sell markeru nemame avgBuyLine
+                        if (data2 !== undefined) {
+                            buy_price = parseFloat(data2.value).toFixed(3)
+                        }
 
-                    toolTip.innerHTML += `<div>POS:${tradeDetails.get(param.time).position_qty}/${buy_price}</div><div>T:${tradeDetails.get(param.time).qty}/${data.value}</div>`;
-    
-                    //inspirace
-                    // toolTip.innerHTML = `<div style="color: ${'#2962FF'}">Apple Inc.</div><div style="font-size: 24px; margin: 4px 0px; color: ${'black'}">
-                    // ${Math.round(100 * price) / 100}
-                    // </div><div style="color: ${'black'}">
-                    // ${dateStr}
-                    // </div>`;
-    
-    
-                    // Position tooltip according to mouse cursor position
-                    toolTip.style.left = param.point.x+120 + 'px';
-                    toolTip.style.top = param.point.y + 'px';
+                        toolTip.innerHTML += `<div>POS:${tradeDetails.get(param.time).position_qty}/${buy_price}</div><div>T:${tradeDetails.get(param.time).qty}/${data.value}</div>`;
+        
+                        //inspirace
+                        // toolTip.innerHTML = `<div style="color: ${'#2962FF'}">Apple Inc.</div><div style="font-size: 24px; margin: 4px 0px; color: ${'black'}">
+                        // ${Math.round(100 * price) / 100}
+                        // </div><div style="color: ${'black'}">
+                        // ${dateStr}
+                        // </div>`;
+        
+        
+                        // Position tooltip according to mouse cursor position
+                        toolTip.style.left = param.point.x+120 + 'px';
+                        toolTip.style.top = param.point.y + 'px';
+                    }
+                        //});
                 }
-                    //});
-            }
-        });
+            });
+    }
 
     chart.subscribeClick(param => {
         $('#trade-timestamp').val(param.time)
@@ -638,7 +610,7 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
 
 
     //add status
-    $("#statusRegime").text("ARCHIVED RUN")
+    $("#statusRegime").text("PAST RUN: "+archRecord.id)
     $("#statusName").text(archRecord.name)
     $("#statusMode").text(archRecord.mode)
     $("#statusAccount").text(archRecord.account)

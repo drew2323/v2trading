@@ -12,6 +12,8 @@
         <link rel="manifest" href="/static/site.webmanifest">
 
 
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
 
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KK94CHFLLe+nY2dmCWGMq91rCGa5gtU4mk92HdvYe+M/SXH301p5ILy+dN9+nJOZ" crossorigin="anonymous">
 
@@ -38,7 +40,7 @@
         <div id="main" class="mainConteiner flex-container content">
             <div id="chartContainer" class="flex-items">
                 <label data-bs-toggle="collapse" data-bs-target="#chartContainerInner" aria-expanded="true">
-                    <h4><span class="badge secondary-bg">Chart</span></h4>
+                    <h4>Chart</h4>
                 </label>
                 <div>Status: <span id="status">Not connected</span></div>
                 <div id="chartContainerInner" class="collapse">
@@ -75,7 +77,7 @@
             <div id="hist-trades" class="flex-items">
                 <div id="form-trades">
                     <label data-bs-toggle="collapse" data-bs-target="#trades-data">
-                        <h4><span class="badge secondary-bg">Trade History</span></h4>
+                        <h4>Trade History</h4>
                     </label>
                     <label>Timestamp: <input type="text" id="trade-timestamp" autocomplete="off"/></label>
                     <label>SYM: <input type="text" id="trade-symbol" autocomplete="off"/></label>
@@ -90,7 +92,7 @@
             </div>
             <div id="runner-table" class="flex-items">
                 <label data-bs-toggle="collapse" data-bs-target="#runner-table-inner">
-                    <h4><span class="badge secondary-bg">Running Strategies</span></h4>
+                    <h4>Running Strategies</h4>
                 </label>
                 <div id="runner-table-inner" class="collapse show" style="width:70%">
                     <div id="controls">
@@ -147,7 +149,7 @@
 
             <div id="archive-table" class="flex-items">
                 <label data-bs-toggle="collapse" data-bs-target="#archive-table-inner">
-                    <h4><span class="badge secondary-bg">Past Runs</span></h4>
+                    <h4>Past Runs</h4>
                 </label>
                 <div id="archive-table-inner" class="collapse show" style="width:70%">
                     <!-- <div id="archive-chart">
@@ -243,7 +245,7 @@
             </div>
             <div id="stratin-table" class="flex-items">
                 <label data-bs-toggle="collapse" data-bs-target="#stratin-table-inner">
-                    <h4><span class="badge secondary-bg">Strategies</span></h4>
+                    <h4>Strategies</h4>
                 </label>
                 <div id="stratin-table-inner" class="collapse show" style="width:70%">
                     <button id="button_add" class="btn btn-outline-success btn-sm">Add</button>
@@ -269,8 +271,8 @@
                                 <th>add_data</th>
                                 <th>note</th>
                                 <th>history</th>
-                                <th></th>
-                                <th></th>					
+                                <th>status</th>
+                                <!-- <th></th>					 -->
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -456,7 +458,7 @@
             </div>
             <div id="configContainer" class="flex-items">
                 <label data-bs-toggle="collapse" data-bs-target="#configInner" aria-expanded="true">
-                    <h4><span class="badge secondary-bg">Config</span></h4>
+                    <h4>Config</h4>
                 </label>
                 <div id="configInner" class="collapse show">
                     config options

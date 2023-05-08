@@ -224,7 +224,15 @@ class Strategy:
         self.before_iteration()
         ted = datetime.fromtimestamp(self.state.time).astimezone(zoneNY)
         if is_open_rush(ted, self.open_rush) or is_close_rush(ted, self.close_rush):
-            print("Rush hour - skipping")
+            #self.state.ilog(e="Rush hour - skipping")
+            #identifikatory jsou ulozeny vektorove, tzn. kdyz nejdeme dovnitr iterace(tak nepotrebujeme prazdny cas pro tuto iteraci)
+            #hodnoty time a identifikatoru musi byt stejne
+            #TBD pripdane predelat  a dodelat pro CBARy az je budu pouzivat
+            if self.rectype == RecordType.BAR:
+               self.state.indicators['time'].pop() 
+            elif self.rectype == RecordType.CBAR:
+                print("RUSH skipping NOT IMPLEMENTED for CBARs yet")
+
         else:
             self.next(item, self.state)
             self.after_iteration(item)

@@ -6,19 +6,19 @@ function store_api_key(event) {
 }
 
 function get_status(id) {
-    var status = "stopped"
+    var status = ""
     runnerRecords.rows().iterator('row', function ( context, index ) {
         var data = this.row(index).data();
         //window.alert(JSON.stringify(data))
         if (data.strat_id == id) {
             //window.alert("found");
-            if ((data.run_mode) == "backtest") { status_detail = data.run_mode}
+            if ((data.run_mode) == "backtest") { status_detail = '<span>'+data.run_mode+'</span>'}
             else { status_detail = data.run_mode + " | " + data.run_account}
             if (data.run_paused == null) {
-                status = "running | "+ status_detail
+                status = '<span class="material-symbols-outlined">play_circle</span>'+status_detail
             }
             else {
-                status = "paused | "+ status_detail
+                status = '<span class="material-symbols-outlined">pause_circle</span>'+ status_detail
             }}
             //window.alert("found") }
     });
@@ -423,7 +423,7 @@ var stratinRecords =
             targets: 12,
             render: function ( data, type, row ) {
                 var status = get_status(data)
-                return '<i class="fas fa-check-circle">'+status+'</i>'
+                return status
             },
             },
             {

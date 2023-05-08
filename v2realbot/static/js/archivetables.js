@@ -175,7 +175,7 @@ var archiveRecords =
                 ],
         paging: false,
         processing: false,
-        columnDefs: [            {
+        columnDefs: [{
             targets: [0,1],
             render: function ( data, type, row ) {
                 return '<div class="tdnowrap" title="'+data+'">'+data+'</i>'
@@ -198,13 +198,62 @@ var archiveRecords =
                     
                 },
                 },
-            {
+                {
                 targets: [9,10],
                 render: function ( data, type, row ) {
                     //market datetime
                     return format_date(data, true)
                 },
                 },
+                {
+                    targets: [2],
+                    render: function ( data, type, row ) {
+                        return '<div class="tdname" title="'+data+'">'+data+'</i>'
+                    },
+                },
+                {
+                    targets: [4],
+                    render: function ( data, type, row ) {
+                        return '<div class="tdnote" title="'+data+'">'+data+'</i>'
+                    },
+                },
+                {
+                    targets: [11],
+                    render: function ( data, type, row ) {
+                        //if ilog_save true
+                        if (data) {
+                            return '<span class="material-symbols-outlined">done_outline</span>'
+                        }
+                        else {
+                            return null
+                        }
+                    },
+                },
+                {
+                    targets: [8],
+                    render: function ( data, type, row ) {
+                        //if ilog_save true
+                        if (data == "ACCOUNT1") {
+                            res="ACC1"
+                        }
+                        else if (data == "ACCOUNT2") {
+                            res="ACC2"
+                        }
+                        else { res=data}
+                        return res
+                    },
+                },
+                {
+                    targets: [7],
+                    render: function ( data, type, row ) {
+                        //if ilog_save true
+                        if (data == "backtest") {
+                            res="bt"
+                        }
+                        else { res=data}
+                        return res
+                    },
+                }
         ],
         order: [[6, 'desc']],
         // paging: true,
@@ -217,3 +266,6 @@ var archiveRecords =
         //     }
         //}
         } );
+
+
+        

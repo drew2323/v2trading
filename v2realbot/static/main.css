@@ -1,17 +1,19 @@
 /* :root {
   --dt-row-selected: 18, 143, 175;
+    --dt-row-selected: 140,142,141;
 } */
 :root {
-  --dt-row-selected: 140,142,141;
+  --dt-row-selected: 56,95,126;
+  --dt-row-selected-text: 173,181,189;
 }
 
 [data-bs-theme=dark] {
   color-scheme: dark;
-  --bs-body-color: #adb5bd;
+  --bs-body-color: #787b86;
   --bs-body-color-rgb: 173,181,189;
   --bs-body-bg: #2a2e39;
   --bs-body-bg-rgb: 33,37,41;
-  --bs-emphasis-color: #fff;
+  --bs-emphasis-color: #adb5bd;
   --bs-emphasis-color-rgb: 255,255,255;
   --bs-secondary-color: rgba(173, 181, 189, 0.75);
   --bs-secondary-color-rgb: 173,181,189;
@@ -58,6 +60,23 @@
   --bs-form-invalid-border-color: #ea868f;
 }
 
+.form-label {
+  margin-top: 0.5em;
+  color: var(--bs-emphasis-color);
+}
+.form-check {
+  display: block;
+  min-height: 2.5rem;
+  padding-left: 1.5em;
+  margin-left: 0.25rem;
+}
+
+.h4, h4 {
+    font-size: 1.4rem;
+    color: var(--bs-emphasis-color);
+    font-weight: 200;
+}
+
 tbody, td, tfoot, th, thead, tr {
   border-color: #7d7d8a;
   border-style: solid;
@@ -75,6 +94,32 @@ tbody, td, tfoot, th, thead, tr {
 table.dataTable thead th, table.dataTable thead td, table.dataTable tfoot th, table.dataTable tfoot td {
   text-align: left;
   color: #787b86;
+}
+
+table.dataTable thead>tr>th.sorting, table.dataTable thead>tr>th.sorting_asc, table.dataTable thead>tr>th.sorting_desc, table.dataTable thead>tr>th.sorting_asc_disabled, table.dataTable thead>tr>th.sorting_desc_disabled, table.dataTable thead>tr>td.sorting, table.dataTable thead>tr>td.sorting_asc, table.dataTable thead>tr>td.sorting_desc, table.dataTable thead>tr>td.sorting_asc_disabled, table.dataTable thead>tr>td.sorting_desc_disabled {
+  cursor: pointer;
+  position: relative;
+  padding-right: 10px;
+  font-size: xx-small;
+}
+
+table.dataTable thead>tr>th.sorting:before, table.dataTable thead>tr>th.sorting:after, table.dataTable thead>tr>th.sorting_asc:before, table.dataTable thead>tr>th.sorting_asc:after, table.dataTable thead>tr>th.sorting_desc:before, table.dataTable thead>tr>th.sorting_desc:after, table.dataTable thead>tr>th.sorting_asc_disabled:before, table.dataTable thead>tr>th.sorting_asc_disabled:after, table.dataTable thead>tr>th.sorting_desc_disabled:before, table.dataTable thead>tr>th.sorting_desc_disabled:after, table.dataTable thead>tr>td.sorting:before, table.dataTable thead>tr>td.sorting:after, table.dataTable thead>tr>td.sorting_asc:before, table.dataTable thead>tr>td.sorting_asc:after, table.dataTable thead>tr>td.sorting_desc:before, table.dataTable thead>tr>td.sorting_desc:after, table.dataTable thead>tr>td.sorting_asc_disabled:before, table.dataTable thead>tr>td.sorting_asc_disabled:after, table.dataTable thead>tr>td.sorting_desc_disabled:before, table.dataTable thead>tr>td.sorting_desc_disabled:after {
+  position: absolute;
+  display: block;
+  opacity: 0.525;
+  right: 4px;
+  line-height: 9px;
+  font-size: 0.8em;
+}
+table.dataTable thead>tr>th.sorting_asc:before, table.dataTable thead>tr>th.sorting_desc:after, table.dataTable thead>tr>td.sorting_asc:before, table.dataTable thead>tr>td.sorting_desc:after {
+  opacity: 1;
+}
+.tdnote {
+  width: 188px;
+}
+
+.tdname {
+  width: 140px;
 }
 
 .secondary-bg {
@@ -100,6 +145,8 @@ table.dataTable thead th, table.dataTable thead td, table.dataTable tfoot th, ta
   --bs-btn-disabled-border-color: #839498;
   --bs-gradient: none;
 }
+
+
 
 /* .btn-outline-success {
   --bs-btn-color: #316164;
@@ -177,7 +224,7 @@ html {
     z-index: 1;
     font-size: 12px;
     line-height: 18px;
-    font-weight: 300;
+    font-weight: 400;
 }
 
 .legendItemName {
@@ -260,7 +307,7 @@ pre {
 }
 
 .highlighted {
-  font-weight: bold;
+  color: var(--bs-emphasis-color);
 }
 
 .switcher {
@@ -279,7 +326,7 @@ pre {
 	padding: 6px 8px;
 	font-size: 14px;
 	color: #262b3e;
-	background-color: transparent;
+  background-color: #818581;
 	margin-right: 8px;
 	border: none;
 	border-radius: 4px;
@@ -299,4 +346,12 @@ pre {
 .switcher-active-item,
 .switcher-active-item:hover {
 	background-color: #e1eff9;
+}
+
+.material-symbols-outlined {
+  font-variation-settings:
+  'FILL' 0,
+  'wght' 300,
+  'GRAD' 0,
+  'opsz' 24
 }

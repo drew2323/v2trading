@@ -543,8 +543,8 @@ def get_alpaca_history_bars(symbol: str, datetime_object_from: datetime, datetim
         #ohlcvList = {}
 
         #bars = {}
-
-        return 0, bars.data[symbol]
+        #bars.data[symbol]
+        return 0, result
     except Exception as e:
         return -2, str(e)
 

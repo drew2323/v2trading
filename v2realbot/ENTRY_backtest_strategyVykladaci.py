@@ -251,7 +251,7 @@ def next(data, state: StrategyState):
             #kvuli spravnemu zobrazovani na gui
             state.indicators.slope.append(0)
             state.indicators.slopeMA.append(0)
-            state.ilog(e="Slope - not enough data", slope_lookback=slope_lookback)
+            state.ilog(e="Slope - not enough data", slope_lookback=slope_lookback, slope=state.indicators.slope, slopeMA=state.indicators.slopeMA)
 
     except Exception as e:
         print("Exception in NEXT Indicator section", str(e))

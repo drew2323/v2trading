@@ -32,11 +32,13 @@ legendlist.appendChild(firstRow);
 
 function update_chart_legend(param) {
 
-    function name(val) {
-        return '<div class="legendItemName">' + val + '</>' 
+    function name(val, color = null) {
+        color = (color)?' style="color: '+ color + ';"' : ""; 
+        return '<div class="legendItemName" ' + color + '>' + val + '</>'
     }
-    function val(val) {
-        return '<div class="legendItemValue">' + val + '</>'
+    function val(val, color = null) {
+        color = (color)?' style="color: '+ color + ';"' : ""; 
+        return '<div class="legendItemValue" ' + color + '>' + val + '</>'
     }
 
     if (param.time) {
@@ -44,24 +46,29 @@ function update_chart_legend(param) {
         //BASIC INDICATORS
         const bars = param.seriesData.get(candlestickSeries);
         if (bars !== undefined) {
-            firstRow.innerHTML += name("O") + val(bars.open) + name("H") + val(bars.high) + name("L") + val(bars.low) + name("C") + val(bars.close)
+            //console.log(JSON.stringify(candlestickSeries.options()))
+            var color = candlestickSeries.options().upColor;
+            firstRow.innerHTML += name("O", color) + val(bars.open) + name("H", color) + val(bars.high) + name("L", color) + val(bars.low) + name("C") + val(bars.close)
         }       
         
         const volumes = param.seriesData.get(volumeSeries);
         if (volumes !== undefined) {
-            firstRow.innerHTML += name("Vol") +val(volumes.value)
+            var color = volumeSeries.options().color;
+            firstRow.innerHTML += name("Vol", color) +val(volumes.value)
         } 
         const data = param.seriesData.get(vwapSeries);
         if (data !== undefined) {
+            var color = vwapSeries.options().color;
             const vwap = data.value !== undefined ? data.value : data.close;
-            firstRow.innerHTML += name('vwap') + val(vwap.toFixed(2))
+            firstRow.innerHTML += name('vwap', color) + val(vwap.toFixed(2))
         }
         //ADDITIONAL CUSTOM INDICATORS
         //iterate of custom indicators dictionary to get values of custom lines
         // var customIndicator = {name: key, series: null}
         indList.forEach(function (item) {
             var ind = param.seriesData.get(item.series)
-            if (ind !== undefined) { firstRow.innerHTML += name(item.name) + val(ind.value.toFixed(3))}
+            var color = item.series.options().color;
+            if (ind !== undefined) { firstRow.innerHTML += name(item.name, color) + val(ind.value.toFixed(3), color)}
         }); 
     }
     else {

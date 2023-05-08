@@ -204,11 +204,21 @@ def next(data, state: StrategyState):
         #roc_lookback = 20
         #print(state.vars.MA, "MACKO")
         #print(state.bars.hlcc4)
-        state.indicators.ema = ema(state.bars.close, state.vars.MA) #state.bars.vwap
-        #trochu prasarna, EMAcko trunc na 3 mista - kdyz se osvedci, tak udelat efektivne
-        state.indicators.ema = [trunc(i,3) for i in state.indicators.ema]
-        #ic(state.vars.MA, state.vars.Trend, state.indicators.ema[-5:])
 
+        #plnime MAcko - nyni posilame jen N poslednich hodnot
+        #zaroven osetrujeme pripady, kdy je malo dat a ukladame nulu
+        try:
+            ma = int(state.vars.MA)
+            source = state.bars.close[-ma:] #state.bars.vwap
+            ema_value = ema(source, ma)
+            state.indicators.ema.append(trunc(ema_value[-1],3))
+        except Exception as e:
+            state.ilog(e="EMA ukladame 0", message=str(e))
+            state.indicators.ema.append(0)
+
+        #TODO helikoz se EMA pocita pro cely set po kazde iteraci znouv, tak je toto PRASARNA
+        #davame pryc jestli bude to vyse fungovat
+        ##state.indicators.ema = [trunc(i,3) for i in state.indicators.ema]
         slope_lookback = int(state.vars.slope_lookback)
         minimum_slope = float(state.vars.minimum_slope)
         lookback_offset = int(state.vars.lookback_offset)

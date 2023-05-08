@@ -137,7 +137,7 @@ def is_open_rush(dt: datetime, mins: int = 30):
 
 def is_close_rush(dt: datetime, mins: int = 30):
     """"
-    Returns true if time is within morning rush (open+mins)
+    Returns true if time is within afternoon rush (close-mins)
     """
     dt = dt.astimezone(zoneNY)
     business_hours = {

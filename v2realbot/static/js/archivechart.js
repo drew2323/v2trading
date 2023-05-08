@@ -151,13 +151,13 @@ function prepare_data(archRunner, timeframe_amount, timeframe_unit, archivedRunn
         contentType: "application/json",
         data: req,
         success:function(data){
-            console.log("one minute bars before", JSON.stringify(data))
+            //console.log("one minute bars before", JSON.stringify(data))
             data.map((el)=>{
                 cas = new Date(el.timestamp)
                 el.time = cas.getTime()/1000;
                 delete el.timestamp
                 });
-            console.log("one min bars_after_transformation", JSON.stringify(data))
+            //console.log("one min bars_after_transformation", JSON.stringify(data))
             oneMinuteBars = data
             chart_archived_run(archRunner, archivedRunnerDetail, oneMinuteBars);
             //call function to continue
@@ -242,6 +242,9 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
             last_range = null
         }
 
+        intitialize_candles()
+        candlestickSeries.setData(AllCandleSeriesesData.get(interval));
+
         if (interval == native_resolution) {
             //indicators are in native resolution only
             display_indicators(data);
@@ -249,9 +252,6 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
         else {
             remove_indicators();
         }
-
-        intitialize_candles()
-        candlestickSeries.setData(AllCandleSeriesesData.get(interval));
 
         display_buy_markers();
 
@@ -289,13 +289,24 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
 
                                 //tranform data do správného formátru
                                 items = []
+                                //var last = null
                                 value.forEach((element, index, array) => {
                                     item = {}
-                            
+                                    //debug
+                                    //TOTO odstranit po identifikovani chyby
+                                    //if (indicators.time[index] !== undefined) {
+                                        //{console.log("problem",key,last)}
                                     item["time"] = indicators.time[index]
                                     item["value"] = element
                                     //console.log("objekt indicatoru",item)
                                     items.push(item)
+                                        //debug
+                                    //last = item
+                                    // }
+                                    // else
+                                    // {
+                                    //     console.log("chybejici cas", key)
+                                    // }
                                 });
 
                                 if (conf.embed)  {
@@ -330,6 +341,8 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
                                 lastValueVisible: false,
                                 priceLineVisible: false,
                             });
+
+                            //console.log("problem tu",items)
                             //add data
                             obj.series.setData(items)
 

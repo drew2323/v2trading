@@ -293,6 +293,13 @@ def next(data, state: StrategyState):
             limitka_filled_qty = 0
             for o in orderlist:
                 if o.side == OrderSide.SELL:
+                    
+                    if limitka_found:
+                        state.ilog(e="nalezeno vicero sell objednavek, bereme prvni, ostatni - rusime")
+                        result=state.interface.cancel(o.id)
+                        state.ilog(e="zrusena objednavka"+str(o.id), message=result)
+                        continue
+                    
                     #print("Nalezena LIMITKA")
                     limitka_found = True
                     state.vars.limitka = o.id

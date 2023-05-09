@@ -149,7 +149,7 @@ $(document).ready(function () {
                 console.log(timestamp)
 
                 //trade contains filtered condition or size<minsize
-                bg = (findCommonElements3(filterList, tradeLine.conditions) || (parseInt(tradeLine.size) < minsize) ? 'style="background-color: #e6e6e6;"' : '')
+                bg = (findCommonElements3(filterList, tradeLine.conditions) || (parseInt(tradeLine.size) < minsize) ? 'style="background-color: #414040;"' : '')
 
                 row += '<tr role="row" '+ ((timestamp == puvodni) ? 'class="highlighted"' : '') +' ' + bg + '><td>' + timestamp + '</td><td>' + tradeLine.price + '</td>' +
                             '<td class="dt-center">' + tradeLine.size + '</td><td>' + tradeLine.id + '</td>' +

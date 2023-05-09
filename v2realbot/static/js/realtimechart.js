@@ -1,9 +1,6 @@
 
 function populate_real_time_chart() {
-    if (chart !== null) {
-        chart.remove();
-        clear_status_header();
-    }
+    cleanup_chart()
 
     initialize_chart()
     intitialize_candles()

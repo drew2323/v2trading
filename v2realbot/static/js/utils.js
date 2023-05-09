@@ -86,7 +86,7 @@ function cleanup_chart() {
         avgBuyLine = null
         volumeSeries = null
         vwapSeries = null
-        if (toolTip !== null) {
+        if (toolTip) {
             toolTip.style.display = 'none';
         }
     }

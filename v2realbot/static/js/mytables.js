@@ -337,7 +337,9 @@ $(document).ready(function () {
         row = stratinRecords.row('.selected').data();
         window.$('#runModal').modal('show');
         $('#bt_from').val(localStorage.getItem("bt_from"));
+        //console.log(localStorage.getItem("bt_from"))
         $('#bt_to').val(localStorage.getItem("bt_to"));
+        //console.log(localStorage.getItem("bt_to"))
         $('#mode').val(localStorage.getItem("mode"));
         $('#account').val(localStorage.getItem("account"));
         $('#debug').val(localStorage.getItem("debug"));

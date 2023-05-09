@@ -36,7 +36,7 @@ function transform_data(data) {
         bars.push(sbars)
         vwap.push(svwap)
         volume.push(svolume)
-    });
+    }); 
     transformed["bars"] = bars
     transformed["vwap"] = vwap
     transformed["volume"] = volume

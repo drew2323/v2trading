@@ -241,6 +241,7 @@ html {
   display: inline-block;
   /* overflow: auto; */
   height: 596px;
+  width: 32%;
 }
 
 .clearbutton {
@@ -255,6 +256,7 @@ html {
     height: 568px;
     flex-direction: column-reverse;
     margin-left: 28px;
+    width: 100%;
   }
 }
 
@@ -265,6 +267,7 @@ html {
     height: 568px;
     flex-direction: column-reverse;
     margin-left: 28px;
+    width: 100%;
 }
 
 

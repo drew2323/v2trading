@@ -4,6 +4,7 @@ var chart = null
 var colors = ["#8B1874","#B71375","#B46060","#61c740","#BE6DB7","#898121","#4389d9","#00425A","#B5D5C5","#e61957"]
 var reset_colors = colors
 var indList = []
+var verticalSeries=null
 
 indConfig = {}
 settings = {}
@@ -22,6 +23,18 @@ function get_ind_config(indName) {
     return null
 }
 
+function toggle_vertical_line(time) {
+    if (verticalSeries) {
+        chart.removeSeries(verticalSeries)
+    }
+    verticalSeries = chart.addHistogramSeries({
+        priceScaleId: '',
+        color: 'rgba(128, 128, 255, 0.25)',
+        scaleMargins: { top: 0, bottom: 0 },
+        lastValueVisible: false,      
+      })
+    verticalSeries.setData([{ time: time, value: 1 }])
+}
 
 //LEGEND INIT
 var legendlist = document.getElementById('legend');
@@ -86,15 +99,18 @@ function cleanup_chart() {
         avgBuyLine = null
         volumeSeries = null
         vwapSeries = null
+        verticalSeries=null
         if (toolTip) {
             toolTip.style.display = 'none';
         }
     }
     $( ".switcher" ).remove();
+    $('#button_clearlog').hide();
 }
 
 function initialize_chart() {
     $('#chartContainerInner').addClass("show");
+    $('#button_clearlog').show();
     //PUVODNI BILY MOD
     //var chartOptions = { width: 1045, height: 600, leftPriceScale: {visible: true}}
 

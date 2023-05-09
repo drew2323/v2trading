@@ -238,9 +238,13 @@ html {
 }
 
 #msgContainer {
-  /* display: inline-block; */
-  overflow: auto;
-  height: 568px;
+  display: inline-block;
+  /* overflow: auto; */
+  height: 596px;
+}
+
+.clearbutton {
+  margin-left: 29px;
 }
 
 /* na male obrazovce je log pod grafem, zobrazujeme tedy prvni logy nahore */

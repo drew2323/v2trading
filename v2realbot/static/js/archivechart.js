@@ -491,6 +491,7 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
 
     chart.subscribeClick(param => {
         $('#trade-timestamp').val(param.time)
+        //toggle_vertical_line(param.time);
         if (archRecord.ilog_save == true) {
             fetch_log_data(param.time, archRecord.id);
             }
@@ -530,6 +531,8 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
 
 
                 toolTip.innerHTML += `<pre>${JSON.stringify(tradeDetails.get(param.time),null,2)}</pre><div>${price.toFixed(3)}</div>`;
+
+                console.log("toolTip.innerHTML",toolTip.innerHTML)
 
                 //inspirace
                 // toolTip.innerHTML = `<div style="color: ${'#2962FF'}">Apple Inc.</div><div style="font-size: 24px; margin: 4px 0px; color: ${'black'}">
@@ -583,8 +586,8 @@ function fetch_log_data(timestamp, runner_id) {
         },
         error: function(xhr, status, error) {
             var err = eval("(" + xhr.responseText + ")");
-            window.alert(JSON.stringify(xhr));
-            //console.log(JSON.stringify(xhr));
+            //window.alert(JSON.stringify(xhr));
+            console.log("Chyb pri dotazeni logu", JSON.stringify(xhr));
         }
     })  
 }

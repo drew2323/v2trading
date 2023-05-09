@@ -9,7 +9,8 @@ function populate_real_time_chart() {
 
     chart.subscribeClick(param => {
         //display timestamp in trade-timestamp input field
-        $('#trade-timestamp').val(param.time)
+        $('#trade-timestamp').val(param.time);
+        toggle_vertical_line(param.time);
     });
 
     chart.subscribeCrosshairMove((param) => {

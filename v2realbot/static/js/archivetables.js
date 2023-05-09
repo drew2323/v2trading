@@ -2,6 +2,11 @@
 $(document).ready(function () {
     archiveRecords.ajax.reload();
 
+    //button clear log
+    $('#button_clearlog').click(function () {
+		$('#lines').empty();
+    });
+
     //disable buttons (enable on row selection)
     $('#button_show_arch').attr('disabled','disabled');
     $('#button_delete_arch').attr('disabled','disabled');

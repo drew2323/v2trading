@@ -181,7 +181,7 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
     //initialize resolutions
     var native_resolution = data.bars.resolution[0]+"s"
     //console.log("native", native_resolution)
-
+ 
     //available intervals zatim jen 1m
     var intervals = [native_resolution, '1m'];
     nativeData  = transformed_data["bars"]

@@ -63,10 +63,10 @@ def get_stratin(id: UUID):
 def get_runner(id: UUID):
     for i in db.runners:
         if str(i.id) == str(id):
-            i.run_profit = round(i.run_instance.state.profit,2)
+            i.run_profit = round(float(i.run_instance.state.profit),2)
             i.run_trade_count = len(i.run_instance.state.tradeList)
             i.run_positions = i.run_instance.state.positions
-            i.run_avgp = round(i.run_instance.state.avgp,3)
+            i.run_avgp = round(float(i.run_instance.state.avgp),3)
             return (0, i)
     return (-2, "not found")
 

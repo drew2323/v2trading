@@ -174,14 +174,7 @@ function prepare_data(archRunner, timeframe_amount, timeframe_unit, archivedRunn
 
 //render chart of archived runs
 function chart_archived_run(archRecord, data, oneMinuteBars) {
-    if (chart !== null) {
-        chart.remove()
-        clear_status_header()
-        indList = [];
-        if (toolTip !== null) {
-            toolTip.style.display = 'none';
-        }
-    }
+    cleanup_chart()
 
     var transformed_data = transform_data(data)
 
@@ -347,75 +340,8 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
                             obj.series.setData(items)
 
                             // add to indList array - pole zobrazovanych indikatoru    
-                            indList.push(obj);
-                            
-                            
+                            indList.push(obj);   
                         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                            // if (momentumIndicatorNames.includes(key)) {
-                            //     obj.series = chart.addLineSeries({
-                            //         priceScaleId: 'left',
-                            //         color: colors.shift(),
-                            //         title: key,
-                            //         lineWidth: 1,
-                            //         lastValueVisible: false
-                            //     });
-
-                            //     if (key == "slopeMA") {
-                            //         const minSlopeLineOptopns = {
-                            //             //vzit odnekud jinud?
-                            //             price: data.statinds.angle.minimum_slope,
-                            //             color: colors.shift(),
-                            //             lineWidth: 1,
-                            //             lineStyle: 2, // LineStyle.Dotted
-                            //             axisLabelVisible: true,
-                            //             title: "max:",
-                            //         };
-                    
-                            //         const minSlopeLine = obj.series.createPriceLine(minSlopeLineOptopns);
-                            //     }
-                            // }
-                            // //ostatni
-                            // else {
-                            //     obj.series = chart.addLineSeries({
-                            //         title: key,
-                            //         color: colors.shift(),
-                            //         lineWidth: 1,
-                            //         lastValueVisible: false
-                            //     });
-                            // }
-
-                            // obj.series.applyOptions({
-                            //     lastValueVisible: false,
-                            //     priceLineVisible: false,
-                            // });
-
-                            // try {
-                            //     obj.series.setData(items)
-                            // }
-                            // catch (error) {
-                            //     console.log("obj.series.setData(items)", items)
-                            //     console.error(error)
-                            // }
-                            
-                            // //add to indList array - pole zobrazovanych indikatoru    
-                            // indList.push(obj);
-    
                     }
                 }
             }
@@ -441,21 +367,21 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
         );
         indList = [];
         //remove BASIC indicators
-        if (vwapSeries !== null) {
+        if (vwapSeries) {
             chart.removeSeries(vwapSeries)
         }
-        if (volumeSeries !== null) {
+        if (volumeSeries) {
             chart.removeSeries(volumeSeries)
         }
     }
 
     //displays (redraws) buy markers
     function display_buy_markers() {
-        if (avgBuyLine !== null) {
+        if (avgBuyLine) {
             chart.removeSeries(avgBuyLine)
         }
 
-        if (markersLine !== null) {
+        if (markersLine) {
             chart.removeSeries(markersLine)
         }      
 

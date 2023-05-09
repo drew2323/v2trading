@@ -76,6 +76,23 @@ function update_chart_legend(param) {
     }
 }
 
+//remove previous chart if exists and intiialize chart variables
+function cleanup_chart() {
+    if (chart) {
+        chart.remove()
+        clear_status_header()
+        indList = [];
+        markersLine = null
+        avgBuyLine = null
+        volumeSeries = null
+        vwapSeries = null
+        if (toolTip !== null) {
+            toolTip.style.display = 'none';
+        }
+    }
+    $( ".switcher" ).remove();
+}
+
 function initialize_chart() {
     $('#chartContainerInner').addClass("show");
     //PUVODNI BILY MOD

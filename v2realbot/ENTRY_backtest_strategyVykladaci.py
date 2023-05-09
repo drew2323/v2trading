@@ -2,7 +2,7 @@ import os,sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from v2realbot.strategy.base import StrategyState
 from v2realbot.strategy.StrategyOrderLimitVykladaci import StrategyOrderLimitVykladaci
-from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, OrderSide
+from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, OrderSide, OrderType
 from v2realbot.indicators.indicators import ema
 from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, dict_replace_value, print, safe_get
 from datetime import datetime
@@ -305,7 +305,7 @@ def next(data, state: StrategyState):
                         print("prepocitavam filledmnozstvi od limitka_qty a filled_qty", limitka_qty, limitka_filled_qty)
                         limitka_qty = int(limitka_qty) - int(limitka_filled_qty)
                     ##TODO sem pridat upravu ceny
-                if o.side == OrderSide.BUY:
+                if o.side == OrderSide.BUY and o.order_type == OrderType.LIMIT:
                     pendingbuys_new[str(o.id)]=float(o.limit_price)
 
             state.ilog(e="Konzolidace limitky", msg=f"stejna:{(str(limitka_old)==str(state.vars.limitka))}", limitka_old=str(limitka_old), limitka_new=str(state.vars.limitka), limitka_new_price=state.vars.limitka_price, limitka_qty=limitka_qty, limitka_filled_qty=limitka_filled_qty)

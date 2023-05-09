@@ -1,5 +1,5 @@
 from v2realbot.config import Keys, get_key
-from v2realbot.enums.enums import Mode, Account, OrderSide
+from v2realbot.enums.enums import Mode, Account, OrderSide, OrderType
 from v2realbot.interfaces.live_interface import LiveInterface
 from msgpack import packb, unpackb
 key = get_key(mode=Mode.PAPER, account=Account.ACCOUNT1)
@@ -20,7 +20,7 @@ if int(data["index"])%int(consolidation_bar_count) == 0:
     print("***Consolidation ENTRY***")
 
     orderlist = li.get_open_orders(symbol=symbol, side=None)
-    #print(orderlist)
+    print(orderlist)
     pendingbuys_new = {}
     limitka = None
     jevylozeno = 1
@@ -29,7 +29,7 @@ if int(data["index"])%int(consolidation_bar_count) == 0:
             print("Puvodni LIMITKA", limitka)
             limitka = o.id
             print("Přepsaná LIMITKA", limitka)
-        if o.side == OrderSide.BUY:
+        if o.side == OrderSide.BUY and o.order_type == OrderType.LIMIT:
             pendingbuys_new[str(o.id)]=o.limit_price
 
     if pendingbuys_new != pendingbuys:

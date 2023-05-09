@@ -1,5 +1,5 @@
 from enum import Enum
-from alpaca.trading.enums import OrderSide, OrderStatus
+from alpaca.trading.enums import OrderSide, OrderStatus, OrderType
 class Order:
     def __init__(self, id: str, status: OrderStatus, side: OrderSide, symbol: str, qty: int, limit_price: float = None, filled_qty: int = 0, filled_avg_price: float = 0, filled_time: float = None) -> None:
         self.id = id

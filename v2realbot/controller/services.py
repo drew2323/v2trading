@@ -7,7 +7,7 @@ from alpaca.data.enums import DataFeed
 from alpaca.data.timeframe import TimeFrame
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account
 from v2realbot.common.model import StrategyInstance, Runner, RunRequest, RunArchive, RunArchiveDetail, RunArchiveChange, Bar
-from v2realbot.utils.utils import AttributeDict, zoneNY, dict_replace_value, Store, parse_toml_string, json_serial, is_open_hours
+from v2realbot.utils.utils import AttributeDict, zoneNY, dict_replace_value, Store, parse_toml_string, json_serial, is_open_hours, send_to_telegram
 from v2realbot.utils.ilog import delete_logs
 from datetime import datetime
 from threading import Thread, current_thread, Event, enumerate
@@ -18,6 +18,7 @@ from tinydb import TinyDB, Query, where
 from tinydb.operations import set
 import json
 from numpy import ndarray
+from traceback import format_exc
 
 arch_header_file = DATA_DIR + "/arch_header.json"
 arch_detail_file = DATA_DIR + "/arch_detail.json"
@@ -275,9 +276,11 @@ def capsule(target: object, db: object):
         print("Strategy instance stopped. Update runners")
         reason = "SHUTDOWN OK"
     except Exception as e:
-        reason = "SHUTDOWN Exception:" + str(e)
+        reason = "SHUTDOWN Exception:" + str(e) + format_exc()
+        #raise RuntimeError('Exception v runneru POZOR') from e
         print(str(e))
         print(reason)
+        send_to_telegram(reason)
     finally:
         # remove runners after thread is stopped and save results to stratin history
         for i in db.runners:
@@ -453,11 +456,11 @@ def archive_runner(runner: Runner, strat: StrategyInstance):
         flattened_indicators = {}
         for key, value in strat.state.indicators.items():
                 if isinstance(value, ndarray):
-                    print("is numpy", key,value)
+                    #print("is numpy", key,value)
                     flattened_indicators[key]= value.tolist()
-                    print("changed numpy:",value.tolist())
+                    #print("changed numpy:",value.tolist())
                 else:
-                    print("is not numpy", key, value)
+                    #print("is not numpy", key, value)
                     flattened_indicators[key]= value    
 
         runArchiveDetail: RunArchiveDetail = RunArchiveDetail(id = runner.id,

@@ -116,7 +116,7 @@ def next(data, state: StrategyState):
             return price2dec(float(state.avgp)+float(def_profit))
         else:
             return price2dec(float(state.avgp)+float(state.vars.profit))
-
+ 
     def consolidation():
         ##CONSOLIDATION PART - moved here, musí být před nákupem, jinak to dělalo nepořádek v pendingbuys
         #docasne zkusime konzolidovat i kdyz neni vylozeno (aby se srovnala limitka ve vsech situacich)

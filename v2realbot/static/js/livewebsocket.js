@@ -5,9 +5,6 @@ var logcnt = 0
 var positionsPriceLine = null
 var limitkaPriceLine = null
 var angleSeries = 1
-var candlestickSeries = null
-var volumeSeries = null
-var vwapSeries = null
 
 //get details of runner to populate chart status
 //fetch necessary - it could be initiated by manually inserting runnerId

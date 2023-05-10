@@ -147,7 +147,7 @@ def is_close_rush(dt: datetime, mins: int = 30):
     rushtime = (datetime.combine(date.today(), business_hours["to"]) - timedelta(minutes=mins)).time()
     return rushtime <= dt.time() <= business_hours["to"]
 
-def is_open_hours(dt):
+def is_open_hours(dt, business_hours: dict = None):
     """"
     Returns True if market is open that time. Holidays not implemented yet.
 
@@ -155,12 +155,13 @@ def is_open_hours(dt):
     dt = dt.astimezone(zoneNY)
     #print("Ameriko time", dt)
 
-    business_hours = {
-        # monday = 0, tuesday = 1, ... same pattern as date.weekday()
-        "weekdays": [0, 1, 2, 3, 4],
-        "from": time(hour=9, minute=30),
-        "to": time(hour=16, minute=0)
-    }
+    if business_hours is None:
+        business_hours = {
+            # monday = 0, tuesday = 1, ... same pattern as date.weekday()
+            "weekdays": [0, 1, 2, 3, 4],
+            "from": time(hour=9, minute=30),
+            "to": time(hour=16, minute=0)
+        }
 
     holidays = [date(2022, 12, 24), date(2022, 2, 24)]
 

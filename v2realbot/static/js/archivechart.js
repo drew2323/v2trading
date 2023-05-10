@@ -55,8 +55,14 @@ function transform_data(data) {
         //light chart neumi vice zaznamu ve stejny cas
         //protoze v BT se muze stat vice tradu v jeden cas, testujeme stejne hodnoty a pripadne pricteme jednu ms
         //tradu s jednim casem muze byt za sebou vic, proto iterator 
+        if (last_timestamp > timestamp) {
+            console.log("NEKONZISTENCE RAZENI",last_timestamp, timestamp)
+            console.log("aktualni trade", JSON.stringify(trade,null,2))
+            console.log("předchozí trade", JSON.stringify(data.trades[index-1],null,2))
+        }
         if (last_timestamp == timestamp) {
             last_timestamp = timestamp
+            console.log("DUPLICITA tradu", trade)
             timestamp = timestamp + iterator
             iterator += 0.001
         }
@@ -78,7 +84,7 @@ function transform_data(data) {
                 a_markers["position"] = "aboveBar"
                 a_markers["color"] = "#e8c76d"
                 a_markers["shape"] = "arrowDown"
-                if (CHART_SHOW_TEXT) 
+                //if (CHART_SHOW_TEXT) 
     //          a_markers["text"] = trade.position_qty + " " + parseFloat(trade.pos_avg_price).toFixed(3)
                 a_markers["text"] = CHART_SHOW_TEXT ? trade.position_qty + "/" + parseFloat(trade.pos_avg_price).toFixed(3) :trade.position_qty
                 avgp_markers.push(a_markers)
@@ -113,14 +119,22 @@ function transform_data(data) {
     // position: 'aboveBar',
     // color: '#e91e63',
     // shape: 'arrowDown',
-    // text: 'Sell @ ' + Math.floor(datesForMarkers[i].high + 2),
-        
+    // text: 'Sell @ ' + Math.floor(datesForMarkers[i].high + 2),     
         
     });
+
+    //pro jistotu jeste seradime podle casu
+    //v BT se muze predbehnout a lightweight to pak nezobrazi
+    const sorter = (a, b) => a.time > b.time ? 1 : -1;
+
+    markers.sort(sorter)
+    markers_line.sort(sorter)
+
     transformed["avgp_buy_line"] = avgp_buy_line 
+    transformed["avgp_markers"] = avgp_markers
     transformed["markers"] = markers
     transformed["markers_line"] = markers_line
-    transformed["avgp_markers"] = avgp_markers
+
     //get additional indicators
     return transformed
 }
@@ -140,8 +154,13 @@ function prepare_data(archRunner, timeframe_amount, timeframe_unit, archivedRunn
         req["datetime_object_from"] = archRunner.started
         req["datetime_object_to"] = archRunner.stopped
     }
-   req["timeframe_amount"] = timeframe_amount
-   req["timeframe_unit"] = timeframe_unit
+    console.log("datum pred",req.datetime_object_from)
+    //pridame z obou stran 1 minutu - kvuli zobrazeni na frontendu,
+    req["datetime_object_from"] = subtractMinutes(new Date(req.datetime_object_from),1).toISOString()
+    req["datetime_object_to"] = addMinutes(new Date(req.datetime_object_to),1).toISOString()
+    console.log("datum po", req.datetime_object_from)
+    req["timeframe_amount"] = timeframe_amount
+    req["timeframe_unit"] = timeframe_unit
     $.ajax({
         url:"/history_bars/",
         beforeSend: function (xhr) {
@@ -385,8 +404,8 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
             chart.removeSeries(markersLine)
         }      
 
-        console.log("avgp_buy_line",transformed_data["avgp_buy_line"])
-        console.log("avgp_markers",transformed_data["avgp_markers"])
+        //console.log("avgp_buy_line",JSON.stringify(transformed_data["avgp_buy_line"],null,2))
+        //console.log("avgp_markers",JSON.stringify(transformed_data["avgp_markers"],null,2))
 
         if (transformed_data["avgp_buy_line"].length > 0) {
             avgBuyLine = chart.addLineSeries({
@@ -403,14 +422,8 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
             });
 
 
-            try {
             avgBuyLine.setData(transformed_data["avgp_buy_line"]);
-            }
-            catch (error) {
-                console.log("avgbuyline")
-            }
-            
-            avgBuyLine.setMarkers(transformed_data["avgp_markers"])
+            avgBuyLine.setMarkers(transformed_data["avgp_markers"]);
         }
 
         markersLine = chart.addLineSeries({
@@ -421,8 +434,11 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
                 lastValueVisible: false
             });
 
-        markersLine.setData(transformed_data["markers_line"]);
-        markersLine.setMarkers(transformed_data["markers"])
+        //console.log("markers_line",JSON.stringify(transformed_data["markers_line"],null,2))
+        //console.log("markers",JSON.stringify(transformed_data["markers"],null,2))
+    
+       markersLine.setData(transformed_data["markers_line"]);
+       markersLine.setMarkers(transformed_data["markers"])
 
         //chart.subscribeCrosshairMove(param => {
             chart.subscribeCrosshairMove(param => {

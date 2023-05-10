@@ -4,17 +4,18 @@ from v2realbot.strategy.base import StrategyState
 from v2realbot.strategy.StrategyOrderLimitVykladaci import StrategyOrderLimitVykladaci
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, OrderSide, OrderType
 from v2realbot.indicators.indicators import ema
-from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, dict_replace_value, print, safe_get
+from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, print, safe_get
 from datetime import datetime
-from icecream import install, ic
+#from icecream import install, ic
 #from rich import print
 from threading import Event
 from msgpack import packb, unpackb
 import asyncio
 import os
-import tomli
-install()
-ic.configureOutput(includeContext=True)
+from traceback import format_exc
+
+# install()
+# ic.configureOutput(includeContext=True)
 #ic.disable()
 
 print(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -116,6 +117,116 @@ def next(data, state: StrategyState):
         else:
             return price2dec(float(state.avgp)+float(state.vars.profit))
 
+    def consolidation():
+        ##CONSOLIDATION PART - moved here, musí být před nákupem, jinak to dělalo nepořádek v pendingbuys
+        if state.vars.jevylozeno == 1:
+            ##CONSOLIDATION PART kazdy Nty bar dle nastaveni
+            if int(data["index"])%int(state.vars.consolidation_bar_count) == 0:
+                print("***CONSOLIDATION ENTRY***")
+                state.ilog(e="CONSOLIDATION ENTRY ***")
+
+                orderlist = state.interface.get_open_orders(symbol=state.symbol, side=None)
+                #pro jistotu jeste dotahneme aktualni pozice
+                state.avgp, state.positions = state.interface.pos()            
+
+                #print(orderlist)
+                pendingbuys_new = {}
+                limitka_old = state.vars.limitka
+                #print("Puvodni LIMITKA", limitka_old)
+                #zaciname s cistym stitem
+                state.vars.limitka = None
+                state.vars.limitka_price = None
+                limitka_found = False
+                limitka_qty = 0
+                limitka_filled_qty = 0
+                for o in orderlist:
+                    if o.side == OrderSide.SELL:
+                        
+                        if limitka_found:
+                            state.ilog(e="nalezeno vicero sell objednavek, bereme prvni, ostatni - rusime")
+                            result=state.interface.cancel(o.id)
+                            state.ilog(e="zrusena objednavka"+str(o.id), message=result)
+                            continue
+                        
+                        #print("Nalezena LIMITKA")
+                        limitka_found = True
+                        state.vars.limitka = o.id
+                        state.vars.limitka_price = o.limit_price
+                        limitka_qty = int(o.qty)
+                        limitka_filled_qty = int(o.filled_qty)
+
+                        #aktualni mnozstvi = puvodni minus filled
+                        if limitka_filled_qty is not None:
+                            print("prepocitavam filledmnozstvi od limitka_qty a filled_qty", limitka_qty, limitka_filled_qty)
+                            limitka_qty = int(limitka_qty) - int(limitka_filled_qty)
+                        ##TODO sem pridat upravu ceny
+                    if o.side == OrderSide.BUY and o.order_type == OrderType.LIMIT:
+                        pendingbuys_new[str(o.id)]=float(o.limit_price)
+
+                state.ilog(e="Konzolidace limitky", msg=f"stejna:{(str(limitka_old)==str(state.vars.limitka))}", limitka_old=str(limitka_old), limitka_new=str(state.vars.limitka), limitka_new_price=state.vars.limitka_price, limitka_qty=limitka_qty, limitka_filled_qty=limitka_filled_qty)
+                
+                #pokud mame 
+
+                #neni limitka, ale mela by byt - vytváříme ji
+                if int(state.positions) > 0 and state.vars.limitka is None:
+                    state.ilog(e="Limitka neni, ale mela by být.", msg=f"{state.positions=}")
+                    price=get_limitka_price()
+                    state.vars.limitka = asyncio.run(state.interface.sell_l(price=price, size=int(state.positions)))
+                    state.vars.limitka_price = price
+                    if state.vars.limitka == -1:
+                        state.ilog(e="Vytvoreni limitky neprobehlo, vracime None", msg=f"{state.vars.limitka=}")
+                        state.vars.limitka = None
+                        state.vars.limitka_price = None
+                    else:
+                        state.ilog(e="Vytvořena nová limitka", limitka=str(state.vars.limitka), limtka_price=state.vars.limitka_price, qty=state.positions)
+
+                #existuje a nesedi mnozstvi nebo cena
+                elif state.vars.limitka is not None and int(state.positions) > 0 and ((int(state.positions) != int(limitka_qty)) or float(state.vars.limitka_price) != float(get_limitka_price())):
+                    #limitka existuje, ale spatne mnostvi - updatujeme
+                    state.ilog(e=f"Limitka existuje, ale spatne mnozstvi nebo CENA - updatujeme", msg=f"{state.positions=} {limitka_qty=} {state.vars.limitka_price=}", nastavenacena=state.vars.limitka_price, spravna_cena=get_limitka_price(), pos=state.positions, limitka_qty=limitka_qty)
+                    #snad to nespadne, kdyztak pridat exception handling
+                    puvodni = state.vars.limitka
+                    #TBD zde odchytit nejak result
+                    state.vars.limitka = asyncio.run(state.interface.repl(price=get_limitka_price(), orderid=state.vars.limitka, size=int(state.positions)))
+                    
+                    if state.vars.limitka == -1:
+                        state.ilog(e="Replace limitky neprobehl, vracime puvodni", msg=f"{state.vars.limitka=}", puvodni=puvodni)
+                        state.vars.limitka = puvodni
+                    else:   
+                        limitka_qty = int(state.positions)
+                        state.ilog(e="Změněna limitka", limitka=str(state.vars.limitka), limitka_price=state.vars.limitka_price, limitka_qty=limitka_qty)
+
+                #tbd pokud se bude vyskytovat pak pridat ještě konzolidaci ceny limitky
+
+                if pendingbuys_new != state.vars.pendingbuys:
+                    state.ilog(e="Rozdilna PB prepsana", pb_new=pendingbuys_new, pb_old = state.vars.pendingbuys)
+                    print("ROZDILNA PENDINGBUYS přepsána")
+                    print("OLD",state.vars.pendingbuys)
+                    state.vars.pendingbuys = unpackb(packb(pendingbuys_new))
+                    print("NEW", state.vars.pendingbuys)
+                else:
+                    print("PENDINGBUYS sedí - necháváme", state.vars.pendingbuys)
+                    state.ilog(e="PB sedi nechavame", pb_new=pendingbuys_new, pb_old = state.vars.pendingbuys)
+                print("OLD jevylozeno", state.vars.jevylozeno)
+                if len(state.vars.pendingbuys) > 0:
+                    state.vars.jevylozeno = 1
+                else:
+                    state.vars.jevylozeno = 0
+                print("NEW jevylozeno", state.vars.jevylozeno)
+                state.ilog(e="Nove jevylozeno", msg=state.vars.jevylozeno)
+
+                #print(limitka)
+                #print(pendingbuys_new)
+                #print(pendingbuys)
+                #print(len(pendingbuys))
+                #print(len(pendingbuys_new))
+                #print(jevylozeno)
+                print("***CONSOLIDATION EXIT***")
+                state.ilog(e="CONSOLIDATION EXIT ***")
+            else:
+                state.ilog(e="No time for consolidation", msg=data["index"])
+                print("no time for consolidation", data["index"])
+
     #mozna presunout o level vys
     def vyloz():
         ##prvni se vyklada na aktualni cenu, další jdou podle krivky, nula v krivce zvyšuje množství pro následující iteraci
@@ -179,7 +290,6 @@ def next(data, state: StrategyState):
         state.vars.jevylozeno = 1
 
     #CBAR protection,  only 1x order per CBAR - then wait until another confirmed bar
-
     if state.vars.blockbuy == 1 and state.rectype == RecordType.CBAR:
         if state.bars.confirmed[-1] == 0:
             print("OCHR: multibuy protection. waiting for next bar")
@@ -193,42 +303,30 @@ def next(data, state: StrategyState):
 
     state.ilog(e="-----")
 
+    #EMA INDICATOR - 
+    #plnime MAcko - nyni posilame jen N poslednich hodnot
+    #zaroven osetrujeme pripady, kdy je malo dat a ukladame nulu
     try:
+        ma = int(state.vars.MA)
+        #poslednich ma hodnot
+        source = state.bars.close[-ma:] #state.bars.vwap
+        ema_value = ema(source, ma)
+        state.indicators.ema.append(trunc(ema_value[-1],3))
+    except Exception as e:
+        state.ilog(e="EMA ukladame 0", message=str(e)+format_exc())
+        state.indicators.ema.append(0)
 
-        ## slope vyresi rychlé sesupy - jeste je treba podchytit pomalejsi sesupy
-
+    #SLOPE INDICATOR
+    #úhel stoupání a klesání vyjádřený mezi -1 až 1
+    #pravý bod přímky je aktuální cena, levý je průměr X(lookback offset) starších hodnot od slope_lookback.
+    #obsahuje statický indikátor (angle) pro vizualizaci
+    try:
         slope = 99
-        #minimum slope disabled if -1
-
-
-        #roc_lookback = 20
-        #print(state.vars.MA, "MACKO")
-        #print(state.bars.hlcc4)
-
-        #plnime MAcko - nyni posilame jen N poslednich hodnot
-        #zaroven osetrujeme pripady, kdy je malo dat a ukladame nulu
-        try:
-            ma = int(state.vars.MA)
-            source = state.bars.close[-ma:] #state.bars.vwap
-            ema_value = ema(source, ma)
-            state.indicators.ema.append(trunc(ema_value[-1],3))
-        except Exception as e:
-            state.ilog(e="EMA ukladame 0", message=str(e))
-            state.indicators.ema.append(0)
-
-        #TODO helikoz se EMA pocita pro cely set po kazde iteraci znouv, tak je toto PRASARNA
-        #davame pryc jestli bude to vyse fungovat
-        ##state.indicators.ema = [trunc(i,3) for i in state.indicators.ema]
         slope_lookback = int(state.vars.slope_lookback)
         minimum_slope = float(state.vars.minimum_slope)
         lookback_offset = int(state.vars.lookback_offset)
 
         if len(state.bars.close) > (slope_lookback + lookback_offset):
-
-            #SLOPE INDICATOR POPULATION
-            #úhel stoupání a klesání vyjádřený mezi -1 až 1
-            #pravý bod přímky je aktuální cena, levý je průměr X(lookback offset) starších hodnot od slope_lookback.
-            #obsahuje statický indikátor pro vizualizaci
             array_od = slope_lookback + lookback_offset
             array_do = slope_lookback
             lookbackprice_array = state.bars.vwap[-array_od:-array_do]
@@ -240,157 +338,41 @@ def next(data, state: StrategyState):
             slope = round(slope, 4)
             state.indicators.slope.append(slope)
  
+            #angle je ze slope
             state.statinds.angle = dict(time=state.bars.time[-1], price=state.bars.close[-1], lookbacktime=state.bars.time[-slope_lookback], lookbackprice=lookbackprice, minimum_slope=minimum_slope)
  
-            #state.indicators.roc.append(roc)
-            #print("slope", state.indicators.slope[-5:])
-            state.ilog(e=f"{slope=}", msg=f"{lookbackprice=}", lookbackoffset=lookback_offset, minimum_slope=minimum_slope, last_slopes=state.indicators.slope[-10:])
-
-
-            #slope MA - cílem je identifikovat táhlá klesání, vypnout nákupy, až budou zase růsty
+            #slope MA vyrovna vykyvy ve slope, dále pracujeme se slopeMA
             slope_MA_length = 5
-            state.indicators.slopeMA = ema(state.indicators.slope, slope_MA_length) #state.bars.vwap
-            # #TODO - docasne posilam cele MA
-            # try:
-            #     state.ilog(e="Slope - MA"+str(state.indicators.slopeMA[-1]), slopeMA=str(state.indicators.slopeMA[-20:]))
-            # except Exception as e:
-            #     state.ilog(e="Slope - MA"+str(state.indicators.slopeMA[-1]))
+            source = state.indicators.slope[-slope_MA_length:]
+            slopeMAseries = ema(source, slope_MA_length) #state.bars.vwap
+            slopeMA = slopeMAseries[-1]
+            state.indicators.slopeMA.append(slopeMA)
 
+            state.ilog(e=f"{slope=} {slopeMA=}", msg=f"{lookbackprice=}", lookbackoffset=lookback_offset, minimum_slope=minimum_slope, last_slopes=state.indicators.slope[-10:])
+
+            #dale pracujeme s timto MAckovanym slope
+            slope = slopeMA         
         else:
             #pokud plnime historii musime ji plnit od zacatku, vsehcny idenitifkatory maji spolecny time
             #kvuli spravnemu zobrazovani na gui
             state.indicators.slope.append(0)
             state.indicators.slopeMA.append(0)
             state.ilog(e="Slope - not enough data", slope_lookback=slope_lookback, slope=state.indicators.slope, slopeMA=state.indicators.slopeMA)
-
     except Exception as e:
-        print("Exception in NEXT Indicator section", str(e))
-        state.ilog(e="EXCEPTION", msg="Exception in NEXT Indicator section" + str(e))
+        print("Exception in NEXT Slope Indicator section", str(e))
+        state.ilog(e="EXCEPTION", msg="Exception in Slope Indicator section" + str(e) + format_exc())
 
     print("is falling",isfalling(state.indicators.ema,state.vars.Trend))
     print("is rising",isrising(state.indicators.ema,state.vars.Trend))
 
-    ##CONSOLIDATION PART - moved here, musí být před nákupem, jinak to dělalo nepořádek v pendingbuys
-    if state.vars.jevylozeno == 1:
-        ##CONSOLIDATION PART kazdy Nty bar dle nastaveni
-        if int(data["index"])%int(state.vars.consolidation_bar_count) == 0:
-            print("***CONSOLIDATION ENTRY***")
-            state.ilog(e="CONSOLIDATION ENTRY ***")
-
-            orderlist = state.interface.get_open_orders(symbol=state.symbol, side=None)
-            #pro jistotu jeste dotahneme aktualni pozice
-            state.avgp, state.positions = state.interface.pos()            
-
-            #print(orderlist)
-            pendingbuys_new = {}
-            limitka_old = state.vars.limitka
-            #print("Puvodni LIMITKA", limitka_old)
-            #zaciname s cistym stitem
-            state.vars.limitka = None
-            state.vars.limitka_price = None
-            limitka_found = False
-            limitka_qty = 0
-            limitka_filled_qty = 0
-            for o in orderlist:
-                if o.side == OrderSide.SELL:
-                    
-                    if limitka_found:
-                        state.ilog(e="nalezeno vicero sell objednavek, bereme prvni, ostatni - rusime")
-                        result=state.interface.cancel(o.id)
-                        state.ilog(e="zrusena objednavka"+str(o.id), message=result)
-                        continue
-                    
-                    #print("Nalezena LIMITKA")
-                    limitka_found = True
-                    state.vars.limitka = o.id
-                    state.vars.limitka_price = o.limit_price
-                    limitka_qty = int(o.qty)
-                    limitka_filled_qty = int(o.filled_qty)
-
-                    #aktualni mnozstvi = puvodni minus filled
-                    if limitka_filled_qty is not None:
-                        print("prepocitavam filledmnozstvi od limitka_qty a filled_qty", limitka_qty, limitka_filled_qty)
-                        limitka_qty = int(limitka_qty) - int(limitka_filled_qty)
-                    ##TODO sem pridat upravu ceny
-                if o.side == OrderSide.BUY and o.order_type == OrderType.LIMIT:
-                    pendingbuys_new[str(o.id)]=float(o.limit_price)
-
-            state.ilog(e="Konzolidace limitky", msg=f"stejna:{(str(limitka_old)==str(state.vars.limitka))}", limitka_old=str(limitka_old), limitka_new=str(state.vars.limitka), limitka_new_price=state.vars.limitka_price, limitka_qty=limitka_qty, limitka_filled_qty=limitka_filled_qty)
-            
-            #pokud mame 
-
-            #neni limitka, ale mela by byt - vytváříme ji
-            if int(state.positions) > 0 and state.vars.limitka is None:
-                state.ilog(e="Limitka neni, ale mela by být.", msg=f"{state.positions=}")
-                price=get_limitka_price()
-                state.vars.limitka = asyncio.run(state.interface.sell_l(price=price, size=int(state.positions)))
-                state.vars.limitka_price = price
-                if state.vars.limitka == -1:
-                    state.ilog(e="Vytvoreni limitky neprobehlo, vracime None", msg=f"{state.vars.limitka=}")
-                    state.vars.limitka = None
-                    state.vars.limitka_price = None
-                else:
-                    state.ilog(e="Vytvořena nová limitka", limitka=str(state.vars.limitka), limtka_price=state.vars.limitka_price, qty=state.positions)
-
-            #existuje a nesedi mnozstvi nebo cena
-            elif state.vars.limitka is not None and int(state.positions) > 0 and ((int(state.positions) != int(limitka_qty)) or float(state.vars.limitka_price) != float(get_limitka_price())):
-                #limitka existuje, ale spatne mnostvi - updatujeme
-                state.ilog(e=f"Limitka existuje, ale spatne mnozstvi nebo CENA - updatujeme", msg=f"{state.positions=} {limitka_qty=} {state.vars.limitka_price=}", nastavenacena=state.vars.limitka_price, spravna_cena=get_limitka_price(), pos=state.positions, limitka_qty=limitka_qty)
-                #snad to nespadne, kdyztak pridat exception handling
-                puvodni = state.vars.limitka
-                state.vars.limitka = asyncio.run(state.interface.repl(price=get_limitka_price(), orderid=state.vars.limitka, size=int(state.positions)))
-                
-                if state.vars.limitka == -1:
-                    state.ilog(e="Replace limitky neprobehl, vracime puvodni", msg=f"{state.vars.limitka=}", puvodni=puvodni)
-                    state.vars.limitka = puvodni
-                else:   
-                    limitka_qty = int(state.positions)
-                    state.ilog(e="Změněna limitka", limitka=str(state.vars.limitka), limitka_price=state.vars.limitka_price, limitka_qty=limitka_qty)
-
-            #tbd pokud se bude vyskytovat pak pridat ještě konzolidaci ceny limitky
-
-            if pendingbuys_new != state.vars.pendingbuys:
-                state.ilog(e="Rozdilna PB prepsana", pb_new=pendingbuys_new, pb_old = state.vars.pendingbuys)
-                print("ROZDILNA PENDINGBUYS přepsána")
-                print("OLD",state.vars.pendingbuys)
-                state.vars.pendingbuys = unpackb(packb(pendingbuys_new))
-                print("NEW", state.vars.pendingbuys)
-            else:
-                print("PENDINGBUYS sedí - necháváme", state.vars.pendingbuys)
-                state.ilog(e="PB sedi nechavame", pb_new=pendingbuys_new, pb_old = state.vars.pendingbuys)
-            print("OLD jevylozeno", state.vars.jevylozeno)
-            if len(state.vars.pendingbuys) > 0:
-                state.vars.jevylozeno = 1
-            else:
-                state.vars.jevylozeno = 0
-            print("NEW jevylozeno", state.vars.jevylozeno)
-            state.ilog(e="Nove jevylozeno", msg=state.vars.jevylozeno)
-
-            #print(limitka)
-            #print(pendingbuys_new)
-            #print(pendingbuys)
-            #print(len(pendingbuys))
-            #print(len(pendingbuys_new))
-            #print(jevylozeno)
-            print("***CONSOLIDATION EXIT***")
-            state.ilog(e="CONSOLIDATION EXIT ***")
-        else:
-            state.ilog(e="No time for consolidation", msg=data["index"])
-            print("no time for consolidation", data["index"])
+    consolidation()
 
     #HLAVNI ITERACNI LOG JESTE PRED AKCI - obsahuje aktualni hodnoty vetsiny parametru
     lp = state.interface.get_last_price(symbol=state.symbol)
     state.ilog(e="ENTRY", msg=f"LP:{lp} P:{state.positions}/{round(float(state.avgp),3)} profit:{round(float(state.profit),2)} Trades:{len(state.tradeList)} DEF:{str(is_defensive_mode())}", last_price=lp, data=data, stratvars=state.vars)
 
-    #maxSlopeMA = -0.03
     #SLOPE ANGLE PROTECTIONs
-    #slope zachycuje rychle sestupy
-    #slopeMA zachycuje táhlé sestupy
-    # try:
-    #   slopeMA = state.indicators.slopeMA[-1]
-    # except Exception as e:
-    #     slopeMA = 99
-
+    #slope zachycuje rychle sestupy, pripadne zrusi nakupni objednavky
     if slope < minimum_slope: # or slopeMA<maxSlopeMA:
         print("OCHRANA SLOPE TOO HIGH")
         # if slopeMA<maxSlopeMA:

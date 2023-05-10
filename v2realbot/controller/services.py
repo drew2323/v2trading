@@ -19,6 +19,7 @@ from tinydb.operations import set
 import json
 from numpy import ndarray
 from traceback import format_exc
+from datetime import timedelta, time
 
 arch_header_file = DATA_DIR + "/arch_header.json"
 arch_detail_file = DATA_DIR + "/arch_detail.json"
@@ -526,8 +527,15 @@ def get_alpaca_history_bars(symbol: str, datetime_object_from: datetime, datetim
         #print("before df")
         bars = client.get_stock_bars(bar_request)
         result = []
+        ##pridavame pro jistotu minutu z obou stran kvuli frontendu
+        business_hours = {
+            # monday = 0, tuesday = 1, ... same pattern as date.weekday()
+            "weekdays": [0, 1, 2, 3, 4],
+            "from": time(hour=9, minute=28),
+            "to": time(hour=16, minute=2)
+        }
         for row in bars.data[symbol]:
-            if is_open_hours(row.timestamp):
+            if is_open_hours(row.timestamp, business_hours):
                 result.append(row)
 
         # print("df", bars)

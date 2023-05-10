@@ -5,6 +5,9 @@ var colors = ["#8B1874","#B71375","#B46060","#61c740","#BE6DB7","#898121","#4389
 var reset_colors = colors
 var indList = []
 var verticalSeries=null
+var candlestickSeries = null
+var volumeSeries = null
+var vwapSeries = null
 
 indConfig = {}
 settings = {}
@@ -89,11 +92,25 @@ function update_chart_legend(param) {
     }
 }
 
+function subtractMinutes(date, minutes) {
+    date.setMinutes(date.getMinutes() - minutes);
+  
+    return date;
+  }
+
+function addMinutes(date, minutes) {
+date.setMinutes(date.getMinutes() + minutes);
+
+return date;
+}
+
 //remove previous chart if exists and intiialize chart variables
 function cleanup_chart() {
     if (chart) {
+        console.log("cleanup")
         chart.remove()
         clear_status_header()
+        chart = null
         indList = [];
         markersLine = null
         avgBuyLine = null

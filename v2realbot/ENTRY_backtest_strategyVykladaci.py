@@ -119,7 +119,8 @@ def next(data, state: StrategyState):
 
     def consolidation():
         ##CONSOLIDATION PART - moved here, musí být před nákupem, jinak to dělalo nepořádek v pendingbuys
-        if state.vars.jevylozeno == 1:
+        #docasne zkusime konzolidovat i kdyz neni vylozeno (aby se srovnala limitka ve vsech situacich)
+        if state.vars.jevylozeno == 1 or 1==1:
             ##CONSOLIDATION PART kazdy Nty bar dle nastaveni
             if int(data["index"])%int(state.vars.consolidation_bar_count) == 0:
                 print("***CONSOLIDATION ENTRY***")

@@ -42,6 +42,7 @@ $(document).ready(function () {
         $('#editidarchive').val(row.id);
         $('#editnote').val(row.note);
         $('#editstratvars').val(JSON.stringify(row.stratvars,null,2));
+        $('#editstratjson').val(row.strat_json);
     });
 
     //show button
@@ -176,6 +177,7 @@ var archiveRecords =
                     {data: 'trade_count', visible: true},
                     {data: 'end_positions', visible: true},
                     {data: 'end_positions_avgp', visible: true},
+                    {data: 'strat_json', visible: false},
                     {data: 'open_orders', visible: true}
                 ],
         paging: false,

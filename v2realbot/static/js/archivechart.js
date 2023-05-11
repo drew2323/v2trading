@@ -47,7 +47,7 @@ function transform_data(data) {
     var markers = []
     var markers_line = []
     var last_timestamp = 0.1
-    var iterator = 0.001
+    var iterator = 0.002
     data.trades.forEach((trade, index, array) => {
         obj = {};
         a_markers = {}
@@ -62,13 +62,15 @@ function transform_data(data) {
         }
         if (last_timestamp == timestamp) {
             last_timestamp = timestamp
-            console.log("DUPLICITA tradu", trade)
-            timestamp = timestamp + iterator
+            console.log("DUPLICITA tradu aktual/predchozi/nasledujici", trade, data.trades[index-1], data.trades[index+1])
+            console.log("původní timestamp je ",timestamp)
+            timestamp = parseFloat(timestamp) + iterator
+            console.log("nový timestamp je ",timestamp)
             iterator += 0.001
         }
         else {
             last_timestamp = timestamp
-            iterator = 0.001
+            iterator = 0.002
         }
 
         if (trade.order.side == "buy") {
@@ -129,6 +131,8 @@ function transform_data(data) {
 
     markers.sort(sorter)
     markers_line.sort(sorter)
+    avgp_buy_line.sort(sorter)
+    avgp_markers.sort(sorter)
 
     transformed["avgp_buy_line"] = avgp_buy_line 
     transformed["avgp_markers"] = avgp_markers
@@ -213,7 +217,7 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
         ["1m", oneMinuteBars ],
       ]);
 
-   var switcherElement = createSimpleSwitcher(intervals, intervals[1], switch_to_interval);      
+   var switcherElement = createSimpleSwitcher(intervals, intervals[1], switch_to_interval);
 
     //define tooltip
     const container1 = document.getElementById('chart');
@@ -260,9 +264,15 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
         if (interval == native_resolution) {
             //indicators are in native resolution only
             display_indicators(data);
+            var indbuttonElement = populate_indicator_buttons();
+            container1.append(indbuttonElement);      
         }
         else {
             remove_indicators();
+            btnElement = document.getElementById("indicatorsButtons")
+            if (btnElement) {
+                container1.removeChild(btnElement);
+            }
         }
 
         display_buy_markers();

@@ -572,7 +572,7 @@ class Backtester:
         print("BT:get open orders entry")
         if len(self.open_orders) == 0:
             print("BTC: order doesnt exist")
-            return 0
+            return []
         res = []
         #with lock:
         for o in self.open_orders:

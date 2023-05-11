@@ -14,8 +14,17 @@ settings = {}
 settings
 //ostatni indicatory nez vwap, volume a bary
 indConfig = [ {name: "ema", titlevisible: false, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},
-              {name: "slope", titlevisible: true, embed: true, display: false, priceScaleId: "left", lastValueVisible: false},
-              {name: "slopeMA", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},]
+              {name: "slope", titlevisible: true, embed: true, display: false, priceScaleId: "middle", lastValueVisible: false},
+              {name: "slopeMA", titlevisible: true, embed: true, display: true, priceScaleId: "middle", lastValueVisible: false},
+              {name: "emaSlow", titlevisible: true, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},
+              {name: "emaFast", titlevisible: true, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},
+              {name: "RSI14", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
+              {name: "RSI5", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
+              {name: "aroon", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
+              {name: "apo", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
+              {name: "ppo", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
+              {name: "stoch2", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
+              {name: "stoch1", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},]
 
 function get_ind_config(indName) {
     const i = indConfig.findIndex(e => e.name === indName);
@@ -196,6 +205,39 @@ function initialize_vwap() {
             priceLineVisible: false
         })
 }
+
+
+function populate_indicator_buttons() {
+	var buttonElement = document.createElement('div');
+    buttonElement.id = "indicatorsButtons"
+	buttonElement.classList.add('switcher');
+
+    indList.forEach(function (item, index) {
+		var itemEl = document.createElement('button');
+		itemEl.innerText = item.name;
+        itemEl.id = "IND"+index;
+        itemEl.style.color = item.series.options().color;
+		itemEl.classList.add('switcher-item');
+		itemEl.classList.add('switcher-active-item');
+		itemEl.addEventListener('click', function() {
+			onItemClicked1(index);
+		});
+		buttonElement.appendChild(itemEl);
+	});
+
+	function onItemClicked1(index) {
+        vis = true;
+        const elem = document.getElementById("IND"+index);
+        if (elem.classList.contains("switcher-active-item")) {
+            vis = false;
+        }      
+        elem.classList.toggle("switcher-active-item");
+        indList[index].series.applyOptions({
+            visible: vis });
+	}
+    return buttonElement;
+}
+
 
 //range switch pro chart https://jsfiddle.net/TradingView/qrb9a850/
 function createSimpleSwitcher(items, activeItem, activeItemChangedCallback) {

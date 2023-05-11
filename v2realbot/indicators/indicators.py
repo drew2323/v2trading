@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from collections import deque
 import typing
+from v2realbot.utils.utils import check_series, convert_to_numpy
 
 def ema(data, period: int = 50, use_series=False):
     if check_series(data):
@@ -23,14 +24,3 @@ def sma(data, period: int = 50, use_series=False):
     data = convert_to_numpy(data)
     sma = ti.sma(data, period=period)
     return pd.Series(sma) if use_series else sma
-
-def convert_to_numpy(data):
-    if isinstance(data, list) or isinstance(data, deque):
-        return np.fromiter(data, float)
-    elif isinstance(data, pd.Series):
-        return data.to_numpy()
-    return data
-
-
-def check_series(data):
-    return isinstance(data, pd.Series)

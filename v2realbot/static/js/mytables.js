@@ -412,7 +412,7 @@ var stratinRecords =
                     {data: 'name'},
                     {data: 'symbol'},
                     {data: 'class_name', visible: false},
-                    {data: 'script', visible: false},
+                    {data: 'script', visible: true},
                     {data: 'open_rush', visible: false},
                     {data: 'close_rush', visible: false},
                     {data: 'stratvars_conf', visible: false},
@@ -531,6 +531,24 @@ $("#runModal").on('submit','#runForm', function(event){
     // $('#subscribe').prop('checked')
     if (formData.bt_from == "") {delete formData["bt_from"];}
     if (formData.bt_to == "") {delete formData["bt_to"];}
+
+    //create strat_json - snapshot of stratin
+    row = stratinRecords.row('.selected').data();
+    const rec = new Object()
+    rec.id2 = parseInt(row.id2);
+    rec.name = row.name;
+    rec.symbol = row.symbol;
+    rec.class_name = row.class_name;
+    rec.script = row.script;
+    rec.open_rush = row.open_rush;
+    rec.close_rush = row.close_rush;
+    rec.stratvars_conf = row.stratvars_conf;
+    rec.add_data_conf = row.add_data_conf;
+    rec.note = row.note;
+    rec.history = "";
+    strat_json = JSON.stringify(rec);
+    formData.strat_json = strat_json
+
     jsonString = JSON.stringify(formData);
     //console.log(jsonString)
     //window.alert(jsonString);

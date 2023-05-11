@@ -58,6 +58,7 @@ class RunRequest(BaseModel):
     mode: Mode
     note: Optional[str] = None
     debug: bool = False
+    strat_json: Optional[str] = None
     ilog_save: bool = False
     bt_from: datetime = None
     bt_to: datetime = None
@@ -96,6 +97,7 @@ class Runner(BaseModel):
     run_profit: Optional[float]
     run_positions: Optional[int]
     run_avgp: Optional[float]
+    run_strat_json: Optional[str] = None
     run_stopped: Optional[datetime] = None
     run_paused: Optional[datetime] = None   
     run_thread: Optional[object] = None
@@ -176,6 +178,7 @@ class RunArchive(BaseModel):
     account: Account
     bt_from: Optional[datetime] = None
     bt_to: Optional[datetime] = None
+    strat_json: Optional[str] = None
     stratvars: Optional[dict] = None
     settings: Optional[dict] = None
     ilog_save: Optional[bool] = False

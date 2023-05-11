@@ -19,6 +19,9 @@ from enum import Enum
 #from v2realbot.enums.enums import Order
 from v2realbot.common.model import Order as btOrder, TradeUpdate as btTradeUpdate
 from alpaca.trading.models import Order, TradeUpdate
+import numpy as np
+import pandas as pd
+from collections import deque
 
 def safe_get(collection, key, default=None):
     """Get values from a collection without raising errors"""
@@ -239,3 +242,13 @@ def list_replace_value(l: list, old: str, new) -> list:
         x.append(e)
     return x
 
+def convert_to_numpy(data):
+    if isinstance(data, list) or isinstance(data, deque):
+        return np.fromiter(data, float)
+    elif isinstance(data, pd.Series):
+        return data.to_numpy()
+    return data
+
+
+def check_series(data):
+    return isinstance(data, pd.Series)

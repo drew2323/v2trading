@@ -20,20 +20,9 @@
 #inspirovat se, pripadne vyzkouset i TAlib
 
 from typing import Any
-
 import pandas as pd
 import tulipy as ti
-
-def convert_to_numpy(data: Any):
-    if isinstance(data, list) or isinstance(data, deque):
-        return np.fromiter(data, float)
-    elif isinstance(data, pd.Series):
-        return data.to_numpy()
-    return data
-
-
-def check_series(data: Any):
-    return isinstance(data, pd.Series)
+from v2realbot.utils.utils import check_series, convert_to_numpy
 
 def ema(data: Any, period: int = 50, use_series=False) -> Any:
     if check_series(data):

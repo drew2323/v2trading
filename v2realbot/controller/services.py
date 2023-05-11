@@ -41,10 +41,11 @@ def get_all_runners():
     if len(db.runners) > 0:
         #print(db.runners)
         for i in db.runners:
-            i.run_profit = round(float(i.run_instance.state.profit),2)
-            i.run_trade_count = len(i.run_instance.state.tradeList)
-            i.run_positions = i.run_instance.state.positions
-            i.run_avgp = round(float(i.run_instance.state.avgp),3)
+            if i.run_instance:
+                i.run_profit = round(float(i.run_instance.state.profit),2)
+                i.run_trade_count = len(i.run_instance.state.tradeList)
+                i.run_positions = i.run_instance.state.positions
+                i.run_avgp = round(float(i.run_instance.state.avgp),3)
         return (0, db.runners)
     else:
         return (0, [])
@@ -385,6 +386,7 @@ def run_stratin(id: UUID, runReq: RunRequest):
                         run_symbol = symbol,
                         run_note = runReq.note,
                         run_stop_ev = se,
+                        run_strat_json = runReq.strat_json,
                         run_thread = vlakno,
                         run_account = runReq.account,
                         run_ilog_save = runReq.ilog_save,
@@ -444,6 +446,7 @@ def archive_runner(runner: Runner, strat: StrategyInstance):
                                             ilog_save=runner.run_ilog_save,
                                             bt_from=bp_from,
                                             bt_to = bp_to,
+                                            strat_json = runner.run_strat_json,
                                             stratvars = strat.state.vars,
                                             settings = settings,
                                             profit=round(float(strat.state.profit),2),

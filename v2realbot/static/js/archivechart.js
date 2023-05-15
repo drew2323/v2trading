@@ -583,7 +583,7 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
     $("#statusMode").text(archRecord.mode)
     $("#statusAccount").text(archRecord.account)
     $("#statusIlog").text("Logged:" + archRecord.ilog_save)
-    $("#statusStratvars").text(JSON.stringify(archRecord.stratvars,null,2))
+    $("#statusStratvars").text(((archRecord.strat_json)?archRecord.strat_json:archRecord.stratvars),null,2)
     $("#statusSettings").text(JSON.stringify(archRecord.settings,null,2))
     
     //TBD other dynamically created indicators

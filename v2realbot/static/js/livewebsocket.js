@@ -331,7 +331,9 @@ function connect(event) {
     event.preventDefault()
 }
 function disconnect(event) {
+    if (ws) {
     ws.close()
+    }
     document.getElementById("bt-disc").style.display = "none"
     document.getElementById("bt-conn").style.display = "block"
     event.preventDefault()

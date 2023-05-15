@@ -12,7 +12,7 @@ import os
 from v2realbot.common.model import StrategyInstance, Runner, RunArchive, RunArchiveDetail
 from typing import List
 import tomli
-from v2realbot.config import DATA_DIR, QUIET_MODE
+from v2realbot.config import DATA_DIR, QUIET_MODE,NORMALIZED_TICK_BASE_PRICE
 import requests
 from uuid import UUID
 from enum import Enum
@@ -22,6 +22,21 @@ from alpaca.trading.models import Order, TradeUpdate
 import numpy as np
 import pandas as pd
 from collections import deque
+
+def get_tick(price: float, normalized_ticks: float = 0.01):
+    """
+    prevede normalizovany tick na tick odpovidajici vstupni cene
+    vysledek je zaokoruhleny na 2 des.mista
+
+    u cen pod 30, vrací 0.01. U cen nad 30 vrací pomerne zvetsene, 
+
+    """
+    if price<NORMALIZED_TICK_BASE_PRICE:
+        return normalized_ticks
+    else:
+        #ratio of price vs base price
+        ratio = price/NORMALIZED_TICK_BASE_PRICE
+        return price2dec(ratio*normalized_ticks)
 
 def safe_get(collection, key, default=None):
     """Get values from a collection without raising errors"""

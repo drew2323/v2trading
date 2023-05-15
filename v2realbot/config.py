@@ -2,7 +2,8 @@ from alpaca.data.enums import DataFeed
 from v2realbot.enums.enums import Mode, Account, FillCondition
 from appdirs import user_data_dir
 
-
+#normalized price for tick 0.01
+NORMALIZED_TICK_BASE_PRICE = 30.00
 LOG_RUNNER_EVENTS = False
 #no print in console
 QUIET_MODE = True

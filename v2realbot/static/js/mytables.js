@@ -54,6 +54,7 @@ $(document).ready(function () {
     //disable buttons (enable on row selection)
     $('#button_pause').attr('disabled','disabled');
     $('#button_stop').attr('disabled','disabled');
+    $('#button_connect').attr('disabled','disabled');
     $('#button_edit').attr('disabled','disabled');
     $('#button_dup').attr('disabled','disabled');
     $('#button_copy').attr('disabled','disabled');
@@ -86,11 +87,13 @@ $(document).ready(function () {
             $(this).removeClass('selected');
             $('#button_pause').attr('disabled', 'disabled');
             $('#button_stop').attr('disabled', 'disabled');
+            $('#button_connect').attr('disabled', 'disabled');
         } else {
             stratinRecords.$('tr.selected').removeClass('selected');
             $(this).addClass('selected');
             $('#button_pause').attr('disabled', false);
             $('#button_stop').attr('disabled', false);
+            $('#button_connect').attr('disabled', false);
         }
     });
 
@@ -272,6 +275,18 @@ $(document).ready(function () {
                 $('#button_pause').attr('disabled', false);
             }
         })
+    });
+
+    //button connect
+    $('#button_connect').click(function () {
+        row = runnerRecords.row('.selected').data();
+        event.preventDefault();
+        $('#button_connect').attr('disabled','disabled');
+        $('#runnerId').val(row.id);
+        disconnect(event)
+        connect(event)
+        // $( "#bt-conn" ).trigger( "click" );
+        $('#button_connect').attr('disabled',false);
     });
 
     //button stop
@@ -546,7 +561,7 @@ $("#runModal").on('submit','#runForm', function(event){
     rec.add_data_conf = row.add_data_conf;
     rec.note = row.note;
     rec.history = "";
-    strat_json = JSON.stringify(rec);
+    strat_json = JSON.stringify(rec, null, 2);
     formData.strat_json = strat_json
 
     jsonString = JSON.stringify(formData);

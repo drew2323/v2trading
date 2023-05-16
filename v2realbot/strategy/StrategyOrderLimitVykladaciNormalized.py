@@ -151,13 +151,16 @@ class StrategyOrderLimitVykladaciNormalized(Strategy):
         print("odesilame LIMIT s cenou/qty", price, size)
         self.state.ilog(e="send LIMIT buy to if", msg="S:"+str(size)+" P:"+str(price), price=price, size=size)
         order = self.state.interface.buy_l(price=price, size=size)
-        print("ukladame pendingbuys")
-        self.state.vars.pendingbuys[str(order)]=price
-        self.state.blockbuy = 1
-        self.state.vars.lastbuyindex = self.state.bars['index'][-1]
-        #ic(self.state.blockbuy)
-        #ic(self.state.vars.lastbuyindex)
-        self.state.ilog(e="Odeslan buy_l a ulozeno do pb", order=str(order), pb=self.state.vars.pendingbuys)
+        if order != -1:
+            print("ukladame pendingbuys")
+            self.state.vars.pendingbuys[str(order)]=price
+            self.state.blockbuy = 1
+            self.state.vars.lastbuyindex = self.state.bars['index'][-1]
+            #ic(self.state.blockbuy)
+            #ic(self.state.vars.lastbuyindex)
+            self.state.ilog(e="Odeslan buy_l a ulozeno do pb", order=str(order), pb=self.state.vars.pendingbuys)
+        else:
+            self.state.ilog(e="Chyba - nepodarilo se odeslat buy_l - nebylo ulozeno do pb", order=str(order), pb=self.state.vars.pendingbuys)
 
     async def cancel_pending_buys(self):
         print("cancel pending buys called.")
@@ -170,9 +173,10 @@ class StrategyOrderLimitVykladaciNormalized(Strategy):
                 #ic(key)
                 #nejprve vyhodime z pendingbuys
                 self.state.vars.pendingbuys.pop(key, False)
-                res = self.interface.cancel(key)
-                self.state.ilog(e=f"Pendingy zrusen pro {key=}", orderid=str(key), res=str(res))
-                print("CANCEL PENDING BUYS RETURN", res)
+                if key != -1:
+                    res = self.interface.cancel(key)
+                    self.state.ilog(e=f"Pendingy zrusen pro {key=}", orderid=str(key), res=str(res))
+                    print("CANCEL PENDING BUYS RETURN", res)
         self.state.vars.pendingbuys={}        
         self.state.vars.jevylozeno = 0
         print("cancel pending buys end")

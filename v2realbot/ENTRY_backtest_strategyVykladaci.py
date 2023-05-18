@@ -100,8 +100,7 @@ def next(data, state: StrategyState):
     def is_defensive_mode():
         akt_pozic = int(state.positions)
         max_pozic = int(state.vars.maxpozic)
-        def_mode_from = safe_get(state.vars, "def_mode_from")
-        if def_mode_from == None: def_mode_from = max_pozic/2
+        def_mode_from = safe_get(state.vars, "def_mode_from",max_pozic/2)
         if akt_pozic >= int(def_mode_from):
             state.ilog(e=f"DEFENSIVE mode ACTIVE {state.vars.def_mode_from=}", msg=state.positions)
             return True
@@ -110,8 +109,7 @@ def next(data, state: StrategyState):
             return False
 
     def get_limitka_price():
-        def_profit = safe_get(state.vars, "def_profit") 
-        if def_profit == None: def_profit = state.vars.profit
+        def_profit = safe_get(state.vars, "def_profit",state.vars.profit) 
         if is_defensive_mode():
             return price2dec(float(state.avgp)+float(def_profit))
         else:
@@ -267,7 +265,7 @@ def next(data, state: StrategyState):
         ##prvni se vyklada na aktualni cenu, další jdou podle krivky, nula v krivce zvyšuje množství pro následující iteraci
         
         ##VAR - na zaklade conf. muzeme jako prvni posilat MARKET order
-        if safe_get(state.vars, "first_buy_market") == True:
+        if safe_get(state.vars, "first_buy_market", False) == True:
             #pri defenzivnim rezimu pouzivame vzdy LIMIT order
             if is_defensive_mode():
                 state.ilog(e="DEF mode on, odesilame jako prvni limitku")

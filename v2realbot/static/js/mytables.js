@@ -64,14 +64,14 @@ $(document).ready(function () {
     //selectable rows in stratin table
     $('#stratinTable tbody').on('click', 'tr', function () {
         if ($(this).hasClass('selected')) {
-            $(this).removeClass('selected');
+            //$(this).removeClass('selected');
             $('#button_dup').attr('disabled','disabled');
             $('#button_copy').attr('disabled','disabled');
             $('#button_edit').attr('disabled','disabled');
             $('#button_delete').attr('disabled','disabled');
             $('#button_run').attr('disabled','disabled');
         } else {
-            stratinRecords.$('tr.selected').removeClass('selected');
+            //stratinRecords.$('tr.selected').removeClass('selected');
             $(this).addClass('selected');
             $('#button_dup').attr('disabled',false);
             $('#button_copy').attr('disabled',false);
@@ -277,6 +277,53 @@ $(document).ready(function () {
         })
     });
 
+    //button compare stratin
+    $('#button_compare').click(function () {
+        window.$('#diffModal').modal('show');
+        rows = stratinRecords.rows('.selected').data();
+        const rec1 = new Object()
+        rec1.id = rows[0].id;
+        rec1.id2 = parseInt(rows[0].id2);
+        rec1.name = rows[0].name;
+        rec1.symbol = rows[0].symbol;
+        rec1.class_name = rows[0].class_name;
+        rec1.script = rows[0].script;
+        rec1.open_rush = rows[0].open_rush;
+        rec1.close_rush = rows[0].close_rush;
+        rec1.stratvars_conf = TOML.parse(rows[0].stratvars_conf);
+        rec1.add_data_conf = TOML.parse(rows[0].add_data_conf);
+        rec1.note = rows[0].note;
+        rec1.history = "";
+       //jsonString1 = JSON.stringify(rec1, null, 2);
+
+        const rec2 = new Object()
+        rec2.id = rows[1].id;
+        rec2.id2 = parseInt(rows[1].id2);
+        rec2.name = rows[1].name;
+        rec2.symbol = rows[1].symbol;
+        rec2.class_name = rows[1].class_name;
+        rec2.script = rows[1].script;
+        rec2.open_rush = rows[1].open_rush;
+        rec2.close_rush = rows[1].close_rush;
+        rec2.stratvars_conf = TOML.parse(rows[1].stratvars_conf);
+        rec2.add_data_conf = TOML.parse(rows[1].add_data_conf);
+        rec2.note = rows[1].note;
+        rec2.history = "";
+        //jsonString2 = JSON.stringify(rec2, null, 2);
+
+
+        document.getElementById('first').innerHTML = '<pre>'+JSON.stringify(rec1, null, 2)+'</pre>'
+       $('#diff_first').text(rec1.name);
+       $('#diff_second').text(rec2.name);
+
+        var delta = compareObjects(rec1, rec2)
+        const htmlMarkup = `<pre>{\n${generateHTML(rec2, delta)}}\n</pre>`;
+        document.getElementById('second').innerHTML = htmlMarkup;
+
+        event.preventDefault();
+        //$('#button_compare').attr('disabled','disabled');
+    });
+
     //button connect
     $('#button_connect').click(function () {
         row = runnerRecords.row('.selected').data();
@@ -436,6 +483,8 @@ var stratinRecords =
                     {data: 'history', visible: false},
                     {data: 'id', visible: true},
                 ],
+        paging: false,
+        processing: false,
         columnDefs: [{
             targets: 12,
             render: function ( data, type, row ) {
@@ -451,11 +500,10 @@ var stratinRecords =
                 },
             ],
         order: [[1, 'asc']],
-        paging: false,
-        // select: {
-        //     style: 'multi'
-        // },
-        processing: false
+        select: {
+            style: 'multi',
+            selector: 'td'
+        },
         // createdRow: function( row, data, dataIndex){
         //     if (is_running(data.id) ){
         //         alert("runner");

@@ -122,6 +122,10 @@ table.dataTable thead>tr>th.sorting_asc:before, table.dataTable thead>tr>th.sort
   width: 140px;
 }
 
+.form-row {
+  display: table-cell;
+}
+
 .secondary-bg {
   --bs-bg-opacity: 1;
   background-color: #414749;
@@ -285,6 +289,8 @@ pre {
   /* background-color: #f5f5f5; */
   /* border: 1px solid #ccc; */
   border-radius: 4px;
+  overflow-x: clip;
+  text-overflow: ellipsis;
 }
 
 .pidi {
@@ -315,6 +321,8 @@ pre {
 
 .highlighted {
   color: var(--bs-emphasis-color);
+  background-color: var(--bs-gray-900);
+  /* color: var(--bs-dark-text-emphasis); */
 }
 
 .switcher {

@@ -91,8 +91,7 @@ def next(data, state: StrategyState):
     def is_defensive_mode():
         akt_pozic = int(state.positions)
         max_pozic = int(state.vars.maxpozic)
-        def_mode_from = safe_get(state.vars, "def_mode_from")
-        if def_mode_from == None: def_mode_from = max_pozic/2
+        def_mode_from = safe_get(state.vars, "def_mode_from",max_pozic/2)
         if akt_pozic >= int(def_mode_from):
             state.ilog(e=f"DEFENSIVE mode ACTIVE {state.vars.def_mode_from=}", msg=state.positions)
             return True
@@ -101,8 +100,7 @@ def next(data, state: StrategyState):
             return False
 
     def get_limitka_price():
-        def_profit = safe_get(state.vars, "def_profit") 
-        if def_profit == None: def_profit = state.vars.profit
+        def_profit = safe_get(state.vars, "def_profit",state.vars.profit) 
         cena = float(state.avgp)
         if is_defensive_mode():
             return price2dec(cena+get_tick(cena,float(def_profit)))
@@ -312,9 +310,8 @@ def next(data, state: StrategyState):
     #RSI14 INDICATOR
     try:
         ##mame v atributech nastaveni?
-        rsi_dont_buy_above = safe_get(state.vars, "rsi_dont_buy_above")
-        if rsi_dont_buy_above == None:
-            rsi_dont_buy_above = 50
+        rsi_dont_buy_above = safe_get(state.vars, "rsi_dont_buy_above",50)
+        rsi_buy_signal_conf = safe_get(state.vars, "rsi_buy_signal_below",40)
         rsi_buy_signal = False
         rsi_dont_buy = False
         rsi_length = 14
@@ -323,7 +320,7 @@ def next(data, state: StrategyState):
         rsi_value = trunc(rsi_res[-1],3)
         state.indicators.RSI14.append(rsi_value)
         rsi_dont_buy = rsi_value > rsi_dont_buy_above
-        rsi_buy_signal = rsi_value < 40
+        rsi_buy_signal = rsi_value < rsi_buy_signal_conf
         state.ilog(e=f"RSI {rsi_length=} {rsi_value=} {rsi_dont_buy=} {rsi_buy_signal=}", rsi_indicator=state.indicators.RSI14[-5:])
     except Exception as e:
         state.ilog(e=f"RSI {rsi_length=} ukladame 0", message=str(e)+format_exc())

@@ -371,3 +371,136 @@ Mousetrap.bind('j', function() {
 Mousetrap.bind('x', function() { 
     $( "#button_delete" ).trigger( "click" );
 });
+
+// function compareObjects(obj1, obj2) {
+//     const diff = {};
+  
+//     for (let key in obj1) {
+//       if (typeof obj1[key] === 'object' && typeof obj2[key] === 'object') {
+//         const nestedDiff = compareObjects(obj1[key], obj2[key]);
+//         if (Object.keys(nestedDiff).length > 0) {
+//           diff[key] = nestedDiff;
+//         }
+//       } else if (obj1[key] !== obj2[key]) {
+//         diff[key] = obj2[key];
+//       }
+//     }
+  
+//     return diff;
+//   }
+  
+//   function generateHTML(obj, diff, indent = '') {
+//     let html = '';
+  
+//     for (let key in obj) {
+//       const value = obj[key];
+  
+//       if (typeof value === 'object' && value !== null) {
+//         const nestedDiff = diff[key] || {};
+//         const nestedIndent = indent + '  ';
+//         html += `${indent}"${key}": {\n${generateHTML(value, nestedDiff, nestedIndent)}${indent}},\n`;
+//       } else {
+//         if (key in diff) {
+//           html += `${indent}"${key}": <span class="highlighted">${JSON.stringify(value)}</span>,\n`;
+//         } else {
+//           html += `${indent}"${key}": ${JSON.stringify(value)},\n`;
+//         }
+//       }
+//     }
+  
+//     return html;
+//   }
+
+
+function compareObjects(obj1, obj2) {
+    const diff = {};
+  
+    for (let key in obj1) {
+      if (typeof obj1[key] === 'object' && typeof obj2[key] === 'object') {
+        if (Array.isArray(obj1[key]) && Array.isArray(obj2[key])) {
+          if (!arraysAreEqual(obj1[key], obj2[key])) {
+            diff[key] = obj2[key];
+          }
+        } else {
+          const nestedDiff = compareObjects(obj1[key], obj2[key]);
+          if (Object.keys(nestedDiff).length > 0) {
+            diff[key] = nestedDiff;
+          }
+        }
+      } else if (obj1[key] !== obj2[key]) {
+        diff[key] = obj2[key];
+      }
+    }
+  
+    return diff;
+  }
+  
+  function arraysAreEqual(arr1, arr2) {
+    if (arr1.length !== arr2.length) {
+      return false;
+    }
+  
+    for (let i = 0; i < arr1.length; i++) {
+      if (typeof arr1[i] === 'object' && typeof arr2[i] === 'object') {
+        const nestedDiff = compareObjects(arr1[i], arr2[i]);
+        if (Object.keys(nestedDiff).length > 0) {
+          return false;
+        }
+      } else if (arr1[i] !== arr2[i]) {
+        return false;
+      }
+    }
+  
+    return true;
+  }
+  
+  function generateHTML(obj, diff, indent = '') {
+    let html = '';
+  
+    for (let key in obj) {
+      const value = obj[key];
+  
+      if (typeof value === 'object' && value !== null) {
+        const nestedDiff = diff[key] || {};
+        const nestedIndent = indent + '  ';
+        if (Array.isArray(value)) {
+          html += `${indent}"${key}": [\n${generateHTMLArray(value, nestedDiff, nestedIndent)}${indent}],\n`;
+        } else {
+          html += `${indent}"${key}": {\n${generateHTML(value, nestedDiff, nestedIndent)}${indent}},\n`;
+        }
+      } else {
+        if (key in diff) {
+          html += `${indent}"${key}": <span style="background-color: yellow;">${JSON.stringify(value)}</span>,\n`;
+        } else {
+          html += `${indent}"${key}": ${JSON.stringify(value)},\n`;
+        }
+      }
+    }
+  
+    return html;
+  }
+  
+  function generateHTMLArray(arr, diff, indent) {
+    let html = '';
+  
+    for (let i = 0; i < arr.length; i++) {
+      const value = arr[i];
+      if (typeof value === 'object' && value !== null) {
+        const nestedDiff = diff[i] || {};
+        const nestedIndent = indent + '  ';
+        if (Array.isArray(value)) {
+          html += `${indent}[\n${generateHTMLArray(value, nestedDiff, nestedIndent)}${indent}],\n`;
+        } else {
+          html += `${indent}{\n${generateHTML(value, nestedDiff, nestedIndent)}${indent}},\n`;
+        }
+      } else {
+        if (i in diff) {
+          html += `${indent}<span style="background-color: yellow;">${JSON.stringify(value)}</span>,\n`;
+        } else {
+          html += `${indent}${JSON.stringify(value)},\n`;
+        }
+      }
+    }
+  
+    return html;
+  }

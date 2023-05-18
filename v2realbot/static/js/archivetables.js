@@ -11,22 +11,81 @@ $(document).ready(function () {
     $('#button_show_arch').attr('disabled','disabled');
     $('#button_delete_arch').attr('disabled','disabled');
     $('#button_edit_arch').attr('disabled','disabled');
+    $('#button_compare_arch').attr('disabled','disabled');
 
     //selectable rows in archive table
     $('#archiveTable tbody').on('click', 'tr', function () {
         if ($(this).hasClass('selected')) {
-            $(this).removeClass('selected');
+            //$(this).removeClass('selected');
             $('#button_show_arch').attr('disabled','disabled');
             $('#button_delete_arch').attr('disabled','disabled');
             $('#button_edit_arch').attr('disabled','disabled');
+            $('#button_compare_arch').attr('disabled','disabled');
         } else {
-            stratinRecords.$('tr.selected').removeClass('selected');
+            //archiveRecords.$('tr.selected').removeClass('selected');
             $(this).addClass('selected');
             $('#button_show_arch').attr('disabled',false);
             $('#button_delete_arch').attr('disabled',false);
             $('#button_edit_arch').attr('disabled',false);
+            $('#button_compare_arch').attr('disabled',false);
         }
     });
+
+
+    //button compare arch
+    $('#button_compare_arch').click(function () {
+        window.$('#diffModal').modal('show');
+        rows = archiveRecords.rows('.selected').data();
+        var record1 = new Object()
+        //console.log(JSON.stringify(rows))
+        record1 = JSON.parse(rows[0].strat_json)
+        //record1.json = rows[0].json
+        //record1.id = rows[0].id;
+        // record1.id2 = parseInt(rows[0].id2);
+        //record1.name = rows[0].name;
+        // record1.symbol = rows[0].symbol;
+        // record1.class_name = rows[0].class_name;
+        // record1.script = rows[0].script;
+        // record1.open_rush = rows[0].open_rush;
+        // record1.close_rush = rows[0].close_rush;
+        record1.stratvars_conf = TOML.parse(record1.stratvars_conf);
+        record1.add_data_conf = TOML.parse(record1.add_data_conf);
+        // record1.note = rows[0].note;
+        // record1.history = "";
+       //jsonString1 = JSON.stringify(record1, null, 2);
+
+        var record2 = new Object()
+        record2 = JSON.parse(rows[1].strat_json)
+
+        // record2.id = rows[1].id;
+        // record2.id2 = parseInt(rows[1].id2);
+        //record2.name = rows[1].name;
+        // record2.symbol = rows[1].symbol;
+        // record2.class_name = rows[1].class_name;
+        // record2.script = rows[1].script;
+        // record2.open_rush = rows[1].open_rush;
+        // record2.close_rush = rows[1].close_rush;
+        record2.stratvars_conf = TOML.parse(record2.stratvars_conf);
+        record2.add_data_conf = TOML.parse(record2.add_data_conf);
+        // record2.note = rows[1].note;
+        // record2.history = "";
+        //jsonString2 = JSON.stringify(record2, null, 2);
+
+
+        document.getElementById('first').innerHTML = '<pre>'+JSON.stringify(record1, null, 2)+'</pre>'
+       $('#diff_first').text(record1.name);
+       $('#diff_second').text(record2.name);
+
+        //mozna parse?
+
+        var delta = compareObjects(record1, record2)
+        const htmlMarkup1 = `<pre>{\n${generateHTML(record2, delta)}}\n</pre>`;
+        document.getElementById('second').innerHTML = htmlMarkup1;
+
+        event.preventDefault();
+        //$('#button_compare').attr('disabled','disabled');
+    });
+
 
     //delete button
     $('#button_delete_arch').click(function () {
@@ -263,6 +322,10 @@ var archiveRecords =
                 }
         ],
         order: [[6, 'desc']],
+        select: {
+            style: 'multi',
+            selector: 'td'
+        },
         // paging: true,
         // lengthChange: false,
         // select: true,

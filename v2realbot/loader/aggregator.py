@@ -79,9 +79,10 @@ class TradeAggregator:
         ## 22.3. - dal jsem pryc i contingency trades [' ', '7', 'V'] - nasel jsem obchod o 30c mimo
         ## dán pryč P - prior reference time + 25centu mimo, {'t': '2023-04-12T19:45:08.63257344Z', 'x': 'D', 'p': 28.68, 's': 1000, 'c': [' ', 'P'], 'i': 71693108525109, 'z': 'A'},
         ## Q - jsou v pohode, oteviraci trady, ale O jsou jejich duplikaty
+        ## přidán W - average price trade, U - Extended hours - sold out of sequence
         try:
             for i in data['c']:
-                if i in ('C','O','4','B','7','V','P'): return 0
+                if i in ('C','O','4','B','7','V','P','W','U'): return 0
         except KeyError:
             pass
 
@@ -196,6 +197,11 @@ class TradeAggregator:
                     "index": self.barindex
                     }
             
+        #je cena stejna od predchoziho tradu? pro nepotvrzeny cbar vracime jen pri zmene ceny  
+        if self.last_price == data['p']:
+            diff_price = False
+        else:
+            diff_price = True    
         self.last_price = data['p'] 
 
         #spočteme vwap - potřebujeme předchozí hodnoty 
@@ -268,7 +274,12 @@ class TradeAggregator:
             #doplnime prubezny vwap
             self.newBar['vwap'] = self.vwaphelper / self.newBar['volume']
             #print(self.newBar)
-            return self.newBar
+
+            #pro (nepotvrzeny) cbar vracime jen pri zmene ceny
+            if diff_price is True:
+                return self.newBar
+            else:
+                return 0
         else:
             return 0
 

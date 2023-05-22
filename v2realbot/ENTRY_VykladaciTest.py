@@ -237,10 +237,10 @@ def next(data, state: StrategyState):
         #poslednich ma hodnot
         source = state.bars.close[-ma:] #state.bars.vwap
         ema_value = ema(source, ma)
-        state.indicators.ema.append(trunc(ema_value[-1],3))
+        state.indicators.ema[-1]=trunc(ema_value[-1],3)
     except Exception as e:
         state.ilog(e="EMA ukladame 0", message=str(e)+format_exc())
-        state.indicators.ema.append(0)
+        #state.indicators.ema[-1]=0
 
     #EMA SLOW 
     try:
@@ -249,11 +249,11 @@ def next(data, state: StrategyState):
         source = state.bars.hlcc4[-ma:] #state.bars.vwap
         emaSlow_value = ema(source, ma)
         emaSlow = trunc(emaSlow_value[-1],3)
-        state.indicators.emaSlow.append(emaSlow)
+        state.indicators.emaSlow[-1]=emaSlow
         state.ilog(e=f"emaSlow {emaSlow=}", emaSlow=state.indicators.emaSlow[-5:])
     except Exception as e:
         state.ilog(e=f"emaSlow {ma=} ukladame 0", message=str(e)+format_exc())
-        state.indicators.emaSlow.append(0)
+        #state.indicators.emaSlow.append(0)
 
 
     #EMA FAST
@@ -263,11 +263,11 @@ def next(data, state: StrategyState):
         source = state.bars.hlcc4[-ma:] #state.bars.vwap
         emaFast_value = ema(source, ma)
         emaFast = trunc(emaFast_value[-1],3)
-        state.indicators.emaFast.append(emaFast)
+        state.indicators.emaFast[-1]=emaFast
         state.ilog(e=f"emaFast {emaFast=}", emaFast=state.indicators.emaFast[-5:])
     except Exception as e:
         state.ilog(e=f"emaFast {ma=} ukladame 0", message=str(e)+format_exc())
-        state.indicators.emaFast.append(0)
+        #state.indicators.emaFast.append(0)
 
 
     #RSI14
@@ -352,7 +352,7 @@ def next(data, state: StrategyState):
             #výpočet úhlu
             slope = ((state.bars.close[-1] - lookbackprice)/lookbackprice)*100
             slope = round(slope, 4)
-            state.indicators.slope.append(slope)
+            state.indicators.slope[-1]=slope
  
             #angle je ze slope
             state.statinds.angle = dict(time=state.bars.time[-1], price=state.bars.close[-1], lookbacktime=state.bars.time[-slope_lookback], lookbackprice=lookbackprice, minimum_slope=minimum_slope)
@@ -362,7 +362,7 @@ def next(data, state: StrategyState):
             source = state.indicators.slope[-slope_MA_length:]
             slopeMAseries = ema(source, slope_MA_length) #state.bars.vwap
             slopeMA = slopeMAseries[-1]
-            state.indicators.slopeMA.append(slopeMA)
+            state.indicators.slopeMA[-1]=slopeMA
 
             state.ilog(e=f"{slope=} {slopeMA=}", msg=f"{lookbackprice=}", lookbackoffset=lookback_offset, minimum_slope=minimum_slope, last_slopes=state.indicators.slope[-10:])
 
@@ -371,8 +371,8 @@ def next(data, state: StrategyState):
         else:
             #pokud plnime historii musime ji plnit od zacatku, vsehcny idenitifkatory maji spolecny time
             #kvuli spravnemu zobrazovani na gui
-            state.indicators.slope.append(0)
-            state.indicators.slopeMA.append(0)
+            #state.indicators.slopeMA[-1]=0
+            #state.indicators.slopeMA.append(0)
             state.ilog(e="Slope - not enough data", slope_lookback=slope_lookback, slope=state.indicators.slope, slopeMA=state.indicators.slopeMA)
     except Exception as e:
         print("Exception in NEXT Slope Indicator section", str(e))

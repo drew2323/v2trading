@@ -326,7 +326,7 @@ var archiveRecords =
             style: 'multi',
             selector: 'td'
         },
-        // paging: true,
+        paging: true,
         // lengthChange: false,
         // select: true,
         // createdRow: function( row, data, dataIndex){

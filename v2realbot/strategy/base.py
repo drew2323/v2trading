@@ -131,10 +131,18 @@ class Strategy:
     """SAVE record to respective STATE variables (bar or trades)
     ukládáme i index pro případné indikátory - pro zobrazení v grafu
     -----  NO support for simultaneous rectypes in one queue """
+
+    #do pole indikatoru se zde vzdycky prida nova hodnota (0)
+    #tzn. v NEXT dealame u indikatoru vzdy pouze UPDATE
+
     def save_item_history(self,item):
         if self.rectype == RecordType.BAR:
-            #jako cas indikatorů pridavame cas baru, jejich hodnoty se naplni v nextu
+            #jako cas indikatorů pridavame cas baru a inicialni hodnoty vsech indikatoru
             self.state.indicators['time'].append(item['time'])
+            for key in self.state.indicators:
+                if key == 'time':
+                    continue
+                self.state.indicators[key].append(0)
             self.append_bar(self.state.bars,item)
         elif self.rectype == RecordType.TRADE:
             pass
@@ -144,17 +152,22 @@ class Strategy:
         elif self.rectype == RecordType.CBAR:
             #novy vzdy pridame
             if self.nextnew:
-                self.state.indicators['time'].append(item['time'])
+                self.state.indicators['time'].append(item['updated'])
+                for key in self.state.indicators:
+                    if key == 'time':
+                        continue
+                    self.state.indicators[key].append(0)
+
                 self.append_bar(self.state.bars,item)
                 self.nextnew = 0
             #nasledujici updatneme, po potvrzeni, nasleduje novy bar
             else:
                 if item['confirmed'] == 0:
-                    self.state.indicators['time'][-1]=item['time']
+                    self.state.indicators['time'][-1]=item['updated']
                     self.replace_prev_bar(self.state.bars,item)
                 #confirmed
                 else:
-                    self.state.indicators['time'][-1]=item['time']
+                    self.state.indicators['time'][-1]=item['updated']
                     self.replace_prev_bar(self.state.bars,item)
                     self.nextnew = 1
 
@@ -224,14 +237,15 @@ class Strategy:
         self.before_iteration()
         ted = datetime.fromtimestamp(self.state.time).astimezone(zoneNY)
         if is_open_rush(ted, self.open_rush) or is_close_rush(ted, self.close_rush):
+            pass
             #self.state.ilog(e="Rush hour - skipping")
             #identifikatory jsou ulozeny vektorove, tzn. kdyz nejdeme dovnitr iterace(tak nepotrebujeme prazdny cas pro tuto iteraci)
             #hodnoty time a identifikatoru musi byt stejne
             #TBD pripdane predelat  a dodelat pro CBARy az je budu pouzivat
-            if self.rectype == RecordType.BAR:
-               self.state.indicators['time'].pop() 
-            elif self.rectype == RecordType.CBAR:
-                print("RUSH skipping NOT IMPLEMENTED for CBARs yet")
+            # if self.rectype == RecordType.BAR:
+            #    self.state.indicators['time'].pop() 
+            # elif self.rectype == RecordType.CBAR:
+            #     print("RUSH skipping NOT IMPLEMENTED for CBARs yet")
 
         else:
             self.next(item, self.state)

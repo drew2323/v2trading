@@ -34,7 +34,7 @@ class RecordType(str, Enum):
     """
 
     BAR = "bar"
-    CBAR = "continuosbar"
+    CBAR = "cbar"
     TRADE = "trade"
 
 class Mode(str, Enum):

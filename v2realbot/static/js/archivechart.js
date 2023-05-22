@@ -332,28 +332,53 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
                                 });
 
                                 if (conf.embed)  {
-                                    obj.series = chart.addLineSeries({
-                                        color: colors.shift(),
-                                        priceScaleId: conf.priceScaleId,
-                                        title: (conf.titlevisible?conf.name:""),
-                                        lineWidth: 1
-                                    });   
 
-                                    //toto nejak vymyslet konfiguracne, additional threshold lines
-                                    if (key == "slopeMA") {
-                                        //natvrdo nakreslime lajnu pro min angle
-                                        //TODO predelat na configuracne
-                                        const minSlopeLineOptopns = {
-                                            price: data.statinds.angle.minimum_slope,
-                                            color: '#b67de8',
-                                            lineWidth: 1,
-                                            lineStyle: 2, // LineStyle.Dotted
-                                            axisLabelVisible: true,
-                                            title: "max:",
-                                        };
-                            
-                                        const minSlopeLine = obj.series.createPriceLine(minSlopeLineOptopns);
+                                    if (conf.histogram) {
+
+                                        obj.series = chart.addHistogramSeries({
+                                            title: (conf.titlevisible?conf.name:""),
+                                            color: colors.shift(),
+                                            priceFormat: {type: 'volume'},
+                                            priceScaleId: conf.priceScaleId,
+                                            lastValueVisible: conf.lastValueVisible,
+                                            priceScaleId: conf.priceScaleId});
+                                        
+                                        obj.series.priceScale().applyOptions({
+                                            // set the positioning of the volume series
+                                            scaleMargins: {
+                                                top: 0.7, // highest point of the series will be 70% away from the top
+                                                bottom: 0,
+                                            },
+                                        });
+
                                     }
+                                    else {
+
+                                        obj.series = chart.addLineSeries({
+                                            color: colors.shift(),
+                                            priceScaleId: conf.priceScaleId,
+                                            title: (conf.titlevisible?conf.name:""),
+                                            lineWidth: 1
+                                        });   
+
+                                        //toto nejak vymyslet konfiguracne, additional threshold lines
+                                        if (key == "slopeMA") {
+                                            //natvrdo nakreslime lajnu pro min angle
+                                            //TODO predelat na configuracne
+                                            const minSlopeLineOptopns = {
+                                                price: data.statinds.angle.minimum_slope,
+                                                color: '#b67de8',
+                                                lineWidth: 1,
+                                                lineStyle: 2, // LineStyle.Dotted
+                                                axisLabelVisible: true,
+                                                title: "max:",
+                                            };
+                                
+                                            const minSlopeLine = obj.series.createPriceLine(minSlopeLineOptopns);
+                                        }
+                                }
+
+
                                 }
                                 //INDICATOR on new pane
                                 else { console.log("not implemented")}

@@ -302,10 +302,10 @@ def next(data, state: StrategyState):
         #poslednich ma hodnot
         source = state.bars.close[-ma:] #state.bars.vwap
         ema_value = ema(source, ma)
-        state.indicators.ema.append(trunc(ema_value[-1],3))
+        state.indicators.ema[-1]=trunc(ema_value[-1],3)
     except Exception as e:
         state.ilog(e="EMA ukladame 0", message=str(e)+format_exc())
-        state.indicators.ema.append(0)
+        #state.indicators.ema[-1]=0
 
     #RSI14 INDICATOR
     try:
@@ -318,13 +318,13 @@ def next(data, state: StrategyState):
         source = state.bars.close #[-rsi_length:] #state.bars.vwap
         rsi_res = rsi(source, rsi_length)
         rsi_value = trunc(rsi_res[-1],3)
-        state.indicators.RSI14.append(rsi_value)
+        state.indicators.RSI14[-1]=rsi_value
         rsi_dont_buy = rsi_value > rsi_dont_buy_above
         rsi_buy_signal = rsi_value < rsi_buy_signal_conf
         state.ilog(e=f"RSI {rsi_length=} {rsi_value=} {rsi_dont_buy=} {rsi_buy_signal=}", rsi_indicator=state.indicators.RSI14[-5:])
     except Exception as e:
         state.ilog(e=f"RSI {rsi_length=} ukladame 0", message=str(e)+format_exc())
-        state.indicators.RSI14.append(0)
+        #state.indicators.RSI14[-1]=0
 
 
     #SLOPE INDICATOR
@@ -347,7 +347,7 @@ def next(data, state: StrategyState):
             #výpočet úhlu
             slope = ((state.bars.close[-1] - lookbackprice)/lookbackprice)*100
             slope = round(slope, 4)
-            state.indicators.slope.append(slope)
+            state.indicators.slope[-1]=slope
  
             #angle je ze slope
             state.statinds.angle = dict(time=state.bars.time[-1], price=state.bars.close[-1], lookbacktime=state.bars.time[-slope_lookback], lookbackprice=lookbackprice, minimum_slope=minimum_slope)
@@ -357,7 +357,7 @@ def next(data, state: StrategyState):
             source = state.indicators.slope[-slope_MA_length:]
             slopeMAseries = ema(source, slope_MA_length) #state.bars.vwap
             slopeMA = slopeMAseries[-1]
-            state.indicators.slopeMA.append(slopeMA)
+            state.indicators.slopeMA[-1]=slopeMA
 
             state.ilog(e=f"{slope=} {slopeMA=}", msg=f"{lookbackprice=}", lookbackoffset=lookback_offset, minimum_slope=minimum_slope, last_slopes=state.indicators.slope[-10:], last_slopesMA=state.indicators.slopeMA[-10:])
 
@@ -366,8 +366,8 @@ def next(data, state: StrategyState):
         else:
             #pokud plnime historii musime ji plnit od zacatku, vsehcny idenitifkatory maji spolecny time
             #kvuli spravnemu zobrazovani na gui
-            state.indicators.slope.append(0)
-            state.indicators.slopeMA.append(0)
+            state.indicators.slopeMA[-1]=0
+            #state.indicators.slopeMA.append(0)
             state.ilog(e="Slope - not enough data", slope_lookback=slope_lookback, slope=state.indicators.slope, slopeMA=state.indicators.slopeMA)
     except Exception as e:
         print("Exception in NEXT Slope Indicator section", str(e))

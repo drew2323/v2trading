@@ -14,6 +14,8 @@ settings = {}
 settings
 //ostatni indicatory nez vwap, volume a bary
 indConfig = [ {name: "ema", titlevisible: false, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},
+              {name: "tick_volume", histogram: true, titlevisible: true, embed: true, display: true, priceScaleId: '', lastValueVisible: false},
+              {name: "tick_price", titlevisible: true, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},
               {name: "slope", titlevisible: true, embed: true, display: false, priceScaleId: "middle", lastValueVisible: false},
               {name: "slopeMA", titlevisible: true, embed: true, display: true, priceScaleId: "middle", lastValueVisible: false},
               {name: "emaSlow", titlevisible: true, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},
@@ -171,7 +173,7 @@ function initialize_chart() {
 
 //mozna atributy last value visible
 function intitialize_candles() {
-    candlestickSeries = chart.addCandlestickSeries({ lastValueVisible: false, priceLineWidth:1, priceLineColor: "red", priceFormat: { type: 'price', precision: 2, minMove: 0.01 }});
+    candlestickSeries = chart.addCandlestickSeries({ lastValueVisible: false, priceLineWidth:1, priceLineColor: "red", priceFormat: { type: 'price', precision: 3, minMove: 0.005 }});
     candlestickSeries.priceScale().applyOptions({
         scaleMargins: {
             top: 0.1, // highest point of the series will be 10% away from the top

@@ -1,11 +1,11 @@
 import os,sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from v2realbot.strategy.base import StrategyState
-from v2realbot.strategy.StrategyOrderLimitVykladaci import StrategyOrderLimitVykladaci
+from v2realbot.strategy.StrategyOrderLimitVykladaciNormalizedMYSELL import StrategyOrderLimitVykladaciNormalizedMYSELL
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, OrderSide, OrderType
 from v2realbot.indicators.indicators import ema
 from v2realbot.indicators.oscillators import rsi
-from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, print, safe_get
+from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, print, safe_get, get_tick
 from datetime import datetime
 #from icecream import install, ic
 #from rich import print
@@ -17,11 +17,19 @@ from traceback import format_exc
 
 print(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 """"
-Kope Vykladaci strategie s navic pridanym RSI
+Využívá: StrategyOrderLimitVykladaciNormalizedMYSELL
 
-- pokud RSI > 50
-    - rusime pendingbuye
-    - netriggerujeme buy
+Kopie RSI Normalizovane Vykladaci navíc s řízením prodeje.
+Nepoužíváme LIMITKU.
+
+Required CBAR. (pouze se změnou ceny)
+
+nepotvrzený CBAR bez minticku (pouze se změnou ceny)
+- se používá pro žízení prodeje
+
+potvrzený CBAR 
+- se používá pro BUY
+
 
 """
 stratvars = AttributeDict(maxpozic = 400,
@@ -91,8 +99,7 @@ def next(data, state: StrategyState):
     def is_defensive_mode():
         akt_pozic = int(state.positions)
         max_pozic = int(state.vars.maxpozic)
-        def_mode_from = safe_get(state.vars, "def_mode_from")
-        if def_mode_from == None: def_mode_from = max_pozic/2
+        def_mode_from = safe_get(state.vars, "def_mode_from",max_pozic/2)
         if akt_pozic >= int(def_mode_from):
             state.ilog(e=f"DEFENSIVE mode ACTIVE {state.vars.def_mode_from=}", msg=state.positions)
             return True
@@ -101,12 +108,13 @@ def next(data, state: StrategyState):
             return False
 
     def get_limitka_price():
-        def_profit = safe_get(state.vars, "def_profit") 
-        if def_profit == None: def_profit = state.vars.profit
+        def_profit = safe_get(state.vars, "def_profit",state.vars.profit) 
+        cena = float(state.avgp)
+        #v MYSELL hrajeme i na 3 desetinna cisla - TBD mozna hrat jen na 5ky (0.125, 0.130, 0.135 atp.)
         if is_defensive_mode():
-            return price2dec(float(state.avgp)+float(def_profit))
+            return price2dec(cena+get_tick(cena,float(def_profit)),3)
         else:
-            return price2dec(float(state.avgp)+float(state.vars.profit))
+            return price2dec(cena+get_tick(cena,float(state.vars.profit)),3)
  
     def consolidation():
         ##CONSOLIDATION PART - moved here, musí být před nákupem, jinak to dělalo nepořádek v pendingbuys
@@ -123,72 +131,12 @@ def next(data, state: StrategyState):
 
                 #print(orderlist)
                 pendingbuys_new = {}
-                limitka_old = state.vars.limitka
-                #print("Puvodni LIMITKA", limitka_old)
                 #zaciname s cistym stitem
                 state.vars.limitka = None
                 state.vars.limitka_price = None
-                limitka_found = False
-                limitka_qty = 0
-                limitka_filled_qty = 0
                 for o in orderlist:
-                    if o.side == OrderSide.SELL:
-                        
-                        if limitka_found:
-                            state.ilog(e="nalezeno vicero sell objednavek, bereme prvni, ostatni - rusime")
-                            result=state.interface.cancel(o.id)
-                            state.ilog(e="zrusena objednavka"+str(o.id), message=result)
-                            continue
-                        
-                        #print("Nalezena LIMITKA")
-                        limitka_found = True
-                        state.vars.limitka = o.id
-                        state.vars.limitka_price = o.limit_price
-                        limitka_qty = int(o.qty)
-                        limitka_filled_qty = int(o.filled_qty)
-
-                        #aktualni mnozstvi = puvodni minus filled
-                        if limitka_filled_qty is not None:
-                            print("prepocitavam filledmnozstvi od limitka_qty a filled_qty", limitka_qty, limitka_filled_qty)
-                            limitka_qty = int(limitka_qty) - int(limitka_filled_qty)
-                        ##TODO sem pridat upravu ceny
                     if o.side == OrderSide.BUY and o.order_type == OrderType.LIMIT:
                         pendingbuys_new[str(o.id)]=float(o.limit_price)
-
-                state.ilog(e="Konzolidace limitky", msg=f"stejna:{(str(limitka_old)==str(state.vars.limitka))}", limitka_old=str(limitka_old), limitka_new=str(state.vars.limitka), limitka_new_price=state.vars.limitka_price, limitka_qty=limitka_qty, limitka_filled_qty=limitka_filled_qty)
-                
-                #pokud mame 
-
-                #neni limitka, ale mela by byt - vytváříme ji
-                if int(state.positions) > 0 and state.vars.limitka is None:
-                    state.ilog(e="Limitka neni, ale mela by být.", msg=f"{state.positions=}")
-                    price=get_limitka_price()
-                    state.vars.limitka = asyncio.run(state.interface.sell_l(price=price, size=int(state.positions)))
-                    state.vars.limitka_price = price
-                    if state.vars.limitka == -1:
-                        state.ilog(e="Vytvoreni limitky neprobehlo, vracime None", msg=f"{state.vars.limitka=}")
-                        state.vars.limitka = None
-                        state.vars.limitka_price = None
-                    else:
-                        state.ilog(e="Vytvořena nová limitka", limitka=str(state.vars.limitka), limtka_price=state.vars.limitka_price, qty=state.positions)
-
-                #existuje a nesedi mnozstvi nebo cena
-                elif state.vars.limitka is not None and int(state.positions) > 0 and ((int(state.positions) != int(limitka_qty)) or float(state.vars.limitka_price) != float(get_limitka_price())):
-                    #limitka existuje, ale spatne mnostvi - updatujeme
-                    state.ilog(e=f"Limitka existuje, ale spatne mnozstvi nebo CENA - updatujeme", msg=f"{state.positions=} {limitka_qty=} {state.vars.limitka_price=}", nastavenacena=state.vars.limitka_price, spravna_cena=get_limitka_price(), pos=state.positions, limitka_qty=limitka_qty)
-                    #snad to nespadne, kdyztak pridat exception handling
-                    puvodni = state.vars.limitka
-                    #TBD zde odchytit nejak result
-                    state.vars.limitka = asyncio.run(state.interface.repl(price=get_limitka_price(), orderid=state.vars.limitka, size=int(state.positions)))
-                    
-                    if state.vars.limitka == -1:
-                        state.ilog(e="Replace limitky neprobehl, vracime puvodni", msg=f"{state.vars.limitka=}", puvodni=puvodni)
-                        state.vars.limitka = puvodni
-                    else:   
-                        limitka_qty = int(state.positions)
-                        state.ilog(e="Změněna limitka", limitka=str(state.vars.limitka), limitka_price=state.vars.limitka_price, limitka_qty=limitka_qty)
-
-                #tbd pokud se bude vyskytovat pak pridat ještě konzolidaci ceny limitky
 
                 if pendingbuys_new != state.vars.pendingbuys:
                     state.ilog(e="Rozdilna PB prepsana", pb_new=pendingbuys_new, pb_old = state.vars.pendingbuys)
@@ -207,12 +155,6 @@ def next(data, state: StrategyState):
                 print("NEW jevylozeno", state.vars.jevylozeno)
                 state.ilog(e="Nove jevylozeno", msg=state.vars.jevylozeno)
 
-                #print(limitka)
-                #print(pendingbuys_new)
-                #print(pendingbuys)
-                #print(len(pendingbuys))
-                #print(len(pendingbuys_new))
-                #print(jevylozeno)
                 print("***CONSOLIDATION EXIT***")
                 state.ilog(e="CONSOLIDATION EXIT ***")
             else:
@@ -270,7 +212,7 @@ def next(data, state: StrategyState):
             state.buy_l(price=price, size=qty)
         print("prvni limitka na aktuální cenu. Další podle křivky", price, qty)
         for i in range(0,vykladka-1):
-            price = price2dec(float(price - curve[i]))
+            price = price2dec(float(price - get_tick(price, curve[i])))
             if price == last_price:
                 qty = qty + int(state.vars.chunk)
             else:
@@ -281,19 +223,69 @@ def next(data, state: StrategyState):
         state.vars.blockbuy = 1
         state.vars.jevylozeno = 1
 
-    #CBAR protection,  only 1x order per CBAR - then wait until another confirmed bar
-    if state.vars.blockbuy == 1 and state.rectype == RecordType.CBAR:
-        if state.bars.confirmed[-1] == 0:
-            print("OCHR: multibuy protection. waiting for next bar")
-            return 0
-        # pop potvrzeni jeste jednou vratime (aby se nekoupilo znova, je stale ten stejny bar)
-        # a pak dalsi vejde az po minticku
-        else:
-            # pro vykladaci
-            state.vars.blockbuy = 0
-            return 0
+    def eval_sell():
+        """"
+        TBD
+        Když je RSI nahoře tak neprodávat, dokud 1) RSI neprestane stoupat 2)nedosahne to nad im not greedy limit
+        """
+        ##mame pozice
+        ##aktualni cena je vetsi nebo rovna cene limitky
+        #muzeme zde jet i na pulcenty
+        curr_price = float(data['close'])
+        state.ilog(e="Eval SELL", price=curr_price, pos=state.positions, sell_in_progress=state.vars.sell_in_progress)
+        if int(state.positions) > 0 and state.vars.sell_in_progress is False:
+            goal_price = get_limitka_price()
+            state.ilog(e=f"Goal price {goal_price}")
+            if curr_price>=goal_price:
+                state.interface.sell(size=state.positions)
+                state.vars.sell_in_progress = True
+                state.ilog(e=f"market SELL was sent {curr_price=}", positions=state.positions, avgp=state.avgp, sellinprogress=state.vars.sell_in_progress)
 
+    #na urovni CBARU mame zajisteno, ze update prichazi pri zmene ceny
+    #v kazde iteraci testujeme sell
+    #pri confirmed tesutjeme i buy
     state.ilog(e="-----")
+    eval_sell()
+
+
+    conf_bar = data['confirmed'] 
+    #for CBAR TICK and VOLUME change info
+    #price change vs Volume
+    tick_price = data['close']
+    tick_volume = data['volume'] - state.vars.last_tick_volume
+
+    #pouze potvrzovací BAR CBARu, mozna id confirmed = 1, pak ignorovat 
+    if tick_volume == 0:
+        pass
+
+    ##naplneni indikatoru vnitrniho CBAR tick price
+    ##pozor CBAR identifikatory jsou ukladane do historie az pro konfirmnuty bar
+    try:
+        state.indicators.tick_price[-1] = tick_price
+        state.indicators.tick_volume[-1] = tick_volume
+    except:
+        pass
+
+    state.ilog(e=f"TICK PRICE {tick_price} VOLUME {tick_volume} {conf_bar=}", last_price=state.vars.last_tick_price, last_volume=state.vars.last_tick_volume)
+
+    
+    state.vars.last_tick_price = tick_price
+    state.vars.last_tick_volume = data['volume']
+    #pri potvrzem CBARu nulujeme counter volume
+    if conf_bar == 1:
+        state.vars.last_tick_volume = 0
+        state.vars.next_new = 1
+
+
+
+    # if data['confirmed'] == 0:
+    #     state.ilog(e="CBAR unconfirmed - returned", msg=str(data))
+    #     #TBD zde muzeme i nakupovat
+    #     #indikatory pocitat, ale neukladat do historie
+    #     return 0
+    # #confirmed
+    # else:
+    #     state.ilog(e="CBAR confirmed - continue", msg=str(data))
 
     #EMA INDICATOR - 
     #plnime MAcko - nyni posilame jen N poslednich hodnot
@@ -305,27 +297,26 @@ def next(data, state: StrategyState):
         ema_value = ema(source, ma)
         state.indicators.ema[-1]=trunc(ema_value[-1],3)
     except Exception as e:
-        state.ilog(e="EMA ukladame 0", message=str(e)+format_exc())
-        state.indicators.ema[-1]=0
+        state.ilog(e="EMA nechavame  0", message=str(e)+format_exc())
+        #state.indicators.ema[-1]=(0)
 
     #RSI14 INDICATOR
     try:
         ##mame v atributech nastaveni?
-        rsi_dont_buy_above = safe_get(state.vars, "rsi_dont_buy_above")
-        if rsi_dont_buy_above == None:
-            rsi_dont_buy_above = 50
+        rsi_dont_buy_above = safe_get(state.vars, "rsi_dont_buy_above",50)
+        rsi_buy_signal_conf = safe_get(state.vars, "rsi_buy_signal_below",40)
         rsi_buy_signal = False
         rsi_dont_buy = False
-        rsi_length = 14
+        rsi_length = 2
         source = state.bars.close #[-rsi_length:] #state.bars.vwap
         rsi_res = rsi(source, rsi_length)
         rsi_value = trunc(rsi_res[-1],3)
         state.indicators.RSI14[-1]=rsi_value
         rsi_dont_buy = rsi_value > rsi_dont_buy_above
-        rsi_buy_signal = rsi_value < 40
-        state.ilog(e=f"RSI {rsi_length=} {rsi_value=} {rsi_dont_buy=} {rsi_buy_signal=}", rsi_indicator=state.indicators.RSI14[-5:])
+        rsi_buy_signal = rsi_value < rsi_buy_signal_conf
+        state.ilog(e=f"RSI{rsi_value} {rsi_length=} {rsi_dont_buy=} {rsi_buy_signal=}", rsi_indicator=state.indicators.RSI14[-5:])
     except Exception as e:
-        state.ilog(e=f"RSI {rsi_length=} ukladame 0", message=str(e)+format_exc())
+        state.ilog(e=f"RSI {rsi_length=} nechavame 0", message=str(e)+format_exc())
         #state.indicators.RSI14.append(0)
 
 
@@ -346,7 +337,7 @@ def next(data, state: StrategyState):
             #obycejný prumer hodnot
             lookbackprice = round(sum(lookbackprice_array)/lookback_offset,3)
 
-            #výpočet úhlu
+            #výpočet úhlu - a jeho normalizace
             slope = ((state.bars.close[-1] - lookbackprice)/lookbackprice)*100
             slope = round(slope, 4)
             state.indicators.slope[-1]=slope
@@ -380,6 +371,11 @@ def next(data, state: StrategyState):
 
     consolidation()
 
+    if int(state.positions) >= state.vars.maxpozic:
+        state.ilog(e="Max pos reached")
+        return 0
+
+
     #HLAVNI ITERACNI LOG JESTE PRED AKCI - obsahuje aktualni hodnoty vetsiny parametru
     #TODO sem pridat aktualni hodnoty vsech indikatoru
     lp = state.interface.get_last_price(symbol=state.symbol)
@@ -412,6 +408,7 @@ def next(data, state: StrategyState):
         buy_signal = rsi_buy_signal
 
         if buy_signal and slope > minimum_slope and not rsi_dont_buy:
+            state.ilog(e="BUY SIGNAL")
             vyloz()
 
     ## testuje aktualni cenu od nejvyssi visici limitky
@@ -427,7 +424,7 @@ def next(data, state: StrategyState):
             if len(state.vars.pendingbuys)>0:
                 maxprice = max(state.vars.pendingbuys.values())
                 print("max cena v orderbuys", maxprice)
-                if state.interface.get_last_price(state.symbol) > float(maxprice) + float(state.vars.ticks2reset):
+                if state.interface.get_last_price(state.symbol) > float(maxprice) + get_tick(maxprice, float(state.vars.ticks2reset)):
                     ##TODO toto nejak vymyslet - duplikovat?
                     res = asyncio.run(state.cancel_pending_buys())
                     state.ilog(e=f"UJELO to. Rusime PB", msg=f"{state.vars.ticks2reset=}", pb=state.vars.pendingbuys)
@@ -479,6 +476,13 @@ def next(data, state: StrategyState):
 def init(state: StrategyState):
     #place to declare new vars
     print("INIT v main",state.name)
+
+    state.vars['sell_in_progress'] = False
+    state.vars.last_tick_price = 0
+    state.vars.last_tick_volume = 0
+    state.vars.next_new = 0
+    state.indicators['tick_price'] = []
+    state.indicators['tick_volume'] = []
     state.indicators['ema'] = []
     state.indicators['slope'] = []
     state.indicators['slopeMA'] = []
@@ -498,7 +502,7 @@ def main():
     name = os.path.basename(__file__)
     se = Event()
     pe = Event()
-    s = StrategyOrderLimitVykladaci(name = name, symbol = "BAC", account=Account.ACCOUNT1, next=next, init=init, stratvars=stratvars, open_rush=10, close_rush=0, pe=pe, se=se, ilog_save=True)
+    s = StrategyOrderLimitVykladaciNormalizedMYSELL(name = name, symbol = "BAC", account=Account.ACCOUNT1, next=next, init=init, stratvars=stratvars, open_rush=10, close_rush=0, pe=pe, se=se, ilog_save=True)
     s.set_mode(mode = Mode.BT,
                debug = False,
                start = datetime(2023, 4, 14, 10, 42, 0, 0, tzinfo=zoneNY),

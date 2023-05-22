@@ -124,12 +124,12 @@ def print(*args, **kwargs):
         ####ic(*args, **kwargs)
         richprint(*args, **kwargs)
 
-def price2dec(price: float) -> float:
+def price2dec(price: float, decimals: int = 2) -> float:
     """
     pousti maximalne 2 decimals
     pokud je trojmistne a vic pak zakrouhli na 2, jinak necha
     """
-    return round(price,2) if count_decimals(price) > 2 else price
+    return round(price,decimals) if count_decimals(price) > decimals else price
 
 def count_decimals(number: float) -> int:
     """

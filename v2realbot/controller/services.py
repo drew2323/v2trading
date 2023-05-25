@@ -458,6 +458,8 @@ def archive_runner(runner: Runner, strat: StrategyInstance):
         
         #flatten indicators from numpy array
         flattened_indicators = {}
+        #pole indicatoru, kazdy ma svoji casovou osu time
+        flattened_indicators_list = []
         for key, value in strat.state.indicators.items():
                 if isinstance(value, ndarray):
                     #print("is numpy", key,value)
@@ -466,11 +468,22 @@ def archive_runner(runner: Runner, strat: StrategyInstance):
                 else:
                     #print("is not numpy", key, value)
                     flattened_indicators[key]= value    
+        flattened_indicators_list.append(flattened_indicators)
+        flattened_indicators = {}
+        for key, value in strat.state.cbar_indicators.items():
+                if isinstance(value, ndarray):
+                    #print("is numpy", key,value)
+                    flattened_indicators[key]= value.tolist()
+                    #print("changed numpy:",value.tolist())
+                else:
+                    #print("is not numpy", key, value)
+                    flattened_indicators[key]= value   
+        flattened_indicators_list.append(flattened_indicators)
 
         runArchiveDetail: RunArchiveDetail = RunArchiveDetail(id = runner.id,
                                                             name=runner.run_name,
                                                             bars=strat.state.bars,
-                                                            indicators=flattened_indicators,
+                                                            indicators=flattened_indicators_list,
                                                             statinds=strat.state.statinds,
                                                             trades=strat.state.tradeList)
         resh = db_arch_h.insert(runArchive.__dict__)

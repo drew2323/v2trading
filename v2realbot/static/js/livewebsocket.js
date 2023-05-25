@@ -5,6 +5,7 @@ var logcnt = 0
 var positionsPriceLine = null
 var limitkaPriceLine = null
 var angleSeries = 1
+var cbar = false
 
 //get details of runner to populate chart status
 //fetch necessary - it could be initiated by manually inserting runnerId
@@ -53,35 +54,21 @@ function connect(event) {
     ws.onmessage = function(event) {
         var parsed_data = JSON.parse(event.data)
 
-        //console.log(JSON.stringify(parsed_data))
+        console.log(JSON.stringify(parsed_data))
 
-        //check received data and display lines
-        if (parsed_data.hasOwnProperty("bars")) {
-            var bar = parsed_data.bars 
-            candlestickSeries.update(bar);
-            volumeSeries.update({
-                time: bar.time,
-                value: bar.volume
-            });
-            vwapSeries.update({
-                time: bar.time,
-                value: bar.vwap
-            });
-        }
-
-        if (parsed_data.hasOwnProperty("bars")) {
-            // console.log("mame bary")
-            var bar = parsed_data.bars 
-            candlestickSeries.update(bar);
-            volumeSeries.update({
-                time: bar.time,
-                value: bar.volume
-            });
-            vwapSeries.update({
-                time: bar.time,
-                value: bar.vwap
-            });
-        }
+        // //check received data and display lines
+        // if (parsed_data.hasOwnProperty("bars")) {
+        //     var bar = parsed_data.bars 
+        //     candlestickSeries.update(bar);
+        //     volumeSeries.update({
+        //         time: bar.time,
+        //         value: bar.volume
+        //     });
+        //     vwapSeries.update({
+        //         time: bar.time,
+        //         value: bar.vwap
+        //     });
+        // }
 
         //loglist
         if (parsed_data.hasOwnProperty("iter_log")) { 
@@ -343,6 +330,52 @@ function connect(event) {
                     }
                 }
             }
+        }
+
+        if (parsed_data.hasOwnProperty("bars")) {
+            
+            var bar = parsed_data.bars 
+            //pokud jde o cbary, tak jako time bereme cas posledniho update
+            //aby se nam na grafu nepredbihaly cbar indikatory
+
+            //workaround pro identifikaci CBARU
+            //pokud se vyskytne unconfirmed bar = jde o CBARY - nastavena globalni promena
+            //standardni bar je vzdy potvrzeny
+            // if (bar.confirmed == 0) {
+            //     cbar = true }
+
+
+            // //pozor CBARY zobrazujeme na konci platnosti baru, nikoliv dle TIME, ale UPDATED
+            // //kvuli navazovani prubeznych indikatoru na gui
+            // if (cbar) {
+            //     // CBAR kreslime az po potvrzeni
+            //     if (bar.confirmed == 1) {
+            //         bar.time = bar.updated
+            //         candlestickSeries.update(bar);
+            //         volumeSeries.update({
+            //             time: bar.time,
+            //             value: bar.volume
+            //         });
+            //         vwapSeries.update({
+            //             time: bar.time,
+            //             value: bar.vwap
+            //         });
+            //     }
+            // }
+            // else {
+            //     //time = bar.time
+
+
+            candlestickSeries.update(bar);
+            volumeSeries.update({
+                time: bar.time,
+                value: bar.volume
+            });
+            vwapSeries.update({
+                time: bar.time,
+                value: bar.vwap
+            });
+        //}
         }
     }
     ws.onclose = function(event) {

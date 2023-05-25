@@ -23,8 +23,6 @@ class TradeAggregator:
                  mintick: int = 0,
                  exthours: bool = False):
         """
-        UPDATED VERSION - vrací více záznamů
-
         Create trade agregator. Instance accepts trades one by one and process them and returns output type
             Trade - return trade one by one (no change)
             Bar - return finished bar in given timeframe
@@ -64,8 +62,6 @@ class TradeAggregator:
         #instance variable to hold last trade price
         self.last_price = 0
         self.barindex = 1
-        self.diff_price = True
-        self.preconfBar = {}
 
     async def ingest_trade(self, indata, symbol):
         """
@@ -76,7 +72,7 @@ class TradeAggregator:
         data = unpackb(indata)
 
         #last item signal
-        if data == "last": return [data]
+        if data == "last": return data
 
         #print(data)
         ##implementing fitlers - zatim natvrdo a jen tyto: size: 1, cond in [O,C,4] opening,closed a derivately priced,
@@ -86,15 +82,15 @@ class TradeAggregator:
         ## přidán W - average price trade, U - Extended hours - sold out of sequence
         try:
             for i in data['c']:
-                if i in ('C','O','4','B','7','V','P','W','U'): return []
+                if i in ('C','O','4','B','7','V','P','W','U'): return 0
         except KeyError:
             pass
 
-        #EXPERIMENT zkusime vyhodit vsechny pod 50 #puv if int(data['s']) == 1: return []
+        #EXPERIMENT zkusime vyhodit vsechny pod 50 #puv if int(data['s']) == 1: return 0
         #zatim nechavame - výsledek je naprosto stejný jako v tradingview
-        if int(data['s']) < self.minsize: return []
+        if int(data['s']) < self.minsize: return 0
         #{'t': 1678982075.242897, 'x': 'D', 'p': 29.1333, 's': 18000, 'c': [' ', '7', 'V'], 'i': 79372107591749, 'z': 'A', 'u': 'incorrect'}
-        if 'u' in data: return []
+        if 'u' in data: return 0
 
         #pokud projde TRADE s cenou 0.33% rozdilna oproti predchozi, pak vyhazujeme v ramci cisteni dat (cca 10ticku na 30USD)
         pct_off = 0.33
@@ -110,7 +106,7 @@ class TradeAggregator:
         if float(data['p']) > float(ltp.price[symbol]) + (float(data['p'])/100*pct_off) or float(data['p']) < float(ltp.price[symbol])-(float(data['p'])/100*pct_off):
             print("ZLO", data,ltp.price[symbol])
             #nechavame zlo zatim projit
-            ##return []
+            ##return 0
             # with open("cache/wrongtrades.txt", 'a') as fp:
             #     fp.write(str(data) + 'predchozi:'+str(ltp.price[symbol])+'\n')        
 
@@ -132,7 +128,7 @@ class TradeAggregator:
 
         if not is_open_hours(datetime.fromtimestamp(data['t'])) and self.exthours is False:
             #print("AGG: trade not in open hours skipping", datetime.fromtimestamp(data['t']).astimezone(zoneNY))
-            return []
+            return 0
 
         #tady bude vzdycky posledni cena a posledni cas
         if self.update_ltp:
@@ -141,7 +137,7 @@ class TradeAggregator:
 
         #if data['p'] < self.last_price - 0.02: print("zlo:",data)
 
-        if self.rectype == RecordType.TRADE: return [data]
+        if self.rectype == RecordType.TRADE: return data
 
         #print("agr přišel trade", datetime.fromtimestamp(data['t']),data)
 
@@ -171,45 +167,9 @@ class TradeAggregator:
             else:
                 self.newBar['confirmed'] = 1
                 self.newBar['vwap'] = self.vwaphelper / self.newBar['volume']
+                #updatujeme čas - obsahuje datum tradu, který confirm triggeroval
+                self.newBar['updated'] = data['t']
                 
-                
-                #HACK pro update casu, který confirm triggeroval
-                #u CBARu v confirmnutem muze byt 
-                # 1) no trades (pak potvrzujeme predchozi)
-                # 2) trades with same price , ktere zaroven timto flushujeme (v tomto pripade je cas updatu cas predchoziho tradu)
-
-                # variantu vyse pozname podle nastavene self.diff_price = True (mame trady a i ulozeny cas)
-                if self.rectype == RecordType.CBAR:
-                    #UPDATE ať confirmace nenese zadna data, vsechny zmenena data jsou vyflusnute predtim
-                    #pokud byly nejake trady
-                    if self.diff_price is False:
-                        #self.newBar['updated'] = self.lasttimestamp
-                       
-                        #TODO tady bychom nejdriv vyflushnuly nekonfirmovany bar s trady
-                        #a nasladne poslali prazdny confirmacni bar
-                        self.preconfBar = deepcopy(self.newBar)
-                        self.preconfBar['updated'] = self.lasttimestamp
-                        self.preconfBar['confirmed'] = 0
-                        #pridat do promenne
-
-                    #else:
-                    #NASTY HACK pro GUI
-                    #zkousime potvrzeni baru dat o chlup mensi cas nez cas noveho baru, ktery jde hned za nim
-                    #gui neumi zobrazit duplicity a v RT grafu nejde upravovat zpetne
-                    #zarovname na cas  baru podle timeframu(např. 5, 10, 15 ...) (ROUND)
-                    if self.align:
-                        t = datetime.fromtimestamp(data['t'])
-                        t = t - timedelta(seconds=t.second % self.timeframe,microseconds=t.microsecond)
-                    #nebo pouzijeme datum tradu zaokrouhlene na vteriny (RANDOM)
-                    else:
-                        #ulozime si jeho timestamp (odtum pocitame timeframe)
-                        t = datetime.fromtimestamp(int(data['t']))
-
-                    #self.newBar['updated'] = float(data['t']) - 0.001
-                    self.newBar['updated'] = datetime.timestamp(t) - 0.000001
-                #PRO standardní BAR nechavame puvodni
-                else:
-                    self.newBar['updated'] = data['t']
                 #ulozime datum akt.tradu pro mintick
                 self.lastBarConfirmed = True
                 #ukládám si předchozí (confirmed)bar k vrácení
@@ -239,9 +199,9 @@ class TradeAggregator:
             
         #je cena stejna od predchoziho tradu? pro nepotvrzeny cbar vracime jen pri zmene ceny  
         if self.last_price == data['p']:
-            self.diff_price = False
+            diff_price = False
         else:
-            self.diff_price = True    
+            diff_price = True    
         self.last_price = data['p'] 
 
         #spočteme vwap - potřebujeme předchozí hodnoty 
@@ -256,7 +216,6 @@ class TradeAggregator:
         self.newBar['hlcc4'] = round((self.newBar['high']+self.newBar['low']+self.newBar['close']+self.newBar['close'])/4,3)
 
         #predchozi bar byl v jine vterine, tzn. ukladame do noveho (aktualniho) pocatecni hodnoty
-        #NEW BAR POPULATION
         if (issamebar == False):
             #zaciname novy bar
 
@@ -290,30 +249,14 @@ class TradeAggregator:
         #je tu maly bug pro CBAR - kdy prvni trade, který potvrzuje predchozi bar
         #odesle potvrzeni predchoziho baru a nikoliv open stávajícího, ten posle až druhý trade
         #což asi nevadí
-        #OPRAVENO 
 
 
-        #pokud je pripraveny, vracíme předchozí confirmed bar PLUS NOVY, který ho triggeroval. pokud bylo
-        # pred confirmem nejake trady beze zmeny ceny flushujeme je take (preconfBar)
-        #predchozi bar muze obsahovat zmenena data
+        #pokud je pripraveny, vracíme předchozí confirmed bar
         if len(self.returnBar) > 0:
-            return_set = []
-            #pridame preconfirm bar pokud je
-            if len(self.preconfBar)>0:
-                return_set.append(self.preconfBar)
-                self.preconfBar = {}
-            #pridame confirmation bar
-            return_set.append(self.returnBar)
-            #self.tmp = self.returnBar
-            self.returnBar = []
-            #doplnime prubezny vwap
-            self.newBar['vwap'] = self.vwaphelper / self.newBar['volume']
-            return_set.append(self.newBar)
-            #TODO pridat sem podporu pro mintick jako nize, tzn. pokud je v ochrannem okne, tak novy bar nevracet
-            #zatim je novy bar odesilan nehlede na mintick
-            #return_set = [self.tmp, self.newBar]
-
-            return return_set
+            self.tmp = self.returnBar
+            self.returnBar = {}
+            #print(self.tmp)
+            return self.tmp
 
         #pro cont bar posilame ihned (TBD vwap a min bar tick value)
         if self.rectype == RecordType.CBAR:
@@ -324,7 +267,7 @@ class TradeAggregator:
                 #pocatek noveho baru + Xs  musi byt vetsi nez aktualni trade              
                 if (self.newBar['time'] + timedelta(seconds=self.mintick)) > datetime.fromtimestamp(data['t']):
                     #print("waiting for mintick")
-                    return []
+                    return 0
                 else:
                     self.lastBarConfirmed = False
             
@@ -333,12 +276,12 @@ class TradeAggregator:
             #print(self.newBar)
 
             #pro (nepotvrzeny) cbar vracime jen pri zmene ceny
-            if self.diff_price is True:
-                return [self.newBar]
+            if diff_price is True:
+                return self.newBar
             else:
-                return []
+                return 0
         else:
-            return []
+            return 0
 
 
 class TradeAggregator2Queue(TradeAggregator):
@@ -354,17 +297,15 @@ class TradeAggregator2Queue(TradeAggregator):
     async def ingest_trade(self, data):
             #print("ingest ve threadu:",current_thread().name)
             res = await super().ingest_trade(data, self.symbol)
-
-            #if len(res) > 0:
-            for obj in res:
+            if res != 0:
                 #print(res)
                 #pri rychlem plneni vetsiho dictionary se prepisovali - vyreseno kopií
-                if isinstance(obj, dict):
-                    copy = obj.copy()
+                if isinstance(res, dict):
+                    copy = res.copy()
                 else:
-                    copy = obj
+                    copy = res
                 self.queue.put(copy)
-            res = []
+            res = {}
             #print("po insertu",res)
 
 class TradeAggregator2List(TradeAggregator):
@@ -383,17 +324,17 @@ class TradeAggregator2List(TradeAggregator):
             #print("ted vstoupil do tradeagg2list ingestu")
             res1 = await super().ingest_trade(data, self.symbol)
             #print("ted je po zpracovani", res1)
-            for obj in res1:
+            if res1 != 0:
                 #pri rychlem plneni vetsiho dictionary se prepisovali - vyreseno kopií
-                if isinstance(obj, dict):
-                    copy = obj.copy()
+                if isinstance(res1, dict):
+                    copy = res1.copy()
                 else:
-                    copy = obj
-                if obj == 'last': return []
+                    copy = res1
+                if res1 == 'last': return 0
                 self.btdata.append((copy['t'],copy['p']))
                 # with open(self.debugfile, "a") as output:
                 #     output.write(str(copy['t']) + ' ' + str(datetime.fromtimestamp(copy['t']).astimezone(zoneNY)) + ' ' + str(copy['p']) + '\n')
-            res1 = []
+            res1 = {}
                 #print("po insertu",res)
 
 

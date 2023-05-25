@@ -127,8 +127,6 @@ function transform_data(data) {
 
     //pro jistotu jeste seradime podle casu
     //v BT se muze predbehnout a lightweight to pak nezobrazi
-    const sorter = (a, b) => a.time > b.time ? 1 : -1;
-
     markers.sort(sorter)
     markers_line.sort(sorter)
     avgp_buy_line.sort(sorter)
@@ -287,118 +285,142 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
     //vybereme barvu pro kazdy identifikator
     //zjistime typ idenitfikatoru - zatim right vs left
     function display_indicators(data) {
-        console.log("indikatory", JSON.stringify(data.indicators,null,2))
+        //console.log("indikatory", JSON.stringify(data.indicators,null,2))
         //podobne v livewebsokcets.js - dat do jedne funkce
         if (data.hasOwnProperty("indicators")) { 
             // console.log("jsme uvnitr indikatoru")
-            var indicators = data.indicators
-            //if there are indicators it means there must be at least two keys (time which is always present)
-            if (Object.keys(indicators).length > 1) {
-                for (const [key, value] of Object.entries(indicators)) {
-                    if (key !== "time") {
-                            //initialize indicator and store reference to array
-                            var obj = {name: key, series: null}
-    
-                            //start
-                            //console.log(key)
-                            //get configuation of indicator to display
-                            conf = get_ind_config(key)
 
-                            //INIT INDICATOR BASED on CONFIGURATION
+            //vraci se pole indicatoru, kazdy se svoji casovou osou (time) - nyni standard indikatory a cbar indikatory
+            var indicatorList = data.indicators
 
-                            //MOVE TO UTILS ro reuse??
-                            if (conf && conf.display) {
+            indicatorList.forEach((indicators, index, array) => {
 
-                                //tranform data do správného formátru
-                                items = []
-                                //var last = null
-                                value.forEach((element, index, array) => {
-                                    item = {}
-                                    //debug
-                                    //TOTO odstranit po identifikovani chyby
-                                    //if (indicators.time[index] !== undefined) {
-                                        //{console.log("problem",key,last)}
-                                    item["time"] = indicators.time[index]
-                                    item["value"] = element
-                                    //console.log("objekt indicatoru",item)
-                                    items.push(item)
+                //var indicators = data.indicators
+                //if there are indicators it means there must be at least two keys (time which is always present)
+                if (Object.keys(indicators).length > 1) {
+                    for (const [key, value] of Object.entries(indicators)) {
+                        if (key !== "time") {
+                                //initialize indicator and store reference to array
+                                var obj = {name: key, series: null}
+        
+                                //start
+                                //console.log(key)
+                                //get configuation of indicator to display
+                                conf = get_ind_config(key)
+
+                                //INIT INDICATOR BASED on CONFIGURATION
+
+                                //DO BUDOUCNA zde udelat sorter a pripadny handling duplicit jako
+                                //funkci do ktere muzu zavolat vse co pujde jako data do chartu
+
+                                //MOVE TO UTILS ro reuse??
+                                if (conf && conf.display) {
+
+                                    //tranform data do správného formátru
+                                    items = []
+                                    //var last = null
+                                    var last_time = 0
+                                    var time = 0
+                                    value.forEach((element, index, array) => {
+                                        item = {}
                                         //debug
-                                    //last = item
-                                    // }
-                                    // else
-                                    // {
-                                    //     console.log("chybejici cas", key)
-                                    // }
-                                });
+                                        //TOTO odstranit po identifikovani chyby
+                                        //if (indicators.time[index] !== undefined) {
+                                            //{console.log("problem",key,last)}
+                                        time = indicators.time[index]
+                                        if (time==last_time) {
+                                            //console.log(key, "problem v case - pousunuto o 0.001",time, last_time, element)
+                                            time += 0.000001
+                                        }
+                                        item["time"] = time
+                                        item["value"] = element
 
-                                if (conf.embed)  {
+                                        last_time = time
 
-                                    if (conf.histogram) {
+                                        if ((element == null) || (indicators.time[index] == null)) {
+                                        console.log("probelem u indikatoru",key, "nekonzistence", element, indicators.time[index]) 
+                                        }
 
-                                        obj.series = chart.addHistogramSeries({
-                                            title: (conf.titlevisible?conf.name:""),
-                                            color: colors.shift(),
-                                            priceFormat: {type: 'volume'},
-                                            priceScaleId: conf.priceScaleId,
-                                            lastValueVisible: conf.lastValueVisible,
-                                            priceScaleId: conf.priceScaleId});
-                                        
-                                        obj.series.priceScale().applyOptions({
-                                            // set the positioning of the volume series
-                                            scaleMargins: {
-                                                top: 0.7, // highest point of the series will be 70% away from the top
-                                                bottom: 0,
-                                            },
-                                        });
+                                        //console.log("objekt indicatoru",item)
+                                        items.push(item)
+                                            //debug
+                                        //last = item
+                                        // }
+                                        // else
+                                        // {
+                                        //     console.log("chybejici cas", key)
+                                        // }
+                                    });
+
+                                    if (conf.embed)  {
+
+                                        if (conf.histogram) {
+
+                                            obj.series = chart.addHistogramSeries({
+                                                title: (conf.titlevisible?conf.name:""),
+                                                color: colors.shift(),
+                                                priceFormat: {type: 'volume'},
+                                                priceScaleId: conf.priceScaleId,
+                                                lastValueVisible: conf.lastValueVisible,
+                                                priceScaleId: conf.priceScaleId});
+                                            
+                                            obj.series.priceScale().applyOptions({
+                                                // set the positioning of the volume series
+                                                scaleMargins: {
+                                                    top: 0.7, // highest point of the series will be 70% away from the top
+                                                    bottom: 0,
+                                                },
+                                            });
+
+                                        }
+                                        else {
+
+                                            obj.series = chart.addLineSeries({
+                                                color: colors.shift(),
+                                                priceScaleId: conf.priceScaleId,
+                                                title: (conf.titlevisible?conf.name:""),
+                                                lineWidth: 1
+                                            });   
+
+                                            //toto nejak vymyslet konfiguracne, additional threshold lines
+                                            if (key == "slopeMA") {
+                                                //natvrdo nakreslime lajnu pro min angle
+                                                //TODO predelat na configuracne
+                                                const minSlopeLineOptopns = {
+                                                    price: data.statinds.angle.minimum_slope,
+                                                    color: '#b67de8',
+                                                    lineWidth: 1,
+                                                    lineStyle: 2, // LineStyle.Dotted
+                                                    axisLabelVisible: true,
+                                                    title: "max:",
+                                                };
+                                    
+                                                const minSlopeLine = obj.series.createPriceLine(minSlopeLineOptopns);
+                                            }
+                                    }
+
 
                                     }
-                                    else {
-
-                                        obj.series = chart.addLineSeries({
-                                            color: colors.shift(),
-                                            priceScaleId: conf.priceScaleId,
-                                            title: (conf.titlevisible?conf.name:""),
-                                            lineWidth: 1
-                                        });   
-
-                                        //toto nejak vymyslet konfiguracne, additional threshold lines
-                                        if (key == "slopeMA") {
-                                            //natvrdo nakreslime lajnu pro min angle
-                                            //TODO predelat na configuracne
-                                            const minSlopeLineOptopns = {
-                                                price: data.statinds.angle.minimum_slope,
-                                                color: '#b67de8',
-                                                lineWidth: 1,
-                                                lineStyle: 2, // LineStyle.Dotted
-                                                axisLabelVisible: true,
-                                                title: "max:",
-                                            };
+                                    //INDICATOR on new pane
+                                    else { console.log("not implemented")}
                                 
-                                            const minSlopeLine = obj.series.createPriceLine(minSlopeLineOptopns);
-                                        }
-                                }
+                                //add options
+                                obj.series.applyOptions({
+                                    lastValueVisible: false,
+                                    priceLineVisible: false,
+                                });
 
+                                //console.log("problem tu",JSON.stringify(items))
+                                //add data
+                                obj.series.setData(items)
 
-                                }
-                                //INDICATOR on new pane
-                                else { console.log("not implemented")}
-                            
-                            //add options
-                            obj.series.applyOptions({
-                                lastValueVisible: false,
-                                priceLineVisible: false,
-                            });
-
-                            //console.log("problem tu",items)
-                            //add data
-                            obj.series.setData(items)
-
-                            // add to indList array - pole zobrazovanych indikatoru    
-                            indList.push(obj);   
+                                // add to indList array - pole zobrazovanych indikatoru    
+                                indList.push(obj);   
+                            }
                         }
                     }
                 }
-            }
+            })
         }
 
         //display vwap and volume

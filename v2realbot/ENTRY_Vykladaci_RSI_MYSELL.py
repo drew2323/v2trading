@@ -5,7 +5,7 @@ from v2realbot.strategy.StrategyOrderLimitVykladaciNormalizedMYSELL import Strat
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, OrderSide, OrderType
 from v2realbot.indicators.indicators import ema
 from v2realbot.indicators.oscillators import rsi
-from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, print, safe_get, get_tick
+from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, print, safe_get, get_tick, round2five
 from datetime import datetime
 #from icecream import install, ic
 #from rich import print
@@ -175,6 +175,10 @@ def next(data, state: StrategyState):
         akt_pozic = int(state.positions)
         max_pozic = int(state.vars.maxpozic)
 
+        if akt_pozic >= max_pozic:
+            state.ilog(e="MAX pozic reached, cannot vyklad")
+            return
+        
         #mame polovinu a vic vylozeno, pouzivame defenzicni krivku
         if is_defensive_mode():
             state.ilog(e="DEF: Pouzivame defenzivni krivku", akt_pozic=akt_pozic, max_pozic=max_pozic, curve_def=curve_def)
@@ -243,31 +247,38 @@ def next(data, state: StrategyState):
 
     #na urovni CBARU mame zajisteno, ze update prichazi pri zmene ceny
     #v kazde iteraci testujeme sell
-    #pri confirmed tesutjeme i buy
+    #pri potvrzenem baru muzeme provest kroky per hlavni BAR
+    #potvrzeni neprinasi nikdy zadna nova data, ale pouze potvrzeni.
     state.ilog(e="-----")
     eval_sell()
 
-
     conf_bar = data['confirmed'] 
-    #for CBAR TICK and VOLUME change info
-    #price change vs Volume
-    tick_price = data['close']
-    tick_volume = data['volume'] - state.vars.last_tick_volume
-
-    #pouze potvrzovací BAR CBARu, mozna id confirmed = 1, pak ignorovat 
-    if tick_volume == 0:
+    if conf_bar == 1:
+        #delej veci per standardni bar
+        state.ilog(e="BAR potvrzeny")
+    else:
         pass
+        #delej veci tick-based
 
-    ##naplneni indikatoru vnitrniho CBAR tick price
-    ##pozor CBAR identifikatory jsou ukladane do historie az pro konfirmnuty bar
-    try:
-        state.indicators.tick_price[-1] = tick_price
-        state.indicators.tick_volume[-1] = tick_volume
-    except:
-        pass
+    #CBAR INDICATOR pro tick price a deltu VOLUME
+    tick_price = round2five(data['close'])
+    tick_delta_volume = data['volume'] - state.vars.last_tick_volume
+   
+    if conf_bar == 0:
+        try:
+            #pokud v potvrzovacím baru nebyly zmeny, nechavam puvodni hodnoty
+            # if tick_delta_volume == 0:
+            #     state.indicators.tick_price[-1] = state.indicators.tick_price[-2]
+            #     state.indicators.tick_volume[-1] = state.indicators.tick_volume[-2]
+            # else:
 
-    state.ilog(e=f"TICK PRICE {tick_price} VOLUME {tick_volume} {conf_bar=}", last_price=state.vars.last_tick_price, last_volume=state.vars.last_tick_volume)
+            #docasne dame pryc volume deltu a davame absolutni cislo
+            state.cbar_indicators.tick_price[-1] = tick_price
+            state.cbar_indicators.tick_volume[-1] = tick_delta_volume
+        except:
+            pass
 
+        state.ilog(e=f"TICK PRICE {tick_price} VOLUME {tick_delta_volume} {conf_bar=}", last_price=state.vars.last_tick_price, last_volume=state.vars.last_tick_volume)
     
     state.vars.last_tick_price = tick_price
     state.vars.last_tick_volume = data['volume']
@@ -276,6 +287,18 @@ def next(data, state: StrategyState):
         state.vars.last_tick_volume = 0
         state.vars.next_new = 1
 
+
+
+    #TEST BUY SIGNALu z cbartick_price - 3klesave za sebou
+    buy_tp = isfalling(state.cbar_indicators.tick_price,state.vars.Trend)
+    state.ilog(e=f"TICK SIGNAL ISFALLING {buy_tp}", last_tp=state.cbar_indicators.tick_price[-6:], trend=state.vars.Trend)
+
+    #IVWAP - PRUBEZNY persistovany VWAP
+    # try:
+    #     #naplneni cbar tick indikatoru s prubeznou vwap
+    #     state.cbar_indicators.ivwap[-1]=data['vwap']
+    # except:
+    #     pass
 
 
     # if data['confirmed'] == 0:
@@ -287,7 +310,7 @@ def next(data, state: StrategyState):
     # else:
     #     state.ilog(e="CBAR confirmed - continue", msg=str(data))
 
-    #EMA INDICATOR - 
+    #BAR EMA INDICATOR - 
     #plnime MAcko - nyni posilame jen N poslednich hodnot
     #zaroven osetrujeme pripady, kdy je malo dat a ukladame nulu
     try:
@@ -296,27 +319,31 @@ def next(data, state: StrategyState):
         source = state.bars.close[-ma:] #state.bars.vwap
         ema_value = ema(source, ma)
         state.indicators.ema[-1]=trunc(ema_value[-1],3)
+        state.ilog(e=f"EMA {state.indicators.ema[-1]}", ema_last=state.indicators.ema[-6:])
     except Exception as e:
         state.ilog(e="EMA nechavame  0", message=str(e)+format_exc())
         #state.indicators.ema[-1]=(0)
 
-    #RSI14 INDICATOR
+    #CBAR RSI14 INDICATOR
     try:
         ##mame v atributech nastaveni?
         rsi_dont_buy_above = safe_get(state.vars, "rsi_dont_buy_above",50)
         rsi_buy_signal_conf = safe_get(state.vars, "rsi_buy_signal_below",40)
         rsi_buy_signal = False
         rsi_dont_buy = False
-        rsi_length = 2
-        source = state.bars.close #[-rsi_length:] #state.bars.vwap
+        rsi_length = 14
+
+        #source = state.bars.close #[-rsi_length:] #state.bars.vwap
+        #jako zdroj je prubezna CBAR tickprice
+        source =  state.cbar_indicators.tick_price
         rsi_res = rsi(source, rsi_length)
         rsi_value = trunc(rsi_res[-1],3)
-        state.indicators.RSI14[-1]=rsi_value
+        state.cbar_indicators.RSI14[-1]=rsi_value
         rsi_dont_buy = rsi_value > rsi_dont_buy_above
         rsi_buy_signal = rsi_value < rsi_buy_signal_conf
-        state.ilog(e=f"RSI{rsi_value} {rsi_length=} {rsi_dont_buy=} {rsi_buy_signal=}", rsi_indicator=state.indicators.RSI14[-5:])
+        state.ilog(e=f"CBARRSI{rsi_value} {rsi_length=} {rsi_dont_buy=} {rsi_buy_signal=}", rsi_indicator=state.cbar_indicators.RSI14[-5:])
     except Exception as e:
-        state.ilog(e=f"RSI {rsi_length=} nechavame 0", message=str(e)+format_exc())
+        state.ilog(e=f"CBARRSI {rsi_length=} nechavame 0", message=str(e)+format_exc())
         #state.indicators.RSI14.append(0)
 
 
@@ -417,9 +444,8 @@ def next(data, state: StrategyState):
     #TODO: zvazit jestli nechat i pri otevrenych pozicich, zatim nechavame
     #TODO int(int(state.oa.poz)/int(state.variables.chunk)) > X
 
-    #TODO predelat mechanismus ticků (zrelativizovat), aby byl pouzitelny na tituly s ruznou cenou
     #TODO spoustet 1x za X iteraci nebo cas
-    if state.vars.jevylozeno == 1:
+    if state.vars.jevylozeno == 1 and len(state.vars.pendingbuys)>0:
         #pokud mame vylozeno a cena je vetsi nez tick2reset 
             if len(state.vars.pendingbuys)>0:
                 maxprice = max(state.vars.pendingbuys.values())
@@ -443,34 +469,6 @@ def next(data, state: StrategyState):
                 state.vars.jevylozeno = 0
                 state.ilog(e="PB se vyklepaly nastavujeme: neni vylozeno", jevylozeno=state.vars.jevylozeno)
 
-            #TODO toto dodelat konzolidaci a mozna lock na limitku a pendingbuys a jevylozeno ??
-
-            #kdykoliv se muze notifikace ztratit 
-                # - pendingbuys - vsechny open orders buy
-                # - limitka - open order sell
-
-
-
-
-            
-
-            #pokud je vylozeno a mame pozice a neexistuje limitka - pak ji vytvorim
-            # if int(state.oe.poz)>0 and state.oe.limitka == 0:
-            #     #pro jistotu updatujeme pozice
-            #     state.oe.avgp, state.oe.poz = state.oe.pos()
-            #     if int(state.oe.poz) > 0:
-            #         cena = round(float(state.oe.avgp) + float(state.oe.stratvars["profit"]),2)
-            #         print("BUGF: limitka neni vytvarime, a to za cenu",cena,"mnozstvi",state.oe.poz)
-            #         print("aktuzalni ltp",ltp.price[state.oe.symbol])
-
-            #         try:
-            #             state.oe.limitka = state.oe.sell_noasync(cena, state.oe.poz)
-            #             print("vytvorena limitka", state.oe.limitka)
-            #         except Exception as e:
-            #             print("Neslo vytvorit profitku. Problem,ale jedeme dal",str(e))
-            #             pass
-            #             ##raise Exception(e)
-
     print(10*"*","NEXT STOP",10*"*")
 
 def init(state: StrategyState):
@@ -481,12 +479,13 @@ def init(state: StrategyState):
     state.vars.last_tick_price = 0
     state.vars.last_tick_volume = 0
     state.vars.next_new = 0
-    state.indicators['tick_price'] = []
-    state.indicators['tick_volume'] = []
+    #state.cbar_indicators['ivwap'] = []
+    state.cbar_indicators['tick_price'] = []
+    state.cbar_indicators['tick_volume'] = []
     state.indicators['ema'] = []
     state.indicators['slope'] = []
     state.indicators['slopeMA'] = []
-    state.indicators['RSI14'] = []
+    state.cbar_indicators['RSI14'] = []
     #static indicators - those not series based
     state.statinds['angle'] = dict(minimum_slope=state.vars["minimum_slope"])
     state.vars["ticks2reset_backup"] = state.vars.ticks2reset

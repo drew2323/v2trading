@@ -194,7 +194,7 @@ class RunArchiveDetail(BaseModel):
     name: str
     bars: dict
     #trades: Optional[dict]
-    indicators: dict
+    indicators: List[dict]
     statinds: dict
     trades: List[TradeUpdate]
 

@@ -138,11 +138,12 @@ class Strategy:
     def save_item_history(self,item):
         if self.rectype == RecordType.BAR:
             #jako cas indikatorů pridavame cas baru a inicialni hodnoty vsech indikatoru
-            self.state.indicators['time'].append(item['time'])
+            
             for key in self.state.indicators:
                 if key == 'time':
-                    continue
-                self.state.indicators[key].append(0)
+                    self.state.indicators['time'].append(item['updated'])
+                else:
+                    self.state.indicators[key].append(0)
             self.append_bar(self.state.bars,item)
         elif self.rectype == RecordType.TRADE:
             pass
@@ -150,25 +151,42 @@ class Strategy:
             #self.state.indicators['time'].append(datetime.fromtimestamp(self.state.last_trade_time))
             #self.append_trade(self.state.trades,item)
         elif self.rectype == RecordType.CBAR:
-            #novy vzdy pridame
             if self.nextnew:
-                self.state.indicators['time'].append(item['updated'])
+                #standardni identifikatory - populace hist zaznamu pouze v novem baru (dale se deji jen udpaty)
                 for key in self.state.indicators:
                     if key == 'time':
-                        continue
-                    self.state.indicators[key].append(0)
+                        self.state.indicators['time'].append(item['time'])
+                    else:
+                        self.state.indicators[key].append(0)
 
+                #cbar indikatory populace v kazde iteraci
+                for key in self.state.cbar_indicators:
+                    if key == 'time':
+                        self.state.cbar_indicators['time'].append(item['updated'])
+                    else:
+                        self.state.cbar_indicators[key].append(0)
+
+                #populujeme i novy bar v historii
                 self.append_bar(self.state.bars,item)
                 self.nextnew = 0
             #nasledujici updatneme, po potvrzeni, nasleduje novy bar
+            #nasledujici identifikatory v ramci cbaru take pridavame
+            # (udrzujeme historii prubehu identifikatoru v ramci cbaru)
             else:
+                #bary updatujeme, pridavame jen prvni
+                self.replace_prev_bar(self.state.bars,item)
+
+                #u cbar indikatoru, pridavame kazdou zmenu ceny, krome potvrzeneho baru
+
                 if item['confirmed'] == 0:
-                    self.state.indicators['time'][-1]=item['updated']
-                    self.replace_prev_bar(self.state.bars,item)
-                #confirmed
+                    #v naslednych updatech baru inicializujeme vzdy jen cbar indikatory
+                    for key in self.state.cbar_indicators:
+                        if key == 'time':
+                            self.state.cbar_indicators['time'].append(item['updated'])
+                        else:
+                            self.state.cbar_indicators[key].append(0)
                 else:
-                    self.state.indicators['time'][-1]=item['updated']
-                    self.replace_prev_bar(self.state.bars,item)
+                    #pokud je potvrzeny, pak nenese nikdy zmenu ceny, nepridavame zaznam nic
                     self.nextnew = 1
 
     """"refresh positions and avgp - for CBAR once per confirmed, for BARS each time"""
@@ -395,11 +413,12 @@ class Strategy:
         ##posilame dict s objekty: bars, trades podle cbaru, a dale indicators naplnene time a pripadnymi identifikatory (EMA)
         if self.rtqueue is not None:
             rt_out = dict()
-            
+
             if self.rectype == RecordType.BAR or self.rectype == RecordType.CBAR:
                 rt_out["bars"] = item
             else:
                 rt_out["trades"] = item
+            
             #get only last values from indicators, if there are any indicators present
             if len(self.state.indicators) > 0:
                 rt_out["indicators"] = dict()
@@ -408,6 +427,13 @@ class Strategy:
                         try:
                             rt_out["indicators"][key]= value[-1]
                         #zatim takto odchycene identifikatory, ktere nemaji list, ale dict - do budoucna predelat na samostatny typ "indicators_static"
+                        except IndexError:
+                            pass
+            #populate cbar indicators
+            if len(self.state.cbar_indicators) > 0:
+                for key, value in self.state.cbar_indicators.items():
+                        try:
+                            rt_out["indicators"][key]= value[-1]
                         except IndexError:
                             pass
 
@@ -544,6 +570,7 @@ class StrategyState:
         self.bars = AttributeDict(bars)
         self.trades = AttributeDict(trades)
         self.indicators = AttributeDict(time=[])
+        self.cbar_indicators = AttributeDict(time=[])
         self.statinds = AttributeDict()
         #these methods can be overrided by StrategyType (to add or alter its functionality)
         self.buy = self.interface.buy

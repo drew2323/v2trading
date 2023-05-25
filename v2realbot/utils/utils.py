@@ -131,6 +131,14 @@ def price2dec(price: float, decimals: int = 2) -> float:
     """
     return round(price,decimals) if count_decimals(price) > decimals else price
 
+def round2five(price: float):
+    """
+    zatim jen na 3 mista -pripadne predelat na dynamicky
+    z 23.342 - 23.340
+    z 23.346 - 23.345
+    """ 
+    return (round(price*100*2)/2)/100
+
 def count_decimals(number: float) -> int:
     """
     Count the number of decimals in a given float: 1.4335 -> 4 or 3 -> 0

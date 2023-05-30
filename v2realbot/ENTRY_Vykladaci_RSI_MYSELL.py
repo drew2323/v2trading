@@ -402,6 +402,32 @@ def next(data, state: StrategyState):
         state.ilog(e="Max pos reached")
         return 0
 
+    #tbd zakladni schema viz nize +
+    #pokracovat v buy signalu pro cbar 
+
+
+    #trigger 
+    #stavy
+    #ochrany
+
+    get indikator vals
+
+    generate triggers
+        set working states
+           rovne, prudce nahoru, prudce dolu
+    
+
+    process triggers
+
+    buy_signal
+        buy protection (dont buy when)
+    sell signal
+        sell protection (dont buy when)
+    
+
+    
+
+
 
     #HLAVNI ITERACNI LOG JESTE PRED AKCI - obsahuje aktualni hodnoty vetsiny parametru
     #TODO sem pridat aktualni hodnoty vsech indikatoru

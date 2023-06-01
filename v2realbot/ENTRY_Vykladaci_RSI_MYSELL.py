@@ -407,7 +407,7 @@ def next(data, state: StrategyState):
         dont_buy_when['last_buy_offset_too_soon'] =  data['index'] < (state.vars.last_buysignal_index + safe_get(state.vars, "lastbuy_offset",3))
         dont_buy_when['blockbuy_active'] = (state.vars.blockbuy == 1)
         dont_buy_when['jevylozeno_active'] = (state.vars.jevylozeno == 1)
-        dont_buy_when['buy_protection_enabled'] = buy_protection_enabled()
+        #dont_buy_when['buy_protection_enabled'] = buy_protection_enabled()
         dont_buy_when['open_rush'] = is_open_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), safe_get(state.vars, "open_rush",0))
         dont_buy_when['close_rush'] = is_close_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), safe_get(state.vars, "close_rush",0))
         dont_buy_when['rsi_is_zero'] = (state.indicators.RSI14[-1] == 0)
@@ -429,13 +429,17 @@ def next(data, state: StrategyState):
 
         #slopeMA jde dolu, rsi jde nahoru
         #buy mame kazdy potvrzeny, tzn. rsi falling muze byt jen 2
-        buy_cond['AND']['slopeMA_falling'] = isfalling(state.indicators.slopeMA,3)
-        buy_cond['AND']['rsi_is_rising'] = isrising(state.indicators.RSI14,2)
-        buy_cond["AND"]["rsi_buy_signal_below"] = state.indicators.RSI14[-1] < safe_get(state.vars, "rsi_buy_signal_below",40)
+        
+        #buy_cond['AND']['slopeMA_falling'] = isfalling(state.indicators.slopeMA,3)
+        #buy_cond['AND']['rsi_is_rising'] = isrising(state.indicators.RSI14,2)
+        #buy_cond["AND"]["rsi_buy_signal_below"] = state.indicators.RSI14[-1] < safe_get(state.vars, "rsi_buy_signal_below",40)
 
         #puvodni buy conditiony
         #buy_cond["AND"]["rsi_buy_signal_below"] = state.indicators.RSI14[-1] < safe_get(state.vars, "rsi_buy_signal_below",40)
         #buy_cond["AND"]["ema_trend_is_falling"] = isfalling(state.indicators.ema,state.vars.Trend)
+
+        #pouze RSI pod 35 a zadny jiny
+        buy_cond["AND"]["rsi_buy_signal_below"] = state.indicators.RSI14[-1] < safe_get(state.vars, "rsi_buy_signal_below",40)
 
         result, conditions_met = eval_cond_dict(buy_cond)
         if result:

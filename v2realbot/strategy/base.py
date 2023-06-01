@@ -419,10 +419,10 @@ class Strategy:
             else:
                 rt_out["trades"] = item
             
+            rt_out["indicators"] = dict()
             #get only last values from indicators, if there are any indicators present
             #standardni indikatory plnime jen na confirmed bar pro real time
             if len(self.state.indicators) > 0 and item['confirmed'] == 1:
-                rt_out["indicators"] = dict()
                 for key, value in self.state.indicators.items():
                         #odchyceny pripad, kdy indikatory jsou inicializovane, ale jeste v nich nejsou data, pak do WS nic neposilame
                         try:

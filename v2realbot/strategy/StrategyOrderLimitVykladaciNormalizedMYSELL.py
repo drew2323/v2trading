@@ -30,6 +30,9 @@ class StrategyOrderLimitVykladaciNormalizedMYSELL(Strategy):
                 print("limit buy filled or cancelled. Vyhazujeme z pendingbuys.")
                 #ic(self.state.vars.pendingbuys)
 
+            #davame pryc blockbuy
+            self.state.vars.blockbuy = 0
+
         if data.event == TradeEvent.FILL or data.event == TradeEvent.PARTIAL_FILL:
             #ic("vstupujeme do orderupdatebuy")
             print(data)

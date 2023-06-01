@@ -38,6 +38,47 @@ def get_tick(price: float, normalized_ticks: float = 0.01):
         ratio = price/NORMALIZED_TICK_BASE_PRICE
         return price2dec(ratio*normalized_ticks)
 
+def eval_cond_dict(cond: dict) -> tuple[bool, str]:
+    """
+    evaluates conditions dictionary and return result and name of condition
+    examples:
+    buy_cond["AND"]["1and"] = True
+    buy_cond["AND"]["2and"] = False
+    buy_cond["OR"]["3or"] = False
+    buy_cond["OR"]["4or"] = False
+    buy_cond["5single"] = False
+    buy_cond["5siddngle"] = False
+    group eval rules. 1. single 2. AND 3. ORS
+    """
+    msg = ""
+    ret = False
+    #eval single cond
+    for klic in cond:
+        if klic in ["AND","OR"]: continue
+        else:
+            if cond[klic]:
+                return True, klic
+
+    ##check AND group
+    if 'AND' in cond.keys():
+        for key in cond["AND"]:
+
+            if cond["AND"][key]:
+                ret = True
+                msg += key + " AND "
+            else:
+                ret = False
+                break
+        if ret:
+            return True, msg
+    #eval OR groups 
+    if "OR" in cond.keys():
+        for key in cond["OR"]:
+            if cond["OR"][key]:
+                return True, key
+            
+    return False, None
+
 def safe_get(collection, key, default=None):
     """Get values from a collection without raising errors"""
 

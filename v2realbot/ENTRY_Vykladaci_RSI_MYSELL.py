@@ -5,7 +5,7 @@ from v2realbot.strategy.StrategyOrderLimitVykladaciNormalizedMYSELL import Strat
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, OrderSide, OrderType
 from v2realbot.indicators.indicators import ema
 from v2realbot.indicators.oscillators import rsi
-from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, print, safe_get, get_tick, round2five
+from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, print, safe_get, get_tick, round2five, is_open_rush, is_close_rush, eval_cond_dict
 from datetime import datetime
 #from icecream import install, ic
 #from rich import print
@@ -14,6 +14,7 @@ from msgpack import packb, unpackb
 import asyncio
 import os
 from traceback import format_exc
+import inspect
 
 print(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 """"
@@ -101,12 +102,12 @@ def next(data, state: StrategyState):
         max_pozic = int(state.vars.maxpozic)
         def_mode_from = safe_get(state.vars, "def_mode_from",max_pozic/2)
         if akt_pozic >= int(def_mode_from):
-            state.ilog(e=f"DEFENSIVE mode ACTIVE {state.vars.def_mode_from=}", msg=state.positions)
+            #state.ilog(e=f"DEFENSIVE mode ACTIVE {state.vars.def_mode_from=}", msg=state.positions)
             return True
         else:
-            state.ilog(e=f"STANDARD mode ACTIVE {state.vars.def_mode_from=}", msg=state.positions)
+            #state.ilog(e=f"STANDARD mode ACTIVE {state.vars.def_mode_from=}", msg=state.positions)
             return False
-
+    
     def get_limitka_price():
         def_profit = safe_get(state.vars, "def_profit",state.vars.profit) 
         cena = float(state.avgp)
@@ -115,7 +116,7 @@ def next(data, state: StrategyState):
             return price2dec(cena+get_tick(cena,float(def_profit)),3)
         else:
             return price2dec(cena+get_tick(cena,float(state.vars.profit)),3)
- 
+        
     def consolidation():
         ##CONSOLIDATION PART - moved here, musí být před nákupem, jinak to dělalo nepořádek v pendingbuys
         #docasne zkusime konzolidovat i kdyz neni vylozeno (aby se srovnala limitka ve vsech situacich)
@@ -160,7 +161,6 @@ def next(data, state: StrategyState):
             else:
                 state.ilog(e="No time for consolidation", msg=data["index"])
                 print("no time for consolidation", data["index"])
-
     #mozna presunout o level vys
     def vyloz():
         ##prvni se vyklada na aktualni cenu, další jdou podle krivky, nula v krivce zvyšuje množství pro následující iteraci
@@ -226,6 +226,7 @@ def next(data, state: StrategyState):
             last_price = price
         state.vars.blockbuy = 1
         state.vars.jevylozeno = 1
+        state.vars.last_buysignal_index = data['index']
 
     def eval_sell():
         """"
@@ -241,243 +242,117 @@ def next(data, state: StrategyState):
             goal_price = get_limitka_price()
             state.ilog(e=f"Goal price {goal_price}")
             if curr_price>=goal_price:
-                state.interface.sell(size=state.positions)
-                state.vars.sell_in_progress = True
-                state.ilog(e=f"market SELL was sent {curr_price=}", positions=state.positions, avgp=state.avgp, sellinprogress=state.vars.sell_in_progress)
 
-    #na urovni CBARU mame zajisteno, ze update prichazi pri zmene ceny
-    #v kazde iteraci testujeme sell
-    #pri potvrzenem baru muzeme provest kroky per hlavni BAR
-    #potvrzeni neprinasi nikdy zadna nova data, ale pouze potvrzeni.
-    state.ilog(e="-----")
-    eval_sell()
+                #TODO cekat az slope prestane intenzivn erust, necekat az na klesani
+                #TODO mozna cekat na nejaky signal RSI
+                #TODO pripadne pokud dosahne TGTBB prodat ihned
 
-    conf_bar = data['confirmed'] 
-    if conf_bar == 1:
-        #delej veci per standardni bar
-        state.ilog(e="BAR potvrzeny")
-    else:
-        pass
-        #delej veci tick-based
+                #OPTIMALIZACE pri stoupajícím angle
+                if sell_protection_enabled() is False:
+                    state.interface.sell(size=state.positions)
+                    state.vars.sell_in_progress = True
+                    state.ilog(e=f"market SELL was sent {curr_price=}", positions=state.positions, avgp=state.avgp, sellinprogress=state.vars.sell_in_progress)
 
-    #CBAR INDICATOR pro tick price a deltu VOLUME
-    tick_price = round2five(data['close'])
-    tick_delta_volume = data['volume'] - state.vars.last_tick_volume
-   
-    if conf_bar == 0:
+    def populate_ema_indicator():
+        #BAR EMA INDICATOR - 
+        #plnime MAcko - nyni posilame jen N poslednich hodnot
+        #zaroven osetrujeme pripady, kdy je malo dat a ukladame nulu
         try:
-            #pokud v potvrzovacím baru nebyly zmeny, nechavam puvodni hodnoty
-            # if tick_delta_volume == 0:
-            #     state.indicators.tick_price[-1] = state.indicators.tick_price[-2]
-            #     state.indicators.tick_volume[-1] = state.indicators.tick_volume[-2]
-            # else:
+            ma = int(state.vars.MA)
+            #poslednich ma hodnot
+            source = state.bars.close[-ma:] #state.bars.vwap
+            ema_value = ema(source, ma)
 
-            #docasne dame pryc volume deltu a davame absolutni cislo
-            state.cbar_indicators.tick_price[-1] = tick_price
-            state.cbar_indicators.tick_volume[-1] = tick_delta_volume
-        except:
-            pass
+            ##pokus MACKO zakrouhlit na tri desetina a petku
+            state.indicators.ema[-1]=round2five(ema_value[-1])
+            ##state.indicators.ema[-1]=trunc(ema_value[-1],3)
+            #state.ilog(e=f"EMA {state.indicators.ema[-1]}", ema_last=state.indicators.ema[-6:])
+        except Exception as e:
+            state.ilog(e="EMA nechavame  0", message=str(e)+format_exc())
+            #state.indicators.ema[-1]=(0)
+            #evaluate buy signal
+            #consolidation
 
-        state.ilog(e=f"TICK PRICE {tick_price} VOLUME {tick_delta_volume} {conf_bar=}", last_price=state.vars.last_tick_price, last_volume=state.vars.last_tick_volume)
+    def populate_slope_indicator():
+        #SLOPE INDICATOR
+        #úhel stoupání a klesání vyjádřený mezi -1 až 1
+        #pravý bod přímky je aktuální cena, levý je průměr X(lookback offset) starších hodnot od slope_lookback.
+        #obsahuje statický indikátor (angle) pro vizualizaci
+        try:
+            slope = 99
+            slope_lookback = int(state.vars.slope_lookback)
+            minimum_slope = float(state.vars.minimum_slope)
+            lookback_offset = int(state.vars.lookback_offset)
+
+            if len(state.bars.close) > (slope_lookback + lookback_offset):
+                array_od = slope_lookback + lookback_offset
+                array_do = slope_lookback
+                lookbackprice_array = state.bars.vwap[-array_od:-array_do]
+                #obycejný prumer hodnot
+                lookbackprice = round(sum(lookbackprice_array)/lookback_offset,3)
+
+                #výpočet úhlu - a jeho normalizace
+                slope = ((state.bars.close[-1] - lookbackprice)/lookbackprice)*100
+                slope = round(slope, 4)
+                state.indicators.slope[-1]=slope
     
-    state.vars.last_tick_price = tick_price
-    state.vars.last_tick_volume = data['volume']
-    #pri potvrzem CBARu nulujeme counter volume
-    if conf_bar == 1:
-        state.vars.last_tick_volume = 0
-        state.vars.next_new = 1
-
-
-
-    #TEST BUY SIGNALu z cbartick_price - 3klesave za sebou
-    buy_tp = isfalling(state.cbar_indicators.tick_price,state.vars.Trend)
-    state.ilog(e=f"TICK SIGNAL ISFALLING {buy_tp}", last_tp=state.cbar_indicators.tick_price[-6:], trend=state.vars.Trend)
-
-    #IVWAP - PRUBEZNY persistovany VWAP
-    # try:
-    #     #naplneni cbar tick indikatoru s prubeznou vwap
-    #     state.cbar_indicators.ivwap[-1]=data['vwap']
-    # except:
-    #     pass
-
-
-    # if data['confirmed'] == 0:
-    #     state.ilog(e="CBAR unconfirmed - returned", msg=str(data))
-    #     #TBD zde muzeme i nakupovat
-    #     #indikatory pocitat, ale neukladat do historie
-    #     return 0
-    # #confirmed
-    # else:
-    #     state.ilog(e="CBAR confirmed - continue", msg=str(data))
-
-    #BAR EMA INDICATOR - 
-    #plnime MAcko - nyni posilame jen N poslednich hodnot
-    #zaroven osetrujeme pripady, kdy je malo dat a ukladame nulu
-    try:
-        ma = int(state.vars.MA)
-        #poslednich ma hodnot
-        source = state.bars.close[-ma:] #state.bars.vwap
-        ema_value = ema(source, ma)
-        state.indicators.ema[-1]=trunc(ema_value[-1],3)
-        state.ilog(e=f"EMA {state.indicators.ema[-1]}", ema_last=state.indicators.ema[-6:])
-    except Exception as e:
-        state.ilog(e="EMA nechavame  0", message=str(e)+format_exc())
-        #state.indicators.ema[-1]=(0)
-
-    #CBAR RSI14 INDICATOR
-    try:
-        ##mame v atributech nastaveni?
-        rsi_dont_buy_above = safe_get(state.vars, "rsi_dont_buy_above",50)
-        rsi_buy_signal_conf = safe_get(state.vars, "rsi_buy_signal_below",40)
-        rsi_buy_signal = False
-        rsi_dont_buy = False
-        rsi_length = 14
-
-        #source = state.bars.close #[-rsi_length:] #state.bars.vwap
-        #jako zdroj je prubezna CBAR tickprice
-        source =  state.cbar_indicators.tick_price
-        rsi_res = rsi(source, rsi_length)
-        rsi_value = trunc(rsi_res[-1],3)
-        state.cbar_indicators.RSI14[-1]=rsi_value
-        rsi_dont_buy = rsi_value > rsi_dont_buy_above
-        rsi_buy_signal = rsi_value < rsi_buy_signal_conf
-        state.ilog(e=f"CBARRSI{rsi_value} {rsi_length=} {rsi_dont_buy=} {rsi_buy_signal=}", rsi_indicator=state.cbar_indicators.RSI14[-5:])
-    except Exception as e:
-        state.ilog(e=f"CBARRSI {rsi_length=} nechavame 0", message=str(e)+format_exc())
-        #state.indicators.RSI14.append(0)
-
-
-    #SLOPE INDICATOR
-    #úhel stoupání a klesání vyjádřený mezi -1 až 1
-    #pravý bod přímky je aktuální cena, levý je průměr X(lookback offset) starších hodnot od slope_lookback.
-    #obsahuje statický indikátor (angle) pro vizualizaci
-    try:
-        slope = 99
-        slope_lookback = int(state.vars.slope_lookback)
-        minimum_slope = float(state.vars.minimum_slope)
-        lookback_offset = int(state.vars.lookback_offset)
-
-        if len(state.bars.close) > (slope_lookback + lookback_offset):
-            array_od = slope_lookback + lookback_offset
-            array_do = slope_lookback
-            lookbackprice_array = state.bars.vwap[-array_od:-array_do]
-            #obycejný prumer hodnot
-            lookbackprice = round(sum(lookbackprice_array)/lookback_offset,3)
-
-            #výpočet úhlu - a jeho normalizace
-            slope = ((state.bars.close[-1] - lookbackprice)/lookbackprice)*100
-            slope = round(slope, 4)
-            state.indicators.slope[-1]=slope
- 
-            #angle je ze slope
-            state.statinds.angle = dict(time=state.bars.time[-1], price=state.bars.close[-1], lookbacktime=state.bars.time[-slope_lookback], lookbackprice=lookbackprice, minimum_slope=minimum_slope)
- 
-            #slope MA vyrovna vykyvy ve slope, dále pracujeme se slopeMA
-            slope_MA_length = 5
-            source = state.indicators.slope[-slope_MA_length:]
-            slopeMAseries = ema(source, slope_MA_length) #state.bars.vwap
-            slopeMA = slopeMAseries[-1]
-            state.indicators.slopeMA[-1]=slopeMA
-
-            state.ilog(e=f"{slope=} {slopeMA=}", msg=f"{lookbackprice=}", lookbackoffset=lookback_offset, minimum_slope=minimum_slope, last_slopes=state.indicators.slope[-10:], last_slopesMA=state.indicators.slopeMA[-10:])
-
-            #dale pracujeme s timto MAckovanym slope
-            slope = slopeMA         
-        else:
-            #pokud plnime historii musime ji plnit od zacatku, vsehcny idenitifkatory maji spolecny time
-            #kvuli spravnemu zobrazovani na gui
-            #state.indicators.slopeMA[-1]=0
-            #state.indicators.slopeMA.append(0)
-            state.ilog(e="Slope - not enough data", slope_lookback=slope_lookback, slope=state.indicators.slope, slopeMA=state.indicators.slopeMA)
-    except Exception as e:
-        print("Exception in NEXT Slope Indicator section", str(e))
-        state.ilog(e="EXCEPTION", msg="Exception in Slope Indicator section" + str(e) + format_exc())
-
-    print("is falling",isfalling(state.indicators.ema,state.vars.Trend))
-    print("is rising",isrising(state.indicators.ema,state.vars.Trend))
-
-    consolidation()
-
-    if int(state.positions) >= state.vars.maxpozic:
-        state.ilog(e="Max pos reached")
-        return 0
-
-    #tbd zakladni schema viz nize +
-    #pokracovat v buy signalu pro cbar 
-
-
-    #trigger 
-    #stavy
-    #ochrany
-
-    get indikator vals
-
-    generate triggers
-        set working states
-           rovne, prudce nahoru, prudce dolu
+                #angle je ze slope
+                state.statinds.angle = dict(time=state.bars.time[-1], price=state.bars.close[-1], lookbacktime=state.bars.time[-slope_lookback], lookbackprice=lookbackprice, minimum_slope=minimum_slope)
     
+                #slope MA vyrovna vykyvy ve slope, dále pracujeme se slopeMA
+                slope_MA_length = 5
+                source = state.indicators.slope[-slope_MA_length:]
+                slopeMAseries = ema(source, slope_MA_length) #state.bars.vwap
+                slopeMA = slopeMAseries[-1]
+                state.indicators.slopeMA[-1]=slopeMA
 
-    process triggers
+                state.ilog(e=f"{slope=} {slopeMA=}", msg=f"{lookbackprice=}", lookbackoffset=lookback_offset, minimum_slope=minimum_slope, last_slopes=state.indicators.slope[-10:], last_slopesMA=state.indicators.slopeMA[-10:])
 
-    buy_signal
-        buy protection (dont buy when)
-    sell signal
-        sell protection (dont buy when)
+                #dale pracujeme s timto MAckovanym slope
+                slope = slopeMA         
+            else:
+                #pokud plnime historii musime ji plnit od zacatku, vsehcny idenitifkatory maji spolecny time
+                #kvuli spravnemu zobrazovani na gui
+                #state.indicators.slopeMA[-1]=0
+                #state.indicators.slopeMA.append(0)
+                state.ilog(e="Slope - not enough data", slope_lookback=slope_lookback, slope=state.indicators.slope, slopeMA=state.indicators.slopeMA)
+        except Exception as e:
+            print("Exception in NEXT Slope Indicator section", str(e))
+            state.ilog(e="EXCEPTION", msg="Exception in Slope Indicator section" + str(e) + format_exc())
+
+    def populate_rsi_indicator():
+            #RSI14 INDICATOR
+        try:
+            rsi_buy_signal = False
+            rsi_dont_buy = False
+            rsi_length = 14
+            source = state.bars.close #[-rsi_length:] #state.bars.vwap
+            rsi_res = rsi(source, rsi_length)
+            rsi_value = trunc(rsi_res[-1],3)
+            state.indicators.RSI14[-1]=rsi_value
+            #state.ilog(e=f"RSI {rsi_length=} {rsi_value=} {rsi_dont_buy=} {rsi_buy_signal=}", rsi_indicator=state.indicators.RSI14[-5:])
+        except Exception as e:
+            state.ilog(e=f"RSI {rsi_length=} necháváme 0", message=str(e)+format_exc())
+            #state.indicators.RSI14[-1]=0
+
+    def slope_too_low():
+        return state.indicators.slopeMA[-1] < float(state.vars.minimum_slope)
     
+    def slope_too_high():
+        return state.indicators.slopeMA[-1] > float(safe_get(state.vars, "bigwave_slope_above",0.20))
 
-    
-
-
-
-    #HLAVNI ITERACNI LOG JESTE PRED AKCI - obsahuje aktualni hodnoty vetsiny parametru
-    #TODO sem pridat aktualni hodnoty vsech indikatoru
-    lp = state.interface.get_last_price(symbol=state.symbol)
-    state.ilog(e="ENTRY", msg=f"LP:{lp} P:{state.positions}/{round(float(state.avgp),3)} profit:{round(float(state.profit),2)} Trades:{len(state.tradeList)} DEF:{str(is_defensive_mode())}", last_price=lp, data=data, stratvars=state.vars)
-
-    #SLOPE ANGLE PROTECTIONs
-    #slope zachycuje rychle sestupy, pripadne zrusi nakupni objednavky
-    if slope < minimum_slope or rsi_dont_buy: # or slopeMA<maxSlopeMA:
-        print("OCHRANA SLOPE or RSI TOO HIGH")
-        # if slopeMA<maxSlopeMA:
-        #     state.ilog(e="Slope MA too high "+str(slopeMA)+" max:"+str(maxSlopeMA))
-        state.ilog(e=f"Slope or RSI too high {slope=} {rsi_value=}")
+    #resetujeme, kdyz 1) je aktivni buy protection 2) kdyz to ujede
+    #TODO mozna tick2reset spoustet jednou za X opakovani
+    def pendingbuys_optimalization():
         if len(state.vars.pendingbuys)>0:
-            print("CANCEL PENDINGBUYS")
-            #ic(state.vars.pendingbuys)
-            res = asyncio.run(state.cancel_pending_buys())
-            #ic(state.vars.pendingbuys)
-            state.ilog(e="Rusime pendingbuyes", pb=state.vars.pendingbuys, res=res)
-        print("slope", slope)
-        print("min slope", minimum_slope)
-
-    if state.vars.jevylozeno == 0:
-        print("Neni vylozeno, muzeme testovat nakup")
-
-        #pokud je defenziva, buy triggeruje defenzivni def_trend
-        #TBD
-
-        #NOVY BUY SIGNAL z RSI < 35
-        #buy_signal = isfalling(state.indicators.ema,state.vars.Trend)
-        buy_signal = rsi_buy_signal
-
-        if buy_signal and slope > minimum_slope and not rsi_dont_buy:
-            state.ilog(e="BUY SIGNAL")
-            vyloz()
-
-    ## testuje aktualni cenu od nejvyssi visici limitky
-    ##toto spoustet jednou za X iterací - ted to jede pokazdé
-    #pokud to ujede o vic, rusime limitky
-    #TODO: zvazit jestli nechat i pri otevrenych pozicich, zatim nechavame
-    #TODO int(int(state.oa.poz)/int(state.variables.chunk)) > X
-
-    #TODO spoustet 1x za X iteraci nebo cas
-    if state.vars.jevylozeno == 1 and len(state.vars.pendingbuys)>0:
-        #pokud mame vylozeno a cena je vetsi nez tick2reset 
-            if len(state.vars.pendingbuys)>0:
+            if buy_protection_enabled():
+                #state.ilog(e="PENDINGBUYS reset", message=inspect.currentframe().f_code.co_name)
+                res = asyncio.run(state.cancel_pending_buys())
+                state.ilog(e="CANCEL pendingbuyes", pb=state.vars.pendingbuys, res=res)
+            else:
+                #pokud mame vylozeno a cena je vetsi nez tick2reset 
                 maxprice = max(state.vars.pendingbuys.values())
-                print("max cena v orderbuys", maxprice)
                 if state.interface.get_last_price(state.symbol) > float(maxprice) + get_tick(maxprice, float(state.vars.ticks2reset)):
-                    ##TODO toto nejak vymyslet - duplikovat?
                     res = asyncio.run(state.cancel_pending_buys())
                     state.ilog(e=f"UJELO to. Rusime PB", msg=f"{state.vars.ticks2reset=}", pb=state.vars.pendingbuys)
 
@@ -493,9 +368,143 @@ def next(data, state: StrategyState):
             if len(state.vars.pendingbuys) == 0:
                 state.vars.blockbuy = 0
                 state.vars.jevylozeno = 0
-                state.ilog(e="PB se vyklepaly nastavujeme: neni vylozeno", jevylozeno=state.vars.jevylozeno)
+                state.ilog(e="PB prazdne nastavujeme: neni vylozeno", jevylozeno=state.vars.jevylozeno)
 
-    print(10*"*","NEXT STOP",10*"*")
+    ##kdy nenakupovat - tzn. neprojdou nakupy a kdyz uz jsou tak se zrusi
+    def buy_protection_enabled():
+        dont_buy_when = dict(AND=dict(), OR=dict())
+        ##add conditions here
+        dont_buy_when['rsi_dont_buy'] = state.indicators.RSI14[-1] > safe_get(state.vars, "rsi_dont_buy_above",50)
+        dont_buy_when['slope_too_low'] = slope_too_low()
+
+        result, cond_met = eval_cond_dict(dont_buy_when)
+        if result:
+            state.ilog(e=f"BUY_PROTECTION {cond_met}")
+        return result
+
+    def sell_protection_enabled():
+        dont_sell_when = dict(AND=dict(), OR=dict())
+        ##add conditions here
+
+        #IDENTIFIKOVAT MOMENTUM - pokud je momentum, tak prodávat později
+        
+        #pokud je slope too high, pak prodavame jakmile slopeMA zacne klesat, napr. 4MA (TODO 3)
+
+        dont_sell_when['slope_too_high'] = slope_too_high() and not isfalling(state.indicators.slopeMA,4)
+        dont_sell_when['slopeMA_rising'] = isrising(state.indicators.slopeMA,2)
+        #dont_sell_when['rsi_dont_buy'] = state.indicators.RSI14[-1] > safe_get(state.vars, "rsi_dont_buy_above",50)
+ 
+        result, conditions_met = eval_cond_dict(dont_sell_when)
+        if result:
+            state.ilog(e=f"SELL_PROTECTION {conditions_met} enabled")
+        return result
+
+    #preconditions and conditions of BUY SIGNAL
+    def buy_conditions_met():
+        #preconditions
+        dont_buy_when = dict(AND=dict(), OR=dict())
+        dont_buy_when['bar_not_confirmed'] = (data['confirmed'] == 0)
+        #od posledniho vylozeni musi ubehnout N baru
+        dont_buy_when['last_buy_offset_too_soon'] =  data['index'] < (state.vars.last_buysignal_index + safe_get(state.vars, "lastbuy_offset",3))
+        dont_buy_when['blockbuy_active'] = (state.vars.blockbuy == 1)
+        dont_buy_when['jevylozeno_active'] = (state.vars.jevylozeno == 1)
+        dont_buy_when['buy_protection_enabled'] = buy_protection_enabled()
+        dont_buy_when['open_rush'] = is_open_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), safe_get(state.vars, "open_rush",0))
+        dont_buy_when['close_rush'] = is_close_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), safe_get(state.vars, "close_rush",0))
+        dont_buy_when['rsi_is_zero'] = (state.indicators.RSI14[-1] == 0)
+
+        #testing preconditions
+        result, cond_met = eval_cond_dict(dont_buy_when)
+        if result:
+            state.ilog(e=f"BUY precondition not met {cond_met}")
+            return False
+
+        #conditions - bud samostatne nebo v groupe - ty musi platit dohromady
+        buy_cond = dict(AND=dict(), OR=dict())
+        ##add buy conditions here
+        #cond groups ["AND"]
+        #cond groups ["OR"]
+        #no cond group - takes first
+        #TEST BUY SIGNALu z cbartick_price - 3klesave za sebou
+        #buy_cond['tick_price_falling_trend'] = isfalling(state.cbar_indicators.tick_price,state.vars.Trend)
+        buy_cond["AND"]["rsi_buy_signal_below"] = state.indicators.RSI14[-1] < safe_get(state.vars, "rsi_buy_signal_below",40)
+        buy_cond["AND"]["ema_trend_is_falling"] = isfalling(state.indicators.ema,state.vars.Trend)
+
+        result, conditions_met = eval_cond_dict(buy_cond)
+        if result:
+            state.ilog(e=f"BUY SIGNAL {conditions_met}")
+        return result
+
+    def eval_buy():
+        if buy_conditions_met():
+                vyloz()
+
+    def populate_cbar_tick_price_indicator():
+        try:
+            #pokud v potvrzovacím baru nebyly zmeny, nechavam puvodni hodnoty
+            # if tick_delta_volume == 0:
+            #     state.indicators.tick_price[-1] = state.indicators.tick_price[-2]
+            #     state.indicators.tick_volume[-1] = state.indicators.tick_volume[-2]
+            # else:
+
+            tick_price = round2five(data['close'])
+            tick_delta_volume = data['volume'] - state.vars.last_tick_volume
+
+            #docasne dame pryc volume deltu a davame absolutni cislo
+            state.cbar_indicators.tick_price[-1] = tick_price
+            state.cbar_indicators.tick_volume[-1] = tick_delta_volume
+        except:
+            pass
+
+        state.ilog(e=f"TICK PRICE {tick_price} VOLUME {tick_delta_volume} {conf_bar=}", prev_price=state.vars.last_tick_price, prev_volume=state.vars.last_tick_volume)
+
+        state.vars.last_tick_price = tick_price
+        state.vars.last_tick_volume = data['volume']
+
+    def get_last_ind_vals():
+        last_ind_vals = {}
+        #print(state.indicators.items())
+        for key in state.indicators:
+            if key != 'time':
+                last_ind_vals[key] = state.indicators[key][-5:]
+        
+        for key in state.cbar_indicators:
+            if key != 'time':
+                last_ind_vals[key] = state.cbar_indicators[key][-5:]    
+        return last_ind_vals
+
+    conf_bar = data['confirmed'] 
+    state.ilog(e=f"---{data['index']}-{conf_bar}--")
+
+    #kroky pro CONFIRMED BAR only
+    if conf_bar == 1:
+        #logika pouze pro potvrzeny bar
+        state.ilog(e="BAR potvrzeny")
+
+
+        #pri potvrzem CBARu nulujeme counter volume pro tick based indicator
+        state.vars.last_tick_volume = 0
+        state.vars.next_new = 1
+
+    #kroky pro CONTINOUS TICKS only
+    else:
+        #CBAR INDICATOR pro tick price a deltu VOLUME
+        populate_cbar_tick_price_indicator()
+
+    #SPOLECNA LOGIKA - bar indikatory muzeme populovat kazdy tick (dobre pro RT GUI), ale uklada se stejne az pri confirmu
+    populate_ema_indicator()
+    populate_slope_indicator()
+    populate_rsi_indicator()
+    eval_sell()
+    consolidation()
+
+    #HLAVNI ITERACNI LOG JESTE PRED AKCI - obsahuje aktualni hodnoty vetsiny parametru
+    lp = state.interface.get_last_price(symbol=state.symbol)
+    state.ilog(e="ENTRY", msg=f"LP:{lp} P:{state.positions}/{round(float(state.avgp),3)} profit:{round(float(state.profit),2)} Trades:{len(state.tradeList)} DEF:{str(is_defensive_mode())}", last_price=lp, data=data, stratvars=state.vars)
+    state.ilog(e="Indikatory", msg=str(get_last_ind_vals()))
+
+    eval_buy()
+    pendingbuys_optimalization()
 
 def init(state: StrategyState):
     #place to declare new vars
@@ -505,25 +514,19 @@ def init(state: StrategyState):
     state.vars.last_tick_price = 0
     state.vars.last_tick_volume = 0
     state.vars.next_new = 0
+    state.vars.last_buysignal_index = 0
     #state.cbar_indicators['ivwap'] = []
     state.cbar_indicators['tick_price'] = []
     state.cbar_indicators['tick_volume'] = []
     state.indicators['ema'] = []
     state.indicators['slope'] = []
     state.indicators['slopeMA'] = []
-    state.cbar_indicators['RSI14'] = []
+    state.indicators['RSI14'] = []
     #static indicators - those not series based
-    state.statinds['angle'] = dict(minimum_slope=state.vars["minimum_slope"])
+    state.statinds['angle'] = dict(minimum_slope=state.vars["minimum_slope"], maximum_slope=safe_get(state.vars, "bigwave_slope_above",0.20))
     state.vars["ticks2reset_backup"] = state.vars.ticks2reset
 
 def main():
-    # try:
-    #     strat_settings = tomli.loads("]] this is invalid TOML [[")
-    # except tomli.TOMLDecodeError:
-    #     print("Yep, definitely not valid.")
-    
-    #strat_settings = dict_replace_value(strat_settings, "None", None)
-
     name = os.path.basename(__file__)
     se = Event()
     pe = Event()

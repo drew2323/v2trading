@@ -254,17 +254,10 @@ class Strategy:
         #calling plugin (can be overriden to do some additional steps)
         self.before_iteration()
         ted = datetime.fromtimestamp(self.state.time).astimezone(zoneNY)
+        #pro mysell je realizovano v next, kvuli prodavaci logice
         if is_open_rush(ted, self.open_rush) or is_close_rush(ted, self.close_rush):
             pass
             #self.state.ilog(e="Rush hour - skipping")
-            #identifikatory jsou ulozeny vektorove, tzn. kdyz nejdeme dovnitr iterace(tak nepotrebujeme prazdny cas pro tuto iteraci)
-            #hodnoty time a identifikatoru musi byt stejne
-            #TBD pripdane predelat  a dodelat pro CBARy az je budu pouzivat
-            # if self.rectype == RecordType.BAR:
-            #    self.state.indicators['time'].pop() 
-            # elif self.rectype == RecordType.CBAR:
-            #     print("RUSH skipping NOT IMPLEMENTED for CBARs yet")
-
         else:
             self.next(item, self.state)
             self.after_iteration(item)
@@ -315,6 +308,13 @@ class Strategy:
                 continue
             #self.state.iter_log(event="INGEST",msg="New data ingested", item=item)
             print("New data ingested")
+            
+            #TODO sem pridat ochranu kulometu 
+            #pokud je updatetime aktualniho baru mensi nez LIMIT a nejde o potvrzovaci bar
+            #tak jej vyhodit
+            #zabraní se tím akcím na než bych stejně nešlo reagovat
+            #TODO jeste promyslet
+            
             #calling main loop
             self.strat_loop(item=item)
 

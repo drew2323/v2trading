@@ -204,7 +204,7 @@ function connect(event) {
                         if (klic === "angle") {
 
                             //nejsou vsechny hodnoty
-                            if (Object.keys(hodnota).length > 1)  {
+                            if (Object.keys(hodnota).length > 2)  {
                                 // console.log("angle nalezen");
                                 // console.log(JSON.stringify(hodnota));
                                 if (angleSeries !== 1) {
@@ -308,10 +308,22 @@ function connect(event) {
                                             lineWidth: 1,
                                             lineStyle: 2, // LineStyle.Dotted
                                             axisLabelVisible: true,
-                                            title: "max:",
+                                            title: "min:",
                                         };
                             
                                         const minSlopeLine = obj.series.createPriceLine(minSlopeLineOptopns);
+
+                                        const maxSlopeLineOptopns = {
+                                            price: parsed_data.statinds.angle.maximum_slope,
+                                            color: '#b67de8',
+                                            lineWidth: 1,
+                                            lineStyle: 2, // LineStyle.Dotted
+                                            axisLabelVisible: true,
+                                            title: "max:",
+                                        };
+                            
+                                        const maxSlopeLine = obj.series.createPriceLine(maxSlopeLineOptopns);
+
                                     }
                                 }
                                 //INDICATOR on new pane

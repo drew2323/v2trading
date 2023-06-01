@@ -363,6 +363,9 @@ class TradeAggregator2Queue(TradeAggregator):
                     copy = obj.copy()
                 else:
                     copy = obj
+
+                ##populate secondary resolution if required
+
                 self.queue.put(copy)
             res = []
             #print("po insertu",res)

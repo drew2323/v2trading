@@ -157,14 +157,15 @@ class Trade_Offline_Streamer(Thread):
                 wait_for_q = False
             else:
                 wait_for_q = True
-            #ic(wait_for_q)
+            print(f"{wait_for_q=}")
 
         # v tradesResponse je dict = Trades identifikovane symbolem
             for symbol in tradesResponse:
                 #print(tradesResponse[symbol])
                 celkem = len(tradesResponse[symbol])
+                
                 #ic(symbol, celkem)
-                #print("POCET: ", celkem)
+                print("POCET: ", celkem)
                 cnt = 1
                 
                 
@@ -177,7 +178,8 @@ class Trade_Offline_Streamer(Thread):
                     if self.time_from < to_datetime(t['t']) < self.time_to:
                         #poustime dal, jinak ne
                         if wait_for_q:
-                            if 'Q' not in t['c']: continue
+                            #cekame na Q nebo na O (nekterym dnum chybelo Q)
+                            if ('Q' not in t['c']) and ('O' not in t['c']): continue
                             else:
                                 #ic("Q found poustime dal")
                                 wait_for_q = False
@@ -185,7 +187,7 @@ class Trade_Offline_Streamer(Thread):
                         #homogenizace timestampu s online streamem
                         t['t'] = Timestamp.from_unix(to_datetime(t['t']).timestamp())
                         
-                        #print("PROGRESS ",cnt,"/",celkem)
+                        print("PROGRESS ",cnt,"/",celkem)
                         #print(t)
                         #na rozdil od wwebsocketu zde nemame v zaznamu symbol ['S']
                         #vsem streamum na tomto symbolu posilame data - tbd mozna udelat i per stream vlakno

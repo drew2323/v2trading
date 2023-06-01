@@ -321,6 +321,9 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
                                     //var last = null
                                     var last_time = 0
                                     var time = 0
+
+                                    //tento algoritmus z duplicit dela posloupnosti a srovna i pripadne nekonzistence
+                                    //napr z .911 .911 .912 udela .911 .912 .913
                                     value.forEach((element, index, array) => {
                                         item = {}
                                         //debug
@@ -328,14 +331,15 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
                                         //if (indicators.time[index] !== undefined) {
                                             //{console.log("problem",key,last)}
                                         time = indicators.time[index]
-                                        if (time==last_time) {
-                                            //console.log(key, "problem v case - pousunuto o 0.001",time, last_time, element)
-                                            time += 0.000001
+                                        if (last_time>=time) {
+                                            console.log(key, "problem v case - zarovnano",time, last_time, element)
+                                            
+                                            indicators.time[index] = indicators.time[index-1] + 0.000001
                                         }
-                                        item["time"] = time
+                                        item["time"] = indicators.time[index]
                                         item["value"] = element
 
-                                        last_time = time
+                                        last_time = indicators.time[index]
 
                                         if ((element == null) || (indicators.time[index] == null)) {
                                         console.log("probelem u indikatoru",key, "nekonzistence", element, indicators.time[index]) 
@@ -351,6 +355,19 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
                                         //     console.log("chybejici cas", key)
                                         // }
                                     });
+
+                                    //SERADIT PRO JISTOTU
+                                    //items.sort(sorter)
+
+                                    //FIND DUPLICITIES
+                                    // last_time = 0
+                                    // items.forEach((element, index, array) => {
+                                    //     if (last_time >= element.time) {
+                                    //         console.log("je duplicita/nekonzistence v ", element.time, element.value)
+                                    //     }
+                                    //     last_time = element.time
+                                    // })
+                                    
 
                                     if (conf.embed)  {
 
@@ -392,10 +409,24 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
                                                     lineWidth: 1,
                                                     lineStyle: 2, // LineStyle.Dotted
                                                     axisLabelVisible: true,
-                                                    title: "max:",
+                                                    title: "min:",
                                                 };
                                     
                                                 const minSlopeLine = obj.series.createPriceLine(minSlopeLineOptopns);
+
+                                                const maxSlopeLineOptopns = {
+                                                    price: data.statinds.angle.maximum_slope,
+                                                    color: '#b67de8',
+                                                    lineWidth: 1,
+                                                    lineStyle: 2, // LineStyle.Dotted
+                                                    axisLabelVisible: true,
+                                                    title: "max:",
+                                                };
+                                    
+                                                const maxSlopeLine = obj.series.createPriceLine(maxSlopeLineOptopns);
+
+
+
                                             }
                                     }
 
@@ -410,7 +441,10 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
                                     priceLineVisible: false,
                                 });
 
-                                //console.log("problem tu",JSON.stringify(items))
+                                //DEBUG
+                                // if (key == 'tick_price') {
+                                //     console.log("problem tu",JSON.stringify(items))
+                                // }
                                 //add data
                                 obj.series.setData(items)
 

@@ -323,9 +323,7 @@ def next(data, state: StrategyState):
     def populate_rsi_indicator():
             #RSI14 INDICATOR
         try:
-            rsi_buy_signal = False
-            rsi_dont_buy = False
-            rsi_length = 14
+            rsi_length = int(safe_get(state.vars, "rsi_length",14))
             source = state.bars.close #[-rsi_length:] #state.bars.vwap
             rsi_res = rsi(source, rsi_length)
             rsi_value = trunc(rsi_res[-1],3)
@@ -374,7 +372,7 @@ def next(data, state: StrategyState):
     def buy_protection_enabled():
         dont_buy_when = dict(AND=dict(), OR=dict())
         ##add conditions here
-        dont_buy_when['rsi_dont_buy'] = state.indicators.RSI14[-1] > safe_get(state.vars, "rsi_dont_buy_above",50)
+        dont_buy_when['rsi_too_high'] = state.indicators.RSI14[-1] > safe_get(state.vars, "rsi_dont_buy_above",50)
         dont_buy_when['slope_too_low'] = slope_too_low()
 
         result, cond_met = eval_cond_dict(dont_buy_when)
@@ -386,12 +384,13 @@ def next(data, state: StrategyState):
         dont_sell_when = dict(AND=dict(), OR=dict())
         ##add conditions here
 
-        #IDENTIFIKOVAT MOMENTUM - pokud je momentum, tak prodávat později
+        #IDENTIFIKOVAce rustoveho MOMENTA - pokud je momentum, tak prodávat později
         
         #pokud je slope too high, pak prodavame jakmile slopeMA zacne klesat, napr. 4MA (TODO 3)
 
-        dont_sell_when['slope_too_high'] = slope_too_high() and not isfalling(state.indicators.slopeMA,4)
-        dont_sell_when['slopeMA_rising'] = isrising(state.indicators.slopeMA,2)
+        #toto docasne pryc dont_sell_when['slope_too_high'] = slope_too_high() and not isfalling(state.indicators.slopeMA,4)
+        dont_sell_when['AND']['slopeMA_rising'] = isrising(state.indicators.slopeMA,2)
+        dont_sell_when['AND']['rsi_not_falling'] = not isfalling(state.indicators.RSI14,3)
         #dont_sell_when['rsi_dont_buy'] = state.indicators.RSI14[-1] > safe_get(state.vars, "rsi_dont_buy_above",50)
  
         result, conditions_met = eval_cond_dict(dont_sell_when)
@@ -427,8 +426,16 @@ def next(data, state: StrategyState):
         #no cond group - takes first
         #TEST BUY SIGNALu z cbartick_price - 3klesave za sebou
         #buy_cond['tick_price_falling_trend'] = isfalling(state.cbar_indicators.tick_price,state.vars.Trend)
+
+        #slopeMA jde dolu, rsi jde nahoru
+        #buy mame kazdy potvrzeny, tzn. rsi falling muze byt jen 2
+        buy_cond['AND']['slopeMA_falling'] = isfalling(state.indicators.slopeMA,3)
+        buy_cond['AND']['rsi_is_rising'] = isrising(state.indicators.RSI14,2)
         buy_cond["AND"]["rsi_buy_signal_below"] = state.indicators.RSI14[-1] < safe_get(state.vars, "rsi_buy_signal_below",40)
-        buy_cond["AND"]["ema_trend_is_falling"] = isfalling(state.indicators.ema,state.vars.Trend)
+
+        #puvodni buy conditiony
+        #buy_cond["AND"]["rsi_buy_signal_below"] = state.indicators.RSI14[-1] < safe_get(state.vars, "rsi_buy_signal_below",40)
+        #buy_cond["AND"]["ema_trend_is_falling"] = isfalling(state.indicators.ema,state.vars.Trend)
 
         result, conditions_met = eval_cond_dict(buy_cond)
         if result:

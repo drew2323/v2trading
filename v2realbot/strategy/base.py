@@ -420,7 +420,8 @@ class Strategy:
                 rt_out["trades"] = item
             
             #get only last values from indicators, if there are any indicators present
-            if len(self.state.indicators) > 0:
+            #standardni indikatory plnime jen na confirmed bar pro real time
+            if len(self.state.indicators) > 0 and item['confirmed'] == 1:
                 rt_out["indicators"] = dict()
                 for key, value in self.state.indicators.items():
                         #odchyceny pripad, kdy indikatory jsou inicializovane, ale jeste v nich nejsou data, pak do WS nic neposilame
@@ -429,7 +430,8 @@ class Strategy:
                         #zatim takto odchycene identifikatory, ktere nemaji list, ale dict - do budoucna predelat na samostatny typ "indicators_static"
                         except IndexError:
                             pass
-            #populate cbar indicators
+
+            #populate cbar indicators, plnime pokazde
             if len(self.state.cbar_indicators) > 0:
                 for key, value in self.state.cbar_indicators.items():
                         try:

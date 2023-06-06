@@ -18,6 +18,7 @@ from tinydb import TinyDB, Query, where
 from tinydb.operations import set
 import json
 from numpy import ndarray
+import pandas as pd
 from traceback import format_exc
 from datetime import timedelta, time
 
@@ -415,8 +416,50 @@ def get_trade_history(symbol: str, timestamp_from: float, timestamp_to:float):
     except Exception as e:
         return (-2, f"problem {e}")
     
+
+
+def populate_metrics_output_directory(strat: StrategyInstance):
+    """
+    WIP
+    Spocte zakladni metriky pred ulozenim do archivu
+    """
+    #open_orders to dataset
+    oo_dict = AttributeDict(orderid=[],submitted_at=[],symbol=[],side=[],order_type=[],qty=[],limit_price=[],status=[])
+    for t in strat.open_orders:
+        oo_dict.orderid.append(str(t.id))
+        oo_dict.submitted_at.append(t.submitted_at)
+        oo_dict.symbol.append(t.symbol)
+        oo_dict.side.append(t.side)
+        oo_dict.qty.append(t.qty)
+        oo_dict.order_type.append(t.order_type)
+        oo_dict.limit_price.append(t.limit_price)
+        oo_dict.status.append(t.status)
+
+    open_orders_df = pd.DataFrame(oo_dict)
+    open_orders_df = open_orders_df.set_index('submitted_at', drop=False)
+
+    #trades to dataset
+    trade_dict = AttributeDict(orderid=[],timestamp=[],symbol=[],side=[],order_type=[],qty=[],price=[],position_qty=[],value=[],cash=[],pos_avg_price=[])
+    for t in strat.trades:
+        trade_dict.orderid.append(str(t.order.id))
+        trade_dict.timestamp.append(t.timestamp)
+        trade_dict.symbol.append(t.order.symbol)
+        trade_dict.side.append(t.order.side)
+        trade_dict.qty.append(t.qty)
+        trade_dict.price.append(t.price)
+        trade_dict.position_qty.append(t.position_qty)
+        trade_dict.value.append(t.value)
+        trade_dict.cash.append(t.cash)
+        trade_dict.order_type.append(t.order.order_type)
+        trade_dict.pos_avg_price.append(t.pos_avg_price)
+
+    trade_df = pd.DataFrame(trade_dict)
+    trade_df = trade_df.set_index('timestamp',drop=False)
+
+
 #archives runner and details
 def archive_runner(runner: Runner, strat: StrategyInstance):
+    #results_metrics = dict()
     print("inside archive_runner")
     try:
         if strat.bt is not None:
@@ -433,6 +476,13 @@ def archive_runner(runner: Runner, strat: StrategyInstance):
                             BT_FILL_LOG_SURROUNDING_TRADES=BT_FILL_LOG_SURROUNDING_TRADES,
                             BT_FILL_CONDITION_BUY_LIMIT=BT_FILL_CONDITION_BUY_LIMIT,
                             BT_FILL_CONDITION_SELL_LIMIT=BT_FILL_CONDITION_SELL_LIMIT))
+
+        #WIP
+        #populate result metrics dictionary (max drawdown etc.)
+        #list of maximum positions (2000 2x, 1800 x 1, 900 x 1, 100 x 20)
+        #list of most profitable trades (pos,avgp + cena)
+        #nejspis prevedeni na dataset a report nad datasetem
+        #results_metrics = populate_metrics(strat)
 
         runArchive: RunArchive = RunArchive(id = runner.id,
                                             strat_id = runner.strat_id,

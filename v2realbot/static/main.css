@@ -224,7 +224,7 @@ html {
     position: absolute;
     color: #050505;
     left: 115px;
-    top: 115px;
+    top: 195px;
     z-index: 1;
     font-size: 12px;
     line-height: 18px;
@@ -313,6 +313,26 @@ pre {
   padding: 1px;
   padding-left: 5px;
   width: max-content;
+}
+
+.statustd {
+  width: 95px;
+  height: 25px;
+  border: 1px solid black;
+  text-align: center;
+}
+
+#statusHeaderTool {
+  margin-left: 0px;
+  font-size: normal;
+  /* font-weight: bold; */
+  display: flex;
+  /* background-color: #dfe4e6; */
+  /* color: white; */
+  padding: 1px;
+  padding-left: 5px;
+  width: max-content;
+  height: 95px;
 }
 
 .headerItem {

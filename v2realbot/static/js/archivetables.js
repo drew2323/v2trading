@@ -251,6 +251,10 @@ var archiveRecords =
                 targets: [5,6],
                 render: function ( data, type, row ) {
                     now = new Date(data)
+                    if (type == "sort") {
+                        return new Date(data).getTime();
+                    }
+                    
                     if (isToday(now)) {
                         //return local time only
                         return 'dnes ' + format_date(data,false,true)
@@ -267,8 +271,12 @@ var archiveRecords =
                 {
                 targets: [9,10],
                 render: function ( data, type, row ) {
+                    if (type == "sort") {
+                        return new Date(data).getTime();
+                    }
+                    //console.log(data)
                     //market datetime
-                    return format_date(data, true)
+                    return data ? format_date(data, true) : data
                 },
                 },
                 {

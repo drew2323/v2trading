@@ -297,7 +297,7 @@ def next(data, state: StrategyState):
                 state.indicators.slope[-1]=slope
     
                 #angle je ze slope
-                state.statinds.angle = dict(time=state.bars.time[-1], price=state.bars.close[-1], lookbacktime=state.bars.time[-slope_lookback], lookbackprice=lookbackprice, minimum_slope=minimum_slope)
+                state.statinds.angle = dict(time=state.bars.time[-1], price=state.bars.close[-1], lookbacktime=state.bars.time[-slope_lookback], lookbackprice=lookbackprice, minimum_slope=minimum_slope, maximum_slope=safe_get(state.vars, "bigwave_slope_above",0.20))
     
                 #slope MA vyrovna vykyvy ve slope, dále pracujeme se slopeMA
                 slope_MA_length = 5
@@ -331,6 +331,19 @@ def next(data, state: StrategyState):
             #state.ilog(e=f"RSI {rsi_length=} {rsi_value=} {rsi_dont_buy=} {rsi_buy_signal=}", rsi_indicator=state.indicators.RSI14[-5:])
         except Exception as e:
             state.ilog(e=f"RSI {rsi_length=} necháváme 0", message=str(e)+format_exc())
+            #state.indicators.RSI14[-1]=0
+
+    def populate_cbar_rsi_indicator():
+            #CBAR RSI indicator
+        try:
+            crsi_length = int(safe_get(state.vars, "crsi_length",14))
+            source = state.cbar_indicators.tick_price #[-rsi_length:] #state.bars.vwap
+            crsi_res = rsi(source, crsi_length)
+            crsi_value = trunc(crsi_res[-1],3)
+            state.cbar_indicators.CRSI[-1]=crsi_value
+            #state.ilog(e=f"RSI {rsi_length=} {rsi_value=} {rsi_dont_buy=} {rsi_buy_signal=}", rsi_indicator=state.indicators.RSI14[-5:])
+        except Exception as e:
+            state.ilog(e=f"CRSI {crsi_length=} necháváme 0", message=str(e)+format_exc())
             #state.indicators.RSI14[-1]=0
 
     def slope_too_low():
@@ -368,7 +381,7 @@ def next(data, state: StrategyState):
                 state.vars.jevylozeno = 0
                 state.ilog(e="PB prazdne nastavujeme: neni vylozeno", jevylozeno=state.vars.jevylozeno)
 
-    ##kdy nenakupovat - tzn. neprojdou nakupy a kdyz uz jsou tak se zrusi
+    ##kdy nesmí být žádné nákupní objednávky - zruší se
     def buy_protection_enabled():
         dont_buy_when = dict(AND=dict(), OR=dict())
         ##add conditions here
@@ -402,12 +415,16 @@ def next(data, state: StrategyState):
     def buy_conditions_met():
         #preconditions
         dont_buy_when = dict(AND=dict(), OR=dict())
-        dont_buy_when['bar_not_confirmed'] = (data['confirmed'] == 0)
+
+        
+        if safe_get(state.vars, "buy_only_on_confirmed",True):
+            dont_buy_when['bar_not_confirmed'] = (data['confirmed'] == 0)
         #od posledniho vylozeni musi ubehnout N baru
         dont_buy_when['last_buy_offset_too_soon'] =  data['index'] < (state.vars.last_buysignal_index + safe_get(state.vars, "lastbuy_offset",3))
         dont_buy_when['blockbuy_active'] = (state.vars.blockbuy == 1)
         dont_buy_when['jevylozeno_active'] = (state.vars.jevylozeno == 1)
-        #dont_buy_when['buy_protection_enabled'] = buy_protection_enabled()
+        dont_buy_when['rsi_too_high'] = state.indicators.RSI14[-1] > safe_get(state.vars, "rsi_dont_buy_above",50)
+        #dont_buy_when['slope_too_low'] = slope_too_low()
         dont_buy_when['open_rush'] = is_open_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), safe_get(state.vars, "open_rush",0))
         dont_buy_when['close_rush'] = is_close_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), safe_get(state.vars, "close_rush",0))
         dont_buy_when['rsi_is_zero'] = (state.indicators.RSI14[-1] == 0)
@@ -434,12 +451,23 @@ def next(data, state: StrategyState):
         #buy_cond['AND']['rsi_is_rising'] = isrising(state.indicators.RSI14,2)
         #buy_cond["AND"]["rsi_buy_signal_below"] = state.indicators.RSI14[-1] < safe_get(state.vars, "rsi_buy_signal_below",40)
 
-        #puvodni buy conditiony
+        #puvodni buy conditiony RSI pod + EMA klesajici
         #buy_cond["AND"]["rsi_buy_signal_below"] = state.indicators.RSI14[-1] < safe_get(state.vars, "rsi_buy_signal_below",40)
         #buy_cond["AND"]["ema_trend_is_falling"] = isfalling(state.indicators.ema,state.vars.Trend)
 
-        #pouze RSI pod 35 a zadny jiny
+        #pouze RSI nizke a RSI klesa
         buy_cond["AND"]["rsi_buy_signal_below"] = state.indicators.RSI14[-1] < safe_get(state.vars, "rsi_buy_signal_below",40)
+        buy_cond["AND"]["rsi_is_falling"] = isfalling(state.indicators.RSI14,state.vars.Trend)
+        
+        #buy_cond['crsi_below_crsi_buy_limit'] = state.cbar_indicators.CRSI[-1] < safe_get(state.vars, "crsi_buy_signal_below",30)
+       
+        #slopME klesa a RSI začalo stoupat
+        # buy_cond["AND"]["rsi_is_rising2"] = isrising(state.indicators.RSI14,2)
+        # buy_cond['AND']['slopeMA_falling_Trend'] = isfalling(state.indicators.slopeMA,state.vars.Trend)
+        # buy_cond["AND"]["rsi_buy_signal_below"] = state.indicators.RSI14[-1] < safe_get(state.vars, "rsi_buy_signal_below",40)
+
+
+        #zkusit jako doplnkovy BUY SIGNAL 3 klesavy cbar RSI pripadne TICK PRICE
 
         result, conditions_met = eval_cond_dict(buy_cond)
         if result:
@@ -484,8 +512,10 @@ def next(data, state: StrategyState):
                 last_ind_vals[key] = state.cbar_indicators[key][-5:]    
         return last_ind_vals
 
-    conf_bar = data['confirmed'] 
-    state.ilog(e=f"---{data['index']}-{conf_bar}--")
+    conf_bar = data['confirmed']
+    last_update_delta = round((float(data['updated']) - state.vars.last_update_time),6) if state.vars.last_update_time != 0 else 0
+    state.vars.last_update_time = float(data['updated'])
+    state.ilog(e=f"---{data['index']}-{conf_bar}--delta:{last_update_delta}")
 
     #kroky pro CONFIRMED BAR only
     if conf_bar == 1:
@@ -501,8 +531,11 @@ def next(data, state: StrategyState):
     else:
         #CBAR INDICATOR pro tick price a deltu VOLUME
         populate_cbar_tick_price_indicator()
+        populate_cbar_rsi_indicator()
 
     #SPOLECNA LOGIKA - bar indikatory muzeme populovat kazdy tick (dobre pro RT GUI), ale uklada se stejne az pri confirmu
+    
+
     populate_ema_indicator()
     populate_slope_indicator()
     populate_rsi_indicator()
@@ -526,9 +559,11 @@ def init(state: StrategyState):
     state.vars.last_tick_volume = 0
     state.vars.next_new = 0
     state.vars.last_buysignal_index = 0
+    state.vars.last_update_time = 0
     #state.cbar_indicators['ivwap'] = []
     state.cbar_indicators['tick_price'] = []
     state.cbar_indicators['tick_volume'] = []
+    state.cbar_indicators['CRSI'] = []
     state.indicators['ema'] = []
     state.indicators['slope'] = []
     state.indicators['slopeMA'] = []

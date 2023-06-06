@@ -6,6 +6,7 @@ function populate_real_time_chart() {
     intitialize_candles()
     initialize_vwap()
     initialize_volume()
+    initialize_statusheader()
 
     chart.subscribeClick(param => {
         //display timestamp in trade-timestamp input field

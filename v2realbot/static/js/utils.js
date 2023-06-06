@@ -8,6 +8,12 @@ var verticalSeries=null
 var candlestickSeries = null
 var volumeSeries = null
 var vwapSeries = null
+var statusBarConfig = JSON.parse(localStorage.getItem("statusBarConfig"));
+
+if (statusBarConfig == null) {
+  statusBarConfig = {}
+}
+
 
 const sorter = (a, b) => a.time > b.time ? 1 : -1;
 
@@ -24,12 +30,88 @@ indConfig = [ {name: "ema", titlevisible: false, embed: true, display: true, pri
               {name: "emaSlow", titlevisible: true, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},
               {name: "emaFast", titlevisible: true, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},
               {name: "RSI14", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
-              {name: "RSI5", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
+              {name: "CRSI", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
               {name: "aroon", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
               {name: "apo", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
               {name: "ppo", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
               {name: "stoch2", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
               {name: "stoch1", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},]
+
+
+function initialize_statusheader() {
+    
+    var rows = 2;
+    var columns = 4;
+    console.log(JSON.stringify(statusBarConfig))
+
+    // Create the grid table
+    var gridTable = document.getElementById('statusHeaderTool');
+
+    var cntid = 0
+
+    for (var i = 0; i < rows; i++) {
+      var row = document.createElement('tr');
+
+      for (var j = 0; j < columns; j++) {
+        cntid++
+        var cell = document.createElement('td');
+        cell.className = "statustd";
+        var div = document.createElement('div');
+        var cellid = "status" + cntid
+        div.id = cellid;
+        
+                
+        var input = document.createElement('input');
+        input.id = cntid;
+        input.type = 'text';
+        input.style.display = "none";
+        if (statusBarConfig !== null && statusBarConfig[cntid]) {
+            //div.style.backgroundColor = 'red';
+            div.textContent = "set";
+            input.value = statusBarConfig[cntid];
+          }
+
+        cell.addEventListener('click', function() {
+          var inputValue = this.querySelector('input').value;
+          //this.querySelector('div').textContent = inputValue;
+          this.querySelector('div').style.display = 'none';
+          this.querySelector('input').style.display = 'block';
+          this.querySelector('input').focus();
+        });
+
+        input.addEventListener('blur', function() {
+          this.style.display = 'none';
+          //this.previousElementSibling.textContent = inputValue;
+          this.previousElementSibling.style.display = 'block';
+          if (this.value !== "") {
+            statusBarConfig[this.id] = this.value;
+            }
+          else {
+            delete statusBarConfig[this.id]
+          }
+          if (statusBarConfig[this.id]) {
+            this.previousElementSibling.textContent = "set"
+            //this.previousElementSibling.style.backgroundColor = 'red';
+          }
+          else {
+            this.previousElementSibling.style.backgroundColor = 'transparent';
+          }
+          console.log("potom", JSON.stringify(statusBarConfig))
+          localStorage.setItem("statusBarConfig", JSON.stringify(statusBarConfig));
+        });
+
+        cell.appendChild(div);
+        cell.appendChild(input);
+        row.appendChild(cell);
+      }
+
+      gridTable.appendChild(row);
+    }
+    
+
+
+}
+
 
 function get_ind_config(indName) {
     const i = indConfig.findIndex(e => e.name === indName);

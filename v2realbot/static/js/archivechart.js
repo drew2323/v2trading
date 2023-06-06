@@ -639,7 +639,7 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
 
                 toolTip.innerHTML += `<pre>${JSON.stringify(tradeDetails.get(param.time),null,2)}</pre><div>${price.toFixed(3)}</div>`;
 
-                console.log("toolTip.innerHTML",toolTip.innerHTML)
+                //console.log("toolTip.innerHTML",toolTip.innerHTML)
 
                 //inspirace
                 // toolTip.innerHTML = `<div style="color: ${'#2962FF'}">Apple Inc.</div><div style="font-size: 24px; margin: 4px 0px; color: ${'black'}">

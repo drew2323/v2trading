@@ -118,6 +118,16 @@ function connect(event) {
                 //pre.appendChild(stLine)
                 //line.appendChild(pre)
                 lines.appendChild(line)
+
+                //addline to statusheader if set
+                for (const [key, value] of Object.entries(statusBarConfig)) {
+                    if (logLine.event.includes(value)) {
+                        console.log("found", value, key, logLine.event)
+                        document.getElementById("status"+key).textContent = logLine.event + (logLine.message ? " - " + logLine.message : "")
+                        document.getElementById("status"+key).title = JSON.stringify(logLine,null,2);
+                    }
+                }
+
             });
             $('#messages').animate({
                 scrollTop: $('#lines')[0].scrollHeight}, 2000);

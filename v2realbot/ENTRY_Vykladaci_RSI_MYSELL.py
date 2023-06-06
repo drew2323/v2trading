@@ -424,7 +424,7 @@ def next(data, state: StrategyState):
         dont_buy_when['blockbuy_active'] = (state.vars.blockbuy == 1)
         dont_buy_when['jevylozeno_active'] = (state.vars.jevylozeno == 1)
         dont_buy_when['rsi_too_high'] = state.indicators.RSI14[-1] > safe_get(state.vars, "rsi_dont_buy_above",50)
-        #dont_buy_when['slope_too_low'] = slope_too_low()
+        dont_buy_when['slope_too_low'] = slope_too_low()
         dont_buy_when['open_rush'] = is_open_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), safe_get(state.vars, "open_rush",0))
         dont_buy_when['close_rush'] = is_close_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), safe_get(state.vars, "close_rush",0))
         dont_buy_when['rsi_is_zero'] = (state.indicators.RSI14[-1] == 0)

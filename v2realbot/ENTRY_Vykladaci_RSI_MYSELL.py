@@ -237,8 +237,8 @@ def next(data, state: StrategyState):
         ##aktualni cena je vetsi nebo rovna cene limitky
         #muzeme zde jet i na pulcenty
         curr_price = float(data['close'])
-        state.ilog(e="Eval SELL", price=curr_price, pos=state.positions, sell_in_progress=state.vars.sell_in_progress)
-        if int(state.positions) > 0 and state.vars.sell_in_progress is False:
+        state.ilog(e="Eval SELL", price=curr_price, pos=state.positions, avgp=state.avgp, sell_in_progress=state.vars.sell_in_progress)
+        if int(state.positions) > 0 and float(state.avgp)>0 and state.vars.sell_in_progress is False:
             goal_price = get_limitka_price()
             state.ilog(e=f"Goal price {goal_price}")
             if curr_price>=goal_price:

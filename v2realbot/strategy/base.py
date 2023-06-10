@@ -189,6 +189,13 @@ class Strategy:
                     #pokud je potvrzeny, pak nenese nikdy zmenu ceny, nepridavame zaznam nic
                     self.nextnew = 1
 
+                    #TODO potvrzeny CBAR by mohl triggerovat populaci indikatoru se sekundarnim rozlisenim (tbd co BAR?)
+                    #zatim to udelat tak, ze secondary bude jen priceline nikoli ohlcv (pro RSI, MA a slope bude snad dostatecne)
+                    #prvni iterace nastavi 0 (inicializace)
+                    #kazdy potvrzeny bar updatne hodnotu, DOMYSLET tento algoritmus (co bude zde a co v NEXT)
+                    #self.state.secondary_indicators
+
+
     """"refresh positions and avgp - for CBAR once per confirmed, for BARS each time"""
     def refresh_positions(self, item):
         if self.rectype == RecordType.BAR:

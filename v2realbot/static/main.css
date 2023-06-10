@@ -91,6 +91,13 @@ tbody, td, tfoot, th, thead, tr {
   white-space: nowrap;
 }
 
+.tdmetrics {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 201px;
+  white-space: nowrap;
+}
+
 table.dataTable thead th, table.dataTable thead td, table.dataTable tfoot th, table.dataTable tfoot td {
   text-align: left;
   color: #787b86;

@@ -18,18 +18,13 @@ import inspect
 
 print(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 """"
-Využívá: StrategyOrderLimitVykladaciNormalizedMYSELL
+MYSELL, CBAR
 
-Kopie RSI Normalizovane Vykladaci navíc s řízením prodeje.
-Nepoužíváme LIMITKU.
+Rychloobratka KLARA 
 
-Required CBAR. (pouze se změnou ceny)
+- profit 0.005
+- buy signal nejspis RSI, cilem co nejvic obchodu - rychle ven
 
-nepotvrzený CBAR bez minticku (pouze se změnou ceny)
-- se používá pro žízení prodeje
-
-potvrzený CBAR 
-- se používá pro BUY
 
 
 """
@@ -117,18 +112,6 @@ def next(data, state: StrategyState):
         else:
             return price2dec(cena+get_tick(cena,float(state.vars.profit)),3)
         
-    def optimize_qty_multiplier():
-        akt_pozic = int(state.positions)/int(state.vars.chunk)
-        multiplier = 1
-
-        #zatim jednoduse pokud je akt. pozice 1 nebo 3 chunky (<4) tak zdvojnásubuju
-        #aneb druhy a treti nakup
-        if akt_pozic > 0 and akt_pozic < 4:
-            multiplier = safe_get(state.vars, "market_buy_multiplier", 2)
-        state.ilog(e=f"BUY MULTIPLIER: {multiplier}")
-        return multiplier
-
-
     def consolidation():
         ##CONSOLIDATION PART - moved here, musí být před nákupem, jinak to dělalo nepořádek v pendingbuys
         #docasne zkusime konzolidovat i kdyz neni vylozeno (aby se srovnala limitka ve vsech situacich)
@@ -217,14 +200,13 @@ def next(data, state: StrategyState):
         
         ##VAR - na zaklade conf. muzeme jako prvni posilat MARKET order
         if safe_get(state.vars, "first_buy_market") == True:
-            #pri defenzivnim rezimu pouzijeme LIMIT nebo MARKET podle nastaveni 
-            if is_defensive_mode() and safe_get(state.vars, "first_buy_market_def_mode", False) is False:
+            #pri defenzivnim rezimu pouzivame vzdy LIMIT order
+            if is_defensive_mode():
                 state.ilog(e="DEF mode on, odesilame jako prvni limitku")
                 state.buy_l(price=price, size=qty)
             else:
                 state.ilog(e="Posilame jako prvni MARKET order")
-                #market size optimalization based on conditions
-                state.buy(size=optimize_qty_multiplier()*qty)
+                state.buy(size=qty)
         else:
             state.buy_l(price=price, size=qty)
         print("prvni limitka na aktuální cenu. Další podle křivky", price, qty)
@@ -254,8 +236,6 @@ def next(data, state: StrategyState):
         if int(state.positions) > 0 and float(state.avgp)>0 and state.vars.sell_in_progress is False:
             goal_price = get_limitka_price()
             state.ilog(e=f"Goal price {goal_price}")
-            
-            #pokud je cena vyssi
             if curr_price>=goal_price:
 
                 #TODO cekat az slope prestane intenzivn erust, necekat az na klesani
@@ -267,54 +247,6 @@ def next(data, state: StrategyState):
                     state.interface.sell(size=state.positions)
                     state.vars.sell_in_progress = True
                     state.ilog(e=f"market SELL was sent {curr_price=}", positions=state.positions, avgp=state.avgp, sellinprogress=state.vars.sell_in_progress)
-            #pokud je cena nizsi, testujeme REVERSE POZITION PROTECTION
-            else:
-                pass
-                #reverse_position()
-
-    # def reverse_position():
-    #     """"
-    #     Reverse position - ochrana pred vetsim klesanim
-    #     - proda kdyz je splnena podminka
-    #     - nakoupi opet ve stejnem mnozstvi, kdyz je splnena podminka 
-
-    #     required STRATVARS:
-    #     reverse_position_slope = -0.9
-    #     reverse_position_on_confirmed_only = true
-    #     reverse_position_waiting_amount = 0
-    #     """""
-    #     #reverse position preconditions
-    #     dont_do_reverse_when = {}
-    
-    #     dont_do_reverse_when['reverse_position_waiting_amount_not_0'] = (state.vars.reverse_position_waiting_amount != 0)
-    
-    #     result, conditions_met = eval_cond_dict(dont_do_reverse_when)
-    #     if result:
-    #         state.ilog(e=f"REVERSE_PRECOND PROTECTION {conditions_met}")
-    #         return result
-
-
-    #     #reverse position for
-    #     confirmrequried = safe_get(state.vars, "reverse_position_on_confirmed_only", True)
-    #     if (confirmrequried and data['confirmed'] == 1) or confirmrequried is False:
-    #         #check reverse position 
-    #         state.ilog(e="REVERSE POSITION check - GO")
-    #     else:
-    #         #not time for reverse position
-    #         state.ilog(e="REVERSE POSITION check - NO TIME")
-
-    #     #predpokladame, ze uz byly testovany pozice a mame je if int(state.positions) > 0 and float(state.avgp)>0 
-    #     if state.indicators.slopeMA[-1] < float(safe_get(state.vars, "reverse_position_slope", -0.10)):
-    #         state.interface.sell(size=state.positions)
-    #         state.vars.sell_in_progress = True
-    #         state.ilog(e=f"REV POS market SELL was sent {curr_price=}", positions=state.positions, avgp=state.avgp, sellinprogress=state.vars.sell_in_progress)
-    #         state.vars.rev_position_waiting_amount = 
-
-
-
-
-
-        
 
     def populate_ema_indicator():
         #BAR EMA INDICATOR - 
@@ -491,7 +423,6 @@ def next(data, state: StrategyState):
         dont_buy_when['open_rush'] = is_open_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), safe_get(state.vars, "open_rush",0))
         dont_buy_when['close_rush'] = is_close_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), safe_get(state.vars, "close_rush",0))
         dont_buy_when['rsi_is_zero'] = (state.indicators.RSI14[-1] == 0)
-        dont_buy_when['reverse_position_waiting_amount_not_0'] = (state.vars.reverse_position_waiting_amount != 0)
 
         #testing preconditions
         result, cond_met = eval_cond_dict(dont_buy_when)
@@ -624,7 +555,6 @@ def init(state: StrategyState):
     state.vars.next_new = 0
     state.vars.last_buysignal_index = 0
     state.vars.last_update_time = 0
-    state.vars.reverse_position_waiting_amount = 0
     #state.cbar_indicators['ivwap'] = []
     state.cbar_indicators['tick_price'] = []
     state.cbar_indicators['tick_volume'] = []

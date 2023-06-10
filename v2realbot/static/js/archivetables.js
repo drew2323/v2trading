@@ -100,6 +100,7 @@ $(document).ready(function () {
         window.$('#editModalArchive').modal('show');
         $('#editidarchive').val(row.id);
         $('#editnote').val(row.note);
+        $('#metrics').val(JSON.stringify(row.open_orders,null,2));
         $('#editstratvars').val(JSON.stringify(row.stratvars,null,2));
         $('#editstratjson').val(row.strat_json);
     });
@@ -283,6 +284,14 @@ var archiveRecords =
                     targets: [2],
                     render: function ( data, type, row ) {
                         return '<div class="tdname" title="'+data+'">'+data+'</i>'
+                    },
+                },
+                {
+                    targets: [18],
+                    render: function ( data, type, row ) {
+                        var res = JSON.stringify(data)
+                        const unquoted = res.replace(/"([^"]+)":/g, '$1:')
+                        return '<div class="tdmetrics" title="'+unquoted+'">'+unquoted+'</i>'
                     },
                 },
                 {

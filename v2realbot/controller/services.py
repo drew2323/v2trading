@@ -5,8 +5,8 @@ from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockTradesRequest, StockBarsRequest
 from alpaca.data.enums import DataFeed
 from alpaca.data.timeframe import TimeFrame
-from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account
-from v2realbot.common.model import StrategyInstance, Runner, RunRequest, RunArchive, RunArchiveDetail, RunArchiveChange, Bar
+from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, OrderSide
+from v2realbot.common.model import StrategyInstance, Runner, RunRequest, RunArchive, RunArchiveDetail, RunArchiveChange, Bar, TradeEvent
 from v2realbot.utils.utils import AttributeDict, zoneNY, dict_replace_value, Store, parse_toml_string, json_serial, is_open_hours, send_to_telegram
 from v2realbot.utils.ilog import delete_logs
 from datetime import datetime
@@ -416,50 +416,48 @@ def get_trade_history(symbol: str, timestamp_from: float, timestamp_to:float):
     except Exception as e:
         return (-2, f"problem {e}")
     
-
-
 def populate_metrics_output_directory(strat: StrategyInstance):
     """
     WIP
     Spocte zakladni metriky pred ulozenim do archivu
+
+    1) zatim jen max pozice
     """
-    #open_orders to dataset
-    oo_dict = AttributeDict(orderid=[],submitted_at=[],symbol=[],side=[],order_type=[],qty=[],limit_price=[],status=[])
-    for t in strat.open_orders:
-        oo_dict.orderid.append(str(t.id))
-        oo_dict.submitted_at.append(t.submitted_at)
-        oo_dict.symbol.append(t.symbol)
-        oo_dict.side.append(t.side)
-        oo_dict.qty.append(t.qty)
-        oo_dict.order_type.append(t.order_type)
-        oo_dict.limit_price.append(t.limit_price)
-        oo_dict.status.append(t.status)
 
-    open_orders_df = pd.DataFrame(oo_dict)
-    open_orders_df = open_orders_df.set_index('submitted_at', drop=False)
+    tradeList = strat.state.tradeList
 
-    #trades to dataset
     trade_dict = AttributeDict(orderid=[],timestamp=[],symbol=[],side=[],order_type=[],qty=[],price=[],position_qty=[],value=[],cash=[],pos_avg_price=[])
-    for t in strat.trades:
-        trade_dict.orderid.append(str(t.order.id))
-        trade_dict.timestamp.append(t.timestamp)
-        trade_dict.symbol.append(t.order.symbol)
-        trade_dict.side.append(t.order.side)
-        trade_dict.qty.append(t.qty)
-        trade_dict.price.append(t.price)
-        trade_dict.position_qty.append(t.position_qty)
-        trade_dict.value.append(t.value)
-        trade_dict.cash.append(t.cash)
-        trade_dict.order_type.append(t.order.order_type)
-        trade_dict.pos_avg_price.append(t.pos_avg_price)
+    for t in tradeList:
+        if t.event == TradeEvent.FILL:
+            trade_dict.orderid.append(str(t.order.id))
+            trade_dict.timestamp.append(t.timestamp)
+            trade_dict.symbol.append(t.order.symbol)
+            trade_dict.side.append(t.order.side)
+            trade_dict.qty.append(t.qty)
+            trade_dict.price.append(t.price)
+            trade_dict.position_qty.append(t.position_qty)
+            trade_dict.value.append(t.value)
+            trade_dict.cash.append(t.cash)
+            trade_dict.order_type.append(t.order.order_type)
+            trade_dict.pos_avg_price.append(t.pos_avg_price)
 
     trade_df = pd.DataFrame(trade_dict)
     trade_df = trade_df.set_index('timestamp',drop=False)
 
+    #max positions- tzn. count max quantity ze sell fill orderu
+    #nepocita otevrene objednavky
+    max_positions = trade_df.groupby('side')['qty'].value_counts().reset_index(name='count').sort_values(['qty'], ascending=False)
+    max_positions = max_positions[max_positions['side'] == OrderSide.SELL]
+    max_positions = max_positions.drop(columns=['side'], axis=1)
+
+    #filt = max_positions['side'] == 'OrderSide.BUY'
+    res = dict(zip(max_positions['qty'], max_positions['count']))
+
+    return res
 
 #archives runner and details
 def archive_runner(runner: Runner, strat: StrategyInstance):
-    #results_metrics = dict()
+    results_metrics = dict()
     print("inside archive_runner")
     try:
         if strat.bt is not None:
@@ -481,8 +479,8 @@ def archive_runner(runner: Runner, strat: StrategyInstance):
         #populate result metrics dictionary (max drawdown etc.)
         #list of maximum positions (2000 2x, 1800 x 1, 900 x 1, 100 x 20)
         #list of most profitable trades (pos,avgp + cena)
-        #nejspis prevedeni na dataset a report nad datasetem
-        #results_metrics = populate_metrics(strat)
+        #file pro vyvoj: ouptut_metriky_tradeList.py
+        results_metrics = populate_metrics_output_directory(strat)
 
         runArchive: RunArchive = RunArchive(id = runner.id,
                                             strat_id = runner.strat_id,
@@ -503,7 +501,7 @@ def archive_runner(runner: Runner, strat: StrategyInstance):
                                             trade_count=len(strat.state.tradeList),
                                             end_positions=strat.state.positions,
                                             end_positions_avgp=round(float(strat.state.avgp),3),
-                                            open_orders=9999
+                                            open_orders=results_metrics
                                             )
         
         #flatten indicators from numpy array

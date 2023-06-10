@@ -186,7 +186,7 @@ class RunArchive(BaseModel):
     trade_count: int = 0
     end_positions: int = 0
     end_positions_avgp: float = 0
-    open_orders: int = 0
+    open_orders: Union[dict, int] = None
 
 #Contains archive of running strategies (runner) - detail data
 class RunArchiveDetail(BaseModel):

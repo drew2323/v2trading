@@ -79,6 +79,9 @@ def eval_cond_dict(cond: dict) -> tuple[bool, str]:
             
     return False, None
 
+def Average(lst):
+    return sum(lst) / len(lst)
+
 def safe_get(collection, key, default=None):
     """Get values from a collection without raising errors"""
 

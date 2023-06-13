@@ -527,6 +527,16 @@ def archive_runner(runner: Runner, strat: StrategyInstance):
                     #print("is not numpy", key, value)
                     flattened_indicators[key]= value   
         flattened_indicators_list.append(flattened_indicators)
+        flattened_indicators = {}
+        for key, value in strat.state.secondary_indicators.items():
+                if isinstance(value, ndarray):
+                    #print("is numpy", key,value)
+                    flattened_indicators[key]= value.tolist()
+                    #print("changed numpy:",value.tolist())
+                else:
+                    #print("is not numpy", key, value)
+                    flattened_indicators[key]= value   
+        flattened_indicators_list.append(flattened_indicators)
 
         runArchiveDetail: RunArchiveDetail = RunArchiveDetail(id = runner.id,
                                                             name=runner.run_name,

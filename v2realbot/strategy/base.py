@@ -2,7 +2,7 @@
     Strategy base class
 """
 from datetime import datetime
-from v2realbot.utils.utils import AttributeDict, zoneNY, is_open_rush, is_close_rush, json_serial, print
+from v2realbot.utils.utils import AttributeDict, zoneNY, is_open_rush, is_close_rush, json_serial, print, safe_get, Average
 from v2realbot.utils.tlog import tlog
 from v2realbot.utils.ilog import insert_log, insert_log_multiple
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Order, Account
@@ -55,7 +55,8 @@ class Strategy:
         self.rtqueue = None
         self.runner_id = runner_id
         self.ilog_save = ilog_save
-
+        self.secondary_res_start_time = dict()
+        self.secondary_res_start_index = dict()
 
         #TODO predelat na dynamické queues
         self.q1 = queue.Queue()
@@ -189,11 +190,57 @@ class Strategy:
                     #pokud je potvrzeny, pak nenese nikdy zmenu ceny, nepridavame zaznam nic
                     self.nextnew = 1
 
-                    #TODO potvrzeny CBAR by mohl triggerovat populaci indikatoru se sekundarnim rozlisenim (tbd co BAR?)
-                    #zatim to udelat tak, ze secondary bude jen priceline nikoli ohlcv (pro RSI, MA a slope bude snad dostatecne)
-                    #prvni iterace nastavi 0 (inicializace)
-                    #kazdy potvrzeny bar updatne hodnotu, DOMYSLET tento algoritmus (co bude zde a co v NEXT)
-                    #self.state.secondary_indicators
+                    #pokud jsou nastaveny secondary - zatím skrz stratvars - pripadne do do API
+                    #zatim jedno, predelat pak na list
+                    if safe_get(self.state.vars, "secondary_timeframe",None):
+                        self.process_secondary_indicators(item)
+
+
+    #tady jsem skoncil
+    def process_secondary_indicators(self, item):
+        #toto je voláno každý potvrzený CBAR
+        resolution = int(safe_get(self.state.vars, "secondary_timeframe",10))
+        if int(item['resolution']) >= int(resolution) or int(resolution) % int(item['resolution']) != 0:
+            self.state.ilog(e=f"Secondary res {resolution} must be higher than main resolution {item['resolution']} a jejim delitelem")
+
+        #prvni vytvori pocatecni
+        if safe_get(self.secondary_res_start_time, resolution, None) is None:
+            self.secondary_res_start_time[resolution] = item['time']
+            self.secondary_res_start_index[resolution] = int(item['index'])
+            self.state.ilog(e=f"INIT SECINDS {self.secondary_res_start_time[resolution]=} {self.secondary_res_start_index[resolution]=}")
+        
+        start_timestamp = datetime.timestamp(self.secondary_res_start_time[resolution])
+        self.state.ilog(e=f"SECINDS EVAL", start_time=start_timestamp,start_time_plus=start_timestamp + resolution, aktual=datetime.timestamp(item['time']))
+        #pokud uz jsme prekrocili okno, ukladame hodnotu
+        if start_timestamp + resolution <= datetime.timestamp(item['time']):
+            self.state.ilog(e=f"SECINDS okno prekroceno")
+            
+            index_from = self.secondary_res_start_index[resolution] - int(item['index']) -1
+
+            #vytvorime cas a vyplnime data
+            for key in self.state.secondary_indicators:
+                if key == 'time':
+                    #nastavujeme aktualni cas
+                    self.state.secondary_indicators['time'].append(item['time'])
+                    #self.state.secondary_indicators['time'].append(self.secondary_res_start_time[resolution] )
+                
+                #pro cenu vyplnime aktualni cenou, pro ostatni 0
+                elif key == 'sec_price':
+                    #do ceny dame ceny v tomto okne
+
+                    source = self.state.bars['vwap']
+                    #source = self.state.bars['close']
+
+                    self.state.ilog(e=f"SECINDS pocitame z hodnot", hodnty=source[index_from:])
+                    self.state.secondary_indicators[key].append(Average(self.state.bars['close'][index_from:]))
+                else:
+                    self.state.secondary_indicators[key].append(0)           
+
+            self.state.ilog(e="SECIND populated", sec_price=self.state.secondary_indicators['sec_price'][-5:])
+
+            #priprava start hodnot pro dalsi iteraci
+            self.secondary_res_start_time[resolution] = item['time']
+            self.secondary_res_start_index[resolution] = int(item['index'])
 
 
     """"refresh positions and avgp - for CBAR once per confirmed, for BARS each time"""
@@ -445,6 +492,13 @@ class Strategy:
                             rt_out["indicators"][key]= value[-1]
                         except IndexError:
                             pass
+            #secondaries
+            if len(self.state.secondary_indicators) > 0 and item['confirmed'] == 1:
+                for key, value in self.state.secondary_indicators.items():
+                        try:
+                            rt_out["indicators"][key]= value[-1]
+                        except IndexError:
+                            pass
 
             #same for static indicators
             if len(self.state.statinds) > 0:
@@ -580,6 +634,8 @@ class StrategyState:
         self.trades = AttributeDict(trades)
         self.indicators = AttributeDict(time=[])
         self.cbar_indicators = AttributeDict(time=[])
+        #secondary timeframe indicators
+        self.secondary_indicators = AttributeDict(time=[], sec_price=[])
         self.statinds = AttributeDict()
         #these methods can be overrided by StrategyType (to add or alter its functionality)
         self.buy = self.interface.buy

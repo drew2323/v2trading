@@ -396,17 +396,30 @@ def next(data, state: StrategyState):
             state.ilog(e=f"RSI {rsi_length=} necháváme 0", message=str(e)+format_exc())
             #state.indicators.RSI14[-1]=0
 
-    def populate_cbar_rsi_indicator():
-            #CBAR RSI indicator
+    # def populate_cbar_rsi_indicator():
+    #         #CBAR RSI indicator
+    #     try:
+    #         crsi_length = int(safe_get(state.vars, "crsi_length",14))
+    #         source = state.cbar_indicators.tick_price #[-rsi_length:] #state.bars.vwap
+    #         crsi_res = rsi(source, crsi_length)
+    #         crsi_value = trunc(crsi_res[-1],3)
+    #         state.cbar_indicators.CRSI[-1]=crsi_value
+    #         #state.ilog(e=f"RSI {rsi_length=} {rsi_value=} {rsi_dont_buy=} {rsi_buy_signal=}", rsi_indicator=state.indicators.RSI14[-5:])
+    #     except Exception as e:
+    #         state.ilog(e=f"CRSI {crsi_length=} necháváme 0", message=str(e)+format_exc())
+    #         #state.indicators.RSI14[-1]=0
+
+    def populate_secondary_rsi_indicator():
+            #SBAR RSI indicator
         try:
-            crsi_length = int(safe_get(state.vars, "crsi_length",14))
-            source = state.cbar_indicators.tick_price #[-rsi_length:] #state.bars.vwap
-            crsi_res = rsi(source, crsi_length)
-            crsi_value = trunc(crsi_res[-1],3)
-            state.cbar_indicators.CRSI[-1]=crsi_value
+            srsi_length = int(safe_get(state.vars, "srsi_length",14))
+            source = state.secondary_indicators.sec_price #[-rsi_length:] #state.bars.vwap
+            srsi_res = rsi(source, srsi_length)
+            srsi_value = trunc(srsi_res[-1],3)
+            state.secondary_indicators.SRSI[-1]=srsi_value
             #state.ilog(e=f"RSI {rsi_length=} {rsi_value=} {rsi_dont_buy=} {rsi_buy_signal=}", rsi_indicator=state.indicators.RSI14[-5:])
         except Exception as e:
-            state.ilog(e=f"CRSI {crsi_length=} necháváme 0", message=str(e)+format_exc())
+            state.ilog(e=f"SRSI {srsi_length=} necháváme 0", message=str(e)+format_exc())
             #state.indicators.RSI14[-1]=0
 
     def slope_too_low():
@@ -573,7 +586,12 @@ def next(data, state: StrategyState):
         
         for key in state.cbar_indicators:
             if key != 'time':
-                last_ind_vals[key] = state.cbar_indicators[key][-5:]    
+                last_ind_vals[key] = state.cbar_indicators[key][-5:]
+
+        for key in state.secondary_indicators:
+            if key != 'time':
+                last_ind_vals[key] = state.secondary_indicators[key][-5:]   
+
         return last_ind_vals
 
     conf_bar = data['confirmed']
@@ -591,11 +609,14 @@ def next(data, state: StrategyState):
         state.vars.last_tick_volume = 0
         state.vars.next_new = 1
 
+        #SRSI
+        populate_secondary_rsi_indicator()
+
     #kroky pro CONTINOUS TICKS only
     else:
         #CBAR INDICATOR pro tick price a deltu VOLUME
         populate_cbar_tick_price_indicator()
-        populate_cbar_rsi_indicator()
+
 
     #SPOLECNA LOGIKA - bar indikatory muzeme populovat kazdy tick (dobre pro RT GUI), ale uklada se stejne az pri confirmu
     
@@ -628,7 +649,7 @@ def init(state: StrategyState):
     #state.cbar_indicators['ivwap'] = []
     state.cbar_indicators['tick_price'] = []
     state.cbar_indicators['tick_volume'] = []
-    state.cbar_indicators['CRSI'] = []
+    state.secondary_indicators['SRSI'] = []
     state.indicators['ema'] = []
     state.indicators['slope'] = []
     state.indicators['slopeMA'] = []

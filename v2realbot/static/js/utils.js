@@ -30,12 +30,12 @@ indConfig = [ {name: "ema", titlevisible: false, embed: true, display: true, pri
               {name: "emaSlow", titlevisible: true, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},
               {name: "emaFast", titlevisible: true, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},
               {name: "RSI14", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
-              {name: "CRSI", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
+              {name: "SRSI", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
               {name: "aroon", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
               {name: "apo", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
               {name: "ppo", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
               {name: "stoch2", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
-              {name: "stoch1", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},]
+              {name: "sec_price", titlevisible: true, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},]
 
 
 function initialize_statusheader() {

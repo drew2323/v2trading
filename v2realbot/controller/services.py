@@ -399,7 +399,7 @@ def run_stratin(id: UUID, runReq: RunRequest):
                 print(enumerate())
                 return (0, id)
             except Exception as e:
-                return (-2, "Exception: "+str(e))
+                return (-2, "Exception: "+str(e)+format_exc())
     return (-2, "not found")
 
 def get_trade_history(symbol: str, timestamp_from: float, timestamp_to:float):
@@ -554,8 +554,8 @@ def archive_runner(runner: Runner, strat: StrategyInstance):
         print("archive runner finished")
         return 0, str(resh) + " " + str(resd)
     except Exception as e:
-        print("Exception in archive_runner: " + str(e))
-        return -2, str(e)
+        print("Exception in archive_runner: " + str(e) + format_exc())
+        return -2, str(e) + format_exc()
 
 def get_all_archived_runners():
     res = db_arch_h.all()

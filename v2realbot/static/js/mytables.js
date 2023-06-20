@@ -312,13 +312,17 @@ $(document).ready(function () {
         //jsonString2 = JSON.stringify(rec2, null, 2);
 
 
-        document.getElementById('first').innerHTML = '<pre>'+JSON.stringify(rec1, null, 2)+'</pre>'
+        //document.getElementById('first').innerHTML = '<pre>'+JSON.stringify(rec1, null, 2)+'</pre>'
        $('#diff_first').text(rec1.name);
        $('#diff_second').text(rec2.name);
 
-        var delta = compareObjects(rec1, rec2)
-        const htmlMarkup = `<pre>{\n${generateHTML(rec2, delta)}}\n</pre>`;
-        document.getElementById('second').innerHTML = htmlMarkup;
+       var delta = compareObjects(rec1, rec2)
+       const htmlMarkup2 = `<pre>{\n${generateHTML(rec2, delta)}}\n</pre>`;
+       document.getElementById('second').innerHTML = htmlMarkup2;
+
+       //var delta1 = compareObjects(rec2, rec1)
+       const htmlMarkup1 = `<pre>{\n${generateHTML(rec1, delta)}}\n</pre>`;
+       document.getElementById('first').innerHTML = htmlMarkup1;
 
         event.preventDefault();
         //$('#button_compare').attr('disabled','disabled');

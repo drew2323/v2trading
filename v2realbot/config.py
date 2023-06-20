@@ -2,6 +2,8 @@ from alpaca.data.enums import DataFeed
 from v2realbot.enums.enums import Mode, Account, FillCondition
 from appdirs import user_data_dir
 
+#minimalni vzdalenost mezi trady, kterou agregator pousti pro CBAR(0.001 - blokuje mensi nez 1ms)
+AGG_MIN_TRADE_DELTA = 0.003
 #normalized price for tick 0.01
 NORMALIZED_TICK_BASE_PRICE = 30.00
 LOG_RUNNER_EVENTS = False
@@ -20,6 +22,8 @@ BT_FILL_LOG_SURROUNDING_TRADES = 10
 # slow - price has to be bigger <
 BT_FILL_CONDITION_BUY_LIMIT = FillCondition.SLOW
 BT_FILL_CONDITION_SELL_LIMIT = FillCondition.SLOW
+#TBD TODO not implemented yet
+BT_FILL_PRICE_MARKET_ORDER_PREMIUM = 0.005
 #backend counter of api requests
 COUNT_API_REQUESTS = False
 #stratvars that cannot be changed in gui

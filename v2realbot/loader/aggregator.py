@@ -11,7 +11,7 @@ import threading
 from copy import deepcopy
 from msgpack import unpackb
 import os
-from config import DATA_DIR
+from config import DATA_DIR, AGG_MIN_TRADE_DELTA
 
 class TradeAggregator:  
     def __init__(self,
@@ -66,6 +66,7 @@ class TradeAggregator:
         self.barindex = 1
         self.diff_price = True
         self.preconfBar = {}
+        self.trades_too_close = False
 
     async def ingest_trade(self, indata, symbol):
         """
@@ -244,6 +245,11 @@ class TradeAggregator:
             self.diff_price = True    
         self.last_price = data['p'] 
 
+        if float(data['t']) - float(self.lasttimestamp) < AGG_MIN_TRADE_DELTA:
+            self.trades_too_close = True
+        else:
+            self.trades_too_close = False
+
         #spočteme vwap - potřebujeme předchozí hodnoty 
         self.vwaphelper += (data['p'] * data['s'])
         self.newBar['updated'] = data['t']
@@ -333,7 +339,16 @@ class TradeAggregator:
             #print(self.newBar)
 
             #pro (nepotvrzeny) cbar vracime jen pri zmene ceny
-            if self.diff_price is True:
+
+            #nevracime pokud predchozi timestamp a novy od sebe nema alespon 1 ms (vyhneme se kulometum)
+            #127788.123000 127788.124000 (rozdil 0.001)
+
+
+            #zkousime pustit i stejnou cenu(potrebujeme kvuli MYSELLU), ale blokoval kulomet,tzn. trady mensi nez AGG_MIN_TRADE_DELTA (1ms)
+            #if self.diff_price is True:
+
+            #pripadne jeste vratit jako subpodminkiu
+            if self.trades_too_close is False:
                 return [self.newBar]
             else:
                 return []

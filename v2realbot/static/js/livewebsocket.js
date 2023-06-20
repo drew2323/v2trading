@@ -5,6 +5,7 @@ var logcnt = 0
 var positionsPriceLine = null
 var limitkaPriceLine = null
 var angleSeries = 1
+var angleSeries_slow = 1
 var cbar = false
 
 //get details of runner to populate chart status
@@ -54,7 +55,7 @@ function connect(event) {
     ws.onmessage = function(event) {
         var parsed_data = JSON.parse(event.data)
 
-        console.log(JSON.stringify(parsed_data))
+        //console.log(JSON.stringify(parsed_data))
 
         // //check received data and display lines
         // if (parsed_data.hasOwnProperty("bars")) {
@@ -236,6 +237,34 @@ function connect(event) {
                                 // console.log("pridano")
                                 // console.log(toString(dataPoints))
                                 angleSeries.setData(dataPoints)
+                            }
+                        }
+
+                        if (klic === "angle_slow") {
+
+                            //nejsou vsechny hodnoty
+                            if (Object.keys(hodnota).length > 2)  {
+                                // console.log("angle nalezen");
+                                // console.log(JSON.stringify(hodnota));
+                                if (angleSeries_slow !== 1) {
+                                    // console.log("angle neni jedna" + toString(angleSeries))
+                                    chart.removeSeries(angleSeries_slow)
+                                }
+                                
+                                angleSeries_slow = chart.addLineSeries({
+                                    //title: key,
+                                    lineWidth: 2,
+                                    lineStyle: 2,
+                                    color: "#8c52c7",
+                                    lastValueVisible: false,
+                                    priceLineVisible: false,
+                                    priceLineWidth: 0,
+                                    priceLineStyle: 3
+                                })
+                                dataPoints = [{time: hodnota.lookbacktime, value: hodnota.lookbackprice},{ time: hodnota.time, value: hodnota.price}]
+                                // console.log("pridano")
+                                // console.log(toString(dataPoints))
+                                angleSeries_slow.setData(dataPoints)
                             }
                         }
                     }

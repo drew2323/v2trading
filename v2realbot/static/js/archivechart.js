@@ -259,19 +259,24 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
         intitialize_candles()
         candlestickSeries.setData(AllCandleSeriesesData.get(interval));
 
+        remove_indicators();
+        btnElement = document.getElementById("indicatorsButtons")
+        if (btnElement) {
+            container1.removeChild(btnElement);
+        }
+
         if (interval == native_resolution) {
             //indicators are in native resolution only
-            display_indicators(data);
-            var indbuttonElement = populate_indicator_buttons();
-            container1.append(indbuttonElement);      
+            display_indicators(data, true);
+            var indbuttonElement = populate_indicator_buttons(true);   
         }
         else {
-            remove_indicators();
-            btnElement = document.getElementById("indicatorsButtons")
-            if (btnElement) {
-                container1.removeChild(btnElement);
-            }
+            //na nepuvodnim grafu zobrazit jako offset a zobrazit jako neviditelne 
+            display_indicators(data,false,30)
+            //buttonky jako vypnute
+            var indbuttonElement = populate_indicator_buttons(false);
         }
+        container1.append(indbuttonElement);   
 
         display_buy_markers();
 
@@ -284,7 +289,8 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
     //pro kazdy identifikator zobrazime button na vypnuti zapnuti
     //vybereme barvu pro kazdy identifikator
     //zjistime typ idenitfikatoru - zatim right vs left
-    function display_indicators(data) {
+    // input: data, offset(zobrazovat pouze hodnoty kazdych N sekund, visible)
+    function display_indicators(data, visible, offset) {
         //console.log("indikatory", JSON.stringify(data.indicators,null,2))
         //podobne v livewebsokcets.js - dat do jedne funkce
         if (data.hasOwnProperty("indicators")) { 
@@ -331,6 +337,16 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
                                         //if (indicators.time[index] !== undefined) {
                                             //{console.log("problem",key,last)}
                                         time = indicators.time[index]
+
+                                        //pokud je nastaveny offset (zobrazujeme pouze bod vzdaleny N sekund od posledniho)
+                                        //vynechavame prvni iteraci, aby se nam naplnil last_time
+                                        if (offset && last_time !==0) {
+                                            if (last_time + offset > time) {
+                                                return;
+                                            }
+                                        }
+
+
                                         if (last_time>=time) {
                                             console.log(key, "problem v case - zarovnano",time, last_time, element)
                                             
@@ -437,6 +453,7 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
                                 
                                 //add options
                                 obj.series.applyOptions({
+                                    visible: visible,
                                     lastValueVisible: false,
                                     priceLineVisible: false,
                                 });
@@ -456,19 +473,21 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
                 }
             })
         }
+        //vwap a volume zatim jen v detailnim zobrazeni
+        if (!offset) {
+            //display vwap and volume
+            initialize_vwap()
+            vwapSeries.setData(transformed_data["vwap"])
 
-        //display vwap and volume
-        initialize_vwap()
-        vwapSeries.setData(transformed_data["vwap"])
-
-        initialize_volume()
-        volumeSeries.setData(transformed_data["volume"])
-        console.log("volume")        
+            initialize_volume()
+            volumeSeries.setData(transformed_data["volume"])
+            console.log("volume") 
+        }       
     }
 
     function remove_indicators() {
         //reset COLORS
-        colors = reset_colors
+        colors = reset_colors.slice()
 
         //remove CUSTOMS indicators if exists
         indList.forEach((element, index, array) => {
@@ -479,9 +498,11 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
         //remove BASIC indicators
         if (vwapSeries) {
             chart.removeSeries(vwapSeries)
+            vwapSeries = null;
         }
         if (volumeSeries) {
             chart.removeSeries(volumeSeries)
+            volumeSeries = null;
         }
     }
 

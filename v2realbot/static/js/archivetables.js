@@ -71,16 +71,15 @@ $(document).ready(function () {
         // record2.history = "";
         //jsonString2 = JSON.stringify(record2, null, 2);
 
-
-        document.getElementById('first').innerHTML = '<pre>'+JSON.stringify(record1, null, 2)+'</pre>'
-       $('#diff_first').text(record1.name);
-       $('#diff_second').text(record2.name);
-
-        //mozna parse?
-
+        $('#diff_first').text(record1.name);
+        $('#diff_second').text(record2.name);
+        
         var delta = compareObjects(record1, record2)
-        const htmlMarkup1 = `<pre>{\n${generateHTML(record2, delta)}}\n</pre>`;
-        document.getElementById('second').innerHTML = htmlMarkup1;
+        const htmlMarkup2 = `<pre>{\n${generateHTML(record2, delta)}}\n</pre>`;
+        document.getElementById('second').innerHTML = htmlMarkup2;
+
+        const htmlMarkup1 = `<pre>{\n${generateHTML(record1, delta)}}\n</pre>`;
+        document.getElementById('first').innerHTML = htmlMarkup1;
 
         event.preventDefault();
         //$('#button_compare').attr('disabled','disabled');

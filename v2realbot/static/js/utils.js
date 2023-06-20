@@ -1,8 +1,8 @@
 
 API_KEY = localStorage.getItem("api-key")
 var chart = null
-var colors = ["#8B1874","#B71375","#B46060","#61c740","#BE6DB7","#898121","#4389d9","#00425A","#B5D5C5","#e61957"]
-var reset_colors = colors
+var colors = ["#8B1874","#B71375","#B46060","#61c740","#BE6DB7","#898121","#4389d9","#00425A","#B5D5C5","#e61957","#8B1874","#B71375","#B46060","#61c740","#BE6DB7","#898121","#4389d9","#00425A","#B5D5C5","#e61957"]
+var reset_colors = ["#8B1874","#B71375","#B46060","#61c740","#BE6DB7","#898121","#4389d9","#00425A","#B5D5C5","#e61957","#8B1874","#B71375","#B46060","#61c740","#BE6DB7","#898121","#4389d9","#00425A","#B5D5C5","#e61957"]
 var indList = []
 var verticalSeries=null
 var candlestickSeries = null
@@ -27,10 +27,12 @@ indConfig = [ {name: "ema", titlevisible: false, embed: true, display: true, pri
               {name: "ivwap", titlevisible: true, embed: true, display: false, priceScaleId: "right", lastValueVisible: false},
               {name: "slope", titlevisible: true, embed: true, display: false, priceScaleId: "middle", lastValueVisible: false},
               {name: "slopeMA", titlevisible: true, embed: true, display: true, priceScaleId: "middle", lastValueVisible: false},
+              {name: "slow_slope", titlevisible: true, embed: true, display: false, priceScaleId: "middle", lastValueVisible: false},
+              {name: "slow_slopeMA", titlevisible: true, embed: true, display: true, priceScaleId: "middle", lastValueVisible: false},
               {name: "emaSlow", titlevisible: true, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},
               {name: "emaFast", titlevisible: true, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},
               {name: "RSI14", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
-              {name: "SRSI", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
+              {name: "CRSI", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
               {name: "aroon", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
               {name: "apo", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
               {name: "ppo", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
@@ -294,7 +296,7 @@ function initialize_vwap() {
 }
 
 
-function populate_indicator_buttons() {
+function populate_indicator_buttons(def) {
 	var buttonElement = document.createElement('div');
     buttonElement.id = "indicatorsButtons"
 	buttonElement.classList.add('switcher');
@@ -305,7 +307,9 @@ function populate_indicator_buttons() {
         itemEl.id = "IND"+index;
         itemEl.style.color = item.series.options().color;
 		itemEl.classList.add('switcher-item');
+    if (def) {
 		itemEl.classList.add('switcher-active-item');
+    }
 		itemEl.addEventListener('click', function() {
 			onItemClicked1(index);
 		});
@@ -464,9 +468,15 @@ Mousetrap.bind('x', function() {
   
 //     for (let key in obj1) {
 //       if (typeof obj1[key] === 'object' && typeof obj2[key] === 'object') {
-//         const nestedDiff = compareObjects(obj1[key], obj2[key]);
-//         if (Object.keys(nestedDiff).length > 0) {
-//           diff[key] = nestedDiff;
+//         if (Array.isArray(obj1[key]) && Array.isArray(obj2[key])) {
+//           if (!arraysAreEqual(obj1[key], obj2[key])) {
+//             diff[key] = obj2[key];
+//           }
+//         } else {
+//           const nestedDiff = compareObjects(obj1[key], obj2[key]);
+//           if (Object.keys(nestedDiff).length > 0) {
+//             diff[key] = nestedDiff;
+//           }
 //         }
 //       } else if (obj1[key] !== obj2[key]) {
 //         diff[key] = obj2[key];
@@ -476,52 +486,42 @@ Mousetrap.bind('x', function() {
 //     return diff;
 //   }
   
-//   function generateHTML(obj, diff, indent = '') {
-//     let html = '';
-  
-//     for (let key in obj) {
-//       const value = obj[key];
-  
-//       if (typeof value === 'object' && value !== null) {
-//         const nestedDiff = diff[key] || {};
-//         const nestedIndent = indent + '  ';
-//         html += `${indent}"${key}": {\n${generateHTML(value, nestedDiff, nestedIndent)}${indent}},\n`;
-//       } else {
-//         if (key in diff) {
-//           html += `${indent}"${key}": <span class="highlighted">${JSON.stringify(value)}</span>,\n`;
-//         } else {
-//           html += `${indent}"${key}": ${JSON.stringify(value)},\n`;
-//         }
-//       }
-//     }
-  
-//     return html;
-//   }
-
-
 function compareObjects(obj1, obj2) {
-    const diff = {};
-  
-    for (let key in obj1) {
-      if (typeof obj1[key] === 'object' && typeof obj2[key] === 'object') {
-        if (Array.isArray(obj1[key]) && Array.isArray(obj2[key])) {
-          if (!arraysAreEqual(obj1[key], obj2[key])) {
-            diff[key] = obj2[key];
-          }
-        } else {
-          const nestedDiff = compareObjects(obj1[key], obj2[key]);
-          if (Object.keys(nestedDiff).length > 0) {
-            diff[key] = nestedDiff;
-          }
-        }
-      } else if (obj1[key] !== obj2[key]) {
-        diff[key] = obj2[key];
-      }
+  const diff = {};
+
+  for (let key in obj1) {
+    if (!(key in obj2)) {
+      diff[key] = obj1[key];
+      continue;
     }
-  
-    return diff;
+
+    if (typeof obj1[key] === 'object' && typeof obj2[key] === 'object') {
+      if (Array.isArray(obj1[key]) && Array.isArray(obj2[key])) {
+        if (!arraysAreEqual(obj1[key], obj2[key])) {
+          diff[key] = obj2[key];
+        }
+      } else {
+        const nestedDiff = compareObjects(obj1[key], obj2[key]);
+        if (Object.keys(nestedDiff).length > 0) {
+          diff[key] = nestedDiff;
+        }
+      }
+    } else if (obj1[key] !== obj2[key]) {
+      diff[key] = obj2[key];
+    }
   }
-  
+
+  for (let key in obj2) {
+    if (!(key in obj1)) {
+      diff[key] = obj2[key];
+    }
+  }
+
+  return diff;
+}
+
+
+
   function arraysAreEqual(arr1, arr2) {
     if (arr1.length !== arr2.length) {
       return false;

@@ -11,7 +11,7 @@ from v2realbot.utils.utils import AttributeDict, zoneNY, dict_replace_value, Sto
 from v2realbot.utils.ilog import delete_logs
 from datetime import datetime
 from threading import Thread, current_thread, Event, enumerate
-from v2realbot.config import STRATVARS_UNCHANGEABLES, ACCOUNT1_LIVE_API_KEY, ACCOUNT1_LIVE_SECRET_KEY, DATA_DIR,BT_FILL_CONS_TRADES_REQUIRED,BT_FILL_LOG_SURROUNDING_TRADES,BT_FILL_CONDITION_BUY_LIMIT,BT_FILL_CONDITION_SELL_LIMIT
+from v2realbot.config import STRATVARS_UNCHANGEABLES, ACCOUNT1_LIVE_API_KEY, ACCOUNT1_LIVE_SECRET_KEY, DATA_DIR,BT_FILL_CONS_TRADES_REQUIRED,BT_FILL_LOG_SURROUNDING_TRADES,BT_FILL_CONDITION_BUY_LIMIT,BT_FILL_CONDITION_SELL_LIMIT, AGG_MIN_TRADE_DELTA
 import importlib
 from queue import Queue
 from tinydb import TinyDB, Query, where
@@ -436,10 +436,14 @@ def populate_metrics_output_directory(strat: StrategyInstance):
             trade_dict.qty.append(t.qty)
             trade_dict.price.append(t.price)
             trade_dict.position_qty.append(t.position_qty)
-            trade_dict.value.append(t.value)
-            trade_dict.cash.append(t.cash)
             trade_dict.order_type.append(t.order.order_type)
-            trade_dict.pos_avg_price.append(t.pos_avg_price)
+            #backtest related additional attributtes, not present on LIVE
+            try:
+                trade_dict.value.append(t.value)
+                trade_dict.cash.append(t.cash)
+                trade_dict.pos_avg_price.append(t.pos_avg_price)
+            except Exception:
+                pass
 
     trade_df = pd.DataFrame(trade_dict)
     trade_df = trade_df.set_index('timestamp',drop=False)
@@ -470,6 +474,7 @@ def archive_runner(runner: Runner, strat: StrategyInstance):
         settings = dict(resolution=strat.state.timeframe,
                         rectype=strat.state.rectype,
                         configs=dict(
+                            AGG_MIN_TRADE_DELTA=AGG_MIN_TRADE_DELTA,
                             BT_FILL_CONS_TRADES_REQUIRED=BT_FILL_CONS_TRADES_REQUIRED,
                             BT_FILL_LOG_SURROUNDING_TRADES=BT_FILL_LOG_SURROUNDING_TRADES,
                             BT_FILL_CONDITION_BUY_LIMIT=BT_FILL_CONDITION_BUY_LIMIT,
@@ -527,16 +532,16 @@ def archive_runner(runner: Runner, strat: StrategyInstance):
                     #print("is not numpy", key, value)
                     flattened_indicators[key]= value   
         flattened_indicators_list.append(flattened_indicators)
-        flattened_indicators = {}
-        for key, value in strat.state.secondary_indicators.items():
-                if isinstance(value, ndarray):
-                    #print("is numpy", key,value)
-                    flattened_indicators[key]= value.tolist()
-                    #print("changed numpy:",value.tolist())
-                else:
-                    #print("is not numpy", key, value)
-                    flattened_indicators[key]= value   
-        flattened_indicators_list.append(flattened_indicators)
+        # flattened_indicators = {}
+        # for key, value in strat.state.secondary_indicators.items():
+        #         if isinstance(value, ndarray):
+        #             #print("is numpy", key,value)
+        #             flattened_indicators[key]= value.tolist()
+        #             #print("changed numpy:",value.tolist())
+        #         else:
+        #             #print("is not numpy", key, value)
+        #             flattened_indicators[key]= value   
+        # flattened_indicators_list.append(flattened_indicators)
 
         runArchiveDetail: RunArchiveDetail = RunArchiveDetail(id = runner.id,
                                                             name=runner.run_name,

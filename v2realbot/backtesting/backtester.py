@@ -181,7 +181,7 @@ class Backtester:
                         todel.append(order)
                         changes = 1
                     else:
-                        print("NOT EXECUTED {a}")
+                        print(f"NOT EXECUTED {a}")
                         #ic("NOT EXECUTED",a)
         ##ic("istodel",todel)
         #vymazu z pending orderu vschny zprocesovane nebo ty na výmaz
@@ -317,7 +317,7 @@ class Backtester:
             return -1
         
         if not fill_time:
-            #ic("not FILLED")
+            print("not FILLED")
             return 0
         else:
 

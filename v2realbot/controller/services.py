@@ -426,7 +426,11 @@ def populate_metrics_output_directory(strat: StrategyInstance):
 
     tradeList = strat.state.tradeList
 
-    trade_dict = AttributeDict(orderid=[],timestamp=[],symbol=[],side=[],order_type=[],qty=[],price=[],position_qty=[],value=[],cash=[],pos_avg_price=[])
+    trade_dict = AttributeDict(orderid=[],timestamp=[],symbol=[],side=[],order_type=[],qty=[],price=[],position_qty=[])
+    if strat.mode == Mode.BT:
+        trade_dict["value"] = []
+        trade_dict["cash"] = []
+        trade_dict["pos_avg_price"] = []
     for t in tradeList:
         if t.event == TradeEvent.FILL:
             trade_dict.orderid.append(str(t.order.id))
@@ -438,12 +442,10 @@ def populate_metrics_output_directory(strat: StrategyInstance):
             trade_dict.position_qty.append(t.position_qty)
             trade_dict.order_type.append(t.order.order_type)
             #backtest related additional attributtes, not present on LIVE
-            try:
+            if strat.mode == Mode.BT: 
                 trade_dict.value.append(t.value)
                 trade_dict.cash.append(t.cash)
                 trade_dict.pos_avg_price.append(t.pos_avg_price)
-            except Exception:
-                pass
 
     trade_df = pd.DataFrame(trade_dict)
     trade_df = trade_df.set_index('timestamp',drop=False)

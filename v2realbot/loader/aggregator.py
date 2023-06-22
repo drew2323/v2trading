@@ -11,7 +11,7 @@ import threading
 from copy import deepcopy
 from msgpack import unpackb
 import os
-from config import DATA_DIR, AGG_MIN_TRADE_DELTA
+from config import DATA_DIR, GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN
 
 class TradeAggregator:  
     def __init__(self,
@@ -245,7 +245,7 @@ class TradeAggregator:
             self.diff_price = True    
         self.last_price = data['p'] 
 
-        if float(data['t']) - float(self.lasttimestamp) < AGG_MIN_TRADE_DELTA:
+        if float(data['t']) - float(self.lasttimestamp) < GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN:
             self.trades_too_close = True
         else:
             self.trades_too_close = False
@@ -344,7 +344,7 @@ class TradeAggregator:
             #127788.123000 127788.124000 (rozdil 0.001)
 
 
-            #zkousime pustit i stejnou cenu(potrebujeme kvuli MYSELLU), ale blokoval kulomet,tzn. trady mensi nez AGG_MIN_TRADE_DELTA (1ms)
+            #zkousime pustit i stejnou cenu(potrebujeme kvuli MYSELLU), ale blokoval kulomet,tzn. trady mensi nez GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN (1ms)
             #if self.diff_price is True:
 
             #pripadne jeste vratit jako subpodminkiu

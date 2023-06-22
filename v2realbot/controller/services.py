@@ -11,7 +11,7 @@ from v2realbot.utils.utils import AttributeDict, zoneNY, dict_replace_value, Sto
 from v2realbot.utils.ilog import delete_logs
 from datetime import datetime
 from threading import Thread, current_thread, Event, enumerate
-from v2realbot.config import STRATVARS_UNCHANGEABLES, ACCOUNT1_LIVE_API_KEY, ACCOUNT1_LIVE_SECRET_KEY, DATA_DIR,BT_FILL_CONS_TRADES_REQUIRED,BT_FILL_LOG_SURROUNDING_TRADES,BT_FILL_CONDITION_BUY_LIMIT,BT_FILL_CONDITION_SELL_LIMIT, AGG_MIN_TRADE_DELTA
+from v2realbot.config import STRATVARS_UNCHANGEABLES, ACCOUNT1_LIVE_API_KEY, ACCOUNT1_LIVE_SECRET_KEY, DATA_DIR,BT_FILL_CONS_TRADES_REQUIRED,BT_FILL_LOG_SURROUNDING_TRADES,BT_FILL_CONDITION_BUY_LIMIT,BT_FILL_CONDITION_SELL_LIMIT, GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN
 import importlib
 from queue import Queue
 from tinydb import TinyDB, Query, where
@@ -476,7 +476,7 @@ def archive_runner(runner: Runner, strat: StrategyInstance):
         settings = dict(resolution=strat.state.timeframe,
                         rectype=strat.state.rectype,
                         configs=dict(
-                            AGG_MIN_TRADE_DELTA=AGG_MIN_TRADE_DELTA,
+                            GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN=GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN,
                             BT_FILL_CONS_TRADES_REQUIRED=BT_FILL_CONS_TRADES_REQUIRED,
                             BT_FILL_LOG_SURROUNDING_TRADES=BT_FILL_LOG_SURROUNDING_TRADES,
                             BT_FILL_CONDITION_BUY_LIMIT=BT_FILL_CONDITION_BUY_LIMIT,

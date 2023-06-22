@@ -14,7 +14,6 @@ from msgpack import packb, unpackb
 import asyncio
 import os
 from traceback import format_exc
-import inspect
 
 print(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 """"
@@ -502,6 +501,8 @@ def next(data, state: StrategyState):
             source = state.cbar_indicators.tick_price #[-rsi_length:] #state.bars.vwap
             crsi_res = rsi(source, crsi_length)
             crsi_value = crsi_res[-1]
+            if str(crsi_value) == "nan":
+                crsi_value = 0
             state.cbar_indicators.CRSI[-1]=crsi_value
             #state.ilog(e=f"RSI {rsi_length=} {rsi_value=} {rsi_dont_buy=} {rsi_buy_signal=}", rsi_indicator=state.indicators.RSI14[-5:])
         except Exception as e:
@@ -653,11 +654,11 @@ def next(data, state: StrategyState):
         #buy_cond["AND"]["rsi_buy_signal_below"] = state.indicators.RSI14[-1] < safe_get(state.vars, "rsi_buy_signal_below",40)
         #buy_cond["AND"]["ema_trend_is_falling"] = isfalling(state.indicators.ema,state.vars.Trend)
 
-        #pouze RSI nizke a RSI klesa
+        #pouze RSI nizke a RSI klesa, pripadne k tomu CRSI
+        #TATO KOMBINACE se da konfigurovat pouze hodnotama, aby platila libovolna kombinace podminek (např. Trend = 1 - vypne stredni podminku)
         buy_cond["AND"]["rsi_buy_signal_below"] = state.indicators.RSI14[-1] < safe_get(state.vars, "rsi_buy_signal_below",40)
         buy_cond["AND"]["rsi_is_falling"] = isfalling(state.indicators.RSI14,state.vars.Trend)
-        
-        #buy_cond['crsi_below_crsi_buy_limit'] = state.cbar_indicators.CRSI[-1] < safe_get(state.vars, "crsi_buy_signal_below",30)
+        buy_cond["AND"]['crsi_below_crsi_buy_limit'] = state.cbar_indicators.CRSI[-1] < safe_get(state.vars, "crsi_buy_signal_below",25)
        
         #slopME klesa a RSI začalo stoupat
         # buy_cond["AND"]["rsi_is_rising2"] = isrising(state.indicators.RSI14,2)
@@ -668,8 +669,8 @@ def next(data, state: StrategyState):
         #zkusit jako doplnkovy BUY SIGNAL 3 klesavy cbar RSI pripadne TICK PRICE
 
         result, conditions_met = eval_cond_dict(buy_cond)
-        if result:
-            state.ilog(e=f"BUY SIGNAL {conditions_met}")
+        #if result:
+        state.ilog(e=f"BUY SIGNAL {result} {conditions_met}")
         return result
 
     def eval_buy():

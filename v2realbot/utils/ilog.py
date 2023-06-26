@@ -1,13 +1,11 @@
-import sqlite3
 from v2realbot.config import DATA_DIR
 from v2realbot.utils.utils import json_serial
 from uuid import UUID, uuid4
 import json
 from datetime import datetime
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account
+from v2realbot.common.db import conn
 
-sqlite_db_file = DATA_DIR + "/v2trading.db"
-conn = sqlite3.connect(sqlite_db_file, check_same_thread=False)
 #standardne vraci pole tuplů, kde clen tuplu jsou sloupce
 #conn.row_factory = lambda c, r: json.loads(r[0])
 #conn.row_factory = lambda c, r: r[0]
@@ -40,7 +38,7 @@ def insert_log_multiple(runner_id: UUID, loglist: list):
         row = (str(runner_id), i["time"], json.dumps(i, default=json_serial))
         insert_data.append(row)
     c.executemany("INSERT INTO runner_logs VALUES (?,?,?)", insert_data)
-    conn.commit()
+    #conn.commit()
     return c.rowcount
 
 #returns list of ilog jsons
@@ -57,6 +55,8 @@ def delete_logs(runner_id: UUID):
     print(res.rowcount)
     conn.commit()
     return res.rowcount
+
+
 
 # print(insert_log(str(uuid4()), datetime.now().timestamp(), insert))
 # c = conn.cursor()

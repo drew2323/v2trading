@@ -21,12 +21,16 @@ from numpy import ndarray
 import pandas as pd
 from traceback import format_exc
 from datetime import timedelta, time
+from threading import Lock
+from v2realbot.common.db import conn
+#adding lock to ensure thread safety of TinyDB (in future will be migrated to proper db)
+lock = Lock()
 
 arch_header_file = DATA_DIR + "/arch_header.json"
-arch_detail_file = DATA_DIR + "/arch_detail.json"
+#arch_detail_file = DATA_DIR + "/arch_detail.json"
 #db layer to store runner archive
 db_arch_h = TinyDB(arch_header_file, default=json_serial)
-db_arch_d = TinyDB(arch_detail_file, default=json_serial)
+#db_arch_d = TinyDB(arch_detail_file, default=json_serial)
 
 #db layer to store stratins, TBD zmigrovat do TinyDB
 db = Store()
@@ -222,19 +226,22 @@ def pause_runner(id: UUID):
 
 def stop_runner(id: UUID = None):
     chng = []
-    for i in db.runners:
-        #print(i['id'])
-        if id is None or str(i.id) == id:
-            chng.append(i.id)
-            print("Sending STOP signal to Runner", i.id)
-            #just sending the signal, update is done in stop after plugin
-            i.run_stop_ev.set()
-            # i.run_stopped = datetime.now().astimezone(zoneNY)
-            # i.run_thread = None
-            # i.run_instance = None
-            # i.run_pause_ev = None
-            # i.run_stop_ev = None
-            # #stratins.remove(i)
+    try:
+        for i in db.runners:
+            #print(i['id'])
+            if id is None or str(i.id) == id:
+                chng.append(i.id)
+                print("Sending STOP signal to Runner", i.id)
+                #just sending the signal, update is done in stop after plugin
+                i.run_stop_ev.set()
+                # i.run_stopped = datetime.now().astimezone(zoneNY)
+                # i.run_thread = None
+                # i.run_instance = None
+                # i.run_pause_ev = None
+                # i.run_stop_ev = None
+                # #stratins.remove(i)
+    except Exception as e:
+        return (-2, "Error Exception" + str(e) + format_exc())
     if len(chng) > 0:
         return (0, "Sent STOP signal to those" + str(chng))
     else:
@@ -551,8 +558,10 @@ def archive_runner(runner: Runner, strat: StrategyInstance):
                                                             indicators=flattened_indicators_list,
                                                             statinds=strat.state.statinds,
                                                             trades=strat.state.tradeList)
-        resh = db_arch_h.insert(runArchive.__dict__)
-        resd = db_arch_d.insert(runArchiveDetail.__dict__)
+        with lock:
+            resh = db_arch_h.insert(runArchive.__dict__)
+            resd = insert_archive_detail(runArchiveDetail)
+            #resd = db_arch_d.insert(runArchiveDetail.__dict__)
         print("archive runner finished")
         return 0, str(resh) + " " + str(resd)
     except Exception as e:
@@ -566,10 +575,15 @@ def get_all_archived_runners():
 #delete runner in archive and archive detail and runner logs
 def delete_archived_runners_byID(id: UUID):
     try:
-            resh = db_arch_h.remove(where('id') == id)
-            resd = db_arch_d.remove(where('id') == id)
+            with lock:
+                print("before header del")
+                resh = db_arch_h.remove(where('id') == id)
+                print("before detail del")
+                #resd = db_arch_d.remove(where('id') == id)
+                resd = delete_archive_detail_byID(id)
+            print("Arch header and detail removed. Log deletition will start.")
             reslogs = delete_logs(id) 
-            if len(resh) == 0 or len(resd) == 0:
+            if len(resh) == 0 or resd == 0:
                 return -1, "not found "+str(resh) + " " + str(resd) + " " + str(reslogs)
             return 0, str(resh) + " " + str(resd) + " " + str(reslogs)
     except Exception as e:
@@ -578,23 +592,54 @@ def delete_archived_runners_byID(id: UUID):
 #edit archived runner note
 def edit_archived_runners(runner_id: UUID, archChange: RunArchiveChange):
     try:
-        res = db_arch_h.update(set('note', archChange.note), where('id') == str(runner_id))
+        with lock:
+            res = db_arch_h.update(set('note', archChange.note), where('id') == str(runner_id))
         if len(res) == 0:
             return -1, "not found "+str(runner_id)
         return 0, runner_id
     except Exception as e:
         return -2, str(e)
 
-def get_all_archived_runners_detail():
-    res = db_arch_d.all()
-    return 0, res
+#returns number of deleted elements
+def delete_archive_detail_byID(id: UUID):
+    c = conn.cursor()
+    res = c.execute(f"DELETE from runner_detail WHERE runner_id='{str(id)}';")
+    print("deleted", res.rowcount)
+    return res.rowcount
 
+# def get_all_archived_runners_detail_old():
+#     res = db_arch_d.all()
+#     return 0, res
+
+def get_all_archived_runners_detail():
+    conn.row_factory = lambda c, r: json.loads(r[0])
+    c = conn.cursor()
+    res = c.execute(f"SELECT data FROM runner_detail")
+    return 0, res.fetchall()
+
+# def get_archived_runner_details_byID_old(id: UUID):
+#     res = db_arch_d.get(where('id') == str(id))
+#     if res==None:
+#         return -2, "not found"
+#     else:
+#         return 0, res
+
+#vrátí konkrétní
 def get_archived_runner_details_byID(id: UUID):
-    res = db_arch_d.get(where('id') == str(id))
+    conn.row_factory = lambda c, r: json.loads(r[0])
+    c = conn.cursor()
+    result = c.execute(f"SELECT data FROM runner_detail WHERE runner_id='{str(id)}'")
+    res= result.fetchone()
     if res==None:
         return -2, "not found"
     else:
         return 0, res
+
+def insert_archive_detail(archdetail: RunArchiveDetail):
+    c = conn.cursor()
+    json_string = json.dumps(archdetail, default=json_serial)
+    res = c.execute("INSERT INTO runner_detail VALUES (?,?)",[str(archdetail.id), json_string])
+    return res.rowcount
 
 #returns b
 def get_alpaca_history_bars(symbol: str, datetime_object_from: datetime, datetime_object_to: datetime, timeframe: TimeFrame):

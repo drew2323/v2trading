@@ -1,7 +1,6 @@
 
 function populate_real_time_chart() {
     cleanup_chart()
-
     initialize_chart()
     intitialize_candles()
     initialize_vwap()

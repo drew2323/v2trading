@@ -430,6 +430,9 @@ def next(data, state: StrategyState):
             state.ilog(e="EXCEPTION", msg="Exception in Slow Slope Indicator section" + str(e) + format_exc())
 
     def populate_slope_indicator():
+        #populuje indikator typu SLOPE
+
+
         #SLOPE INDICATOR
         #úhel stoupání a klesání vyjádřený mezi -1 až 1
         #pravý bod přímky je aktuální cena, levý je průměr X(lookback offset) starších hodnot od slope_lookback.
@@ -481,9 +484,14 @@ def next(data, state: StrategyState):
         try:
             rsi_length = int(safe_get(state.vars, "rsi_length",14))
             source = state.bars.close #[-rsi_length:] #state.bars.vwap
-            rsi_res = rsi(source, rsi_length)
-            rsi_value = trunc(rsi_res[-1],3)
-            state.indicators.RSI14[-1]=rsi_value
+            
+            #cekame na dostatek dat
+            if len(source) > rsi_length:
+                rsi_res = rsi(source, rsi_length)
+                rsi_value = trunc(rsi_res[-1],3)
+                state.indicators.RSI14[-1]=rsi_value
+            else:
+                state.ilog(e=f"RSI {rsi_length=} necháváme 0", message="not enough source data")
             #state.ilog(e=f"RSI {rsi_length=} {rsi_value=} {rsi_dont_buy=} {rsi_buy_signal=}", rsi_indicator=state.indicators.RSI14[-5:])
         except Exception as e:
             state.ilog(e=f"RSI {rsi_length=} necháváme 0", message=str(e)+format_exc())
@@ -631,7 +639,7 @@ def next(data, state: StrategyState):
         #testing preconditions
         result, cond_met = eval_cond_dict(dont_buy_when)
         if result:
-            state.ilog(e=f"BUY precondition not met {cond_met}")
+            state.ilog(e=f"BUY precondition not met {cond_met} {state.vars.jevylozeno=}")
             return False
 
         #conditions - bud samostatne nebo v groupe - ty musi platit dohromady
@@ -659,7 +667,8 @@ def next(data, state: StrategyState):
         buy_cond["AND"]["rsi_buy_signal_below"] = state.indicators.RSI14[-1] < safe_get(state.vars, "rsi_buy_signal_below",40)
         buy_cond["AND"]["rsi_is_falling"] = isfalling(state.indicators.RSI14,state.vars.Trend)
         buy_cond["AND"]['crsi_below_crsi_buy_limit'] = state.cbar_indicators.CRSI[-1] < safe_get(state.vars, "crsi_buy_signal_below",25)
-       
+        buy_cond["AND"]['slopeMA_is_below_limit'] = state.indicators.slopeMA[-1] < safe_get(state.vars, "slopeMA_buy_signal_below",1)
+
         #slopME klesa a RSI začalo stoupat
         # buy_cond["AND"]["rsi_is_rising2"] = isrising(state.indicators.RSI14,2)
         # buy_cond['AND']['slopeMA_falling_Trend'] = isfalling(state.indicators.slopeMA,state.vars.Trend)

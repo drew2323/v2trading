@@ -4,7 +4,9 @@ from uuid import UUID, uuid4
 import json
 from datetime import datetime
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account
-from v2realbot.common.db import conn
+from v2realbot.common.db import pool, insert_queue
+import sqlite3
+
 
 #standardne vraci pole tuplů, kde clen tuplu jsou sloupce
 #conn.row_factory = lambda c, r: json.loads(r[0])
@@ -22,40 +24,59 @@ from v2realbot.common.db import conn
 #insert = dict(time=datetime.now(), side="ddd", rectype=RecordType.BAR, id=uuid4())
 #insert_list = [dict(time=datetime.now().timestamp(), side="ddd", rectype=RecordType.BAR, id=uuid4()),dict(time=datetime.now().timestamp(), side="ddd", rectype=RecordType.BAR, id=uuid4()),dict(time=datetime.now().timestamp(), side="ddd", rectype=RecordType.BAR, id=uuid4()),dict(time=datetime.now().timestamp(), side="ddd", rectype=RecordType.BAR, id=uuid4())]
 
+
+#TOTO PREDELAT NA OBJEKT, který bude mít per thread svoji connectionu
+
 #returns rowcount of inserted rows
 def insert_log(runner_id: UUID, time: float, logdict: dict):
-    c = conn.cursor()
-    json_string = json.dumps(logdict, default=json_serial)
-    res = c.execute("INSERT INTO runner_logs VALUES (?,?,?)",[str(runner_id), time, json_string])
-    conn.commit()
+    conn = pool.get_connection()
+    try:
+        c = conn.cursor()
+        json_string = json.dumps(logdict, default=json_serial)
+        res = c.execute("INSERT INTO runner_logs VALUES (?,?,?)",[str(runner_id), time, json_string])
+        conn.commit()
+    finally:
+        pool.release_connection(conn)
     return res.rowcount
 
 #returns rowcount of inserted rows
-def insert_log_multiple(runner_id: UUID, loglist: list):
-    c = conn.cursor()
-    insert_data = []
-    for i in loglist:
-        row = (str(runner_id), i["time"], json.dumps(i, default=json_serial))
-        insert_data.append(row)
-    c.executemany("INSERT INTO runner_logs VALUES (?,?,?)", insert_data)
-    #conn.commit()
-    return c.rowcount
+#single connection in WAL mode
+def insert_log_multiple_queue(runner_id:UUID, loglist: list):
+    insert_queue.put((runner_id, loglist))
+
+# def insert_log_multiple(runner_id: UUID, loglist: list):
+#     conn = sqlite3.connect(sqlite_db_file, check_same_thread=False)
+#     c = conn.cursor()
+#     insert_data = []
+#     for i in loglist:
+#         row = (str(runner_id), i["time"], json.dumps(i, default=json_serial))
+#         insert_data.append(row)
+#     c.executemany("INSERT INTO runner_logs VALUES (?,?,?)", insert_data)
+#     conn.commit()
+#     return c.rowcount
 
 #returns list of ilog jsons
 def get_log_window(runner_id: UUID, timestamp_from: float = 0, timestamp_to: float = 9682851459):
-    conn.row_factory = lambda c, r: json.loads(r[0])
-    c = conn.cursor()
-    res = c.execute(f"SELECT data FROM runner_logs WHERE runner_id='{str(runner_id)}' AND time >={timestamp_from} AND time <={timestamp_to} ORDER BY time")
+    conn = pool.get_connection()
+    try:
+        conn.row_factory = lambda c, r: json.loads(r[0])
+        c = conn.cursor()
+        res = c.execute(f"SELECT data FROM runner_logs WHERE runner_id='{str(runner_id)}' AND time >={timestamp_from} AND time <={timestamp_to} ORDER BY time")
+    finally:
+        pool.release_connection(conn)
     return res.fetchall()
 
 #returns number of deleted elements
 def delete_logs(runner_id: UUID):
-    c = conn.cursor()
-    res = c.execute(f"DELETE from runner_logs WHERE runner_id='{str(runner_id)}';")
-    print(res.rowcount)
-    conn.commit()
+    conn = pool.get_connection()
+    try:
+        c = conn.cursor()
+        res = c.execute(f"DELETE from runner_logs WHERE runner_id='{str(runner_id)}';")
+        print(res.rowcount)
+        conn.commit()
+    finally:
+        pool.release_connection(conn)
     return res.rowcount
-
 
 
 # print(insert_log(str(uuid4()), datetime.now().timestamp(), insert))

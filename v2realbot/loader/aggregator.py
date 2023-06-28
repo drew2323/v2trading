@@ -198,16 +198,19 @@ class TradeAggregator:
                     #zkousime potvrzeni baru dat o chlup mensi cas nez cas noveho baru, ktery jde hned za nim
                     #gui neumi zobrazit duplicity a v RT grafu nejde upravovat zpetne
                     #zarovname na cas  baru podle timeframu(např. 5, 10, 15 ...) (ROUND)
-                    if self.align:
-                        t = datetime.fromtimestamp(data['t'])
-                        t = t - timedelta(seconds=t.second % self.timeframe,microseconds=t.microsecond)
-                    #nebo pouzijeme datum tradu zaokrouhlene na vteriny (RANDOM)
-                    else:
-                        #ulozime si jeho timestamp (odtum pocitame timeframe)
-                        t = datetime.fromtimestamp(int(data['t']))
 
-                    #self.newBar['updated'] = float(data['t']) - 0.001
-                    self.newBar['updated'] = datetime.timestamp(t) - 0.000001
+                    #MUSIME VRATIT ZPET - ten upraveny cas způsobuje spatne plneni v BT, kdyz tento bar triggeruje nakup
+                    # if self.align:
+                    #     t = datetime.fromtimestamp(data['t'])
+                    #     t = t - timedelta(seconds=t.second % self.timeframe,microseconds=t.microsecond)
+                    # #nebo pouzijeme datum tradu zaokrouhlene na vteriny (RANDOM)
+                    # else:
+                    #     #ulozime si jeho timestamp (odtum pocitame timeframe)
+                    #     t = datetime.fromtimestamp(int(data['t']))
+
+                    # #self.newBar['updated'] = float(data['t']) - 0.001
+                    # self.newBar['updated'] = datetime.timestamp(t) - 0.000001
+                    self.newBar['updated'] = data['t']
                 #PRO standardní BAR nechavame puvodni
                 else:
                     self.newBar['updated'] = data['t']

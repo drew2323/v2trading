@@ -254,18 +254,20 @@ var archiveRecords =
                     if (type == "sort") {
                         return new Date(data).getTime();
                     }
-                    
+                    var date = new Date(data);
+                    tit = date.toLocaleString('cs-CZ', {
+                            timeZone: 'America/New_York',
+                          })
+
                     if (isToday(now)) {
                         //return local time only
-                        return 'dnes ' + format_date(data,false,true)
+                        return '<div title="'+tit+'">'+ 'dnes ' + format_date(data,false,true)+'</div>'
                     }
                     else
                     {
                         //return  local datetime
-                        return format_date(data,false,false)
+                        return '<div title="'+tit+'">'+ format_date(data,false,false)+'</div>'
                     }
-                    
-                    
                 },
                 },
                 {
@@ -282,7 +284,7 @@ var archiveRecords =
                 {
                     targets: [2],
                     render: function ( data, type, row ) {
-                        return '<div class="tdname" title="'+data+'">'+data+'</i>'
+                        return '<div class="tdname" title="'+data+'">'+data+'</div>'
                     },
                 },
                 {
@@ -290,13 +292,13 @@ var archiveRecords =
                     render: function ( data, type, row ) {
                         var res = JSON.stringify(data)
                         const unquoted = res.replace(/"([^"]+)":/g, '$1:')
-                        return '<div class="tdmetrics" title="'+unquoted+'">'+unquoted+'</i>'
+                        return '<div class="tdmetrics" title="'+unquoted+'">'+unquoted+'</div>'
                     },
                 },
                 {
                     targets: [4],
                     render: function ( data, type, row ) {
-                        return '<div class="tdnote" title="'+data+'">'+data+'</i>'
+                        return '<div class="tdnote" title="'+data+'">'+data+'</div>'
                     },
                 },
                 {

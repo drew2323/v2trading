@@ -22,7 +22,7 @@ import pandas as pd
 from traceback import format_exc
 from datetime import timedelta, time
 from threading import Lock
-from v2realbot.common.db import conn
+from v2realbot.common.db import pool
 #adding lock to ensure thread safety of TinyDB (in future will be migrated to proper db)
 lock = Lock()
 
@@ -602,9 +602,14 @@ def edit_archived_runners(runner_id: UUID, archChange: RunArchiveChange):
 
 #returns number of deleted elements
 def delete_archive_detail_byID(id: UUID):
-    c = conn.cursor()
-    res = c.execute(f"DELETE from runner_detail WHERE runner_id='{str(id)}';")
-    print("deleted", res.rowcount)
+    conn = pool.get_connection()
+    try:
+        c = conn.cursor()
+        res = c.execute(f"DELETE from runner_detail WHERE runner_id='{str(id)}';")
+        conn.commit()
+        print("deleted", res.rowcount)
+    finally:
+        pool.release_connection(conn)
     return res.rowcount
 
 # def get_all_archived_runners_detail_old():
@@ -612,9 +617,13 @@ def delete_archive_detail_byID(id: UUID):
 #     return 0, res
 
 def get_all_archived_runners_detail():
-    conn.row_factory = lambda c, r: json.loads(r[0])
-    c = conn.cursor()
-    res = c.execute(f"SELECT data FROM runner_detail")
+    conn = pool.get_connection()
+    try:
+        conn.row_factory = lambda c, r: json.loads(r[0])
+        c = conn.cursor()
+        res = c.execute(f"SELECT data FROM runner_detail")
+    finally:
+        pool.release_connection(conn)        
     return 0, res.fetchall()
 
 # def get_archived_runner_details_byID_old(id: UUID):
@@ -626,19 +635,28 @@ def get_all_archived_runners_detail():
 
 #vrátí konkrétní
 def get_archived_runner_details_byID(id: UUID):
-    conn.row_factory = lambda c, r: json.loads(r[0])
-    c = conn.cursor()
-    result = c.execute(f"SELECT data FROM runner_detail WHERE runner_id='{str(id)}'")
-    res= result.fetchone()
+    conn = pool.get_connection()
+    try:
+        conn.row_factory = lambda c, r: json.loads(r[0])
+        c = conn.cursor()
+        result = c.execute(f"SELECT data FROM runner_detail WHERE runner_id='{str(id)}'")
+        res= result.fetchone()
+    finally:
+        pool.release_connection(conn)
     if res==None:
         return -2, "not found"
     else:
         return 0, res
 
 def insert_archive_detail(archdetail: RunArchiveDetail):
-    c = conn.cursor()
-    json_string = json.dumps(archdetail, default=json_serial)
-    res = c.execute("INSERT INTO runner_detail VALUES (?,?)",[str(archdetail.id), json_string])
+    conn = pool.get_connection()
+    try:
+        c = conn.cursor()
+        json_string = json.dumps(archdetail, default=json_serial)
+        res = c.execute("INSERT INTO runner_detail VALUES (?,?)",[str(archdetail.id), json_string])
+        conn.commit()
+    finally:
+        pool.release_connection(conn)
     return res.rowcount
 
 #returns b

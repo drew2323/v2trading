@@ -26,6 +26,8 @@ import json
 from queue import Queue, Empty
 from threading import Thread
 import asyncio
+from v2realbot.common.db import insert_queue, insert_conn
+from v2realbot.utils.utils import json_serial
 #from async io import Queue, QueueEmpty
                    
 # install()
@@ -329,14 +331,41 @@ def _get_alpaca_history_bars(symbol: str, datetime_object_from: datetime, dateti
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No data found {res} {set}")
 
+# Thread function to insert data from the queue into the database
+def insert_queue2db():
+    print("starting insert_queue2db thread")
+    while True:
+        # Retrieve data from the queue
+        data = insert_queue.get()
+
+        # Unpack the data
+        runner_id, loglist = data
+
+        c = insert_conn.cursor()
+        insert_data = []
+        for i in loglist:
+            row = (str(runner_id), i["time"], json.dumps(i, default=json_serial))
+            insert_data.append(row)
+        c.executemany("INSERT INTO runner_logs VALUES (?,?,?)", insert_data)
+        insert_conn.commit()
+        # Mark the task as done in the queue
 
 #join cekej na dokonceni vsech
 for i in cs.db.runners:
     i.run_thread.join()
 
 if __name__ == "__main__":
-    uvicorn.run("__main__:app", host="0.0.0.0", port=8000, reload=False)
+    try:
+        #TOTO predelat na samostatnou tridu typu vlakna a dat do separatniho souboru, draft jiz na chatgpt
+        #spusteni vlakna pro zapis logů (mame single write vlakno, thready dodávají pres queue)
+        insert_thread = Thread(target=insert_queue2db)
+        insert_thread.start()
 
+        uvicorn.run("__main__:app", host="0.0.0.0", port=8000, reload=False)
+    finally:
+        print("closing insert_conn connection")
+        insert_conn.close()
+        print("closed")
 ##TODO pridat moznost behu na PAPER a LIVE per strategie
 
 # zjistit zda order notification websocket muze bezet na obou soucasne

@@ -132,7 +132,7 @@ def migrate():
     res, set = get_all_archived_runners_detail()
     print(f"fetched {len(set)}")
     for row in set:
-        insert_archive_detail(row)
+        #insert_archive_detail(row)
         print(f"inserted {row['id']}")
 
 bars = {'high': [], 

@@ -4,7 +4,7 @@
 from datetime import datetime
 from v2realbot.utils.utils import AttributeDict, zoneNY, is_open_rush, is_close_rush, json_serial, print, safe_get, Average
 from v2realbot.utils.tlog import tlog
-from v2realbot.utils.ilog import insert_log, insert_log_multiple
+from v2realbot.utils.ilog import insert_log, insert_log_multiple_queue
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Order, Account
 from v2realbot.config import BT_DELAYS, get_key, HEARTBEAT_TIMEOUT, QUIET_MODE, LOG_RUNNER_EVENTS
 import queue
@@ -534,8 +534,8 @@ class Strategy:
 
             #cleaning iterlog lsit
             #TODO pridat cistku i mimo RT blok
-        
-        if self.ilog_save: insert_log_multiple(self.state.runner_id, self.state.iter_log_list)
+        #vlozime do queue, odtud si to bere single zapisovaci thread
+        if self.ilog_save: insert_log_multiple_queue(self.state.runner_id, self.state.iter_log_list)
         #smazeme logy
         self.state.iter_log_list = []
 

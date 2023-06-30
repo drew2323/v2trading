@@ -320,7 +320,8 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
                                 //funkci do ktere muzu zavolat vse co pujde jako data do chartu
 
                                 //MOVE TO UTILS ro reuse??
-                                if (conf && conf.display) {
+                                //if (conf && conf.display) {
+                                if (conf) {
 
                                     //tranform data do správného formátru
                                     items = []
@@ -395,7 +396,8 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
                                                 priceFormat: {type: 'volume'},
                                                 priceScaleId: conf.priceScaleId,
                                                 lastValueVisible: conf.lastValueVisible,
-                                                priceScaleId: conf.priceScaleId});
+                                                priceScaleId: conf.priceScaleId,
+                                                visible: conf.display});
                                             
                                             obj.series.priceScale().applyOptions({
                                                 // set the positioning of the volume series
@@ -407,36 +409,42 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
 
                                         }
                                         else {
-
+                                            var barva = colors.shift()
                                             obj.series = chart.addLineSeries({
-                                                color: colors.shift(),
+                                                color: barva,
                                                 priceScaleId: conf.priceScaleId,
                                                 title: (conf.titlevisible?conf.name:""),
-                                                lineWidth: 1
+                                                lineWidth: 1,
+                                                visible: conf.display
                                             });   
 
-                                            //toto nejak vymyslet konfiguracne, additional threshold lines
-                                            if (key == "slopeMA") {
+                                            // //existuje statinds se stejnym klicem - bereme z nej minimum slope
+                                            // a = data.statinds[key]
+                                            // console.log("pro klic" + key + ":"+a, JSON.stringify(a,null,2))
+                                            // console.log(data.statinds[key].minimum_slope)
+                                            // console.log(JSON.stringify(data.statinds,null,2))
+                                            //console.log((key in data.statinds), data.statinds, key)
+                                            if (key in data.statinds) {
                                                 //natvrdo nakreslime lajnu pro min angle
                                                 //TODO predelat na configuracne
                                                 const minSlopeLineOptopns = {
-                                                    price: data.statinds.angle.minimum_slope,
-                                                    color: '#b67de8',
+                                                    price: data.statinds[key].minimum_slope,
+                                                    color: barva,
                                                     lineWidth: 1,
                                                     lineStyle: 2, // LineStyle.Dotted
                                                     axisLabelVisible: true,
-                                                    title: "min:",
+                                                    title: "min",
                                                 };
                                     
                                                 const minSlopeLine = obj.series.createPriceLine(minSlopeLineOptopns);
 
                                                 const maxSlopeLineOptopns = {
-                                                    price: data.statinds.angle.maximum_slope,
-                                                    color: '#b67de8',
+                                                    price: data.statinds[key].maximum_slope,
+                                                    color: barva,
                                                     lineWidth: 1,
                                                     lineStyle: 2, // LineStyle.Dotted
                                                     axisLabelVisible: true,
-                                                    title: "max:",
+                                                    title: "max",
                                                 };
                                     
                                                 const maxSlopeLine = obj.series.createPriceLine(maxSlopeLineOptopns);

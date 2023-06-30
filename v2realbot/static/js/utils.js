@@ -25,18 +25,22 @@ indConfig = [ {name: "ema", titlevisible: false, embed: true, display: true, pri
               {name: "tick_volume", histogram: true, titlevisible: true, embed: true, display: true, priceScaleId: '', lastValueVisible: false},
               {name: "tick_price", titlevisible: true, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},
               {name: "ivwap", titlevisible: true, embed: true, display: false, priceScaleId: "right", lastValueVisible: false},
-              {name: "slope", titlevisible: true, embed: true, display: false, priceScaleId: "middle", lastValueVisible: false},
-              {name: "slopeMA", titlevisible: true, embed: true, display: true, priceScaleId: "middle", lastValueVisible: false},
-              {name: "slow_slope", titlevisible: true, embed: true, display: false, priceScaleId: "middle", lastValueVisible: false},
-              {name: "slow_slopeMA", titlevisible: true, embed: true, display: true, priceScaleId: "middle", lastValueVisible: false},
+              {name: "slope", titlevisible: true, embed: true, display: false, priceScaleId: "left", lastValueVisible: false},
+              {name: "slopeNEW", titlevisible: true, embed: true, display: false, priceScaleId: "left", lastValueVisible: false},
+              {name: "slope10", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
+              {name: "slope10puv", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
+              {name: "slope30", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
+              {name: "slopeMA", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
+              {name: "slow_slope", titlevisible: true, embed: true, display: false, priceScaleId: "left", lastValueVisible: false},
+              {name: "slow_slopeMA", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
               {name: "emaSlow", titlevisible: true, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},
               {name: "emaFast", titlevisible: true, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},
-              {name: "RSI14", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
-              {name: "CRSI", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
-              {name: "aroon", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
-              {name: "apo", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
-              {name: "ppo", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
-              {name: "stoch2", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
+              {name: "RSI14", titlevisible: true, embed: true, display: true, priceScaleId: "middle", lastValueVisible: false},
+              {name: "CRSI", titlevisible: true, embed: true, display: true, priceScaleId: "middle", lastValueVisible: false},
+              {name: "aroon", titlevisible: true, embed: true, display: true, priceScaleId: "middle", lastValueVisible: false},
+              {name: "apo", titlevisible: true, embed: true, display: true, priceScaleId: "middle", lastValueVisible: false},
+              {name: "ppo", titlevisible: true, embed: true, display: true, priceScaleId: "middle", lastValueVisible: false},
+              {name: "stoch2", titlevisible: true, embed: true, display: true, priceScaleId: "middle", lastValueVisible: false},
               {name: "sec_price", titlevisible: true, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},]
 
 
@@ -182,7 +186,8 @@ function update_chart_legend(param) {
         indList.forEach(function (item) {
             var ind = param.seriesData.get(item.series)
             var color = item.series.options().color;
-            if (ind !== undefined) { firstRow.innerHTML += name(item.name, color) + val(ind.value.toFixed(3), color)}
+            var visibility = item.series.options().visible;
+            if (ind !== undefined && visibility) { firstRow.innerHTML += name(item.name, color) + val(ind.value.toFixed(3), color)}
         }); 
     }
     else {
@@ -295,10 +300,14 @@ function initialize_vwap() {
         })
 }
 
+function remove_indicator_buttons() {
+  var elem1 = document.getElementById("indicatorsButtons");
+  elem1.remove()
+}
 
 function populate_indicator_buttons(def) {
 	var buttonElement = document.createElement('div');
-    buttonElement.id = "indicatorsButtons"
+  buttonElement.id = "indicatorsButtons"
 	buttonElement.classList.add('switcher');
 
     indList.forEach(function (item, index) {
@@ -315,6 +324,31 @@ function populate_indicator_buttons(def) {
 		});
 		buttonElement.appendChild(itemEl);
 	});
+
+  //create toggle all button
+  var itemEl = document.createElement('button');
+  itemEl.innerText = "all"
+  itemEl.classList.add('switcher-item');
+  if (def) {
+  itemEl.classList.add('switcher-active-item');
+  }
+  itemEl.addEventListener('click', function() {
+    onResetClicked();
+  });
+  buttonElement.appendChild(itemEl);
+
+	function onResetClicked() {
+    indList.forEach(function (item, index) {
+      vis = true;
+      const elem = document.getElementById("IND"+index);
+      if (elem.classList.contains("switcher-active-item")) {
+          vis = false;
+      }      
+      elem.classList.toggle("switcher-active-item");
+      indList[index].series.applyOptions({
+          visible: vis });
+    })
+  }
 
 	function onItemClicked1(index) {
         vis = true;

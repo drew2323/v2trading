@@ -375,6 +375,7 @@ def next(data, state: StrategyState):
     # [stratvars.indicators.slope]
     # lookback
     # lookback_offset
+
     def populate_slow_slope_indicator():
         options = safe_get(state.vars.indicators, 'slow_slope', None)
         if options is None:
@@ -530,11 +531,88 @@ def next(data, state: StrategyState):
     #         state.ilog(e=f"SRSI {srsi_length=} necháváme 0", message=str(e)+format_exc())
     #         #state.indicators.RSI14[-1]=0
 
+    #TODO predelat na dynamicky - tzn. vstup je nazev slopu a i z nej se dotahne minimum slope
+
+
+    #gets all indicators of type slow and check which they have dont_buy_below_minimum
+    # [stratvars.indicators.slope]
+    # type = "slope"
+    # dont_buy_below = -0.10
+    #get all indicators of type slow and check whether they have dont_buy_below_minimum
+    # if so, it evaluates if it is below current value
     def slope_too_low():
-        return state.indicators.slopeMA[-1] < float(state.vars.minimum_slope)
-    
+        retboolList = []
+        desc = ""
+        for indname, indsettings in state.vars.indicators.items():
+            for option,value in indsettings.items():
+                if option == "type" and value == "slope":
+                    #pokud zde mame dont_buy_below 
+                    minimum_val = safe_get(indsettings, "dont_buy_below", None)
+                    if minimum_val is not None:
+                        #minimum_val = float(safe_get(indsettings, "minimum_slope", 1))
+
+                        #pokud exisuje MA, měříme na MA, jinak na standardu
+                        try:
+                            curr_val = state.indicators[indname+"MA"][-1]
+                        except KeyError:
+                            curr_val = state.indicators[indname][-1]
+                        
+                        ret = (curr_val < minimum_val)
+                        if ret:
+                            desc += f"ID:{indname}/{curr_val} below {minimum_val=} /"
+                        else:
+                            desc += f"ID:{indname}{curr_val} OK above {minimum_val=} /"
+                        retboolList.append(ret)
+                    else:
+                        desc += f"ID:{indname} - no min set /"
+                        retboolList.append(False)
+        #pokud obsahuje aspon jedno true
+        slopelow = any(retboolList)
+        
+        #DEBUG - poté zapsat jen když je True
+        if slopelow:
+            state.ilog(e=f"SLOPELOW {slopelow}", msg=desc)
+
+        return slopelow
+
+    #gets all indicators of type slow and check which they have dont_buy_above
+    # [stratvars.indicators.slope]
+    # type = "slope"
+    # dont_buy_above = 0.20
+    #get all indicators of type slow and check whether they have dont_buy_above
+    # if so, it evaluates if it is above current value    
     def slope_too_high():
-        return state.indicators.slopeMA[-1] > float(safe_get(state.vars, "bigwave_slope_above",0.20))
+        retboolList = []
+        desc = ""
+        for indname, indsettings in state.vars.indicators.items():
+            for option,value in indsettings.items():
+                if option == "type" and value == "slope":
+                    #pokud zde mame dont_buy_above 
+                    maximum_val = safe_get(indsettings, "dont_buy_above", None)
+                    if maximum_val is not None:
+                        #pokud exisuje MA, měříme na MA, jinak na standardu
+                        try:
+                            curr_val = state.indicators[indname+"MA"][-1]
+                        except KeyError:
+                            curr_val = state.indicators[indname][-1]
+                        
+                        ret = (curr_val > maximum_val)
+                        if ret:
+                            desc += f"ID:{indname}/{curr_val} above {maximum_val=} /"
+                        else:
+                            desc += f"ID:{indname}{curr_val} OK below {maximum_val=} /"
+                        retboolList.append(ret)
+                    else:
+                        desc += f"ID:{indname} - no max set /"
+                        retboolList.append(False)
+        #pokud obsahuje aspon jedno true
+        slopehigh = any(retboolList)
+        
+        #DEBUG - poté zapsat jen když je True
+        if slopehigh:
+            state.ilog(e=f"SLOPEHIGH {slopehigh}", msg=desc)
+
+        return slopehigh
 
     #resetujeme, kdyz 1) je aktivni buy protection 2) kdyz to ujede
     #TODO mozna tick2reset spoustet jednou za X opakovani
@@ -631,6 +709,7 @@ def next(data, state: StrategyState):
         dont_buy_when['jevylozeno_active'] = (state.vars.jevylozeno == 1)
         dont_buy_when['rsi_too_high'] = state.indicators.RSI14[-1] > safe_get(state.vars, "rsi_dont_buy_above",50)
         dont_buy_when['slope_too_low'] = slope_too_low()
+        dont_buy_when['slope_too_high'] = slope_too_high()
         dont_buy_when['open_rush'] = is_open_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), safe_get(state.vars, "open_rush",0))
         dont_buy_when['close_rush'] = is_close_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), safe_get(state.vars, "close_rush",0))
         dont_buy_when['rsi_is_zero'] = (state.indicators.RSI14[-1] == 0)
@@ -726,9 +805,106 @@ def next(data, state: StrategyState):
 
         return last_ind_vals
 
+    def populate_dynamic_indicators():
+        #pro vsechny indikatory, ktere maji ve svych stratvars TYPE, poustime generickou metodu pro dany typ
+        for indname, indsettings in state.vars.indicators.items():
+            for option,value in indsettings.items():
+                if option == "type" and value == "slope":
+                    populate_dynamic_slope_indicator(name = indname)
+
+    def populate_dynamic_slope_indicator(name):
+        options = safe_get(state.vars.indicators, name, None)
+        if options is None:
+            state.ilog(e="No options for slow slope in stratvars")
+            return
+        
+        if safe_get(options, "type", False) is False or safe_get(options, "type", False) != "slope":
+            state.ilog(e="Type error")
+            return
+        
+        #poustet kazdy tick nebo jenom na confirmed baru (on_confirmed_only = true)
+        on_confirmed_only = safe_get(options, 'on_confirmed_only', False)
+
+        #SLOW SLOPE INDICATOR
+        #úhel stoupání a klesání vyjádřený mezi -1 až 1
+        #pravý bod přímky je aktuální cena, levý je průměr X(lookback offset) starších hodnot od slope_lookback.
+        #VYSTUPY:    state.indicators[name], 
+        #            state.indicators[nameMA]
+        #            statický indikátor (angle) - stejneho jmena pro vizualizaci uhlu
+
+        if on_confirmed_only is False or (on_confirmed_only is True and data['confirmed']==1):
+            try:
+                #slow_slope = 99
+                slope_lookback = safe_get(options, 'slope_lookback', 100)
+                minimum_slope =  safe_get(options, 'minimum_slope', 25)
+                maximum_slope = safe_get(options, "maximum_slope",0.9)
+                lookback_offset = safe_get(options, 'lookback_offset', 25)
+
+                #lookback has to be even
+                if lookback_offset % 2 != 0:
+                    lookback_offset += 1
+
+                #TBD pripdadne /2
+                if len(state.bars.close) > (slope_lookback + lookback_offset):
+                    #test prumer nejvyssi a nejnizsi hodnoty 
+                    # if name == "slope":
+
+                    #levy bod bude vzdy vzdaleny o slope_lookback
+                    #ten bude prumerem hodnot lookback_offset a to tak ze polovina offsetu z kazde strany
+                    array_od = slope_lookback + int(lookback_offset/2)
+                    array_do = slope_lookback - int(lookback_offset/2)
+                    lookbackprice_array = state.bars.vwap[-array_od:-array_do]
+
+                        #dame na porovnani jen prumer
+                    lookbackprice = round(sum(lookbackprice_array)/lookback_offset,3)
+                        #lookbackprice = round((min(lookbackprice_array)+max(lookbackprice_array))/2,3)
+                    # else:
+                    #     #puvodni lookback a od te doby dozadu offset
+                    #     array_od = slope_lookback + lookback_offset
+                    #     array_do = slope_lookback
+                    #     lookbackprice_array = state.bars.vwap[-array_od:-array_do]
+                    #     #obycejný prumer hodnot
+                    #     lookbackprice = round(sum(lookbackprice_array)/lookback_offset,3)
+                    
+                    lookbacktime = state.bars.time[-slope_lookback]
+                else:
+                    #kdyz neni  dostatek hodnot, pouzivame jako levy bod open hodnotu close[0]
+                    lookbackprice = state.bars.close[0]
+                    lookbacktime = state.bars.time[0]
+                    state.ilog(e=f"IND {name} slope - not enough data bereme left bod open", slope_lookback=slope_lookback)
+
+                #výpočet úhlu - a jeho normalizace
+                slope = ((state.bars.close[-1] - lookbackprice)/lookbackprice)*100
+                slope = round(slope, 4)
+                state.indicators[name][-1]=slope
+
+                #angle je ze slope, ale pojmenovavame ho podle MA
+                state.statinds[name] = dict(time=state.bars.time[-1], price=state.bars.close[-1], lookbacktime=lookbacktime, lookbackprice=lookbackprice, minimum_slope=minimum_slope, maximum_slope=maximum_slope)
+
+                #slope MA vyrovna vykyvy ve slope
+                slope_MA_length = safe_get(options, 'MA_length', None)
+                slopeMA = None
+                last_slopesMA = None
+                #pokud je nastavena MA_length tak vytvarime i MAcko dane delky na tento slope
+                if slope_MA_length is not None:
+                    source = state.indicators[name][-slope_MA_length:]
+                    slopeMAseries = ema(source, slope_MA_length) #state.bars.vwap
+                    slopeMA = slopeMAseries[-1]
+                    state.indicators[name+"MA"][-1]=slopeMA
+                    last_slopesMA = state.indicators[name+"MA"][-10:]
+
+                state.ilog(e=f"{name=} {slope=} {slopeMA=}", msg=f"{lookbackprice=}", lookbackoffset=lookback_offset, minimum_slope=minimum_slope, last_slopes=state.indicators[name][-10:], last_slopesMA=last_slopesMA)
+                #dale pracujeme s timto MAckovanym slope
+                #slope = slopeMA         
+
+            except Exception as e:
+                print(f"Exception in {name} slope Indicator section", str(e))
+                state.ilog(e=f"EXCEPTION in {name}", msg="Exception in slope Indicator section" + str(e) + format_exc())
+
+
     conf_bar = data['confirmed']
 
-    #PROCES DELTAS - to function
+    #PROCESs DELTAS - to function
     last_update_delta = round((float(data['updated']) - state.vars.last_update_time),6) if state.vars.last_update_time != 0 else 0
     state.vars.last_update_time = float(data['updated'])
 
@@ -739,21 +915,21 @@ def next(data, state: StrategyState):
 
     state.ilog(e=f"---{data['index']}-{conf_bar}--delta:{last_update_delta}---AVGdelta:{avg_delta}")
 
+
+    #populate indicators, that have type in stratvars.indicators
+
+
     #kroky pro CONFIRMED BAR only
     if conf_bar == 1:
         #logika pouze pro potvrzeny bar
         state.ilog(e="BAR potvrzeny")
-
 
         #pri potvrzem CBARu nulujeme counter volume pro tick based indicator
         state.vars.last_tick_volume = 0
         state.vars.next_new = 1
 
         #zatim takto na confirm
-        populate_slow_slope_indicator()
-
-        #SRSI
-        #populate_secondary_rsi_indicator()
+        #populate_slow_slope_indicator()
 
     #kroky pro CONTINOUS TICKS only
     else:
@@ -761,12 +937,13 @@ def next(data, state: StrategyState):
         populate_cbar_tick_price_indicator()
         populate_cbar_rsi_indicator()
 
+    
+    populate_dynamic_indicators()
 
     #SPOLECNA LOGIKA - bar indikatory muzeme populovat kazdy tick (dobre pro RT GUI), ale uklada se stejne az pri confirmu
     
-
     populate_ema_indicator()
-    populate_slope_indicator()
+    #populate_slope_indicator()
     populate_rsi_indicator()
     eval_sell()
     consolidation()
@@ -784,6 +961,20 @@ def init(state: StrategyState):
     #place to declare new vars
     print("INIT v main",state.name)
 
+    def initialize_dynamic_indicators():
+        #pro vsechny indikatory, ktere maji ve svych stratvars TYPE inicializujeme
+        for indname, indsettings in state.vars.indicators.items():
+            for option,value in indsettings.items():
+                if option == "type":
+                    state.indicators[indname] = []
+                    #specifika pro slope
+                    if value == "slope":
+                        #pokud ma MA_length incializujeme i MA variantu
+                        if safe_get(indsettings, 'MA_length', False):
+                            state.indicators[indname+"MA"] = []
+                        #inicializujeme statinds (pro uhel na FE)
+                        state.statinds[indname] = dict(minimum_slope=safe_get(indsettings, 'minimum_slope', -1), maximum_slope=safe_get(indsettings, 'maximum_slope', 1))
+
     state.vars['sell_in_progress'] = False
     state.vars.mode = None
     state.vars.last_tick_price = 0
@@ -793,24 +984,37 @@ def init(state: StrategyState):
     state.vars.last_buysignal_index = 0
     state.vars.last_update_time = 0
     state.vars.reverse_position_waiting_amount = 0
+    state.vars["ticks2reset_backup"] = state.vars.ticks2reset
     #state.cbar_indicators['ivwap'] = []
     state.cbar_indicators['tick_price'] = []
     state.cbar_indicators['tick_volume'] = []
     state.cbar_indicators['CRSI'] = []
     #state.secondary_indicators['SRSI'] = []
     state.indicators['ema'] = []
-    state.indicators['slope'] = []
-    state.indicators['slopeMA'] = []
-    state.indicators['slow_slope'] = []
-    state.indicators['slow_slopeMA'] = []
     state.indicators['RSI14'] = []
-    #static indicators - those not series based
-    state.statinds['angle'] = dict(minimum_slope=state.vars["minimum_slope"], maximum_slope=safe_get(state.vars, "bigwave_slope_above",0.20))
-    #state.statinds['angle_slow'] = dict(minimum_slope=safe_get(state.vars.indicators.slow_slope, "minimum_slope",-2), maximum_slope=safe_get(state.vars.indicators.slow_slope, "maximum_slope",2))
-    state.statinds['angle_slow'] = dict(minimum_slope=state.vars['indicators']['slow_slope']["minimum_slope"], maximum_slope=state.vars['indicators']['slow_slope']["maximum_slope"])
+
+    initialize_dynamic_indicators()
+
+
+    #TODO - predelat tuto cas, aby dynamicky inicializovala indikatory na zaklade stratvars a type
+    # vsechno nize vytvorit volana funkce
+    # to jestli inicializovat i MA variantu pozna podle pritomnosti MA_length 
+    # # 
+    # state.indicators['slope'] = []
+    # state.indicators['slopeNEW'] = []
+    # state.indicators['slopeNEWMA'] = []
+    # state.indicators['slope10'] = []
+    # state.indicators['slope10puv'] = []
+    # state.indicators['slope30'] = []
+    # state.indicators['slopeMA'] = []
+    # state.indicators['slow_slope'] = []
+    # state.indicators['slow_slopeMA'] = []
+    # #static indicators - those not series based
+    # state.statinds['slope'] = dict(minimum_slope=state.vars['indicators']['slope']["minimum_slope"], maximum_slope=safe_get(state.vars['indicators']['slope'], "maximum_slope",0.20))
+    # #state.statinds['angle_slow'] = dict(minimum_slope=safe_get(state.vars.indicators.slow_slope, "minimum_slope",-2), maximum_slope=safe_get(state.vars.indicators.slow_slope, "maximum_slope",2))
+    # state.statinds['slow_slope'] = dict(minimum_slope=state.vars['indicators']['slow_slope']["minimum_slope"], maximum_slope=state.vars['indicators']['slow_slope']["maximum_slope"])
  
- 
-    state.vars["ticks2reset_backup"] = state.vars.ticks2reset
+
 
 def main():
     name = os.path.basename(__file__)

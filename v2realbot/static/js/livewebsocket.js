@@ -4,9 +4,10 @@ var ws = null;
 var logcnt = 0
 var positionsPriceLine = null
 var limitkaPriceLine = null
-var angleSeries = 1
-var angleSeries_slow = 1
+var angleSeries = {}
+//var angleSeries_slow = 1
 var cbar = false
+var angleColor = {}
 
 //get details of runner to populate chart status
 //fetch necessary - it could be initiated by manually inserting runnerId
@@ -211,23 +212,21 @@ function connect(event) {
                     for (const [klic, hodnota] of Object.entries(statinds)) {
                         // console.log(JSON.stringify(klic))
                         // console.log(JSON.stringify(hodnota))
-                        //TODO predelat na configuracni klice vizualizacni dotahovane z backendu, ktere namapuji vybrane stratvars na typ vizualizace 
-                        if (klic === "angle") {
-
+                        //klic je nazev atirbutu, zatim zde mame jenom angle (do budoucna v json konifguraci)
                             //nejsou vsechny hodnoty
                             if (Object.keys(hodnota).length > 2)  {
                                 // console.log("angle nalezen");
                                 // console.log(JSON.stringify(hodnota));
-                                if (angleSeries !== 1) {
+                                if (angleSeries[klic]) {
                                     // console.log("angle neni jedna" + toString(angleSeries))
-                                    chart.removeSeries(angleSeries)
+                                    chart.removeSeries(angleSeries[klic])
                                 }
                                 
-                                angleSeries = chart.addLineSeries({
+                                angleSeries[klic] = chart.addLineSeries({
                                     //title: key,
                                     lineWidth: 2,
                                     lineStyle: 2,
-                                    color: "#d432e6",
+                                    color: angleColor[klic],
                                     lastValueVisible: false,
                                     priceLineVisible: false,
                                     priceLineWidth: 0,
@@ -236,46 +235,38 @@ function connect(event) {
                                 dataPoints = [{time: hodnota.lookbacktime, value: hodnota.lookbackprice},{ time: hodnota.time, value: hodnota.price}]
                                 // console.log("pridano")
                                 // console.log(toString(dataPoints))
-                                angleSeries.setData(dataPoints)
+                                angleSeries[klic].setData(dataPoints)
                             }
-                        }
 
-                        if (klic === "angle_slow") {
 
-                            //nejsou vsechny hodnoty
-                            if (Object.keys(hodnota).length > 2)  {
-                                // console.log("angle nalezen");
-                                // console.log(JSON.stringify(hodnota));
-                                if (angleSeries_slow !== 1) {
-                                    // console.log("angle neni jedna" + toString(angleSeries))
-                                    chart.removeSeries(angleSeries_slow)
-                                }
+                        // if (klic === "angle_slow") {
+
+                        //     //nejsou vsechny hodnoty
+                        //     if (Object.keys(hodnota).length > 2)  {
+                        //         // console.log("angle nalezen");
+                        //         // console.log(JSON.stringify(hodnota));
+                        //         if (angleSeries_slow !== 1) {
+                        //             // console.log("angle neni jedna" + toString(angleSeries))
+                        //             chart.removeSeries(angleSeries_slow)
+                        //         }
                                 
-                                angleSeries_slow = chart.addLineSeries({
-                                    //title: key,
-                                    lineWidth: 2,
-                                    lineStyle: 2,
-                                    color: "#8c52c7",
-                                    lastValueVisible: false,
-                                    priceLineVisible: false,
-                                    priceLineWidth: 0,
-                                    priceLineStyle: 3
-                                })
-                                dataPoints = [{time: hodnota.lookbacktime, value: hodnota.lookbackprice},{ time: hodnota.time, value: hodnota.price}]
-                                // console.log("pridano")
-                                // console.log(toString(dataPoints))
-                                angleSeries_slow.setData(dataPoints)
-                            }
-                        }
+                        //         angleSeries_slow = chart.addLineSeries({
+                        //             //title: key,
+                        //             lineWidth: 2,
+                        //             lineStyle: 2,
+                        //             color: colors.shift(),
+                        //             lastValueVisible: false,
+                        //             priceLineVisible: false,
+                        //             priceLineWidth: 0,
+                        //             priceLineStyle: 3
+                        //         })
+                        //         dataPoints = [{time: hodnota.lookbacktime, value: hodnota.lookbackprice},{ time: hodnota.time, value: hodnota.price}]
+                        //         // console.log("pridano")
+                        //         // console.log(toString(dataPoints))
+                        //         angleSeries_slow.setData(dataPoints)
+                        //     }
+                        // }
                     }
-
-
-
-
-
-
-
-
 
                 }
         }
@@ -299,7 +290,8 @@ function connect(event) {
                             //INIT INDICATOR BASED on CONFIGURATION
 
                             //MOVE TO UTILS ro reuse??
-                            if (conf && conf.display) {
+                            //if (conf && conf.display) {
+                            if (conf && conf) {
                                 if (conf.embed)  {
 
                                     if (conf.histogram) {
@@ -310,7 +302,8 @@ function connect(event) {
                                             priceFormat: {type: 'volume'},
                                             priceScaleId: conf.priceScaleId,
                                             lastValueVisible: conf.lastValueVisible,
-                                            priceScaleId: conf.priceScaleId});
+                                            priceScaleId: conf.priceScaleId,
+                                            visible: conf.display});
                                         
                                         obj.series.priceScale().applyOptions({
                                             // set the positioning of the volume series
@@ -322,12 +315,14 @@ function connect(event) {
 
                                     }
                                     else {
+                                        var barva = colors.shift()
                                         obj.series = chart.addLineSeries({
-                                            color: colors.shift(),
+                                            color: barva,
                                             priceScaleId: conf.priceScaleId,
                                             lastValueVisible: conf.lastValueVisible,
                                             title: (conf.titlevisible?conf.name:""),
-                                            lineWidth: 1
+                                            lineWidth: 1,
+                                            visible: conf.display
                                         });
                                     }
 
@@ -337,28 +332,43 @@ function connect(event) {
                                         value: value});
                                     indList.push(obj);
 
+                                    //pridavali jsme indikator, updatneme buttonky
+                                    var container1 = document.getElementById('chart');
+                                    var btnElement = document.getElementById("indicatorsButtons")
+                                    if (btnElement) {
+                                        container1.removeChild(btnElement);
+                                    }
+                                    var indbuttonElement = populate_indicator_buttons(true); 
+                                    container1.appendChild(indbuttonElement)
+
                                     //toto nejak vymyslet konfiguracne, additional threshold lines
-                                    if (key == "slopeMA") {
+                                    //pokud existuje statin pro tento klic, pak z nej vysosame min_lajny
+                                    if (key in parsed_data.statinds) {
                                         //natvrdo nakreslime lajnu pro min angle
+
+                                        if (!(key in angleColor)) {
+                                            angleColor[key] = barva
+                                        }
+
                                         //TODO predelat na configuracne
                                         const minSlopeLineOptopns = {
-                                            price: parsed_data.statinds.angle.minimum_slope,
-                                            color: '#b67de8',
+                                            price: parsed_data.statinds[key].minimum_slope,
+                                            color: barva,
                                             lineWidth: 1,
                                             lineStyle: 2, // LineStyle.Dotted
                                             axisLabelVisible: true,
-                                            title: "min:",
+                                            title: "min",
                                         };
                             
                                         const minSlopeLine = obj.series.createPriceLine(minSlopeLineOptopns);
 
                                         const maxSlopeLineOptopns = {
-                                            price: parsed_data.statinds.angle.maximum_slope,
-                                            color: '#b67de8',
+                                            price: parsed_data.statinds[key].maximum_slope,
+                                            color: barva,
                                             lineWidth: 1,
                                             lineStyle: 2, // LineStyle.Dotted
                                             axisLabelVisible: true,
-                                            title: "max:",
+                                            title: "max",
                                         };
                             
                                         const maxSlopeLine = obj.series.createPriceLine(maxSlopeLineOptopns);

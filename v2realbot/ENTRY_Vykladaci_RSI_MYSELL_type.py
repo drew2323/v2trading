@@ -244,7 +244,7 @@ def next(data, state: StrategyState):
             last_price = price
         state.vars.blockbuy = 1
         state.vars.jevylozeno = 1
-        state.vars.last_buysignal_index = data['index']
+        state.vars.lastbuyindex = data['index']
 
     def eval_sell():
         """"
@@ -704,7 +704,7 @@ def next(data, state: StrategyState):
         if safe_get(state.vars, "buy_only_on_confirmed",True):
             dont_buy_when['bar_not_confirmed'] = (data['confirmed'] == 0)
         #od posledniho vylozeni musi ubehnout N baru
-        dont_buy_when['last_buy_offset_too_soon'] =  data['index'] < (state.vars.last_buysignal_index + safe_get(state.vars, "lastbuy_offset",3))
+        dont_buy_when['last_buy_offset_too_soon'] =  data['index'] < (int(state.vars.lastbuyindex) + int(safe_get(state.vars, "lastbuy_offset",3)))
         dont_buy_when['blockbuy_active'] = (state.vars.blockbuy == 1)
         dont_buy_when['jevylozeno_active'] = (state.vars.jevylozeno == 1)
         dont_buy_when['rsi_too_high'] = state.indicators.RSI14[-1] > safe_get(state.vars, "rsi_dont_buy_above",50)
@@ -718,7 +718,7 @@ def next(data, state: StrategyState):
         #testing preconditions
         result, cond_met = eval_cond_dict(dont_buy_when)
         if result:
-            state.ilog(e=f"BUY precondition not met {cond_met} {state.vars.jevylozeno=}")
+            state.ilog(e=f"BUY precondition not met {cond_met} {state.vars.jevylozeno=} {state.vars.lastbuyindex=}")
             return False
 
         #conditions - bud samostatne nebo v groupe - ty musi platit dohromady
@@ -935,6 +935,7 @@ def next(data, state: StrategyState):
     else:
         #CBAR INDICATOR pro tick price a deltu VOLUME
         populate_cbar_tick_price_indicator()
+        #TBD nize predelat na typizovane RSI (a to jak na urovni CBAR tak confirmed)
         populate_cbar_rsi_indicator()
 
     
@@ -981,7 +982,7 @@ def init(state: StrategyState):
     state.vars.last_50_deltas = []
     state.vars.last_tick_volume = 0
     state.vars.next_new = 0
-    state.vars.last_buysignal_index = 0
+    state.vars.lastbuyindex = 0
     state.vars.last_update_time = 0
     state.vars.reverse_position_waiting_amount = 0
     state.vars["ticks2reset_backup"] = state.vars.ticks2reset

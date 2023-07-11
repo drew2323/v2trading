@@ -1,6 +1,6 @@
 from v2realbot.enums.enums import RecordType, StartBarAlign
 from datetime import datetime, timedelta
-from v2realbot.utils.utils import ltp
+from v2realbot.utils.utils import ltp, send_to_telegram
 from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import MarketOrderRequest, TakeProfitRequest, LimitOrderRequest, ReplaceOrderRequest, GetOrdersRequest
 from alpaca.trading.enums import OrderSide, TimeInForce, OrderClass, OrderStatus, QueryOrderStatus
@@ -8,6 +8,7 @@ from alpaca.trading.models import Order, Position
 from alpaca.common.exceptions import APIError
 from v2realbot.config import Keys
 from v2realbot.interfaces.general_interface import GeneralInterface
+from traceback import format_exc
 """""
 Live interface with Alpaca for LIVE and PAPER trading.
 """""
@@ -159,12 +160,15 @@ class LiveInterface(GeneralInterface):
             a : Position = self.trading_client.get_open_position(self.symbol)
             self.avgp, self.poz = float(a.avg_entry_price), int(a.qty) 
             return a.avg_entry_price, a.qty
-        except APIError as e:
+        except (APIError, Exception) as e:
             #no position
             if e.code == 40410000: return 0,0
             else:
+                reason = "Exception when calling LIVE interface pos, REPEATING:" + str(e) + format_exc()
+                print("API ERROR: Nepodarilo se ziskat pozici.", reason)
+                send_to_telegram(reason)
                 #raise Exception(e)
-                return -1
+                return -1,-1
             
     """get open orders ->list(Order)"""         
     def get_open_orders(self, symbol: str, side: OrderSide = OrderSide.SELL): # -> list(Order):

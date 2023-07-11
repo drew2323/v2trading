@@ -38,6 +38,7 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/mousetrap/1.4.6/mousetrap.min.js"></script>
         <!-- <script src="https://cdn.datatables.net/select/1.6.2/js/dataTables.select.min.js"></script> -->
         <script src="/static/js/fast-toml.js" type="text/javascript"></script>
+        
     </head>
     <body>
         <div id="main" class="mainConteiner flex-container content">
@@ -503,6 +504,38 @@
                     </div>
                 </div>
             </div>
+            <div id="TestListContainer" class="flex-items">
+                <label data-bs-toggle="collapse" data-bs-target="#TestListInner" aria-expanded="true">
+                    <h4>TestList Configuration</h4>
+                </label>
+                <div id="TestListInner" class="collapse show">
+                    <div>
+                        <form id="recordFormTestList">
+                        <input type="hidden" id="recordId">
+                        <label for="recordName">Name:</label>
+                        <input type="text" id="recordName" required>
+                        <br>
+                        <!-- TODO predelat na intervaly v ramci dne (tzn. 1.1. 9:30 - 1.1. 9:45) -->
+                        <!-- tzn. jeden zaznam v poli = start + end -->
+                        <label for="datepickerstart">Start:</label>
+                        <input type="datetime-local" id="datepickerstart" step="1">
+                        <label for="datepickerend">End:</label>
+                        <input type="datetime-local" id="datepickerend" step="1">
+                        <button type="button" id="addTagBtn" class="btn btn-outline-success btn-sm">Add Date</button>
+                        <br>
+                        <div id="tagContainer"></div>
+                        <br>
+                        <button type="submit" id="saveBtn" class="btn btn-outline-success btn-sm">Save</button>
+                        <button type="button" id="cancelBtn" class="btn btn-outline-success btn-sm">Cancel</button>
+                        </form>
+                        <div id="output"></div>
+                    </div>
+                    <div>
+                        <h4>Test Lists</h4>
+                        <div id="recordsList"></div>
+                    </div>
+                </div>
+            </div>
             <div id="configContainer" class="flex-items">
                 <label data-bs-toggle="collapse" data-bs-target="#configInner" aria-expanded="true">
                     <h4>Config</h4>
@@ -523,5 +556,6 @@
         <script src="/static/js/livewebsocket.js"></script>
         <script src="/static/js/realtimechart.js"></script>
         <script src="/static/js/mytables.js"></script>
+        <script src="/static/js/testlist.js"></script>
     </body>
 </html>

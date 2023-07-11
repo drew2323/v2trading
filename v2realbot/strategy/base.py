@@ -246,9 +246,13 @@ class Strategy:
     """"refresh positions and avgp - for CBAR once per confirmed, for BARS each time"""
     def refresh_positions(self, item):
         if self.rectype == RecordType.BAR:
-            self.state.avgp, self.state.positions = self.interface.pos()
+            a,p = self.interface.pos()
+            if a != -1:
+                self.state.avgp, self.state.positions = a,p
         elif self.rectype == RecordType.CBAR and item['confirmed'] == 1:
-            self.state.avgp, self.state.positions= self.interface.pos()
+            a,p = self.interface.pos()
+            if a != -1:
+                self.state.avgp, self.state.positions = a,p
 
     """update state.last_trade_time a time of iteration"""
     def update_times(self, item):

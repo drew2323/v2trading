@@ -25,6 +25,16 @@ from alpaca.data.enums import Exchange
 #  raise HTTPException(status_code=404, detail=f"Could not find user with id: {id}")
 
 
+class Intervals(BaseModel):
+    start: str
+    end: str
+
+# Define the data model for the TestLists
+class TestList(BaseModel):
+    id: Optional[UUID | str | None] = None
+    name: str
+    dates: List[Intervals]
+
 #for GUI to fetch historical trades on given symbol
 class Trade(BaseModel):
     symbol: str

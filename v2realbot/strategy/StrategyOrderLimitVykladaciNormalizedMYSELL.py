@@ -77,11 +77,16 @@ class StrategyOrderLimitVykladaciNormalizedMYSELL(Strategy):
 
             #ic("notifikace sell mazeme limitku a update pozic")
             #updatujeme pozice
-            self.state.avgp, self.state.positions = self.interface.pos()
+            a,p = self.interface.pos()
+            #pri chybe api nechavame puvodni hodnoty
+            if a != -1:
+                self.state.avgp, self.state.positions = a,p
             #ic(self.state.avgp, self.state.positions)
             self.state.vars.limitka = None
             self.state.vars.limitka_price = None
-            self.state.vars.lastbuyindex = -5
+            #resetujeme lastbuyindex, pokud neni v konfiguraci jinak
+            if safe_get(self.state.vars, "last_buy_offset_reset_after_sell", True):
+                self.state.vars.lastbuyindex = -5
             self.state.vars.jevylozeno = 0
             await self.state.cancel_pending_buys()
             self.state.ilog(e="Příchozí SELL - FILL nebo CANCEL - mazeme limitku a pb", msg=data.order.status, orderid=str(data.order.id), pb=self.state.vars.pendingbuys)
@@ -125,11 +130,13 @@ class StrategyOrderLimitVykladaciNormalizedMYSELL(Strategy):
         if order != -1:
             print("ukladame pendingbuys")
             self.state.vars.pendingbuys[str(order)]=price
+            ulozena_cena = self.state.vars.pendingbuys[str(order)]
+            self.state.ilog(e=f"Odeslan buy_l a ulozeno do pb {ulozena_cena=}", order=str(order), pb=str(self.state.vars.pendingbuys))
             self.state.blockbuy = 1
             self.state.vars.lastbuyindex = self.state.bars['index'][-1]
             #ic(self.state.blockbuy)
             #ic(self.state.vars.lastbuyindex)
-            self.state.ilog(e="Odeslan buy_l a ulozeno do pb", order=str(order), pb=self.state.vars.pendingbuys)
+            #self.state.ilog(e="Odeslan buy_l a ulozeno do pb", order=str(order), pb=self.state.vars.pendingbuys)
         else:
             self.state.ilog(e="Chyba - nepodarilo se odeslat buy_l - nebylo ulozeno do pb", order=str(order), pb=self.state.vars.pendingbuys)
 

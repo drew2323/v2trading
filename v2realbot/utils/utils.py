@@ -9,7 +9,7 @@ import decimal
 from v2realbot.enums.enums import RecordType, Mode, StartBarAlign
 import pickle
 import os
-from v2realbot.common.model import StrategyInstance, Runner, RunArchive, RunArchiveDetail
+from v2realbot.common.model import StrategyInstance, Runner, RunArchive, RunArchiveDetail, Intervals
 from typing import List
 import tomli
 from v2realbot.config import DATA_DIR, QUIET_MODE,NORMALIZED_TICK_BASE_PRICE
@@ -22,6 +22,33 @@ from alpaca.trading.models import Order, TradeUpdate
 import numpy as np
 import pandas as pd
 from collections import deque
+
+def crossed_up(threshold, list):
+    """check if threshold has crossed up last thresholdue in list"""
+    try:
+        if threshold < list[-1] and threshold >= list[-2]:
+            return True
+        else:
+            return False
+    except IndexError:
+        return False
+    
+def crossed_down(threshold, list):
+    """check if threshold has crossed down last thresholdue in list"""
+    try:
+        if threshold > list[-1] and threshold <= list[-2]:
+            return True
+        else:
+            return False
+    except IndexError:
+        return False
+
+def crossed(threshold, list):
+    """check if threshold has crossed last thresholdue in list"""
+    if crossed_down(threshold, list) or crossed_up(threshold, list):
+        return True
+    else:
+        return False
 
 def get_tick(price: float, normalized_ticks: float = 0.01):
     """
@@ -50,34 +77,47 @@ def eval_cond_dict(cond: dict) -> tuple[bool, str]:
     buy_cond["5siddngle"] = False
     group eval rules. 1. single 2. AND 3. ORS
     """
-    msg = ""
-    ret = False
-    #eval single cond
-    for klic in cond:
-        if klic in ["AND","OR"]: continue
-        else:
-            if cond[klic]:
-                return True, klic
-
+    msg = {}
+    ret = []
+    
     ##check AND group
-    if 'AND' in cond.keys():
+    if 'AND' in cond.keys() and len(cond["AND"])>0:
+        msg["AND"] = {}
         for key in cond["AND"]:
+            res = cond["AND"][key]
+            ret.append(res)
+            msg["AND"][key] = (str(res).upper() if res else str(res))
+            #msg += "[AND]" + key + ":" + (str(res).upper() if res else str(res)) + " "
 
-            if cond["AND"][key]:
-                ret = True
-                msg += key + " AND "
-            else:
-                ret = False
-                break
-        if ret:
+        if all(ret):
             return True, msg
+        
     #eval OR groups 
-    if "OR" in cond.keys():
+    if "OR" in cond.keys() and len(cond["OR"])>0:
+        ret = []
+        msg["OR"] = {}
         for key in cond["OR"]:
-            if cond["OR"][key]:
-                return True, key
-            
-    return False, None
+            res = cond["OR"][key]
+            ret.append(res)
+            msg["OR"][key] = (str(res).upper() if res else str(res))
+            #msg += "[OR]" + key + ":" + (str(res).upper() if res else str(res)) + " "
+
+        if any(ret):
+            return True, msg
+
+    #pokud nemame zadne AND ani OR, tak to je single cond
+    ret = []
+    for key in cond:
+        if key == "AND" or key == "OR":
+            continue
+        #je to vlastne to same jako OR
+        res = cond[key]
+        ret.append(res)
+        msg[key] = (str(res).upper() if res else str(res))
+        #msg += key + ":" + (str(res).upper() if res else str(res)) + " "
+
+    #pokud predchozi single obsahoval True, vratime True jinak False
+    return any(ret), msg
 
 def Average(lst):
     return sum(lst) / len(lst)
@@ -131,6 +171,8 @@ def json_serial(obj):
     if type(obj) is RunArchive:
         return obj.__dict__
     if type(obj) is RunArchiveDetail:
+        return obj.__dict__
+    if type(obj) is Intervals:
         return obj.__dict__
     
     raise TypeError (str(obj)+"Type %s not serializable" % type(obj))

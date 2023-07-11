@@ -14,7 +14,7 @@ import uvicorn
 from uuid import UUID
 import v2realbot.controller.services as cs
 from v2realbot.utils.ilog import get_log_window
-from v2realbot.common.model import StrategyInstance, RunnerView, RunRequest, Trade, RunArchive, RunArchiveDetail, Bar, RunArchiveChange
+from v2realbot.common.model import StrategyInstance, RunnerView, RunRequest, Trade, RunArchive, RunArchiveDetail, Bar, RunArchiveChange, TestList
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status, WebSocketException, Cookie, Query
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -26,8 +26,9 @@ import json
 from queue import Queue, Empty
 from threading import Thread
 import asyncio
-from v2realbot.common.db import insert_queue, insert_conn
+from v2realbot.common.db import insert_queue, insert_conn, pool
 from v2realbot.utils.utils import json_serial
+from uuid import uuid4
 #from async io import Queue, QueueEmpty
                    
 # install()
@@ -208,7 +209,7 @@ def _modify_stratin(stratin: StrategyInstance, stratin_id: UUID):
     if cs.is_stratin_running(id=stratin_id):
         res,id = cs.modify_stratin_running(si=stratin, id=stratin_id)
     else: 
-        res, id = cs.modify_stratin(si=stratin, id=stratin_id)
+     res, id = cs.modify_stratin(si=stratin, id=stratin_id)
     if res == 0: return id
     elif res == -2:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Error not found: {res}:{id}")
@@ -330,6 +331,91 @@ def _get_alpaca_history_bars(symbol: str, datetime_object_from: datetime, dateti
         return set
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No data found {res} {set}")
+
+#TestList APIS - do budoucna predelat SQL do separatnich funkci
+@app.post('/testlists/', dependencies=[Depends(api_key_auth)])
+def create_record(testlist: TestList):
+    # Generate a new UUID for the record
+    testlist.id = str(uuid4())
+    
+    # Insert the record into the database
+    conn = pool.get_connection()
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO test_list (id, name, dates) VALUES (?, ?, ?)", (testlist.id, testlist.name, json.dumps(testlist.dates, default=json_serial)))
+    conn.commit()
+    pool.release_connection(conn)
+    return testlist
+
+
+# API endpoint to retrieve all records
+@app.get('/testlists/', dependencies=[Depends(api_key_auth)])
+def get_testlists():
+    conn = pool.get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, name, dates FROM test_list")
+    rows = cursor.fetchall()
+    pool.release_connection(conn)
+    
+    testlists = []
+    for row in rows:
+        testlist = TestList(id=row[0], name=row[1], dates=json.loads(row[2]))
+        testlists.append(testlist)
+    
+    return testlists
+
+# API endpoint to retrieve a single record by ID
+@app.get('/testlists/{record_id}')
+def get_testlist(record_id: str):
+    conn = pool.get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, name, dates FROM test_list WHERE id = ?", (record_id,))
+    row = cursor.fetchone()
+    pool.release_connection(conn)
+    
+    if row is None:
+        raise HTTPException(status_code=404, detail='Record not found')
+    
+    testlist = TestList(id=row[0], name=row[1], dates=json.loads(row[2]))
+    return testlist
+
+# API endpoint to update a record
+@app.put('/testlists/{record_id}')
+def update_testlist(record_id: str, testlist: TestList):
+    # Check if the record exists
+    conn = pool.get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM test_list WHERE id = ?", (record_id,))
+    row = cursor.fetchone()
+    
+    if row is None:
+        raise HTTPException(status_code=404, detail='Record not found')
+    
+    # Update the record in the database
+    cursor.execute("UPDATE test_list SET name = ?, dates = ? WHERE id = ?", (testlist.name, json.dumps(testlist.dates, default=json_serial), record_id))
+    conn.commit()
+    pool.release_connection(conn)
+    
+    testlist.id = record_id
+    return testlist
+
+# API endpoint to delete a record
+@app.delete('/testlists/{record_id}')
+def delete_testlist(record_id: str):
+    # Check if the record exists
+    conn = pool.get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM test_list WHERE id = ?", (record_id,))
+    row = cursor.fetchone()
+    
+    if row is None:
+        raise HTTPException(status_code=404, detail='Record not found')
+    
+    # Delete the record from the database
+    cursor.execute("DELETE FROM test_list WHERE id = ?", (record_id,))
+    conn.commit()
+    pool.release_connection(conn)
+    
+    return {'message': 'Record deleted'}
 
 # Thread function to insert data from the queue into the database
 def insert_queue2db():

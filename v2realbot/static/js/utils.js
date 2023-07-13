@@ -22,6 +22,7 @@ settings = {}
 settings
 //ostatni indicatory nez vwap, volume a bary
 indConfig = [ {name: "ema", titlevisible: false, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},
+              {name: "ema20", titlevisible: false, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},              
               {name: "tick_volume", histogram: true, titlevisible: true, embed: true, display: true, priceScaleId: '', lastValueVisible: false},
               {name: "tick_price", titlevisible: true, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},
               {name: "ivwap", titlevisible: true, embed: true, display: false, priceScaleId: "right", lastValueVisible: false},
@@ -38,6 +39,7 @@ indConfig = [ {name: "ema", titlevisible: false, embed: true, display: true, pri
               {name: "emaSlow", titlevisible: true, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},
               {name: "emaFast", titlevisible: true, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},
               {name: "RSI14", titlevisible: true, embed: true, display: true, priceScaleId: "middle", lastValueVisible: false},
+              {name: "RSI14MA", titlevisible: true, embed: true, display: true, priceScaleId: "middle", lastValueVisible: false},
               {name: "CRSI", titlevisible: true, embed: true, display: true, priceScaleId: "middle", lastValueVisible: false},
               {name: "aroon", titlevisible: true, embed: true, display: true, priceScaleId: "middle", lastValueVisible: false},
               {name: "apo", titlevisible: true, embed: true, display: true, priceScaleId: "middle", lastValueVisible: false},

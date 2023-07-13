@@ -23,10 +23,36 @@ import numpy as np
 import pandas as pd
 from collections import deque
 
+
+#is_pivot function to check if there is A(V) shaped pivot in the list, each leg consists of N points
+#middle point is the shared one [1,2,3,2,1] - one leg is [1,2,3] second leg is [3,2,1]
+def is_pivot(source: list, leg_number: int, type: str = "A"):
+    if len(source) < (2 * leg_number)-1:
+        print("Not enough values in the list")
+        return False
+    
+    left_leg = source[-2*leg_number+1:-leg_number+1]
+    right_leg = source[-leg_number:]
+    
+    if type == "A":
+        if isrising(left_leg) and isfalling(right_leg):
+            return True
+        else:
+            return False
+    elif type == "V":
+        if isfalling(left_leg) and isrising(right_leg):
+            return True
+        else:
+            return False
+    else:
+        print("Unknown type")
+        return False
+
 def crossed_up(threshold, list):
     """check if threshold has crossed up last thresholdue in list"""
     try:
-        if threshold < list[-1] and threshold >= list[-2]:
+        #upraveno, ze threshold muze byt vetsi nez predpredposledni
+        if threshold < list[-1] and threshold >= list[-2] or threshold < list[-1] and threshold >= list[-3]:
             return True
         else:
             return False
@@ -36,7 +62,8 @@ def crossed_up(threshold, list):
 def crossed_down(threshold, list):
     """check if threshold has crossed down last thresholdue in list"""
     try:
-        if threshold > list[-1] and threshold <= list[-2]:
+        #upraveno, ze threshold muze byt mensi nez predpredposledni
+        if threshold > list[-1] and threshold <= list[-2] or threshold > list[-1] and threshold <= list[-3]:
             return True
         else:
             return False
@@ -281,13 +308,17 @@ def is_open_hours(dt, business_hours: dict = None):
            and dt.date() not in holidays \
            and business_hours["from"] <= dt.time() < business_hours["to"]
 
-def isfalling(pole: list, pocet: int):
+#vraci zda dane pole je klesajici (bud cele a nebo jen pocet poslednich)
+def isfalling(pole: list, pocet: int = None):
+    if pocet is None: pocet = len(pole)
     if len(pole)<pocet: return False
     pole = pole[-pocet:]
     res = all(i > j for i, j in zip(pole, pole[1:]))
     return res
 
-def isrising(pole: list, pocet: int):
+#vraci zda dane pole je roustouci (bud cele a nebo jen pocet poslednich)
+def isrising(pole: list, pocet: int = None):
+    if pocet is None: pocet = len(pole)
     if len(pole)<pocet: return False
     pole = pole[-pocet:]
     res = all(i < j for i, j in zip(pole, pole[1:]))

@@ -1,4 +1,4 @@
-
+from v2realbot.utils.utils import isfalling, isrising
 
 test1_threshold = 28.905
 bacma = []
@@ -10,54 +10,32 @@ bacma.append([28.91,28.90,28.89,28.88,28.87])
 bacma.append([28.91,28.90,28.89,28.88,28.87,28.86])
 
 
-#is_pivot function to check if there is A shaped pivot in the list, each leg consists of N points
-def is_pivot(list, leg):
-    """check if there is A shaped pivot in the list, each leg consists of N points"""
-    try:
-        if len(list) < leg*2+1:
-            return False
-        else:
-            if list[-leg-1] < list[-leg] and list[-leg] > list[-leg+1] and list[-leg-1] > list[-leg-2] and list[-leg] > list[-leg+2]:
-                return True
-            else:
-                return False
-    except IndexError:
-        return False
+pole = [1,2,3,2,1,2,3,4,5,6,2,1]
 
-
-
-def crossed_up(threshold, list):
-    """check if threshold has crossed up last thresholdue in list"""
-    try:
-        if threshold < list[-1] and threshold >= list[-2]:
-            return True
-        else:
-            return False
-    except IndexError:
+#is_pivot function to check if there is A(V) shaped pivot in the list, each leg consists of N points
+#middle point is the shared one [1,2,3,2,1] - one leg is [1,2,3] second leg is [3,2,1]
+def is_pivot(stock_prices_list, leg_number, type: str = "A"):
+    if len(stock_prices_list) < (2 * leg_number)-1:
+        print("Not enough values in the list")
         return False
     
-def crossed_down(threshold, list):
-    """check if threshold has crossed down last thresholdue in list"""
-    try:
-        if threshold > list[-1] and threshold <= list[-2]:
+    left_leg = stock_prices_list[-2*leg_number+1:-leg_number+1]
+    print(left_leg)
+    right_leg = stock_prices_list[-leg_number:]
+    print(right_leg)
+    
+    if type == "A":
+        if isrising(left_leg) and isfalling(right_leg):
             return True
         else:
             return False
-    except IndexError:
-        return False
-
-def crossed(threshold, list):
-    """check if threshold has crossed last thresholdue in list"""
-    if crossed_down(threshold, list) or crossed_up(threshold, list):
-        return True
+    elif type == "V":
+        if isfalling(left_leg) and isrising(right_leg):
+            return True
+        else:
+            return False
     else:
+        print("Unknown type")
         return False
 
-for i in bacma:
-    print(i)
-    print(f"threshold crossed down {i}", threshold_crossed_down(test1_threshold, i))
-    print(f"threshold crossed up {i}", threshold_crossed_up(test1_threshold, i))
-
-
-
-
+print(is_pivot(pole, 3))

@@ -209,7 +209,7 @@ def _modify_stratin(stratin: StrategyInstance, stratin_id: UUID):
     if cs.is_stratin_running(id=stratin_id):
         res,id = cs.modify_stratin_running(si=stratin, id=stratin_id)
     else: 
-     res, id = cs.modify_stratin(si=stratin, id=stratin_id)
+        res, id = cs.modify_stratin(si=stratin, id=stratin_id)
     if res == 0: return id
     elif res == -2:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Error not found: {res}:{id}")

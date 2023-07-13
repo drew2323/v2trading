@@ -5,7 +5,7 @@ from v2realbot.strategy.StrategyOrderLimitVykladaciNormalizedMYSELL import Strat
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, OrderSide, OrderType
 from v2realbot.indicators.indicators import ema
 from v2realbot.indicators.oscillators import rsi
-from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, print, safe_get, get_tick, round2five, is_open_rush, is_close_rush, eval_cond_dict, Average, crossed_down, crossed_up
+from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, print, safe_get, get_tick, round2five, is_open_rush, is_close_rush, eval_cond_dict, Average, crossed_down, crossed_up, is_pivot
 from datetime import datetime
 #from icecream import install, ic
 #from rich import print
@@ -217,7 +217,7 @@ def next(data, state: StrategyState):
         last_price = price2dec(state.interface.get_last_price(state.symbol))
         #profit = float(state.vars.profit)
         price = last_price
-        state.ilog(e="BUY Vykladame", msg=f"first price {price=} {vykladka=}", curve=curve, ema=state.indicators.ema[-1], trend=state.vars.Trend, price=price, vykladka=vykladka)
+        state.ilog(e="BUY Vykladame", msg=f"first price {price=} {vykladka=}", curve=curve, price=price, vykladka=vykladka)
         ##prvni se vyklada na aktualni cenu, další jdou podle krivky, nula v krivce zvyšuje množství pro následující iteraci
         
         ##VAR - na zaklade conf. muzeme jako prvni posilat MARKET order
@@ -352,154 +352,6 @@ def next(data, state: StrategyState):
                 modded_section = section
             return safe_get(modded_section, name, safe_get(section, name, default))
 
-    def populate_ema_indicator():
-        #BAR EMA INDICATOR - 
-        #plnime MAcko - nyni posilame jen N poslednich hodnot
-        #zaroven osetrujeme pripady, kdy je malo dat a ukladame nulu
-        try:
-            ma = int(state.vars.MA)
-            #poslednich ma hodnot
-            source = state.bars.close[-ma:] #state.bars.vwap
-            ema_value = ema(source, ma)
-
-            ##pokus MACKO zakrouhlit na tri desetina a petku
-            state.indicators.ema[-1]=round2five(ema_value[-1])
-            ##state.indicators.ema[-1]=trunc(ema_value[-1],3)
-            #state.ilog(e=f"EMA {state.indicators.ema[-1]}", ema_last=state.indicators.ema[-6:])
-        except Exception as e:
-            state.ilog(e="EMA nechavame  0", message=str(e)+format_exc())
-            #state.indicators.ema[-1]=(0)
-            #evaluate buy signal
-            #consolidation
-
-    # [stratvars.indicators.slope]
-    # lookback
-    # lookback_offset
-
-    def populate_slow_slope_indicator():
-        options = safe_get(state.vars.indicators, 'slow_slope', None)
-        if options is None:
-            state.ilog(e="No options for slow slope in stratvars")
-            return
-        
-
-        #SLOW SLOPE INDICATOR
-        #úhel stoupání a klesání vyjádřený mezi -1 až 1
-        #pravý bod přímky je aktuální cena, levý je průměr X(lookback offset) starších hodnot od slope_lookback.
-        #obsahuje statický indikátor (angle) pro vizualizaci
-        try:
-            slow_slope = 99
-            slope_lookback = safe_get(options, 'slope_lookback', 100)
-            minimum_slope =  safe_get(options, 'minimum_slope', 25)
-            maximum_slope = safe_get(options, "maximum_slope",0.9)
-            lookback_offset = safe_get(options, 'lookback_offset', 25)
-
-            if len(state.bars.close) > (slope_lookback + lookback_offset):
-                array_od = slope_lookback + lookback_offset
-                array_do = slope_lookback
-                lookbackprice_array = state.bars.vwap[-array_od:-array_do]
-                #obycejný prumer hodnot
-                lookbackprice = round(sum(lookbackprice_array)/lookback_offset,3)
-                lookbacktime = state.bars.time[-slope_lookback]
-            else:
-                #kdyz neni  dostatek hodnot, pouzivame jako levy bod open hodnotu close[0]
-                lookbackprice = state.bars.close[0]
-                lookbacktime = state.bars.time[0]
-                state.ilog(e="Slow Slope - not enough data bereme left bod open", slope_lookback=slope_lookback, slope=state.indicators.slope, slopeMA=state.indicators.slopeMA)
-
-            #výpočet úhlu - a jeho normalizace
-            slope = ((state.bars.close[-1] - lookbackprice)/lookbackprice)*100
-            slope = round(slope, 4)
-            state.indicators.slow_slope[-1]=slope
-
-            #angle je ze slope
-            state.statinds.angle_slow = dict(time=state.bars.time[-1], price=state.bars.close[-1], lookbacktime=lookbacktime, lookbackprice=lookbackprice, minimum_slope=minimum_slope, maximum_slope=maximum_slope)
-
-            #slope MA vyrovna vykyvy ve slope, dále pracujeme se slopeMA
-            slope_MA_length = safe_get(options, 'MA_length', 5)
-            source = state.indicators.slow_slope[-slope_MA_length:]
-            slopeMAseries = ema(source, slope_MA_length) #state.bars.vwap
-            slopeMA = slopeMAseries[-1]
-            state.indicators.slow_slopeMA[-1]=slopeMA
-
-            state.ilog(e=f"SLOW {slope=} {slopeMA=}", msg=f"{lookbackprice=}", lookbackoffset=lookback_offset, minimum_slope=minimum_slope, last_slopes=state.indicators.slope[-10:], last_slopesMA=state.indicators.slopeMA[-10:])
-            #dale pracujeme s timto MAckovanym slope
-            #slope = slopeMA         
-
-        except Exception as e:
-            print("Exception in NEXT Slow Slope Indicator section", str(e))
-            state.ilog(e="EXCEPTION", msg="Exception in Slow Slope Indicator section" + str(e) + format_exc())
-
-    def populate_slope_indicator():
-        #populuje indikator typu SLOPE
-
-
-        #SLOPE INDICATOR
-        #úhel stoupání a klesání vyjádřený mezi -1 až 1
-        #pravý bod přímky je aktuální cena, levý je průměr X(lookback offset) starších hodnot od slope_lookback.
-        #obsahuje statický indikátor (angle) pro vizualizaci
-        try:
-            slope = 99
-            slope_lookback = int(state.vars.slope_lookback)
-            minimum_slope = float(state.vars.minimum_slope)
-            lookback_offset = int(state.vars.lookback_offset)
-
-            if len(state.bars.close) > (slope_lookback + lookback_offset):
-                array_od = slope_lookback + lookback_offset
-                array_do = slope_lookback
-                lookbackprice_array = state.bars.vwap[-array_od:-array_do]
-                #obycejný prumer hodnot
-                lookbackprice = round(sum(lookbackprice_array)/lookback_offset,3)
-
-                #výpočet úhlu - a jeho normalizace
-                slope = ((state.bars.close[-1] - lookbackprice)/lookbackprice)*100
-                slope = round(slope, 4)
-                state.indicators.slope[-1]=slope
-    
-                #angle je ze slope
-                state.statinds.angle = dict(time=state.bars.time[-1], price=state.bars.close[-1], lookbacktime=state.bars.time[-slope_lookback], lookbackprice=lookbackprice, minimum_slope=minimum_slope, maximum_slope=safe_get(state.vars, "bigwave_slope_above",0.20))
-    
-                #slope MA vyrovna vykyvy ve slope, dále pracujeme se slopeMA
-                slope_MA_length = 5
-                source = state.indicators.slope[-slope_MA_length:]
-                slopeMAseries = ema(source, slope_MA_length) #state.bars.vwap
-                slopeMA = slopeMAseries[-1]
-                state.indicators.slopeMA[-1]=slopeMA
-
-                state.ilog(e=f"{slope=} {slopeMA=}", msg=f"{lookbackprice=}", lookbackoffset=lookback_offset, minimum_slope=minimum_slope, last_slopes=state.indicators.slope[-10:], last_slopesMA=state.indicators.slopeMA[-10:])
-
-                #dale pracujeme s timto MAckovanym slope
-                slope = slopeMA         
-            else:
-                #pokud plnime historii musime ji plnit od zacatku, vsehcny idenitifkatory maji spolecny time
-                #kvuli spravnemu zobrazovani na gui
-                #state.indicators.slopeMA[-1]=0
-                #state.indicators.slopeMA.append(0)
-                state.ilog(e="Slope - not enough data", slope_lookback=slope_lookback, slope=state.indicators.slope, slopeMA=state.indicators.slopeMA)
-        except Exception as e:
-            print("Exception in NEXT Slope Indicator section", str(e))
-            state.ilog(e="EXCEPTION", msg="Exception in Slope Indicator section" + str(e) + format_exc())
-
-    #TODO predelat na dynamicky type=RSI, source = ["close", "vwap","hlcc4"]
-
-    def populate_rsi_indicator():
-            #RSI14 INDICATOR
-        try:
-            rsi_length = int(safe_get(state.vars, "rsi_length",14))
-            source = state.bars.vwap #[-rsi_length:] #state.bars.vwap
-            
-            #cekame na dostatek dat
-            if len(source) > rsi_length:
-                rsi_res = rsi(source, rsi_length)
-                rsi_value = trunc(rsi_res[-1],3)
-                state.indicators.RSI14[-1]=rsi_value
-            else:
-                state.ilog(e=f"RSI {rsi_length=} necháváme 0", message="not enough source data")
-            #state.ilog(e=f"RSI {rsi_length=} {rsi_value=} {rsi_dont_buy=} {rsi_buy_signal=}", rsi_indicator=state.indicators.RSI14[-5:])
-        except Exception as e:
-            state.ilog(e=f"RSI {rsi_length=} necháváme 0", message=str(e)+format_exc())
-            #state.indicators.RSI14[-1]=0
-
     def populate_cbar_rsi_indicator():
         #CBAR RSI indicator
         options = safe_get(state.vars.indicators, 'crsi', None)
@@ -520,108 +372,24 @@ def next(data, state: StrategyState):
             state.ilog(e=f"CRSI {crsi_length=} necháváme 0", message=str(e)+format_exc())
             #state.indicators.RSI14[-1]=0
 
-    # def populate_secondary_rsi_indicator():
-    #         #SBAR RSI indicator
-    #     try:
-    #         srsi_length = int(safe_get(state.vars, "srsi_length",14))
-    #         source = state.secondary_indicators.sec_price #[-rsi_length:] #state.bars.vwap
-    #         srsi_res = rsi(source, srsi_length)
-    #         srsi_value = trunc(srsi_res[-1],3)
-    #         state.secondary_indicators.SRSI[-1]=srsi_value
-    #         #state.ilog(e=f"RSI {rsi_length=} {rsi_value=} {rsi_dont_buy=} {rsi_buy_signal=}", rsi_indicator=state.indicators.RSI14[-5:])
-    #     except Exception as e:
-    #         state.ilog(e=f"SRSI {srsi_length=} necháváme 0", message=str(e)+format_exc())
-    #         #state.indicators.RSI14[-1]=0
-
-    #TODO predelat na dynamicky - tzn. vstup je nazev slopu a i z nej se dotahne minimum slope
-
-
-    #gets all indicators of type slow and check which they have dont_buy_below_minimum
-    # [stratvars.indicators.slope]
-    # type = "slope"
-    # dont_buy_below = -0.10
-    #get all indicators of type slow and check whether they have dont_buy_below_minimum
-    # if so, it evaluates if it is below current value
-    def slope_too_low():
-        retboolList = []
-        desc = ""
-        for indname, indsettings in state.vars.indicators.items():
-            for option,value in indsettings.items():
-                if (option == "type" and value == "slope") or (option == "type" and value == "slopeLP"):
-                    #pokud zde mame dont_buy_below 
-                    minimum_val = safe_get(indsettings, "dont_buy_below", None)
-                    if minimum_val is not None:
-                        #minimum_val = float(safe_get(indsettings, "minimum_slope", 1))
-
-                        #pokud exisuje MA, měříme na MA, jinak na standardu
-                        try:
-                            curr_val = state.indicators[indname+"MA"][-1]
-                        except KeyError:
-                            curr_val = state.indicators[indname][-1]
-                        
-                        ret = (curr_val < minimum_val)
-                        if ret:
-                            desc += f"ID:{indname}/{curr_val} below {minimum_val=} /"
-                        else:
-                            desc += f"ID:{indname}{curr_val} OK above {minimum_val=} /"
-                        retboolList.append(ret)
-                    else:
-                        desc += f"ID:{indname} - no min set /"
-                        retboolList.append(False)
-        #pokud obsahuje aspon jedno true
-        slopelow = any(retboolList)
-        
-        #DEBUG - poté zapsat jen když je True
-        if slopelow:
-            state.ilog(e=f"SLOPELOW {slopelow}", msg=desc)
-
-        return slopelow
-
-    #gets all indicators of type slow and check which they have dont_buy_above
-    # [stratvars.indicators.slope]
-    # type = "slope"
-    # dont_buy_above = 0.20
-    #get all indicators of type slow and check whether they have dont_buy_above
-    # if so, it evaluates if it is above current value    
-    def slope_too_high():
-        retboolList = []
-        desc = ""
-        for indname, indsettings in state.vars.indicators.items():
-            for option,value in indsettings.items():
-                if (option == "type" and value == "slope") or (option == "type" and value == "slopeLP"):
-                    #pokud zde mame dont_buy_above 
-                    maximum_val = safe_get(indsettings, "dont_buy_above", None)
-                    if maximum_val is not None:
-                        #pokud exisuje MA, měříme na MA, jinak na standardu
-                        try:
-                            curr_val = state.indicators[indname+"MA"][-1]
-                        except KeyError:
-                            curr_val = state.indicators[indname][-1]
-                        
-                        ret = (curr_val > maximum_val)
-                        if ret:
-                            desc += f"ID:{indname}/{curr_val} above {maximum_val=} /"
-                        else:
-                            desc += f"ID:{indname}{curr_val} OK below {maximum_val=} /"
-                        retboolList.append(ret)
-                    else:
-                        desc += f"ID:{indname} - no max set /"
-                        retboolList.append(False)
-        #pokud obsahuje aspon jedno true
-        slopehigh = any(retboolList)
-        
-        #DEBUG - poté zapsat jen když je True
-        if slopehigh:
-            state.ilog(e=f"SLOPEHIGH {slopehigh}", msg=desc)
-
-        return slopehigh
-
     #resetujeme, kdyz 1) je aktivni buy protection 2) kdyz to ujede
     #TODO mozna tick2reset spoustet jednou za X opakovani
     def pendingbuys_optimalization():
         if len(state.vars.pendingbuys)>0:
-            if buy_protection_enabled():
-                #state.ilog(e="PENDINGBUYS reset", message=inspect.currentframe().f_code.co_name)
+            #misto volani buy_protection vytvarime direktivu cancel_pendingbuys
+
+            #pouze jako OR
+            #cancel_pendingbuys_above
+            #cancel_pendingbuys_below
+
+            pb_dict= get_work_dict_with_directive(starts_with="cancel_pendingbuys_if")
+            
+            state.ilog(e=f"CANCEL PB work_dict", message=pb_dict)
+            #u techto ma smysl pouze OR
+            cond = create_conditions_from_directives(pb_dict, "OR")
+            result, conditions_met = eval_cond_dict(cond)
+            state.ilog(e=f"CANCEL PB =OR= {result}", **conditions_met)
+            if result:
                 res = asyncio.run(state.cancel_pending_buys())
                 state.ilog(e="CANCEL pendingbuyes", pb=state.vars.pendingbuys, res=res)
             else:
@@ -645,18 +413,6 @@ def next(data, state: StrategyState):
                 state.vars.jevylozeno = 0
                 state.ilog(e="PB prazdne nastavujeme: neni vylozeno", jevylozeno=state.vars.jevylozeno)
 
-    ##kdy nesmí být žádné nákupní objednávky - zruší se
-    def buy_protection_enabled():
-        dont_buy_when = dict(AND=dict(), OR=dict())
-        ##add conditions here
-        dont_buy_when['rsi_too_high'] = state.indicators.RSI14[-1] > safe_get(state.vars, "rsi_dont_buy_above",50)
-        dont_buy_when['slope_too_low'] = slope_too_low()
-
-        result, cond_met = eval_cond_dict(dont_buy_when)
-        if result:
-            state.ilog(e=f"BUY_PROTECTION {cond_met}", message=cond_met)
-        return result
-
     def sell_protection_enabled():
         options = safe_get(state.vars, 'sell_protection', None)
         if options is None:
@@ -669,148 +425,223 @@ def next(data, state: StrategyState):
         disable_sell_proteciton_when['disabled_in_config'] = safe_get(options, 'enabled', False) is False
         #too good to be true (maximum profit)
         #disable_sell_proteciton_when['tgtbt_reached'] = safe_get(options, 'tgtbt', False) is False
-
+        disable_sell_proteciton_when['disable_if_positions_above'] = int(safe_get(options, 'disable_if_positions_above', 0)) < state.positions
 
         #testing preconditions
         result, conditions_met = eval_cond_dict(disable_sell_proteciton_when)
         if result:
-            state.ilog(e=f"SELL_PROTECTION DISABLED by precondition {conditions_met}")
+            state.ilog(e=f"SELL_PROTECTION DISABLED by {conditions_met}", **conditions_met)
             return False
-
-        dont_sell_when = dict(AND=dict(), OR=dict())
-        ##add conditions here
-
-        #IDENTIFIKOVAce rustoveho MOMENTA - pokud je momentum, tak prodávat později
         
-        #pokud je slope too high, pak prodavame jakmile slopeMA zacne klesat, napr. 4MA (TODO 3)
+        work_dict_dont_sell_if = get_work_dict_with_directive(starts_with="dont_sell_if")
+        state.ilog(e=f"SELL PROTECTION work_dict", message=work_dict_dont_sell_if)
 
-        #TODO zkusit pro pevny profit, jednoduse pozdrzet prodej - dokud tick_price roste nebo se drzi tak neprodavat, pokud klesne prodat
-        #mozna mit dva mody - pri vetsi volatilite pouzivat momentum, pri mensi nebo kdyz potrebuju pryc, tak prodat hned
-
-
-        #toto docasne pryc dont_sell_when['slope_too_high'] = slope_too_high() and not isfalling(state.indicators.slopeMA,4)
-        dont_sell_when['AND']['slopeMA_rising'] = isrising(state.indicators.slopeMA,safe_get(options, 'slopeMA_rising', 2))
-        dont_sell_when['AND']['rsi_not_falling'] = not isfalling(state.indicators.RSI14,safe_get(options, 'rsi_not_falling',3))
-        #dont_sell_when['rsi_dont_buy'] = state.indicators.RSI14[-1] > safe_get(state.vars, "rsi_dont_buy_above",50)
- 
-        result, conditions_met = eval_cond_dict(dont_sell_when)
+        or_cond = create_conditions_from_directives(work_dict_dont_sell_if, "OR")
+        result, conditions_met = eval_cond_dict(or_cond)
+        state.ilog(e=f"SELL PROTECTION =OR= {result}", **conditions_met)
         if result:
-            state.ilog(e=f"SELL_PROTECTION {conditions_met} enabled")
-        return result
+            return True
+        
+        #OR neprosly testujeme AND
+        and_cond = create_conditions_from_directives(work_dict_dont_sell_if, "AND")
+        result, conditions_met = eval_cond_dict(and_cond)
+        state.ilog(e=f"SELL PROTECTION =AND= {result}", **conditions_met)
+        return result    
+
+        # #IDENTIFIKOVAce rustoveho MOMENTA - pokud je momentum, tak prodávat později
+        
+        # #pokud je slope too high, pak prodavame jakmile slopeMA zacne klesat, napr. 4MA (TODO 3)
+
+        # #TODO zkusit pro pevny profit, jednoduse pozdrzet prodej - dokud tick_price roste nebo se drzi tak neprodavat, pokud klesne prodat
+        # #mozna mit dva mody - pri vetsi volatilite pouzivat momentum, pri mensi nebo kdyz potrebuju pryc, tak prodat hned
+
+        #puvodni nastaveni
+#         slopeMA_rising = 2
+#         rsi_not_falling = 3
+
+
+        # #testing preconditions
+        # result, conditions_met = eval_cond_dict(disable_sell_proteciton_when)
+        # if result:
+        #     state.ilog(e=f"SELL_PROTECTION DISABLED by precondition {conditions_met}")
+        #     return False
+
+        # dont_sell_when = dict(AND=dict(), OR=dict())
+        # ##add conditions here
+
+        # #IDENTIFIKOVAce rustoveho MOMENTA - pokud je momentum, tak prodávat později
+        
+        # #pokud je slope too high, pak prodavame jakmile slopeMA zacne klesat, napr. 4MA (TODO 3)
+
+        # #TODO zkusit pro pevny profit, jednoduse pozdrzet prodej - dokud tick_price roste nebo se drzi tak neprodavat, pokud klesne prodat
+        # #mozna mit dva mody - pri vetsi volatilite pouzivat momentum, pri mensi nebo kdyz potrebuju pryc, tak prodat hned
+
+        # #TOTO do budoucna zdynamictit
+
+        # #toto docasne pryc dont_sell_when['slope_too_high'] = slope_too_high() and not isfalling(state.indicators.slopeMA,4)
+        # dont_sell_when['AND']['slopeMA_rising'] = isrising(state.indicators.slopeMA,safe_get(options, 'slopeMA_rising', 2))
+        # dont_sell_when['AND']['rsi_not_falling'] = not isfalling(state.indicators.RSI14,safe_get(options, 'rsi_not_falling',3))
+        # #dont_sell_when['rsi_dont_buy'] = state.indicators.RSI14[-1] > safe_get(state.vars, "rsi_dont_buy_above",50)
+ 
+        # result, conditions_met = eval_cond_dict(dont_sell_when)
+        # if result:
+        #     state.ilog(e=f"SELL_PROTECTION {conditions_met} enabled")
+        # return result
 
     #preconditions and conditions of BUY SIGNAL
-    def buy_conditions_met():
-        #preconditions
-
+    def conditions_met():
+        #preconditions - TODO zdynamictit
         dont_buy_when = dict(AND=dict(), OR=dict())
 
+        #OBECNE DONT BUYS
         if safe_get(state.vars, "buy_only_on_confirmed",True):
             dont_buy_when['bar_not_confirmed'] = (data['confirmed'] == 0)
         #od posledniho vylozeni musi ubehnout N baru
         dont_buy_when['last_buy_offset_too_soon'] =  data['index'] < (int(state.vars.lastbuyindex) + int(safe_get(state.vars, "lastbuy_offset",3)))
         dont_buy_when['blockbuy_active'] = (state.vars.blockbuy == 1)
         dont_buy_when['jevylozeno_active'] = (state.vars.jevylozeno == 1)
-        dont_buy_when['rsi_too_high'] = state.indicators.RSI14[-1] > safe_get(state.vars, "rsi_dont_buy_above",50)
-        dont_buy_when['slope_too_low'] = slope_too_low()
-        dont_buy_when['slope_too_high'] = slope_too_high()
         dont_buy_when['open_rush'] = is_open_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), safe_get(state.vars, "open_rush",0))
         dont_buy_when['close_rush'] = is_close_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), safe_get(state.vars, "close_rush",0))
-        dont_buy_when['rsi_is_zero'] = (state.indicators.RSI14[-1] == 0)
-        dont_buy_when['reverse_position_waiting_amount_not_0'] = (state.vars.reverse_position_waiting_amount != 0)
-
+    
         #testing preconditions
         result, cond_met = eval_cond_dict(dont_buy_when)
         if result:
-            state.ilog(e=f"BUY precondition not met {cond_met}", message=cond_met)
+            state.ilog(e=f"BUY PRECOND GENERAL not met {cond_met}", message=cond_met)
             return False
 
-        #conditions - bud samostatne nebo v groupe - ty musi platit dohromady
-        buy_cond = dict(AND=dict(), OR=dict())
-        ##add buy conditions here
-        #cond groups ["AND"]
-        #cond groups ["OR"]
-        #no cond group - takes first
-        #TEST BUY SIGNALu z cbartick_price - 3klesave za sebou
-        #buy_cond['tick_price_falling_trend'] = isfalling(state.cbar_indicators.tick_price,state.vars.Trend)
+        #SPECIFICKE DONT BUYS - direktivy zacinajici dont_buy
+        #dont_buy_below = value nebo nazev indikatoru
+        #dont_buy_above = value nebo hazev indikatoru
 
-        #slopeMA jde dolu, rsi jde nahoru
-        #buy mame kazdy potvrzeny, tzn. rsi falling muze byt jen 2
+        #do INITU
+        work_dict_dont_buy = get_work_dict_with_directive(starts_with="dont_buy_if")
         
-        #buy_cond['AND']['slopeMA_falling'] = isfalling(state.indicators.slopeMA,3)
-        #buy_cond['AND']['rsi_is_rising'] = isrising(state.indicators.RSI14,2)
-        #buy_cond["AND"]["rsi_buy_signal_below"] = state.indicators.RSI14[-1] < safe_get(state.vars, "rsi_buy_signal_below",40)
+        state.ilog(e=f"BUY PRECOND DONTBUY work_dict", message=work_dict_dont_buy)
+        #u techto ma smysl pouze OR
+        precond = create_conditions_from_directives(work_dict_dont_buy, "OR")
+        result, conditions_met = eval_cond_dict(precond)
+        state.ilog(e=f"BUY PRECOND DONTBUY =OR= {result}", **conditions_met)
+        if result:
+            return False
 
-        #puvodni buy conditiony RSI pod + EMA klesajici
-        #buy_cond["AND"]["rsi_buy_signal_below"] = state.indicators.RSI14[-1] < safe_get(state.vars, "rsi_buy_signal_below",40)
-        #buy_cond["AND"]["ema_trend_is_falling"] = isfalling(state.indicators.ema,state.vars.Trend)
+        #tyto timto nahrazeny - dat do konfigurace
+        #dont_buy_when['rsi_too_high'] = state.indicators.RSI14[-1] > safe_get(state.vars, "rsi_dont_buy_above",50)
+        #dont_buy_when['slope_too_low'] = slope_too_low()
+        #dont_buy_when['slope_too_high'] = slope_too_high()
+        #dont_buy_when['rsi_is_zero'] = (state.indicators.RSI14[-1] == 0)
+        #dont_buy_when['reverse_position_waiting_amount_not_0'] = (state.vars.reverse_position_waiting_amount != 0)
 
 
-        #cela tato sekce prepracovana do dynamickych podminek
-        #buy_cond["AND"]["rsi_buy_signal_below"] = state.indicators.RSI14[-1] < safe_get(state.vars, "rsi_buy_signal_below",40)
-        #buy_cond["AND"]["rsi_is_falling"] = isfalling(state.indicators.RSI14,state.vars.Trend)
-        #buy_cond["AND"]['crsi_below_crsi_buy_limit'] = state.cbar_indicators.CRSI[-1] < safe_get(state.vars, "crsi_buy_signal_below",25)
-        #buy_cond["AND"]['slopeMA_is_below_limit'] = state.indicators.slopeMA[-1] < safe_get(state.vars, "slopeMA_buy_signal_below",1)
-        
-        #TBD nize prepracovat do funkce a pouzit obecne
-        # do pole podminek pridame podminky z indikatoru, ktere maji nastavenou direktivu buy_if_cross_down(up)
-        #buy_cond["AND"].update(get_conditions_from_indicators_with_directive("buy_if_cross_down"))
 
         #u indikatoru muzoun byt tyto directivy pro generovani buysignalu
-        # buy_if_crossed_down - kdyz prekrocil dolu
-        # buy_if_crossed_up - kdyz prekrocil nahoru
-        # buy_if_is_falling - kdyz je klesajici po N
-        # buy_if_is_rising - kdyz je rostouci po N
-        # buy_if_is_below - kdyz je pod prahem
-        # buy_if_is_above - kdyz je nad prahem
+        # buy_if_crossed_down - kdyz prekrocil dolu, VALUE: hodnota nebo nazev indikatoru
+        # buy_if_crossed_up - kdyz prekrocil nahoru, VALUE: hodnota nebo nazev indikatoru
+        # buy_if_falling - kdyz je klesajici po N, VALUE: hodnota
+        # buy_if_rising - kdyz je rostouci po N, VALUE: hodnota
+        # buy_if_below - kdyz je pod prahem, VALUE: hodnota nebo nazev indikatoru
+        # buy_if_above - kdyz je nad prahem, VALUE: hodnota nebo nazev indikatoru
+        # buy_if_pivot_a - kdyz je pivot A. VALUE: delka nohou
+        # buy_if_pivot_v - kdyz je pivot V. VALUE: delka nohou
+        
+        # direktivy se mohou nachazet v podsekci AND nebo OR - daneho indikatoru (nebo na volno, pak = OR)
+        # OR - staci kdyz plati jedna takova podminka a buysignal je aktivni
+        # AND - musi platit vsechny podminky ze vsech indikatoru, aby byl buysignal aktivni
 
-        #sekce pro dynamicke vytvareni podminek - pokud indikatory maji nastavenou buysignal direktivu
-        #dotahneme si jejich value a vytvorime podminku (plati AND)
+        #populate work dict - muze byt i jen jednou v INIT nebo 1x za cas
+        #dict oindexovane podminkou (OR/AND) obsahuje vsechny buy_if direktivy v tuplu (nazevind,direktiva,hodnota
+        # {'AND': [('nazev indikatoru', 'nazev direktivy', 'hodnotadirektivy')], 'OR': []}
+        work_dict_buy_if = get_work_dict_with_directive(starts_with="buy_if")
+        state.ilog(e=f"BUY SIGNAL work_dict", message=work_dict_buy_if)
 
-        indicators_with_is_above = get_indicators_with_directive("buy_if_is_above")
-        for indicator, value in indicators_with_is_above:
-            buy_cond["AND"]["buy_if_is_above_"+indicator] = get_source_or_MA(indicator)[-1] > value
+        buy_or_cond = create_conditions_from_directives(work_dict_buy_if, "OR")
+        result, conditions_met = eval_cond_dict(buy_or_cond)
+        state.ilog(e=f"BUY SIGNAL =OR= {result}", **conditions_met)
+        if result:
+            return True
+        
+        #OR neprosly testujeme AND
+        buy_and_cond = create_conditions_from_directives(work_dict_buy_if, "AND")
+        result, conditions_met = eval_cond_dict(buy_and_cond)
+        state.ilog(e=f"BUY SIGNAL =AND= {result}", **conditions_met)
+        return result      
 
-        indicators_with_is_below = get_indicators_with_directive("buy_if_is_below")
-        for indicator, value in indicators_with_is_below:
-            buy_cond["AND"]["buy_if_is_below_"+indicator] = get_source_or_MA(indicator)[-1] < value
+    #preklad direktivy podle typu, pokud je int anebo float - je to primo hodnota
+    #pokud je str, jde o indikator a dotahujeme posledni hodnotu z nej
+    def value_or_indicator(value):
+        if isinstance(value, (int, float)):
+            return value
+        elif isinstance(value, str):
+            try:
+                #pokud existuje MA bereme MA jinak standard
+                ret = get_source_or_MA(indicator=value)[-1]
+                state.ilog(e=f"Pro porovnani bereme posledni hodnotu {ret} z indikatoru {value}")
+            except Exception as e   :
+                ret = 0
+                state.ilog(e=f"Neexistuje indikator s nazvem {value} vracime 0" + str(e) + format_exc())
+            return ret
 
-        indicators_with_is_falling = get_indicators_with_directive("buy_if_is_falling")
-        for indicator, value in indicators_with_is_falling:
-            buy_cond["AND"]["buy_if_is_falling_"+indicator] = isfalling(get_source_or_MA(indicator),value)
+    #funkce vytvori podminky (bud pro AND/OR) z pracovniho dict
+    def create_conditions_from_directives(work_dict, cond_type):
+        cond = {}
+        cond[cond_type] = {}
+        for indname, directive, value in work_dict[cond_type]:
+            #direktivy zobecnime ve tvaru prefix_ACTION
+            # ACTIONS = is_above, is_below, is_falling, is_rising, crossed_up, crossed_down, is_pivot_a, is_pivot_v
+            
+            #OBECNE DIREKTIVY - REUSOVATELNE
+            if directive.endswith("above"):
+                cond[cond_type][directive+"_"+indname+"_"+str(value)] = get_source_or_MA(indname)[-1] > value_or_indicator(value)
+            elif directive.endswith("below"):
+                cond[cond_type][directive+"_"+indname+"_"+str(value)] = get_source_or_MA(indname)[-1] < value_or_indicator(value)
+            elif directive.endswith("falling"):
+                if directive.endswith("not_falling"):
+                    cond[cond_type][directive+"_"+indname+"_"+str(value)] = not isfalling(get_source_or_MA(indname),value)
+                else:
+                    cond[cond_type][directive+"_"+indname+"_"+str(value)] = isfalling(get_source_or_MA(indname),value)
+            elif directive.endswith("rising"):
+                if directive.endswith("not_rising"):
+                    cond[cond_type][directive+"_"+indname+"_"+str(value)] = not isrising(get_source_or_MA(indname),value)
+                else:
+                    cond[cond_type][directive+"_"+indname+"_"+str(value)] = isrising(get_source_or_MA(indname),value)
+            elif directive.endswith("crossed_down"):
+                cond[cond_type][directive+"_"+indname+"_"+str(value)] = buy_if_crossed_down(indname, value_or_indicator(value))
+            elif directive.endswith("crossed_up"):
+                cond[cond_type][directive+"_"+indname+"_"+str(value)] = buy_if_crossed_up(indname, value_or_indicator(value))
+            elif directive.endswith("pivot_a"):
+                cond[cond_type][directive+"_"+indname+"_"+str(value)] = is_pivot(source=get_source_or_MA(indname), leg_number=value, type="A")
+            elif directive.endswith("pivot_v"):
+                cond[cond_type][directive+"_"+indname+"_"+str(value)] = is_pivot(source=get_source_or_MA(indname), leg_number=value, type="V")
+
+            #PRIPADNE DALSI SPECIFICKE ZDE
+            # elif directive == "buy_if_necospecifckeho":
+            #     pass
+
+        return cond
 
 
-        indicators_with_is_rising = get_indicators_with_directive("buy_if_is_rising")
-        for indicator, value in indicators_with_is_rising:
-            buy_cond["AND"]["buy_if_is_rising_"+indicator] = isrising(get_source_or_MA(indicator),value)
+    #tato funkce vytvori dictionary typu podminek (OR/AND) 
+    # z indikatoru, ktere obsahuji direktivami daneho typu(buy_if, dont_buy_when)
+    # v tuplu (nazevind,direktiva,hodnota)
+    # do OR jsou dane i bez prefixu
+    # {'AND': [('nazev indikatoru', 'nazev direktivy', 'hodnotadirektivy')], 'OR': []}
+    def get_work_dict_with_directive(starts_with: str):
+        reslist = dict(AND=[], OR=[])
 
-        indicators_with_cross_down = get_indicators_with_directive("buy_if_crossed_down")
-        for indicator, value in indicators_with_cross_down:
-            buy_cond["AND"]["buy_if_crossed_down_"+indicator] = buy_if_crossed_down(indicator, value)
-
-        indicators_with_cross_up = get_indicators_with_directive("buy_if_crossed_up")
-        for indicator, value in indicators_with_cross_up:
-            buy_cond["AND"]["buy_if_crossed_up_"+indicator] = buy_if_crossed_up(indicator, value)
-
-
-        #slopME klesa a RSI začalo stoupat
-        # buy_cond["AND"]["rsi_is_rising2"] = isrising(state.indicators.RSI14,2)
-        # buy_cond['AND']['slopeMA_falling_Trend'] = isfalling(state.indicators.slopeMA,state.vars.Trend)
-        # buy_cond["AND"]["rsi_buy_signal_below"] = state.indicators.RSI14[-1] < safe_get(state.vars, "rsi_buy_signal_below",40)
-
-        #zkusit jako doplnkovy BUY SIGNAL 3 klesavy cbar RSI pripadne TICK PRICE
-        result, conditions_met = eval_cond_dict(buy_cond)
-        #if result:
-        state.ilog(e=f"BUY SIGNAL {result} {conditions_met}")
-        return result
-
-    #vrati vsechny indikatory, ktere obsahuji danou directivu a vrati v listu tuple (nazev, hodnota)
-    def get_indicators_with_directive(directive):
-        reslist = []
         for indname, indsettings in state.vars.indicators.items():
             for option,value in indsettings.items():
-                    if option == directive:
-                       reslist.append((indname, value))
-        return reslist       
+                    if option.startswith(starts_with):
+                        reslist["OR"].append((indname, option, value))
+                    if option == "AND":
+                        #vsechny buy direktivy, ktere jsou pod AND
+                        for key, val in value.items():
+                            if key.startswith(starts_with):
+                                reslist["AND"].append((indname, key, val))
+                    if option == "OR" :
+                        #vsechny buy direktivy, ktere jsou pod OR
+                        for key, val in value.items():
+                            if key.startswith(starts_with):
+                                reslist["OR"].append((indname, key, val))
+        return reslist     
 
     def get_source_or_MA(indicator):
         #pokud ma, pouzije MAcko, pokud ne tak standardni indikator
@@ -832,7 +663,7 @@ def next(data, state: StrategyState):
         return res    
 
     def eval_buy():
-        if buy_conditions_met():
+        if conditions_met():
                 vyloz()
 
     def populate_cbar_tick_price_indicator():
@@ -863,11 +694,11 @@ def next(data, state: StrategyState):
         #print(state.indicators.items())
         for key in state.indicators:
             if key != 'time':
-                last_ind_vals[key] = state.indicators[key][-5:]
+                last_ind_vals[key] = state.indicators[key][-6:]
         
         for key in state.cbar_indicators:
             if key != 'time':
-                last_ind_vals[key] = state.cbar_indicators[key][-5:]
+                last_ind_vals[key] = state.cbar_indicators[key][-6:]
 
         # for key in state.secondary_indicators:
         #     if key != 'time':
@@ -918,14 +749,14 @@ def next(data, state: StrategyState):
         if on_confirmed_only is False or (on_confirmed_only is True and data['confirmed']==1):
             try:
                 source = state.bars[req_source][-ema_length:]
-                if len(source) > ema_length:
-                    ema_value = ema(source, ema_length)
-                    val = ema_value[-1]
-                    state.indicators[name][-1]= val
-                    #state.indicators[name][-1]= round2five(val)
-                    state.ilog(e=f"IND {name} EMA {val} {ema_length=}")
-                else:
-                    state.ilog(e=f"IND {name} EMA necháváme 0", message="not enough source data", source=source, ema_length=ema_length)
+                #if len(source) > ema_length:
+                ema_value = ema(source, ema_length)
+                val = round(ema_value[-1],4)
+                state.indicators[name][-1]= val
+                #state.indicators[name][-1]= round2five(val)
+                state.ilog(e=f"IND {name} EMA {val} {ema_length=}")
+                #else:
+                #    state.ilog(e=f"IND {name} EMA necháváme 0", message="not enough source data", source=source, ema_length=ema_length)
             except Exception as e:
                 state.ilog(e=f"IND ERROR {name} EMA necháváme 0", message=str(e)+format_exc())
 
@@ -958,14 +789,14 @@ def next(data, state: StrategyState):
                 #cekame na dostatek dat
                 if len(source) > rsi_length:
                     rsi_res = rsi(source, rsi_length)
-                    rsi_value = trunc(rsi_res[-1],4)
+                    rsi_value = round(rsi_res[-1],4)
                     state.indicators[name][-1]=rsi_value
                     state.ilog(e=f"IND {name} RSI {rsi_value}")
 
                     if rsi_MA_length is not None:
                         src = state.indicators[name][-rsi_MA_length:]
                         rsi_MA_res = ema(src, rsi_MA_length)
-                        rsi_MA_value = rsi_MA_res[-1]
+                        rsi_MA_value = round(rsi_MA_res[-1],4)
                         state.indicators[name+"MA"][-1]=rsi_MA_value
                         state.ilog(e=f"IND {name} RSIMA {rsi_MA_value}")
 
@@ -1077,7 +908,7 @@ def next(data, state: StrategyState):
                 if slope_MA_length is not None:
                     source = state.indicators[name][-slope_MA_length:]
                     slopeMAseries = ema(source, slope_MA_length) #state.bars.vwap
-                    slopeMA = slopeMAseries[-1]
+                    slopeMA = round(slopeMAseries[-1],5)
                     state.indicators[name+"MA"][-1]=slopeMA
                     last_slopesMA = state.indicators[name+"MA"][-10:]
 
@@ -1088,7 +919,6 @@ def next(data, state: StrategyState):
             except Exception as e:
                 print(f"Exception in {name} slope Indicator section", str(e))
                 state.ilog(e=f"EXCEPTION in {name}", msg="Exception in slope Indicator section" + str(e) + format_exc())
-
 
     def populate_dynamic_slope_indicator(name):
         options = safe_get(state.vars.indicators, name, None)
@@ -1167,7 +997,7 @@ def next(data, state: StrategyState):
                 if slope_MA_length is not None:
                     source = state.indicators[name][-slope_MA_length:]
                     slopeMAseries = ema(source, slope_MA_length) #state.bars.vwap
-                    slopeMA = slopeMAseries[-1]
+                    slopeMA = round(slopeMAseries[-1],4)
                     state.indicators[name+"MA"][-1]=slopeMA
                     last_slopesMA = state.indicators[name+"MA"][-10:]
 
@@ -1231,7 +1061,8 @@ def next(data, state: StrategyState):
     #lp = state.interface.get_last_price(symbol=state.symbol)
     lp = data['close']
     state.ilog(e="ENTRY", msg=f"LP:{lp} P:{state.positions}/{round(float(state.avgp),3)} profit:{round(float(state.profit),2)} Trades:{len(state.tradeList)} DEF:{str(is_defensive_mode())}", pb=str(state.vars.pendingbuys), last_price=lp, data=data, stratvars=str(state.vars))
-    state.ilog(e="Indikatory", msg=str(get_last_ind_vals()))
+    inds = get_last_ind_vals()
+    state.ilog(e="Indikatory", **inds)
 
     eval_buy()
     pendingbuys_optimalization()
@@ -1244,16 +1075,20 @@ def init(state: StrategyState):
         #pro vsechny indikatory, ktere maji ve svych stratvars TYPE inicializujeme
         for indname, indsettings in state.vars.indicators.items():
             for option,value in indsettings.items():
-                if option == "type":
-                    state.indicators[indname] = []
-                    #pokud ma MA_length incializujeme i MA variantu
-                    if safe_get(indsettings, 'MA_length', False):
-                        state.indicators[indname+"MA"] = []
-                    #specifika pro slope
-                    if value == "slope":
-                        #inicializujeme statinds (pro uhel na FE)
-                        state.statinds[indname] = dict(minimum_slope=safe_get(indsettings, 'minimum_slope', -1), maximum_slope=safe_get(indsettings, 'maximum_slope', 1))
+                #inicializujeme nejenom typizovane
+                #if option == "type":
+                state.indicators[indname] = []
+                #pokud ma MA_length incializujeme i MA variantu
+                if safe_get(indsettings, 'MA_length', False):
+                    state.indicators[indname+"MA"] = []
+                #specifika pro slope
+                if value == "slope":
+                    #inicializujeme statinds (pro uhel na FE)
+                    state.statinds[indname] = dict(minimum_slope=safe_get(indsettings, 'minimum_slope', -1), maximum_slope=safe_get(indsettings, 'maximum_slope', 1))
 
+
+    #TODO presunout inicializaci work_dict u podminek - sice hodnoty nepujdou zmenit, ale zlepsi se performance
+    #pripadne udelat refresh kazdych x-iterací
     state.vars['sell_in_progress'] = False
     state.vars.mode = None
     state.vars.last_tick_price = 0
@@ -1263,14 +1098,21 @@ def init(state: StrategyState):
     state.vars.lastbuyindex = 0
     state.vars.last_update_time = 0
     state.vars.reverse_position_waiting_amount = 0
+    #INIT promenne, ktere byly zbytecne ve stratvars
+    state.vars.pendingbuys={}
+    state.vars.limitka = None
+    state.vars.limitka_price=0
+    state.vars.jevylozeno=0
+    state.vars.blockbuy = 0
+
     state.vars["ticks2reset_backup"] = state.vars.ticks2reset
     #state.cbar_indicators['ivwap'] = []
     state.cbar_indicators['tick_price'] = []
     state.cbar_indicators['tick_volume'] = []
     state.cbar_indicators['CRSI'] = []
     #state.secondary_indicators['SRSI'] = []
-    state.indicators['ema'] = []
-    state.indicators['RSI14'] = []
+    #state.indicators['ema'] = []
+    #state.indicators['RSI14'] = []
 
     initialize_dynamic_indicators()
 

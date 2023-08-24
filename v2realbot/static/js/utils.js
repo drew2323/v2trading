@@ -34,6 +34,7 @@ indConfig = [ {name: "ema", titlevisible: false, embed: true, display: true, pri
               {name: "slopeS", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
               {name: "slopeLP", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
               {name: "slopeMA", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
+              {name: "slopeLPMA", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
               {name: "slow_slope", titlevisible: true, embed: true, display: false, priceScaleId: "left", lastValueVisible: false},
               {name: "slow_slopeMA", titlevisible: true, embed: true, display: true, priceScaleId: "left", lastValueVisible: false},
               {name: "emaSlow", titlevisible: true, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},

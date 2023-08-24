@@ -2,7 +2,7 @@
     Strategy base class
 """
 from datetime import datetime
-from v2realbot.utils.utils import AttributeDict, zoneNY, is_open_rush, is_close_rush, json_serial, print, safe_get, Average
+from v2realbot.utils.utils import AttributeDict, zoneNY, is_open_rush, is_close_rush, json_serial, print
 from v2realbot.utils.tlog import tlog
 from v2realbot.utils.ilog import insert_log, insert_log_multiple_queue
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Order, Account

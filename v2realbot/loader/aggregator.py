@@ -11,7 +11,7 @@ import threading
 from copy import deepcopy
 from msgpack import unpackb
 import os
-from config import DATA_DIR, GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN
+from v2realbot.config import DATA_DIR, GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN
 
 class TradeAggregator:  
     def __init__(self,
@@ -383,7 +383,7 @@ class TradeAggregator2Queue(TradeAggregator):
                     copy = obj
 
                 ##populate secondary resolution if required
-
+                #print("inserted to queue")
                 self.queue.put(copy)
             res = []
             #print("po insertu",res)

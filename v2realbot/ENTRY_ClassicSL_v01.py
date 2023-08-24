@@ -5,6 +5,7 @@ from v2realbot.strategy.StrategyOrderLimitVykladaciNormalizedMYSELL import Strat
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, OrderSide, OrderType
 from v2realbot.indicators.indicators import ema
 from v2realbot.indicators.oscillators import rsi
+from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
 from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, print, safe_get, get_tick, round2five, is_open_rush, is_close_rush, eval_cond_dict, Average, crossed_down, crossed_up, crossed, is_pivot
 from datetime import datetime
 #from icecream import install, ic
@@ -17,341 +18,44 @@ from traceback import format_exc
 
 print(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 """"
-Využívá: StrategyOrderLimitVykladaciNormalizedMYSELL
+Využívá: StrategyClassicSL
 
-Kopie RSI Normalizovane Vykladaci navíc s řízením prodeje.
-Nepoužíváme LIMITKU.
+Klasická obousměrná multibuysignal strategie se stoplos.
+Používá pouze market order, hlídá profit a stoploss.
 
-Required CBAR. (pouze se změnou ceny)
+Ve dvou fázích: 1) search and create prescriptions 2) evaluate prescriptions
 
-nepotvrzený CBAR bez minticku (pouze se změnou ceny)
-- se používá pro žízení prodeje
+list(prescribedTrade)
 
-potvrzený CBAR 
-- se používá pro BUY
+prescribedTrade:
+- validfrom
+- status .READY, ACTIVE, finished)
+- direction (long/short)
+- entry price: 
+- stoploss: (fixed, trailing)
 
+Hlavní loop:
+- indikátory
 
-"""
+- if empty positions (avgp=0):
+    - no prescribed trades
 
-stratvars = AttributeDict(maxpozic = 400,
-                          def_mode_from = 200,
-                          chunk = 10,
-                          MA = 2,
-                          Trend = 2,
-                          profit = 0.02,
-                          def_profit = 0.01,
-                          lastbuyindex=-6,
-                          pendingbuys={},
-                          limitka = None,
-                          limitka_price = None,
-                          jevylozeno=0,
-                          vykladka=5,
-                          curve = [0.01, 0.01, 0.01, 0, 0.02, 0.02, 0.01,0.01, 0.01,0.03, 0.01, 0.01, 0.01,0.04, 0.01,0.01, 0.01,0.05, 0.01,0.01, 0.01,0.01, 0.06,0.01, 0.01,0.01, 0.01],
-                          curve_def = [0.02, 0.02, 0.02, 0, 0, 0.02, 0, 0, 0, 0.02],
-                          blockbuy = 0,
-                          ticks2reset = 0.04,
-                          consolidation_bar_count = 10,
-                          slope_lookback = 300,
-                          lookback_offset = 20,
-                          minimum_slope = -0.05,
-                          first_buy_market = False
-                          )
-##toto rozparsovat a strategii spustit stejne jako v main
-toml_string = """
-[[strategies]]
-name = "V1 na BAC"
-symbol = "BAC"
-script = "ENTRY_backtest_strategyVykladaci"
-class = "StrategyOrderLimitVykladaci"
-open_rush = 0
-close_rush = 0
-[strategies.stratvars]
-maxpozic = 200
-chunk = 10
-MA = 6
-Trend = 5
-profit = 0.02
-lastbuyindex=-6
-pendingbuys={}
-limitka = "None"
-jevylozeno=0
-vykladka=5
-curve = [0.01, 0.01, 0.01,0.01, 0.02, 0.01,0.01, 0.01,0.03, 0.01, 0.01, 0.01,0.04, 0.01,0.01, 0.01,0.05, 0.01,0.01, 0.01,0.01, 0.06,0.01, 0.01,0.01, 0.01]
-blockbuy = 0
-ticks2reset = 0.04
-[[strategies.add_data]]
-symbol="BAC"
-rectype="bar"
-timeframe=5
-update_ltp=true
-align="round"
-mintick=0
-minsize=100
-exthours=false
+    - any prescribed trade?
+        - eval input
+    
+    - eval eligible entries (do buy/sell)
+
+- if positions (avgp <>0)
+    - eval exit (standard, forced by eod)
+    - if not exit - eval optimalizations
+
 """
 
 def next(data, state: StrategyState):
     print(10*"*","NEXT START",10*"*")
-    #ic(state.avgp, state.positions)
-    #ic(state.vars)
-    #ic(data)
-
-    #
-    def is_defensive_mode():
-        akt_pozic = int(state.positions)
-        max_pozic = int(state.vars.maxpozic)
-        def_mode_from = safe_get(state.vars, "def_mode_from",max_pozic/2)
-        if akt_pozic >= int(def_mode_from):
-            #state.ilog(e=f"DEFENSIVE mode ACTIVE {state.vars.def_mode_from=}", msg=state.positions)
-            return True
-        else:
-            #state.ilog(e=f"STANDARD mode ACTIVE {state.vars.def_mode_from=}", msg=state.positions)
-            return False
+    # important vars state.avgp, state.positions, state.vars, data
     
-    def get_profit_price():
-        def_profit = safe_get(state.vars, "def_profit",state.vars.profit) 
-        cena = float(state.avgp)
-        #v MYSELL hrajeme i na 3 desetinna cisla - TBD mozna hrat jen na 5ky (0.125, 0.130, 0.135 atp.)
-        if is_defensive_mode():
-            return price2dec(cena+get_tick(cena,float(def_profit)),3)
-        else:
-            return price2dec(cena+get_tick(cena,float(state.vars.profit)),3)
-        
-    def get_max_profit_price():
-        max_profit = float(safe_get(state.vars, "max_profit",0.03))
-        cena = float(state.avgp)
-        return price2dec(cena+get_tick(cena,max_profit),3)        
-        
-    def optimize_qty_multiplier():
-        akt_pozic = int(state.positions)/int(state.vars.chunk)
-        multiplier = 1
-
-        #zatim jednoduse pokud je akt. pozice 1 nebo 3 chunky (<4) tak zdvojnásubuju
-        #aneb druhy a treti nakup
-        if akt_pozic > 0 and akt_pozic < 4:
-            multiplier = safe_get(state.vars, "market_buy_multiplier", 1)
-        state.ilog(e=f"BUY MULTIPLIER: {multiplier}")
-        return multiplier
-
-
-    def consolidation():
-        ##CONSOLIDATION PART - moved here, musí být před nákupem, jinak to dělalo nepořádek v pendingbuys
-        #docasne zkusime konzolidovat i kdyz neni vylozeno (aby se srovnala limitka ve vsech situacich)
-        if state.vars.jevylozeno == 1 or 1==1:
-            ##CONSOLIDATION PART kazdy Nty bar dle nastaveni
-            if int(data["index"])%int(state.vars.consolidation_bar_count) == 0:
-                print("***CONSOLIDATION ENTRY***")
-                state.ilog(e="CONSOLIDATION ENTRY ***")
-
-                orderlist = state.interface.get_open_orders(symbol=state.symbol, side=None)
-                #pro jistotu jeste dotahneme aktualni pozice
-                state.avgp, state.positions = state.interface.pos()            
-
-                #print(orderlist)
-                pendingbuys_new = {}
-                #zaciname s cistym stitem
-                state.vars.limitka = None
-                state.vars.limitka_price = None
-                for o in orderlist:
-                    if o.side == OrderSide.BUY and o.order_type == OrderType.LIMIT:
-                        pendingbuys_new[str(o.id)]=float(o.limit_price)
-
-                if pendingbuys_new != state.vars.pendingbuys:
-                    state.ilog(e="Rozdilna PB prepsana", pb_new=pendingbuys_new, pb_old = state.vars.pendingbuys)
-                    print("ROZDILNA PENDINGBUYS přepsána")
-                    print("OLD",state.vars.pendingbuys)
-                    state.vars.pendingbuys = unpackb(packb(pendingbuys_new))
-                    print("NEW", state.vars.pendingbuys)
-                else:
-                    print("PENDINGBUYS sedí - necháváme", state.vars.pendingbuys)
-                    state.ilog(e="PB sedi nechavame", pb_new=pendingbuys_new, pb_old = str(state.vars.pendingbuys))
-                print("OLD jevylozeno", state.vars.jevylozeno)
-                if len(state.vars.pendingbuys) > 0:
-                    state.vars.jevylozeno = 1
-                else:
-                    state.vars.jevylozeno = 0
-                print("NEW jevylozeno", state.vars.jevylozeno)
-                state.ilog(e="Nove jevylozeno", msg=state.vars.jevylozeno)
-
-                print("***CONSOLIDATION EXIT***")
-                state.ilog(e="CONSOLIDATION EXIT ***")
-            else:
-                state.ilog(e="No time for consolidation", msg=data["index"])
-                print("no time for consolidation", data["index"])
-    #mozna presunout o level vys
-    def vyloz():
-        ##prvni se vyklada na aktualni cenu, další jdou podle krivky, nula v krivce zvyšuje množství pro následující iteraci
-        #curve = [0.01, 0.01, 0, 0, 0.01, 0, 0, 0, 0.02, 0, 0, 0, 0.03, 0,0,0,0,0, 0.02, 0,0,0,0,0,0, 0.02]
-        curve = state.vars.curve
-        ##defenzivni krivka pro 
-        curve_def = state.vars.curve_def
-        #vykladani po 5ti kusech, když zbývají 2 a méně, tak děláme nový výklad
-        vykladka = state.vars.vykladka
-        #kolik muzu max vylozit
-        kolikmuzu = int((int(state.vars.maxpozic) - int(state.positions))/int(state.vars.chunk))
-        akt_pozic = int(state.positions)
-        max_pozic = int(state.vars.maxpozic)
-
-        if akt_pozic >= max_pozic:
-            state.ilog(e="MAX pozic reached, cannot vyklad")
-            return
-        
-        #mame polovinu a vic vylozeno, pouzivame defenzicni krivku
-        if is_defensive_mode():
-            state.ilog(e="DEF: Pouzivame defenzivni krivku", akt_pozic=akt_pozic, max_pozic=max_pozic, curve_def=curve_def)
-            curve = curve_def
-            #zaroven docasne menime ticks2reset na defenzivni 0.06
-            state.vars.ticks2reset = 0.06
-            state.ilog(e="DEF: Menime tick2reset na 0.06", ticks2reset=state.vars.ticks2reset, ticks2reset_backup=state.vars.ticks2reset_backup)
-        else:
-            #vracime zpet, pokud bylo zmeneno
-            if state.vars.ticks2reset != state.vars.ticks2reset_backup:
-                state.vars.ticks2reset = state.vars.ticks2reset_backup
-                state.ilog(e="DEF: Menime tick2reset zpet na"+str(state.vars.ticks2reset), ticks2reset=state.vars.ticks2reset, ticks2reset_backup=state.vars.ticks2reset_backup)
-
-        if kolikmuzu < vykladka: vykladka = kolikmuzu
-
-        if len(curve) < vykladka:
-            vykladka = len(curve)
-        qty = int(state.vars.chunk)
-        last_price = price2dec(state.interface.get_last_price(state.symbol))
-        #profit = float(state.vars.profit)
-        price = last_price
-        state.ilog(e="BUY Vykladame", msg=f"first price {price=} {vykladka=}", curve=curve, price=price, vykladka=vykladka)
-        ##prvni se vyklada na aktualni cenu, další jdou podle krivky, nula v krivce zvyšuje množství pro následující iteraci
-        
-        ##VAR - na zaklade conf. muzeme jako prvni posilat MARKET order
-        if safe_get(state.vars, "first_buy_market") == True:
-            #pri defenzivnim rezimu pouzijeme LIMIT nebo MARKET podle nastaveni 
-            if is_defensive_mode() and safe_get(state.vars, "first_buy_market_def_mode", False) is False:
-                state.ilog(e="DEF mode on, odesilame jako prvni limitku")
-                state.buy_l(price=price, size=qty)
-            else:
-                state.ilog(e="Posilame jako prvni MARKET order")
-                #market size optimalization based on conditions
-                state.buy(size=optimize_qty_multiplier()*qty)
-        else:
-            state.buy_l(price=price, size=qty)
-        print("prvni limitka na aktuální cenu. Další podle křivky", price, qty)
-        for i in range(0,vykladka-1):
-            price = price2dec(float(price - get_tick(price, curve[i])))
-            if price == last_price:
-                qty = qty + int(state.vars.chunk)
-            else:
-                state.buy_l(price=price, size=qty)
-                #print(i,"BUY limitka - delta",curve[i]," cena:", price, "mnozstvi:", qty)
-                qty = int(state.vars.chunk)
-            last_price = price
-        state.vars.blockbuy = 1
-        state.vars.jevylozeno = 1
-        state.vars.lastbuyindex = data['index']
-
-    def eval_sell():
-        """"
-        TBD
-        Když je RSI nahoře tak neprodávat, dokud 1) RSI neprestane stoupat 2)nedosahne to nad im not greedy limit
-        """
-        ##mame pozice
-        ##aktualni cena je vetsi nebo rovna cene limitky
-        #muzeme zde jet i na pulcenty
-        curr_price = float(data['close'])
-        state.ilog(e="Eval SELL", price=curr_price, pos=state.positions, avgp=state.avgp, sell_in_progress=state.vars.sell_in_progress)
-        if int(state.positions) > 0 and float(state.avgp)>0 and state.vars.sell_in_progress is False:
-            goal_price = get_profit_price()
-            max_price = get_max_profit_price()
-            state.ilog(e=f"Goal price {goal_price} max price {max_price}")
-            
-            #pokud je cena vyssi
-            if curr_price>=goal_price:
-
-                #TODO cekat az slope prestane intenzivn erust, necekat az na klesani
-                #TODO mozna cekat na nejaky signal RSI
-                #TODO pripadne pokud dosahne TGTBB prodat ihned
-                max_price_signal = curr_price>=max_price
-                #OPTIMALIZACE pri stoupajícím angle
-                if max_price_signal or sell_protection_enabled() is False:
-                    state.interface.sell(size=state.positions)
-                    state.vars.sell_in_progress = True
-                    state.ilog(e=f"market SELL was sent {curr_price=} {max_price_signal=}", positions=state.positions, avgp=state.avgp, sellinprogress=state.vars.sell_in_progress)
-            #pokud je cena nizsi, testujeme REVERSE POZITION PROTECTION
-            else:
-                pass
-                #reverse_position()
-
-    # def reverse_position():
-    #     """"
-    #     Reverse position - ochrana pred vetsim klesanim
-    #     - proda kdyz je splnena podminka
-    #     - nakoupi opet ve stejnem mnozstvi, kdyz je splnena podminka 
-
-    #     required STRATVARS:
-    #     reverse_position_slope = -0.9
-    #     reverse_position_on_confirmed_only = true
-    #     reverse_position_waiting_amount = 0
-    #     """""
-    #     #reverse position preconditions
-    #     dont_do_reverse_when = {}
-    
-    #     dont_do_reverse_when['reverse_position_waiting_amount_not_0'] = (state.vars.reverse_position_waiting_amount != 0)
-    
-    #     result, conditions_met = eval_cond_dict(dont_do_reverse_when)
-    #     if result:
-    #         state.ilog(e=f"REVERSE_PRECOND PROTECTION {conditions_met}")
-    #         return result
-
-
-    #     #reverse position for
-    #     confirmrequried = safe_get(state.vars, "reverse_position_on_confirmed_only", True)
-    #     if (confirmrequried and data['confirmed'] == 1) or confirmrequried is False:
-    #         #check reverse position 
-    #         state.ilog(e="REVERSE POSITION check - GO")
-    #     else:
-    #         #not time for reverse position
-    #         state.ilog(e="REVERSE POSITION check - NO TIME")
-
-    #     #predpokladame, ze uz byly testovany pozice a mame je if int(state.positions) > 0 and float(state.avgp)>0 
-    #     if state.indicators.slopeMA[-1] < float(safe_get(state.vars, "reverse_position_slope", -0.10)):
-    #         state.interface.sell(size=state.positions)
-    #         state.vars.sell_in_progress = True
-    #         state.ilog(e=f"REV POS market SELL was sent {curr_price=}", positions=state.positions, avgp=state.avgp, sellinprogress=state.vars.sell_in_progress)
-    #         state.vars.rev_position_waiting_amount = 
-
-
-
-    # None - standard, defaults mode - attributes are read from general stratvars section
-    # other modes - attributtes are read from mode specific stratvars section, defaults to general section
-    #WIP
-    def set_mode():
-        state.vars.mode = None
-        
-    #dotahne hodnotu z prislusne sekce
-    #pouziva se namisto safe_get
-    # stratvars
-    #       buysignal = 1
-    #  stratvars.mode1
-    #       buysignal = 2
-    # PARAMS:
-    # - section: napr. stratvars.buysignal
-    # - var name: MA_length
-    # - default: defaultní hodnota, kdyz nenalezeno
-    # Kroky: 1) 
-    # vrati danou hodnotu nastaveni podle aktualniho modu state.vars.mode
-    # pokud je None, vrati pro standardni mod, pokud neni nalezeno vrati default
-    # EXAMPLE:
-    # get_modded_vars("state")
-    #get_modded_vars(state.vars, 'buysignal', 1) - namista safe_get
-
-    #WIP
-    def get_modded_vars(section,  name: str, default = None):
-        if state.vars.mode is None:
-            return safe_get(section, name, default)
-        else:
-            try:
-                modded_section = section[state.vars.mode]
-            except KeyError:
-                modded_section = section
-            return safe_get(modded_section, name, safe_get(section, name, default))
-
+    # region Common Subfunction   
     def populate_cbar_rsi_indicator():
         #CBAR RSI indicator
         options = safe_get(state.vars.indicators, 'crsi', None)
@@ -372,203 +76,9 @@ def next(data, state: StrategyState):
             state.ilog(e=f"CRSI {crsi_length=} necháváme 0", message=str(e)+format_exc())
             #state.indicators.RSI14[-1]=0
 
-    #resetujeme, kdyz 1) je aktivni buy protection 2) kdyz to ujede
-    #TODO mozna tick2reset spoustet jednou za X opakovani
-    def pendingbuys_optimalization():
-        if len(state.vars.pendingbuys)>0:
-            #misto volani buy_protection vytvarime direktivu cancel_pendingbuys
-
-            #pouze jako OR
-            #cancel_pendingbuys_above
-            #cancel_pendingbuys_below
-
-            pb_dict= get_work_dict_with_directive(starts_with="cancel_pendingbuys_if")
-            
-            state.ilog(e=f"CANCEL PB work_dict", message=pb_dict)
-            #u techto ma smysl pouze OR
-            cond = create_conditions_from_directives(pb_dict, "OR")
-            result, conditions_met = eval_cond_dict(cond)
-            state.ilog(e=f"CANCEL PB =OR= {result}", **conditions_met)
-            if result:
-                res = asyncio.run(state.cancel_pending_buys())
-                state.ilog(e="CANCEL pendingbuyes", pb=state.vars.pendingbuys, res=res)
-            else:
-                #pokud mame vylozeno a cena je vetsi nez tick2reset 
-                maxprice = max(state.vars.pendingbuys.values())
-                if state.interface.get_last_price(state.symbol) > float(maxprice) + get_tick(maxprice, float(state.vars.ticks2reset)):
-                    res = asyncio.run(state.cancel_pending_buys())
-                    state.ilog(e=f"UJELO to. Rusime PB", msg=f"{state.vars.ticks2reset=}", pb=state.vars.pendingbuys)
-
-            #PENDING BUYS SPENT - PART
-            #pokud mame vylozeno a pendingbuys se vyklepou a 
-            # 1 vykladame idned znovu
-                # vyloz()
-            # 2 nebo - počkat zase na signál a pokračovat dál  
-                # state.vars.blockbuy = 0
-                # state.vars.jevylozeno = 0
-            # 3 nebo - počkat na signál s enablovaným lastbuy indexem (tzn. počká nutně ještě pár barů)   
-            #podle BT vyhodnejsi vylozit ihned
-            if len(state.vars.pendingbuys) == 0:
-                state.vars.blockbuy = 0
-                state.vars.jevylozeno = 0
-                state.ilog(e="PB prazdne nastavujeme: neni vylozeno", jevylozeno=state.vars.jevylozeno)
-
-    def sell_protection_enabled():
-        options = safe_get(state.vars, 'sell_protection', None)
-        if options is None:
-            state.ilog(e="No options for sell protection in stratvars")
-            return False
-        
-        disable_sell_proteciton_when = dict(AND=dict(), OR=dict())
-
-        #preconditions
-        disable_sell_proteciton_when['disabled_in_config'] = safe_get(options, 'enabled', False) is False
-        #too good to be true (maximum profit)
-        #disable_sell_proteciton_when['tgtbt_reached'] = safe_get(options, 'tgtbt', False) is False
-        disable_sell_proteciton_when['disable_if_positions_above'] = int(safe_get(options, 'disable_if_positions_above', 0)) < state.positions
-
-        #testing preconditions
-        result, conditions_met = eval_cond_dict(disable_sell_proteciton_when)
-        if result:
-            state.ilog(e=f"SELL_PROTECTION DISABLED by {conditions_met}", **conditions_met)
-            return False
-        
-        work_dict_dont_sell_if = get_work_dict_with_directive(starts_with="dont_sell_if")
-        state.ilog(e=f"SELL PROTECTION work_dict", message=work_dict_dont_sell_if)
-
-        or_cond = create_conditions_from_directives(work_dict_dont_sell_if, "OR")
-        result, conditions_met = eval_cond_dict(or_cond)
-        state.ilog(e=f"SELL PROTECTION =OR= {result}", **conditions_met)
-        if result:
-            return True
-        
-        #OR neprosly testujeme AND
-        and_cond = create_conditions_from_directives(work_dict_dont_sell_if, "AND")
-        result, conditions_met = eval_cond_dict(and_cond)
-        state.ilog(e=f"SELL PROTECTION =AND= {result}", **conditions_met)
-        return result    
-
-        # #IDENTIFIKOVAce rustoveho MOMENTA - pokud je momentum, tak prodávat později
-        
-        # #pokud je slope too high, pak prodavame jakmile slopeMA zacne klesat, napr. 4MA (TODO 3)
-
-        # #TODO zkusit pro pevny profit, jednoduse pozdrzet prodej - dokud tick_price roste nebo se drzi tak neprodavat, pokud klesne prodat
-        # #mozna mit dva mody - pri vetsi volatilite pouzivat momentum, pri mensi nebo kdyz potrebuju pryc, tak prodat hned
-
-        #puvodni nastaveni
-#         slopeMA_rising = 2
-#         rsi_not_falling = 3
-
-
-        # #testing preconditions
-        # result, conditions_met = eval_cond_dict(disable_sell_proteciton_when)
-        # if result:
-        #     state.ilog(e=f"SELL_PROTECTION DISABLED by precondition {conditions_met}")
-        #     return False
-
-        # dont_sell_when = dict(AND=dict(), OR=dict())
-        # ##add conditions here
-
-        # #IDENTIFIKOVAce rustoveho MOMENTA - pokud je momentum, tak prodávat později
-        
-        # #pokud je slope too high, pak prodavame jakmile slopeMA zacne klesat, napr. 4MA (TODO 3)
-
-        # #TODO zkusit pro pevny profit, jednoduse pozdrzet prodej - dokud tick_price roste nebo se drzi tak neprodavat, pokud klesne prodat
-        # #mozna mit dva mody - pri vetsi volatilite pouzivat momentum, pri mensi nebo kdyz potrebuju pryc, tak prodat hned
-
-        # #TOTO do budoucna zdynamictit
-
-        # #toto docasne pryc dont_sell_when['slope_too_high'] = slope_too_high() and not isfalling(state.indicators.slopeMA,4)
-        # dont_sell_when['AND']['slopeMA_rising'] = isrising(state.indicators.slopeMA,safe_get(options, 'slopeMA_rising', 2))
-        # dont_sell_when['AND']['rsi_not_falling'] = not isfalling(state.indicators.RSI14,safe_get(options, 'rsi_not_falling',3))
-        # #dont_sell_when['rsi_dont_buy'] = state.indicators.RSI14[-1] > safe_get(state.vars, "rsi_dont_buy_above",50)
- 
-        # result, conditions_met = eval_cond_dict(dont_sell_when)
-        # if result:
-        #     state.ilog(e=f"SELL_PROTECTION {conditions_met} enabled")
-        # return result
-
-    #preconditions and conditions of BUY SIGNAL
-    def conditions_met():
-        #preconditions - TODO zdynamictit
-        dont_buy_when = dict(AND=dict(), OR=dict())
-
-        #OBECNE DONT BUYS
-        if safe_get(state.vars, "buy_only_on_confirmed",True):
-            dont_buy_when['bar_not_confirmed'] = (data['confirmed'] == 0)
-        #od posledniho vylozeni musi ubehnout N baru
-        dont_buy_when['last_buy_offset_too_soon'] =  data['index'] < (int(state.vars.lastbuyindex) + int(safe_get(state.vars, "lastbuy_offset",3)))
-        dont_buy_when['blockbuy_active'] = (state.vars.blockbuy == 1)
-        dont_buy_when['jevylozeno_active'] = (state.vars.jevylozeno == 1)
-        dont_buy_when['open_rush'] = is_open_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), safe_get(state.vars, "open_rush",0))
-        dont_buy_when['close_rush'] = is_close_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), safe_get(state.vars, "close_rush",0))
-    
-        #testing preconditions
-        result, cond_met = eval_cond_dict(dont_buy_when)
-        if result:
-            state.ilog(e=f"BUY PRECOND GENERAL not met {cond_met}", message=cond_met)
-            return False
-
-        #SPECIFICKE DONT BUYS - direktivy zacinajici dont_buy
-        #dont_buy_below = value nebo nazev indikatoru
-        #dont_buy_above = value nebo hazev indikatoru
-
-        #do INITU
-        work_dict_dont_buy = get_work_dict_with_directive(starts_with="dont_buy_if")
-        
-        state.ilog(e=f"BUY PRECOND DONTBUY work_dict", message=work_dict_dont_buy)
-        #u techto ma smysl pouze OR
-        precond = create_conditions_from_directives(work_dict_dont_buy, "OR")
-        result, conditions_met = eval_cond_dict(precond)
-        state.ilog(e=f"BUY PRECOND DONTBUY =OR= {result}", **conditions_met)
-        if result:
-            return False
-
-        #tyto timto nahrazeny - dat do konfigurace
-        #dont_buy_when['rsi_too_high'] = state.indicators.RSI14[-1] > safe_get(state.vars, "rsi_dont_buy_above",50)
-        #dont_buy_when['slope_too_low'] = slope_too_low()
-        #dont_buy_when['slope_too_high'] = slope_too_high()
-        #dont_buy_when['rsi_is_zero'] = (state.indicators.RSI14[-1] == 0)
-        #dont_buy_when['reverse_position_waiting_amount_not_0'] = (state.vars.reverse_position_waiting_amount != 0)
-
-
-
-        #u indikatoru muzoun byt tyto directivy pro generovani buysignalu
-        # buy_if_crossed_down - kdyz prekrocil dolu, VALUE: hodnota nebo nazev indikatoru
-        # buy_if_crossed_up - kdyz prekrocil nahoru, VALUE: hodnota nebo nazev indikatoru
-        # buy_if_crossed - kdyz krosne obema smery, VALUE: hodnota nebo nazev indikatoru
-        # buy_if_falling - kdyz je klesajici po N, VALUE: hodnota
-        # buy_if_rising - kdyz je rostouci po N, VALUE: hodnota
-        # buy_if_below - kdyz je pod prahem, VALUE: hodnota nebo nazev indikatoru
-        # buy_if_above - kdyz je nad prahem, VALUE: hodnota nebo nazev indikatoru
-        # buy_if_pivot_a - kdyz je pivot A. VALUE: delka nohou
-        # buy_if_pivot_v - kdyz je pivot V. VALUE: delka nohou
-        
-        # direktivy se mohou nachazet v podsekci AND nebo OR - daneho indikatoru (nebo na volno, pak = OR)
-        # OR - staci kdyz plati jedna takova podminka a buysignal je aktivni
-        # AND - musi platit vsechny podminky ze vsech indikatoru, aby byl buysignal aktivni
-
-        #populate work dict - muze byt i jen jednou v INIT nebo 1x za cas
-        #dict oindexovane podminkou (OR/AND) obsahuje vsechny buy_if direktivy v tuplu (nazevind,direktiva,hodnota
-        # {'AND': [('nazev indikatoru', 'nazev direktivy', 'hodnotadirektivy')], 'OR': []}
-        work_dict_buy_if = get_work_dict_with_directive(starts_with="buy_if")
-        state.ilog(e=f"BUY SIGNAL work_dict", message=work_dict_buy_if)
-
-        buy_or_cond = create_conditions_from_directives(work_dict_buy_if, "OR")
-        result, conditions_met = eval_cond_dict(buy_or_cond)
-        state.ilog(e=f"BUY SIGNAL =OR= {result}", **conditions_met)
-        if result:
-            return True
-        
-        #OR neprosly testujeme AND
-        buy_and_cond = create_conditions_from_directives(work_dict_buy_if, "AND")
-        result, conditions_met = eval_cond_dict(buy_and_cond)
-        state.ilog(e=f"BUY SIGNAL =AND= {result}", **conditions_met)
-        return result      
-
+    def value_or_indicator(value):
     #preklad direktivy podle typu, pokud je int anebo float - je to primo hodnota
     #pokud je str, jde o indikator a dotahujeme posledni hodnotu z nej
-    def value_or_indicator(value):
         if isinstance(value, (int, float)):
             return value
         elif isinstance(value, str):
@@ -652,7 +162,6 @@ def next(data, state: StrategyState):
             return state.indicators[indicator+"MA"]
         except KeyError:
             return state.indicators[indicator]
-
     # #vrati true pokud dany indikator krosnul obema smery
     # def buy_if_crossed(indicator, value):
     #     res = crossed(threshold=value, list=get_source_or_MA(indicator))
@@ -670,10 +179,6 @@ def next(data, state: StrategyState):
         res = crossed_up(threshold=value, list=get_source_or_MA(indicator))
         state.ilog(e=f"buy_if_crossed_up {indicator} {value} {res}")
         return res    
-
-    def eval_buy():
-        if conditions_met():
-                vyloz()
 
     def populate_cbar_tick_price_indicator():
         try:
@@ -1023,24 +528,20 @@ def next(data, state: StrategyState):
                 print(f"Exception in {name} slope Indicator section", str(e))
                 state.ilog(e=f"EXCEPTION in {name}", msg="Exception in slope Indicator section" + str(e) + format_exc())
 
+    def process_delta():
+        #PROCESs DELTAS - to function
+        last_update_delta = round((float(data['updated']) - state.vars.last_update_time),6) if state.vars.last_update_time != 0 else 0
+        state.vars.last_update_time = float(data['updated'])
+
+        if len(state.vars.last_50_deltas) >=50:
+            state.vars.last_50_deltas.pop(0)
+        state.vars.last_50_deltas.append(last_update_delta)
+        avg_delta = Average(state.vars.last_50_deltas)
+
+        state.ilog(e=f"---{data['index']}-{conf_bar}--delta:{last_update_delta}---AVGdelta:{avg_delta}")
 
     conf_bar = data['confirmed']
-
-    #PROCESs DELTAS - to function
-    last_update_delta = round((float(data['updated']) - state.vars.last_update_time),6) if state.vars.last_update_time != 0 else 0
-    state.vars.last_update_time = float(data['updated'])
-
-    if len(state.vars.last_50_deltas) >=50:
-        state.vars.last_50_deltas.pop(0)
-    state.vars.last_50_deltas.append(last_update_delta)
-    avg_delta = Average(state.vars.last_50_deltas)
-
-    state.ilog(e=f"---{data['index']}-{conf_bar}--delta:{last_update_delta}---AVGdelta:{avg_delta}")
-
-
-    #populate indicators, that have type in stratvars.indicators
-
-
+    process_delta()
     #kroky pro CONFIRMED BAR only
     if conf_bar == 1:
         #logika pouze pro potvrzeny bar
@@ -1049,10 +550,6 @@ def next(data, state: StrategyState):
         #pri potvrzem CBARu nulujeme counter volume pro tick based indicator
         state.vars.last_tick_volume = 0
         state.vars.next_new = 1
-
-        #zatim takto na confirm
-        #populate_slow_slope_indicator()
-
     #kroky pro CONTINOUS TICKS only
     else:
         #CBAR INDICATOR pro tick price a deltu VOLUME
@@ -1060,30 +557,402 @@ def next(data, state: StrategyState):
         #TBD nize predelat na typizovane RSI (a to jak na urovni CBAR tak confirmed)
         populate_cbar_rsi_indicator()
 
-    
+    #populate indicators, that have type in stratvars.indicators
     populate_dynamic_indicators()
+    # endregion
 
-    #SPOLECNA LOGIKA - bar indikatory muzeme populovat kazdy tick (dobre pro RT GUI), ale uklada se stejne az pri confirmu
+    # region Subfunction
+    #toto upravit na take profit
+    def sell_protection_enabled():
+        options = safe_get(state.vars, 'sell_protection', None)
+        if options is None:
+            state.ilog(e="No options for sell protection in stratvars")
+            return False
+        
+        disable_sell_proteciton_when = dict(AND=dict(), OR=dict())
 
-    #populate_ema_indicator()
-    #populate_slope_indicator()
-    #populate_rsi_indicator()
-    eval_sell()
-    consolidation()
+        #preconditions
+        disable_sell_proteciton_when['disabled_in_config'] = safe_get(options, 'enabled', False) is False
+        #too good to be true (maximum profit)
+        #disable_sell_proteciton_when['tgtbt_reached'] = safe_get(options, 'tgtbt', False) is False
+        disable_sell_proteciton_when['disable_if_positions_above'] = int(safe_get(options, 'disable_if_positions_above', 0)) < state.positions
 
-    #HLAVNI ITERACNI LOG JESTE PRED AKCI - obsahuje aktualni hodnoty vetsiny parametru
-    #lp = state.interface.get_last_price(symbol=state.symbol)
+        #testing preconditions
+        result, conditions_met = eval_cond_dict(disable_sell_proteciton_when)
+        if result:
+            state.ilog(e=f"SELL_PROTECTION DISABLED by {conditions_met}", **conditions_met)
+            return False
+        
+        work_dict_dont_sell_if = get_work_dict_with_directive(starts_with="dont_sell_if")
+        state.ilog(e=f"SELL PROTECTION work_dict", message=work_dict_dont_sell_if)
+
+        or_cond = create_conditions_from_directives(work_dict_dont_sell_if, "OR")
+        result, conditions_met = eval_cond_dict(or_cond)
+        state.ilog(e=f"SELL PROTECTION =OR= {result}", **conditions_met)
+        if result:
+            return True
+        
+        #OR neprosly testujeme AND
+        and_cond = create_conditions_from_directives(work_dict_dont_sell_if, "AND")
+        result, conditions_met = eval_cond_dict(and_cond)
+        state.ilog(e=f"SELL PROTECTION =AND= {result}", **conditions_met)
+        return result    
+
+        #PUVODNI NASTAVENI - IDENTIFIKOVAce rustoveho MOMENTA - pokud je momentum, tak prodávat později
+        
+        # #pokud je slope too high, pak prodavame jakmile slopeMA zacne klesat, napr. 4MA (TODO 3)
+
+        # #TODO zkusit pro pevny profit, jednoduse pozdrzet prodej - dokud tick_price roste nebo se drzi tak neprodavat, pokud klesne prodat
+        # #mozna mit dva mody - pri vetsi volatilite pouzivat momentum, pri mensi nebo kdyz potrebuju pryc, tak prodat hned
+
+        #puvodni nastaveni
+        #slopeMA_rising = 2
+        #rsi_not_falling = 3
+
+        # #toto docasne pryc dont_sell_when['slope_too_high'] = slope_too_high() and not isfalling(state.indicators.slopeMA,4)
+        # dont_sell_when['AND']['slopeMA_rising'] = isrising(state.indicators.slopeMA,safe_get(options, 'slopeMA_rising', 2))
+        # dont_sell_when['AND']['rsi_not_falling'] = not isfalling(state.indicators.RSI14,safe_get(options, 'rsi_not_falling',3))
+        # #dont_sell_when['rsi_dont_buy'] = state.indicators.RSI14[-1] > safe_get(state.vars, "rsi_dont_buy_above",50)
+ 
+        # result, conditions_met = eval_cond_dict(dont_sell_when)
+        # if result:
+        #     state.ilog(e=f"SELL_PROTECTION {conditions_met} enabled")
+        # return result 
+
+    def get_profit_target_price():
+        def_profit = safe_get(state.vars, "def_profit",state.vars.profit) 
+        cena = float(state.avgp)
+        return price2dec(cena+get_tick(cena,float(state.vars.profit)),3) if state.positions > 0 else price2dec(cena-get_tick(cena,float(state.vars.profit)),3)
+        
+    def get_max_profit_price():
+        max_profit = float(safe_get(state.vars, "max_profit",0.03))
+        cena = float(state.avgp)
+        return price2dec(cena+get_tick(cena,max_profit),3) if state.positions > 0 else price2dec(cena-get_tick(cena,max_profit),3)    
+
+    def eval_close_position():
+        curr_price = float(data['close'])
+        state.ilog(e="Eval CLOSE", price=curr_price, pos=state.positions, avgp=state.avgp, pending=state.vars.pending, activeTrade=str(state.vars.activeTrade))
+          
+        if int(state.positions) != 0 and float(state.avgp)>0 and state.vars.sell_in_progress is False:
+            goal_price = get_profit_target_price()
+            max_price = get_max_profit_price()
+            state.ilog(e=f"Goal price {goal_price} max price {max_price}")
+            
+            #close position handlign
+
+            #mame short pozice
+            if int(state.positions) < 0:
+                #EOD - TBD
+
+                #SL
+                if curr_price > state.vars.activeTrade.stoploss_value:
+                    state.ilog(e=f"STOPLOSS reached on SHORT", curr_price=curr_price, trade=state.vars.activeTrade)
+                    res = state.buy(size=abs(state.positions))
+                    if isinstance(res, int) and res < 0:
+                        raise Exception(f"error in required operation STOPLOSS BUY {res}")
+                    state.vars.pending = True
+                    state.vars.activeTrade = None
+                    return
+                #PROFIT
+                if curr_price<=goal_price:
+                    #TODO cekat az slope prestane intenzivn erust, necekat az na klesani
+                    #TODO mozna cekat na nejaky signal RSI
+                    #TODO pripadne pokud dosahne TGTBB prodat ihned
+                    max_price_signal = curr_price<=max_price
+                    #OPTIMALIZACE pri stoupajícím angle
+                    if max_price_signal or sell_protection_enabled() is False:
+                        res = state.buy(size=abs(state.positions))
+                        if isinstance(res, int) and res < 0:
+                            raise Exception(f"error in required operation PROFIT BUY {res}")
+                        state.vars.pending = True
+                        state.vars.activeTrade = None
+                        state.ilog(e=f"market SELL was sent {curr_price=} {max_price_signal=}", positions=state.positions, avgp=state.avgp, sellinprogress=state.vars.sell_in_progress)
+                        return
+            #mame long
+            elif int(state.positions) > 0:
+                #EOD - TBD
+
+                #SL
+                if curr_price > state.vars.activeTrade.stoploss_value:
+                    state.ilog(e=f"STOPLOSS reached on LONG", curr_price=curr_price, trade=state.vars.activeTrade)
+                    res = state.sell(size=state.positions)
+                    if isinstance(res, int) and res < 0:
+                        raise Exception(f"error in required operation STOPLOSS SELL {res}")
+                    state.vars.pending = True
+                    return
+                
+                #PROFTI
+                if curr_price>=goal_price:
+                    #TODO cekat az slope prestane intenzivn erust, necekat az na klesani
+                    #TODO mozna cekat na nejaky signal RSI
+                    #TODO pripadne pokud dosahne TGTBB prodat ihned
+                    max_price_signal = curr_price>=max_price
+                    #OPTIMALIZACE pri stoupajícím angle
+                    if max_price_signal or sell_protection_enabled() is False:
+                        res = state.sell(size=state.positions)
+                        if isinstance(res, int) and res < 0:
+                            raise Exception(f"error in required operation PROFIT SELL {res}")
+                        state.vars.pending = True
+                        state.ilog(e=f"market SELL was sent {curr_price=} {max_price_signal=}", positions=state.positions, avgp=state.avgp, sellinprogress=state.vars.sell_in_progress)
+                        return
+
+    def execute_prescribed_trades():
+        ##evaluate prescribed trade, prvni eligible presuneme do activeTrade, zmenime stav and vytvorime objednavky
+        
+        if state.vars.activeTrade is not None or len(state.vars.prescribedTrades) == 0:
+            return
+        #evaluate long (price/market)
+        state.ilog(e="evaluating prescr trades", msg=state.vars.prescribedTrades)
+        for trade in state.vars.prescribedTrades:
+            if trade.status == TradeStatus.READY and trade.direction == TradeDirection.LONG and (trade.entry_price is None or trade.entry_price >= data['close']):
+                trade.status = TradeStatus.ACTIVATED
+                state.ilog(e=f"evaluaed SHORT {str(trade)}", msg=state.vars.prescribedTrades)
+                state.vars.activeTrade = trade
+                break
+        #evaluate shorts
+        if not state.vars.activeTrade:
+            for trade in state.vars.prescribedTrades:
+                if trade.status == TradeStatus.READY and trade.direction == TradeDirection.SHORT and (trade.entry_price is None or trade.entry_price <= data['close']):
+                    state.ilog(e=f"evaluaed LONG {str(trade)}", msg=state.vars.prescribedTrades)
+                    trade.status = TradeStatus.ACTIVATED
+                    state.vars.activeTrade = trade
+                    break
+
+        #odeslani ORDER + NASTAVENI STOPLOSS (zatim hardcoded)
+        if state.vars.activeTrade:
+            if state.vars.activeTrade.direction == TradeDirection.LONG:
+                state.ilog(e="odesilame LONG ORDER", msg=state.vars.activeTrade)
+                res = state.buy(size=state.vars.chunk)
+                if isinstance(res, int) and res < 0:
+                    raise Exception(f"error in required operation LONG {res}")
+                if state.vars.activeTrade.stoploss_value is None:
+                    state.vars.activeTrade.stoploss_value = data['close'] - 0.09
+                state.vars.pending = True
+            elif state.vars.activeTrade.direction == TradeDirection.SHORT:
+                state.ilog(e="odesilame SHORT ORDER", msg=state.vars.activeTrade)
+                res = state.sell(size=state.vars.chunk)
+                if isinstance(res, int) and res < 0:
+                    raise Exception(f"error in required operation SHORT {res}")
+                if state.vars.activeTrade.stoploss_value is None:
+                    state.vars.activeTrade.stoploss_value = float(data['close']) + 0.09
+                state.vars.pending = True
+            else:
+                state.ilog(e="unknow direction")
+                state.vars.activeTrade = None
+
+    def execute_signal_generator_plugin(name):
+        if name == "asr":
+            execute_asr()
+
+    #vstupni signal pro asr
+    def execute_asr():
+        pass
+    
+    #preconditions and conditions of BUY SIGNAL
+    def conditions_met(signalname: str, direction: TradeDirection):
+        if direction == TradeDirection.LONG:
+            smer = "long"
+        else:
+            smer = "short"
+        #preconditiony dle smeru
+        #dont_long_when, dont_short_when
+        #signal direktivy
+        #nazevgeneratoru_long_if_above
+        #nazevgeneratoru_short_if_above
+
+        
+        # #preconditiony zatim preskoceny
+        dont_do_when = dict(AND=dict(), OR=dict())
+
+        # #OBECNE DONT BUYS
+        if safe_get(state.vars, "signal_only_on_confirmed",True):
+            dont_do_when['bar_not_confirmed'] = (data['confirmed'] == 0)
+        # #od posledniho vylozeni musi ubehnout N baru
+        # dont_buy_when['last_buy_offset_too_soon'] =  data['index'] < (int(state.vars.lastbuyindex) + int(safe_get(state.vars, "lastbuy_offset",3)))
+        # dont_buy_when['blockbuy_active'] = (state.vars.blockbuy == 1)
+        # dont_buy_when['jevylozeno_active'] = (state.vars.jevylozeno == 1)
+        dont_do_when['open_rush'] = is_open_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), safe_get(state.vars, "open_rush",0))
+        dont_do_when['close_rush'] = is_close_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), safe_get(state.vars, "close_rush",0))
+    
+        # #testing preconditions
+        result, cond_met = eval_cond_dict(dont_do_when)
+        if result:
+            state.ilog(e=f"{smer} PRECOND GENERAL not met {cond_met}", message=cond_met)
+            return False
+
+        #SPECIFICKE DONT BUYS - direktivy zacinajici dont_buy
+        #dont_buy_below = value nebo nazev indikatoru
+        #dont_buy_above = value nebo hazev indikatoru
+
+        #do INITU
+        #work_dict_dont_do = get_work_dict_with_directive(starts_with=signalname+"_dont_"+ smer +"_if")
+
+        #z initu
+        work_dict_dont_do = state.vars.work_dict_dont_do[signalname+"_"+ smer]
+        
+        state.ilog(e=f"{smer} PRECOND DONT{smer} work_dict for {signalname}", message=work_dict_dont_do)
+        #u techto ma smysl pouze OR
+        precond = create_conditions_from_directives(work_dict_dont_do, "OR")
+        result, conditions_met = eval_cond_dict(precond)
+        state.ilog(e=f"{smer} PRECOND DONT{smer} =OR= {result}", **conditions_met)
+        if result:
+            return False
+
+        #tyto timto nahrazeny - dat do konfigurace (dont_short_when, dont_long_when)
+        #dont_buy_when['rsi_too_high'] = state.indicators.RSI14[-1] > safe_get(state.vars, "rsi_dont_buy_above",50)
+        #dont_buy_when['slope_too_low'] = slope_too_low()
+        #dont_buy_when['slope_too_high'] = slope_too_high()
+        #dont_buy_when['rsi_is_zero'] = (state.indicators.RSI14[-1] == 0)
+        #dont_buy_when['reverse_position_waiting_amount_not_0'] = (state.vars.reverse_position_waiting_amount != 0)
+
+        #u indikatoru muzoun byt tyto directivy pro generovani signaliu long/short
+        # long_if_crossed_down - kdyz prekrocil dolu, VALUE: hodnota nebo nazev indikatoru
+        # long_if_crossed_up - kdyz prekrocil nahoru, VALUE: hodnota nebo nazev indikatoru
+        # long_if_crossed - kdyz krosne obema smery, VALUE: hodnota nebo nazev indikatoru
+        # long_if_falling - kdyz je klesajici po N, VALUE: hodnota
+        # long_if_rising - kdyz je rostouci po N, VALUE: hodnota
+        # long_if_below - kdyz je pod prahem, VALUE: hodnota nebo nazev indikatoru
+        # long_if_above - kdyz je nad prahem, VALUE: hodnota nebo nazev indikatoru
+        # long_if_pivot_a - kdyz je pivot A. VALUE: delka nohou
+        # long_if_pivot_v - kdyz je pivot V. VALUE: delka nohou
+        
+        # direktivy se mohou nachazet v podsekci AND nebo OR - daneho indikatoru (nebo na volno, pak = OR)
+        # OR - staci kdyz plati jedna takova podminka a buysignal je aktivni
+        # AND - musi platit vsechny podminky ze vsech indikatoru, aby byl buysignal aktivni
+
+        #populate work dict - muze byt i jen jednou v INIT nebo 1x za cas
+        #dict oindexovane podminkou (OR/AND) obsahuje vsechny buy_if direktivy v tuplu (nazevind,direktiva,hodnota
+        # {'AND': [('nazev indikatoru', 'nazev direktivy', 'hodnotadirektivy')], 'OR': []}
+        #work_dict_signal_if = get_work_dict_with_directive(starts_with=signalname+"_"+smer+"_if")
+        work_dict_signal_if = state.vars.work_dict_signal_if[signalname+"_"+ smer]
+
+        state.ilog(e=f"{smer} SIGNAL work_dict {signalname}", message=work_dict_signal_if)
+
+        buy_or_cond = create_conditions_from_directives(work_dict_signal_if, "OR")
+        result, conditions_met = eval_cond_dict(buy_or_cond)
+        state.ilog(e=f"{smer} SIGNAL =OR= {result}", **conditions_met)
+        if result:
+            return True
+        
+        #OR neprosly testujeme AND
+        buy_and_cond = create_conditions_from_directives(work_dict_signal_if, "AND")
+        result, conditions_met = eval_cond_dict(buy_and_cond)
+        state.ilog(e=f"{smer} SIGNAL =AND= {result}", **conditions_met)
+        return result     
+
+    def execute_signal_generator(name):
+        options = safe_get(state.vars.signals, name, None)
+
+        if options is None:
+            state.ilog(e="No options for {name} in stratvars")
+            return
+        
+        validfrom = safe_get(options, "validfrom", 0)
+        validto = safe_get(options, "validto", 0)
+        recurring = safe_get(options, "reccurring", False)
+        on_confirmed_only = safe_get(options, 'on_confirmed_only', False)
+        plugin = safe_get(options, 'plugin', None)
+
+        #pokud je plugin True, spusti se kod
+        if plugin:
+            execute_signal_generator_plugin(name)
+        else:
+            #common signals based on 1) configured signals in stratvars
+            #toto umoznuje jednoduchy prescribed trade bez ceny 
+            if conditions_met(signalname=name, direction=TradeDirection.LONG):
+                state.vars.prescribedTrades.append(Trade(validfrom=datetime.now(tz=zoneNY),
+                                        status=TradeStatus.READY,
+                                        direction=TradeDirection.LONG,
+                                        entry_price=None,
+                                        stoploss_value = None))
+            elif conditions_met(signalname=name, direction=TradeDirection.SHORT):
+                state.vars.prescribedTrades.append(Trade(validfrom=datetime.now(tz=zoneNY),
+                        status=TradeStatus.READY,
+                        direction=TradeDirection.SHORT,
+                        entry_price=None,
+                        stoploss_value = None))
+
+    def signal_search():
+        # SIGNAL sekce ve stratvars obsahuje signal generator (obsahujici obecne veci jako name,validfrom, validto, validfrom, recurring) + specificke
+        #jako plugin
+
+        #spoustime kazdy nakonfigurovany signal generator (signal sekce v startvars)
+
+        #ZAMYSLET SE JAK PRACOVAT S MULTI SIGNAL SEKCEMI ve stratvars
+        for signalname, signalsettings in state.vars.signals.items():
+            state.ilog(e=f"reading {signalname}", message=str(signalsettings))
+            execute_signal_generator(signalname)
+
+        # #vysledek je vložení Trade Prescription a to bud s cenou nebo immediate
+        # trade = Trade(validfrom=datetime.now(tz=zoneNY),
+        #             status=TradeStatus.READY,
+        #             direction=TradeDirection.LONG,
+        #             entry_price=None,
+        #             stoploss_value = None)
+    
+        # ##add prescribed trade to list
+        # state.vars.prescribedTrades.append(trade)
+
+    def manage_active_trade():
+        trade = state.vars.activeTrade
+        if trade is None:
+            return -1
+        
+        eval_close_position()
+        #SELL STOPLOSS
+        #SELL PROFIT
+        #OPTIMIZE ADD TO PROFIT
+
+        #zatim dynamicky profit
+    # endregion
+
+    #MAIN LOOP
     lp = data['close']
-    state.ilog(e="ENTRY", msg=f"LP:{lp} P:{state.positions}/{round(float(state.avgp),3)} profit:{round(float(state.profit),2)} Trades:{len(state.tradeList)} DEF:{str(is_defensive_mode())}", pb=str(state.vars.pendingbuys), last_price=lp, data=data, stratvars=str(state.vars))
+    state.ilog(e="ENTRY", msg=f"LP:{lp} P:{state.positions}/{round(float(state.avgp),3)} profit:{round(float(state.profit),2)} Trades:{len(state.tradeList)}", activeTrade=str(state.vars.activeTrade), prescribedTrades=str(state.vars.prescribedTrades), pending=str(state.vars.pending), last_price=lp, data=data, stratvars=str(state.vars))
     inds = get_last_ind_vals()
     state.ilog(e="Indikatory", **inds)
 
-    eval_buy()
-    pendingbuys_optimalization()
+    #TODO dat do initu inciializaci work directory pro directivy 
+
+    #pokud mame prazdne pozice a neceka se na nic
+    if state.positions == 0 and not state.vars.pending:
+        execute_prescribed_trades()
+        #pokud se neaktivoval nejaky trade, poustime signal search - ale jen jednou za bar?
+        if conf_bar == 1:
+            if not state.vars.pending:
+                signal_search()
+                #pro jistotu ihned zpracujeme
+                execute_prescribed_trades()
+
+    #mame aktivni trade a neceka se nani
+    elif state.vars.activeTrade and not state.vars.pending:
+            manage_active_trade() #optimalize, close
+               # - close means change status in prescribed Trends,update profit, delete from activeTrade
+    
 
 def init(state: StrategyState):
     #place to declare new vars
     print("INIT v main",state.name)
+
+    #pomocna funkce pro inicializaci
+    def get_work_dict_with_directive(starts_with: str):
+        reslist = dict(AND=[], OR=[])
+
+        for indname, indsettings in state.vars.indicators.items():
+            for option,value in indsettings.items():
+                    if option.startswith(starts_with):
+                        reslist["OR"].append((indname, option, value))
+                    if option == "AND":
+                        #vsechny buy direktivy, ktere jsou pod AND
+                        for key, val in value.items():
+                            if key.startswith(starts_with):
+                                reslist["AND"].append((indname, key, val))
+                    if option == "OR" :
+                        #vsechny buy direktivy, ktere jsou pod OR
+                        for key, val in value.items():
+                            if key.startswith(starts_with):
+                                reslist["OR"].append((indname, key, val))
+        return reslist   
 
     def initialize_dynamic_indicators():
         #pro vsechny indikatory, ktere maji ve svych stratvars TYPE inicializujeme
@@ -1100,6 +969,25 @@ def init(state: StrategyState):
                     #inicializujeme statinds (pro uhel na FE)
                     state.statinds[indname] = dict(minimum_slope=safe_get(indsettings, 'minimum_slope', -1), maximum_slope=safe_get(indsettings, 'maximum_slope', 1))
 
+    def intialize_work_dict():
+        state.vars.work_dict_dont_do = {}
+        state.vars.work_dict_signal_if = {}
+        for signalname, signalsettings in state.vars.signals.items():
+            smer = TradeDirection.LONG
+            state.vars.work_dict_dont_do[signalname+"_"+ smer] = get_work_dict_with_directive(starts_with=signalname+"_dont_"+ smer +"_if")
+            state.vars.work_dict_signal_if[signalname+"_"+ smer] = get_work_dict_with_directive(starts_with=signalname+"_"+smer+"_if")
+            smer = TradeDirection.SHORT
+            state.vars.work_dict_dont_do[signalname+"_"+ smer] = get_work_dict_with_directive(starts_with=signalname+"_dont_"+ smer +"_if")
+            state.vars.work_dict_signal_if[signalname+"_"+ smer] = get_work_dict_with_directive(starts_with=signalname+"_"+smer+"_if")
+
+    #nove atributy na rizeni tradu
+
+    #identifikuje provedenou změnu na Tradu (neděláme změny dokud nepřijde potvrzeni z notifikace)
+    state.vars.pending = None
+    #obsahuje aktivni Trade a jeho nastaveni
+    state.vars.activeTrade = None #pending/Trade
+    #obsahuje pripravene Trady ve frontě
+    state.vars.prescribedTrades = []
 
     #TODO presunout inicializaci work_dict u podminek - sice hodnoty nepujdou zmenit, ale zlepsi se performance
     #pripadne udelat refresh kazdych x-iterací
@@ -1119,7 +1007,6 @@ def init(state: StrategyState):
     state.vars.jevylozeno=0
     state.vars.blockbuy = 0
 
-    state.vars["ticks2reset_backup"] = state.vars.ticks2reset
     #state.cbar_indicators['ivwap'] = []
     state.cbar_indicators['tick_price'] = []
     state.cbar_indicators['tick_volume'] = []
@@ -1129,7 +1016,7 @@ def init(state: StrategyState):
     #state.indicators['RSI14'] = []
 
     initialize_dynamic_indicators()
-
+    intialize_work_dict()
 
     #TODO - predelat tuto cas, aby dynamicky inicializovala indikatory na zaklade stratvars a type
     # vsechno nize vytvorit volana funkce
@@ -1155,7 +1042,7 @@ def main():
     name = os.path.basename(__file__)
     se = Event()
     pe = Event()
-    s = StrategyOrderLimitVykladaciNormalizedMYSELL(name = name, symbol = "BAC", account=Account.ACCOUNT1, next=next, init=init, stratvars=stratvars, open_rush=10, close_rush=0, pe=pe, se=se, ilog_save=True)
+    s = StrategyOrderLimitVykladaciNormalizedMYSELL(name = name, symbol = "BAC", account=Account.ACCOUNT1, next=next, init=init, stratvars=None, open_rush=10, close_rush=0, pe=pe, se=se, ilog_save=True)
     s.set_mode(mode = Mode.BT,
                debug = False,
                start = datetime(2023, 4, 14, 10, 42, 0, 0, tzinfo=zoneNY),

@@ -72,10 +72,11 @@ function transform_data(data) {
             last_timestamp = timestamp
             iterator = 0.002
         }
-
-        if (trade.order.side == "buy") {
+        //puvodne bylo pro buy
+        //pro sell muzeme teoreticky taky mit buyline (pri shortu)
+        if ((trade.order.side == "buy") || (trade.order.side == "sell")) {
                 //avgp lajnu vytvarime jen pokud je v tradeventu prumerna cena
-                if (trade.pos_avg_price !== null) {
+                if ((trade.pos_avg_price !== null) && (trade.pos_avg_price !== 0)) {
                 //line pro avgp markers
                 obj["time"] = timestamp;
                 obj["value"] = trade.pos_avg_price;
@@ -87,11 +88,13 @@ function transform_data(data) {
                 a_markers["color"] = "#e8c76d"
                 a_markers["shape"] = "arrowDown"
                 //if (CHART_SHOW_TEXT) 
-    //          a_markers["text"] = trade.position_qty + " " + parseFloat(trade.pos_avg_price).toFixed(3)
-                a_markers["text"] = CHART_SHOW_TEXT ? trade.position_qty + "/" + parseFloat(trade.pos_avg_price).toFixed(3) :trade.position_qty
+                //a_markers["text"] = trade.position_qty + " " + parseFloat(trade.pos_avg_price).toFixed(3)
+                //a_markers["text"] = CHART_SHOW_TEXT ? trade.position_qty + "/" + parseFloat(trade.pos_avg_price).toFixed(3) :trade.position_qty
                 avgp_markers.push(a_markers)
             }
         }
+
+        
 
         //buy sell markery
         marker = {}
@@ -103,6 +106,7 @@ function transform_data(data) {
         marker["shape"] = (trade.order.side == "buy") ? "circle" : "arrowDown"
         //marker["text"] =  trade.qty + "/" + trade.price
         marker["text"] =  CHART_SHOW_TEXT ? trade.qty + "/" + trade.price : trade.qty
+        marker["text"] = (trade.position_qty == 0) ? "c": marker["text"]
         markers.push(marker)
 
         //prevedeme iso data na timestampy

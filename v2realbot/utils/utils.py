@@ -10,6 +10,7 @@ from v2realbot.enums.enums import RecordType, Mode, StartBarAlign
 import pickle
 import os
 from v2realbot.common.model import StrategyInstance, Runner, RunArchive, RunArchiveDetail, Intervals
+from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
 from typing import List
 import tomli
 from v2realbot.config import DATA_DIR, QUIET_MODE,NORMALIZED_TICK_BASE_PRICE
@@ -196,6 +197,8 @@ def json_serial(obj):
     if type(obj) is btTradeUpdate:
         return obj.__dict__
     if type(obj) is RunArchive:
+        return obj.__dict__
+    if type(obj) is Trade:
         return obj.__dict__
     if type(obj) is RunArchiveDetail:
         return obj.__dict__

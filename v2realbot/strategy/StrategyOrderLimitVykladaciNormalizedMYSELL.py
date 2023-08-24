@@ -1,5 +1,5 @@
 from v2realbot.strategy.base import Strategy
-from v2realbot.utils.utils import parse_alpaca_timestamp, ltp, AttributeDict,trunc,price2dec, zoneNY, print, json_serial, safe_get, get_tick
+from v2realbot.utils.utils import parse_alpaca_timestamp, ltp, AttributeDict,trunc,price2dec, zoneNY, json_serial, safe_get, get_tick,print
 from v2realbot.utils.tlog import tlog, tlog_exception
 from v2realbot.enums.enums import Mode, Order, Account, RecordType
 from alpaca.trading.models import TradeUpdate

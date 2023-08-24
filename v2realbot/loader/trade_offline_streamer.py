@@ -42,17 +42,19 @@ class Trade_Offline_Streamer(Thread):
         pass
 
     def run(self):
-        #create new asyncio loop in the thread
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.create_task(self.main())
-        loop.run_forever()
+        self.main()
+        # #create new asyncio loop in the thread
+        # loop = asyncio.new_event_loop()
+        # asyncio.set_event_loop(loop)
+        # loop.create_task(self.main())
+        # loop.run_forever()
 
     def stop(self):
         pass
 
    # Override the run() function of Thread class
-    async def main(self):
+   #odebrano async
+    def main(self):
         print(10*"*","Trade OFFLINE streamer STARTED", current_thread().name,10*"*")
         
         if not self.streams:
@@ -194,16 +196,24 @@ class Trade_Offline_Streamer(Thread):
                         for s in self.to_run[symbol]:
                             #print("zaznam",t)
                             #print("Ingest", s, "zaznam", t)
-                            await s.ingest_trade(packb(t))
+                            #await s.ingest_trade(packb(t))
+                            asyncio.run(s.ingest_trade(packb(t)))
                         cnt += 1
+                    #protoze jsou serazene, tak prvni ktery je vetsi muze prerusit
+                    elif to_datetime(t['t']) > self.time_to:
+                        print("prerusujeme")
+                        break
         #vsem streamum posleme last TODO: (tuto celou cast prepsat a zjednodusit)
         #po loadovani vsech dnu
+        print("naloadovane vse posilame last")
         for s in self.to_run[symbpole[0]]:
-            await s.ingest_trade(packb("last"))
+            #zde bylo await
+            asyncio.run(s.ingest_trade(packb("last")))
+            print("poslano last")
 
-        loop = asyncio.get_running_loop()
+        #loop = asyncio.get_running_loop()
         print("stoping loop")
-        loop.stop()
+        #loop.stop()
         print(10*"*","Trade OFFLINE streamer STOPPED", current_thread().name,10*"*")
 
 

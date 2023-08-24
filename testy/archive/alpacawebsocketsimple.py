@@ -4,7 +4,7 @@ from alpaca.trading.stream import TradingStream
 from alpaca.data.enums import DataFeed
 from config import API_KEY, SECRET_KEY, MAX_BATCH_SIZE
 from datetime import datetime
-import mplfinance as mpf
+#import mplfinance as mpf
 import matplotlib.pyplot as plt
 import threading
 # pripadne parametry pro request

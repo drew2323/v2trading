@@ -1039,6 +1039,9 @@ res = dict(zip(max_positions['qty'], max_positions['count']))
 
 ouput_dict=dict(maxpos=str(res))
 
+all_summary = trade_df.describe(include='all')
+print(all_summary)
+
 print(ouput_dict)
 #a = trade_df.value_counts(subset=['position_qty'])
 #print(max_positions.to_dict('records'))

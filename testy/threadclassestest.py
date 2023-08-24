@@ -1,7 +1,7 @@
 from threading import Thread, current_thread
 import threading
 from alpaca.data.live import StockDataStream, CryptoDataStream
-from v2realbot.config import API_KEY, SECRET_KEY, MAX_BATCH_SIZE, PAPER
+from v2realbot.config import ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, ACCOUNT1_PAPER_MAX_BATCH_SIZE
 import queue
 from alpaca.data.enums import DataFeed
 from typing_extensions import Any
@@ -27,7 +27,7 @@ vlakno je vzdy pouze jedno, nicmene instancovani teto tridy je kvuli stejnemu ch
 s ostatnimi streamery (v budoucnu mozna predelat na dedicated streamer a shared streamer)
 """""
 class WS_Stream(Thread):
-    client = CryptoDataStream(API_KEY, SECRET_KEY, raw_data=True, websocket_params={})
+    client = CryptoDataStream(ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, raw_data=True, websocket_params={})
     _streams = []
     lock = threading.Lock()
 
@@ -124,12 +124,12 @@ class WS_Stream(Thread):
 # novy ws stream - vždy jednom vláknu
 obj= WS_Stream(name="jednicka")
 q1 = queue.Queue()
-stream1 = TradeAggregator2Queue(symbol="BTC/USD",queue=q1,rectype=RecordType.BAR,timeframe=15,update_ltp=False,align=StartBarAlign.ROUND,mintick = 0, mode = Mode.LIVE)
+stream1 = TradeAggregator2Queue(symbol="BTC/USD",queue=q1,rectype=RecordType.BAR,timeframe=1,update_ltp=False,align=StartBarAlign.ROUND,mintick = 0)
 obj.add_stream(stream1)
 print("1", WS_Stream._streams)
 # novy ws stream - vždy jednom vláknu
 obj2= WS_Stream("dvojka")
-stream2 = TradeAggregator2Queue(symbol="ETH/USD",queue=q1,rectype=RecordType.BAR,timeframe=5,update_ltp=False,align=StartBarAlign.ROUND,mintick = 0, mode = Mode.LIVE)
+stream2 = TradeAggregator2Queue(symbol="ETH/USD",queue=q1,rectype=RecordType.BAR,timeframe=1,update_ltp=False,align=StartBarAlign.ROUND,mintick = 0)
 obj2.add_stream(stream2)
 print("2", WS_Stream._streams)
 obj.start()
@@ -141,7 +141,7 @@ print("po startu druheho")
 time.sleep(2)
 print("pridavame treti")
 obj3 = WS_Stream(name="trojka")
-stream3 = TradeAggregator2Queue(symbol="BTC/USD",queue=q1,rectype=RecordType.BAR,timeframe=1,update_ltp=False,align=StartBarAlign.ROUND,mintick = 0, mode = Mode.LIVE)
+stream3 = TradeAggregator2Queue(symbol="BTC/USD",queue=q1,rectype=RecordType.BAR,timeframe=1,update_ltp=False,align=StartBarAlign.ROUND,mintick = 0)
 obj3.add_stream(stream3)
 obj3.start()
 print(WS_Stream._streams)

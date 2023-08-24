@@ -87,6 +87,7 @@ class Backtester:
         self.bp_from = bp_from
         self.bp_to = bp_to
         self.cash = cash
+        self.cash_reserved_for_shorting = 0
         self.trades = []
         self.account = { "BAC": [0, 0] }
         # { "BAC": [avgp, size] }
@@ -372,23 +373,43 @@ class Backtester:
 
         if o.side == OrderSide.BUY:
             #[size, avgp]
-            if (self.account[o.symbol][0] + o.qty) == 0: newavgp = 0
+            newsize = (self.account[o.symbol][0] + o.qty)
+            #JPLNE UZAVRENI SHORT  (avgp 0)
+            if newsize == 0: newavgp = 0
+            #CASTECNE UZAVRENI SHORT (avgp puvodni)
+            elif newsize < 0: newavgp = self.account[o.symbol][1]
+            #JDE O LONG (avgp nove)
             else:
                 newavgp = ((self.account[o.symbol][0] * self.account[o.symbol][1]) + (o.qty * o.filled_avg_price)) / (self.account[o.symbol][0] + o.qty)
-            self.account[o.symbol] = [self.account[o.symbol][0]+o.qty, newavgp]
+            
+            self.account[o.symbol] = [newsize, newavgp]
             self.cash = self.cash - (o.qty * o.filled_avg_price)
             return 1
         #sell
         elif o.side == OrderSide.SELL:
             newsize = self.account[o.symbol][0]-o.qty
+            #UPLNE UZAVRENI LONGU (avgp 0)
             if newsize == 0: newavgp = 0
+            #CASTECNE UZAVRENI LONGU (avgp puvodni)
+            elif newsize > 0: newavgp = self.account[o.symbol][1]
+            #jde o SHORT (avgp nove)
             else:
+                #pokud je predchozi 0 - tzn. jde o prvni short
                 if self.account[o.symbol][1] == 0:
                     newavgp = o.filled_avg_price
                 else:
-                    newavgp = self.account[o.symbol][1]
+                    newavgp = ((abs(self.account[o.symbol][0]) * self.account[o.symbol][1]) + (o.qty * o.filled_avg_price)) / (abs(self.account[o.symbol][0]) + o.qty)
+
             self.account[o.symbol] = [newsize, newavgp]
-            self.cash = float(self.cash + (o.qty * o.filled_avg_price))
+
+            #pokud jde o prodej longu(nova pozice je>=0) upravujeme cash
+            if self.account[o.symbol][0] >= 0:
+                self.cash = float(self.cash + (o.qty * o.filled_avg_price))
+                print("uprava cashe, jde o prodej longu")
+            else:
+                self.cash = float(self.cash + (o.qty * o.filled_avg_price))
+                #self.cash_reserved_for_shorting += float(o.qty * o.filled_avg_price)
+                print("jde o short, upravujeme cash zatim stejne")    
             return 1
         else:
             print("neznaama side", o.side)
@@ -467,30 +488,52 @@ class Backtester:
         #check for available quantity
         if side == OrderSide.SELL:
             reserved = 0
+            reserved_price = 0
             #with lock:
             for o in self.open_orders:
                 if o.side == OrderSide.SELL and o.symbol == symbol and o.canceled_at is None:
                     reserved += o.qty
-                print("blokovano v open orders pro sell: ", reserved)
+                    cena = o.limit_price if o.limit_price else self.get_last_price(time, o.symbol)
+                    reserved_price += o.qty * cena
+                print("blokovano v open orders pro sell qty: ", reserved, "celkem:", reserved_price)
             
-            if int(self.account[symbol][0]) - reserved - int(size) < 0:
-                print("not enough shares having",self.account[symbol][0],"reserved",reserved,"available",int(self.account[symbol][0]) - reserved,"selling",size)
+            actual_minus_reserved = int(self.account[symbol][0]) - reserved 
+            if actual_minus_reserved > 0 and actual_minus_reserved - int(size) < 0:
+                print("not enough shares available to sell or shorting while long position",self.account[symbol][0],"reserved",reserved,"available",int(self.account[symbol][0]) - reserved,"selling",size)
                 return -1
+            
+            #if is shorting - check available cash to short
+            if actual_minus_reserved <= 0:
+                cena = price if price else self.get_last_price(time, self.symbol)
+                if (self.cash - reserved_price - float(int(size)*float(cena))) < 0:
+                    print("not enough cash for shorting. cash",self.cash,"reserved",reserved,"available",self.cash-reserved,"needed",float(int(size)*float(cena)))
+                    return -1               
 
         #check for available cash
         if side == OrderSide.BUY:
-            reserved = 0
+            reserved_qty = 0
+            reserved_price = 0
             #with lock:
             for o in self.open_orders:
                 if o.side == OrderSide.BUY and o.canceled_at is None:
                     cena = o.limit_price if o.limit_price else self.get_last_price(time, o.symbol)
-                    reserved += o.qty * cena
-                    print("blokovano v open orders: ", reserved)
+                    reserved_price += o.qty * cena
+                    reserved_qty += o.qty
+                    print("blokovano v open orders for buy: qty, price", reserved_qty, reserved_price)
 
-            cena = price if price else self.get_last_price(time, self.symbol)
-            if (self.cash - reserved - float(int(size)*float(cena))) < 0:
-                print("not enough cash. cash",self.cash,"reserved",reserved,"available",self.cash-reserved,"needed",float(int(size)*float(cena)))
+            actual_plus_reserved_qty = int(self.account[symbol][0]) + reserved_qty
+            
+            #jde o uzavreni shortu
+            if actual_plus_reserved_qty < 0 and (actual_plus_reserved_qty + int(size)) > 0:
+                print("nejprve je treba uzavrit short pozici pro buy res_qty, size", actual_plus_reserved_qty, size)
                 return -1
+
+            #jde o standardni long, kontroluju cash
+            if actual_plus_reserved_qty >= 0:
+                cena = price if price else self.get_last_price(time, self.symbol)
+                if (self.cash - reserved_price - float(int(size)*float(cena))) < 0:
+                    print("not enough cash to buy long. cash",self.cash,"reserved_qty",reserved_qty,"reserved_price",reserved_price, "available",self.cash-reserved_price,"needed",float(int(size)*float(cena)))
+                    return -1
 
         id = str(uuid4())
         order = Order(id=id,

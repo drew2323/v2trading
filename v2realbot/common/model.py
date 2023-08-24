@@ -18,12 +18,11 @@ from alpaca.data.enums import Exchange
 #  if user_update.first_name is not None:
 #  user.first_name = user_update.first_name
 #  if user_update.last_name is not None:
-#  user.last_name = user_update.last_name
+#  userbase.last_name = user_update.last_name
 #  if user_update.roles is not None:
 #  user.roles = user_update.roles
 #  return user.id
 #  raise HTTPException(status_code=404, detail=f"Could not find user with id: {id}")
-
 
 class Intervals(BaseModel):
     start: str

@@ -29,12 +29,12 @@ class StrategyClassicSL(Strategy):
         self.state.ilog(e="Příchozí BUY notif", msg=o.status, trade=json.loads(json.dumps(data, default=json_serial)))
         if o.status == OrderStatus.FILLED or o.status == OrderStatus.CANCELED:
             #davame pryc pending
-            self.state.vars.pending = None
+            self.state.vars.pending = False
 
         if data.event == TradeEvent.FILL or data.event == TradeEvent.PARTIAL_FILL:
 
             #jde o uzavření short pozice - počítáme PROFIT
-            if self.state.positions < 0:
+            if int(self.state.positions) < 0:
                 #PROFIT pocitame z TradeUpdate.price a TradeUpdate.qty - aktualne provedene mnozstvi a cena
                 #naklady vypocteme z prumerne ceny, kterou mame v pozicich
                 bought_amount = data.qty * data.price
@@ -60,12 +60,9 @@ class StrategyClassicSL(Strategy):
 
         self.state.ilog(e="Příchozí SELL notif", msg=data.order.status, trade=json.loads(json.dumps(data, default=json_serial)))
         #naklady vypocteme z prumerne ceny, kterou mame v pozicich
-        if data.event == TradeEvent.FILL or data.event == TradeEvent.PARTIAL_FILL:
-            if data.event == TradeEvent.FILL:
-                self.state.vars.pending = None
-            
+        if data.event == TradeEvent.FILL or data.event == TradeEvent.PARTIAL_FILL:            
             #jde o uzavření long pozice - počítáme PROFIT
-            if self.state.positions > 0:
+            if int(self.state.positions) > 0:
                 #PROFIT pocitame z TradeUpdate.price a TradeUpdate.qty - aktualne provedene mnozstvi a cena
                 #naklady vypocteme z prumerne ceny, kterou mame v pozicich
                 sold_amount = data.qty * data.price
@@ -93,6 +90,7 @@ class StrategyClassicSL(Strategy):
 
         if data.event == TradeEvent.FILL or data.event == TradeEvent.CANCELED:
             print("Příchozí SELL notifikace - complete FILL nebo CANCEL", data.event)
+            self.state.vars.pending = False
             a,p = self.interface.pos()
             #pri chybe api nechavame puvodni hodnoty
             if a != -1:

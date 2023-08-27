@@ -466,6 +466,12 @@ def populate_metrics_output_directory(strat: StrategyInstance):
     #filt = max_positions['side'] == 'OrderSide.BUY'
     res = dict(zip(max_positions['qty'], max_positions['count']))
 
+    #pridani klice obsahujici prescribed trades
+    try:
+        res["prescr_trades"]=json.loads(json.dumps(strat.state.vars.prescribedTrades, default=json_serial))
+    except NameError:
+        pass
+
     return res
 
 #archives runner and details

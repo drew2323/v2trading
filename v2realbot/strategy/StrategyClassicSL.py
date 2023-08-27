@@ -27,9 +27,7 @@ class StrategyClassicSL(Strategy):
         o: Order = data.order
         ##nejak to vymyslet, aby se dal poslat cely Trade a serializoval se
         self.state.ilog(e="Příchozí BUY notif", msg=o.status, trade=json.loads(json.dumps(data, default=json_serial)))
-        if o.status == OrderStatus.FILLED or o.status == OrderStatus.CANCELED:
-            #davame pryc pending
-            self.state.vars.pending = False
+
 
         if data.event == TradeEvent.FILL or data.event == TradeEvent.PARTIAL_FILL:
 
@@ -44,9 +42,24 @@ class StrategyClassicSL(Strategy):
                     self.state.ilog(e="ERR: Nemame naklady na PROFIT, AVGP je nula. Zaznamenano jako 0", msg="naklady=utrzena cena. TBD opravit.")
                     avg_costs = bought_amount
                 
-                trade_profit = (avg_costs-bought_amount)
+                trade_profit = round((avg_costs-bought_amount),2)
                 self.state.profit += trade_profit
                 self.state.ilog(e=f"BUY notif - SHORT PROFIT:{round(float(trade_profit),3)} celkem:{round(float(self.state.profit),3)}", msg=str(data.event), bought_amount=bought_amount, avg_costs=avg_costs, trade_qty=data.qty, trade_price=data.price, orderid=str(data.order.id))
+            
+                #zapsat profit do prescr.trades
+                for trade in self.state.vars.prescribedTrades:
+                    if trade.id == self.state.vars.pending:
+                        trade.profit = trade_profit
+                        trade.profit_sum = self.state.profit
+
+                #zapsat update profitu do tradeList
+                for tradeData in self.state.tradeList:
+                    if tradeData.execution_id == data.execution_id:
+                        #pridat jako attribut, aby proslo i na LIVE a PAPPER, kde se bere TradeUpdate z Alpaca
+                        setattr(tradeData, "profit", trade_profit)
+                        setattr(tradeData, "profit_sum", self.state.profit)
+                        self.state.ilog(f"updatnut tradeList o profi {str(tradeData)}")
+            
             else:
                 self.state.ilog(e="BUY: Jde o LONG nakuú nepocitame profit zatim")
 
@@ -55,6 +68,10 @@ class StrategyClassicSL(Strategy):
             #dostavame zde i celkové akutální množství - ukládáme
             self.state.positions = data.position_qty
             self.state.avgp, self.state.positions = self.state.interface.pos()
+
+        if o.status == OrderStatus.FILLED or o.status == OrderStatus.CANCELED:
+            #davame pryc pending
+            self.state.vars.pending = None
 
     async def orderUpdateSell(self, data: TradeUpdate): 
 
@@ -72,9 +89,24 @@ class StrategyClassicSL(Strategy):
                     self.state.ilog(e="ERR: Nemame naklady na PROFIT, AVGP je nula. Zaznamenano jako 0", msg="naklady=utrzena cena. TBD opravit.")
                     avg_costs = sold_amount
                 
-                trade_profit = (sold_amount - avg_costs)
+                trade_profit = round((sold_amount - avg_costs),2)
                 self.state.profit += trade_profit
                 self.state.ilog(e=f"SELL notif - PROFIT:{round(float(trade_profit),3)} celkem:{round(float(self.state.profit),3)}", msg=str(data.event), sold_amount=sold_amount, avg_costs=avg_costs, trade_qty=data.qty, trade_price=data.price, orderid=str(data.order.id))
+
+                #zapsat profit do prescr.trades
+                for trade in self.state.vars.prescribedTrades:
+                    if trade.id == self.state.vars.pending:
+                        trade.profit = trade_profit
+                        trade.profit_sum = self.state.profit
+
+                #zapsat update profitu do tradeList
+                for tradeData in self.state.tradeList:
+                    if tradeData.execution_id == data.execution_id:
+                        #pridat jako attribut, aby proslo i na LIVE a PAPPER, kde se bere TradeUpdate z Alpaca
+                        setattr(tradeData, "profit", trade_profit)
+                        setattr(tradeData, "profit_sum", self.state.profit)
+                        self.state.ilog(f"updatnut tradeList o profi {str(tradeData)}")
+
             else:
                 self.state.ilog(e="SELL: Jde o SHORT nepocitame profit zatim")
 
@@ -90,7 +122,7 @@ class StrategyClassicSL(Strategy):
 
         if data.event == TradeEvent.FILL or data.event == TradeEvent.CANCELED:
             print("Příchozí SELL notifikace - complete FILL nebo CANCEL", data.event)
-            self.state.vars.pending = False
+            self.state.vars.pending = None
             a,p = self.interface.pos()
             #pri chybe api nechavame puvodni hodnoty
             if a != -1:

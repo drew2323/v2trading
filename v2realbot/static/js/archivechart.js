@@ -5,7 +5,7 @@ var CHART_SHOW_TEXT = false
 // var volumeSeries = null
 var markersLine = null
 var avgBuyLine = null
-//TRANSFORM object returned from RESTA PI get_arch_run_detail
+//TRANSFORM object returned from REST API get_arch_run_detail
 //to series and markers required by lightweigth chart
 //input array object bars = { high: [1,2,3], time: [1,2,3], close: [2,2,2]...}
 //output array [{ time: 111, open: 11, high: 33, low: 333, close: 333},..]
@@ -100,13 +100,26 @@ function transform_data(data) {
         marker = {}
         marker["time"] = timestamp;
         // marker["position"] = (trade.order.side == "buy") ? "belowBar" : "aboveBar" 
-        marker["position"] = (trade.order.side == "buy") ? "inBar" : "aboveBar" 
+        marker["position"] = (trade.order.side == "buy") ? "aboveBar" : "aboveBar" 
         marker["color"] = (trade.order.side == "buy") ? "#37cade" : "red"
         //marker["shape"] = (trade.order.side == "buy") ? "arrowUp" : "arrowDown"
-        marker["shape"] = (trade.order.side == "buy") ? "circle" : "arrowDown"
+        marker["shape"] = (trade.order.side == "buy") ? "arrowUp" : "arrowDown"
         //marker["text"] =  trade.qty + "/" + trade.price
-        marker["text"] =  CHART_SHOW_TEXT ? trade.qty + "/" + trade.price : trade.qty
-        marker["text"] = (trade.position_qty == 0) ? "c": marker["text"]
+        qt_optimized = (trade.qty % 1000 === 0) ? (trade.qty / 1000).toFixed(1) + 'K' : trade.qty
+  
+        if (CHART_SHOW_TEXT) {
+            //včetně qty
+            //marker["text"] =  qt_optimized + "@" + trade.price
+                
+            //bez qty
+            marker["text"] =  trade.price
+            closed_trade_marker_and_profit = (trade.profit) ? "c" + trade.profit.toFixed(1) + "/" + trade.profit_sum.toFixed(1) : "c"
+            marker["text"] += (trade.position_qty == 0) ? closed_trade_marker_and_profit : ""
+        } else {
+            closed_trade_marker_and_profit = (trade.profit) ? "c" + trade.profit.toFixed(1) + "/" + trade.profit_sum.toFixed(1) : "c"
+            marker["text"] = (trade.position_qty == 0) ? closed_trade_marker_and_profit : ""
+        }
+
         markers.push(marker)
 
         //prevedeme iso data na timestampy

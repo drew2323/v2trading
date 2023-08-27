@@ -8,6 +8,7 @@ from v2realbot.indicators.oscillators import rsi
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
 from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, print, safe_get, get_tick, round2five, is_open_rush, is_close_rush, eval_cond_dict, Average, crossed_down, crossed_up, crossed, is_pivot, json_serial
 from datetime import datetime
+from uuid import uuid4
 import json
 #from icecream import install, ic
 #from rich import print
@@ -769,7 +770,7 @@ def next(data, state: StrategyState):
         curr_price = float(data['close'])
         state.ilog(e="Eval CLOSE", price=curr_price, pos=state.positions, avgp=state.avgp, pending=state.vars.pending, activeTrade=str(state.vars.activeTrade))
           
-        if int(state.positions) != 0 and float(state.avgp)>0 and state.vars.pending is False:
+        if int(state.positions) != 0 and float(state.avgp)>0 and state.vars.pending is None:
             #pevny target - presunout toto do INIT a pak jen pristupovat
             goal_price = get_profit_target_price()
             max_price = get_max_profit_price()
@@ -790,7 +791,7 @@ def next(data, state: StrategyState):
                     res = state.buy(size=abs(state.positions))
                     if isinstance(res, int) and res < 0:
                         raise Exception(f"error in required operation STOPLOSS BUY {res}")
-                    state.vars.pending = True
+                    state.vars.pending = state.vars.activeTrade.id
                     state.vars.activeTrade = None
                     return
                 
@@ -799,7 +800,7 @@ def next(data, state: StrategyState):
                         res = state.buy(size=abs(state.positions))
                         if isinstance(res, int) and res < 0:
                             raise Exception(f"error in required operation EXIT COND BUY {res}")
-                        state.vars.pending = True
+                        state.vars.pending = state.vars.activeTrade.id
                         state.vars.activeTrade = None
                         state.ilog(e=f"EXIT COND MET. market BUY was sent {curr_price=}", positions=state.positions, avgp=state.avgp)
                         return                   
@@ -815,7 +816,7 @@ def next(data, state: StrategyState):
                         res = state.buy(size=abs(state.positions))
                         if isinstance(res, int) and res < 0:
                             raise Exception(f"error in required operation PROFIT BUY {res}")
-                        state.vars.pending = True
+                        state.vars.pending = state.vars.activeTrade.id
                         state.vars.activeTrade = None
                         state.ilog(e=f"PROFIT MET EXIT. market BUY was sent {curr_price=} {max_price_signal=}", positions=state.positions, avgp=state.avgp)
                         return
@@ -832,7 +833,7 @@ def next(data, state: StrategyState):
                     res = state.sell(size=state.positions)
                     if isinstance(res, int) and res < 0:
                         raise Exception(f"error in required operation STOPLOSS SELL {res}")
-                    state.vars.pending = True
+                    state.vars.pending = state.vars.activeTrade.id
                     state.vars.activeTrade = None
                     return
 
@@ -840,7 +841,7 @@ def next(data, state: StrategyState):
                         res = state.sell(size=abs(state.positions))
                         if isinstance(res, int) and res < 0:
                             raise Exception(f"error in required operation EXIT COND SELL {res}")
-                        state.vars.pending = True
+                        state.vars.pending = state.vars.activeTrade.id
                         state.vars.activeTrade = None
                         state.ilog(e=f"EXIT COND MET. market SELL was sent {curr_price=}", positions=state.positions, avgp=state.avgp)
                         return    
@@ -856,7 +857,7 @@ def next(data, state: StrategyState):
                         res = state.sell(size=state.positions)
                         if isinstance(res, int) and res < 0:
                             raise Exception(f"error in required operation PROFIT SELL {res}")
-                        state.vars.pending = True
+                        state.vars.pending = state.vars.activeTrade.id
                         state.vars.activeTrade = None
                         state.ilog(e=f"PROFIT MET EXIT. market SELL was sent {curr_price=} {max_price_signal=}", positions=state.positions, avgp=state.avgp, sellinprogress=state.vars.sell_in_progress)
                         return
@@ -897,7 +898,7 @@ def next(data, state: StrategyState):
                     sl_defvalue_normalized = get_tick(data['close'],sl_defvalue)
                     state.vars.activeTrade.stoploss_value = float(data['close']) - sl_defvalue_normalized
                     state.ilog(e=f"Nastaveno SL na {sl_defvalue}, priced normalized: {sl_defvalue_normalized} price: {state.vars.activeTrade.stoploss_value }")
-                state.vars.pending = True
+                state.vars.pending = state.vars.activeTrade.id
             elif state.vars.activeTrade.direction == TradeDirection.SHORT:
                 state.ilog(e="odesilame SHORT ORDER",trade=json.loads(json.dumps(state.vars.activeTrade, default=json_serial)))
                 res = state.sell(size=state.vars.chunk)
@@ -910,7 +911,7 @@ def next(data, state: StrategyState):
                     sl_defvalue_normalized = get_tick(data['close'],sl_defvalue)
                     state.vars.activeTrade.stoploss_value = float(data['close']) + sl_defvalue_normalized
                     state.ilog(e=f"Nastaveno SL na {sl_defvalue}, priced normalized: {sl_defvalue_normalized} price: {state.vars.activeTrade.stoploss_value }")
-                state.vars.pending = True
+                state.vars.pending = state.vars.activeTrade.id
             else:
                 state.ilog(e="unknow direction")
                 state.vars.activeTrade = None
@@ -1035,13 +1036,17 @@ def next(data, state: StrategyState):
             #common signals based on 1) configured signals in stratvars
             #toto umoznuje jednoduchy prescribed trade bez ceny 
             if conditions_met(signalname=name, direction=TradeDirection.LONG):
-                state.vars.prescribedTrades.append(Trade(validfrom=datetime.now(tz=zoneNY),
+                state.vars.prescribedTrades.append(Trade(
+                                        id=uuid4(),
+                                        validfrom=datetime.now(tz=zoneNY),
                                         status=TradeStatus.READY,
                                         direction=TradeDirection.LONG,
                                         entry_price=None,
                                         stoploss_value = None))
             elif conditions_met(signalname=name, direction=TradeDirection.SHORT):
-                state.vars.prescribedTrades.append(Trade(validfrom=datetime.now(tz=zoneNY),
+                state.vars.prescribedTrades.append(Trade(
+                        id=uuid4(),
+                        validfrom=datetime.now(tz=zoneNY),
                         status=TradeStatus.READY,
                         direction=TradeDirection.SHORT,
                         entry_price=None,
@@ -1083,24 +1088,24 @@ def next(data, state: StrategyState):
 
     #MAIN LOOP
     lp = data['close']
-    state.ilog(e="ENTRY", msg=f"LP:{lp} P:{state.positions}/{round(float(state.avgp),3)} SL:{state.vars.activeTrade.stoploss_value} profit:{round(float(state.profit),2)} Trades:{len(state.tradeList)}", activeTrade=json.loads(json.dumps(state.vars.activeTrade, default=json_serial)), prescribedTrades=json.loads(json.dumps(state.vars.prescribedTrades, default=json_serial)), pending=str(state.vars.pending), last_price=lp, data=data, stratvars=str(state.vars))
+    state.ilog(e="ENTRY", msg=f"LP:{lp} P:{state.positions}/{round(float(state.avgp),3)} SL:{state.vars.activeTrade.stoploss_value if state.vars.activeTrade is not None else None} profit:{round(float(state.profit),2)} Trades:{len(state.tradeList)}", activeTrade=json.loads(json.dumps(state.vars.activeTrade, default=json_serial)), prescribedTrades=json.loads(json.dumps(state.vars.prescribedTrades, default=json_serial)), pending=str(state.vars.pending), last_price=lp, data=data, stratvars=str(state.vars))
     inds = get_last_ind_vals()
     state.ilog(e="Indikatory", **inds)
 
     #TODO dat do initu inciializaci work directory pro directivy 
 
     #pokud mame prazdne pozice a neceka se na nic
-    if state.positions == 0 and state.vars.pending is False:
+    if state.positions == 0 and state.vars.pending is None:
         execute_prescribed_trades()
         #pokud se neaktivoval nejaky trade, poustime signal search - ale jen jednou za bar?
         #if conf_bar == 1:
-        if state.vars.pending is False:
+        if state.vars.pending is None:
             signal_search()
             #pro jistotu ihned zpracujeme
             execute_prescribed_trades()
 
     #mame aktivni trade a neceka se nani
-    elif state.vars.activeTrade and state.vars.pending is False:
+    elif state.vars.activeTrade and state.vars.pending is None:
             manage_active_trade() #optimalize, close
                # - close means change status in prescribed Trends,update profit, delete from activeTrade
     
@@ -1158,7 +1163,7 @@ def init(state: StrategyState):
     #nove atributy na rizeni tradu
 
     #identifikuje provedenou změnu na Tradu (neděláme změny dokud nepřijde potvrzeni z notifikace)
-    state.vars.pending = False
+    state.vars.pending = None
     #obsahuje aktivni Trade a jeho nastaveni
     state.vars.activeTrade = None #pending/Trade
     #obsahuje pripravene Trady ve frontě

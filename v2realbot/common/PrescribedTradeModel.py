@@ -2,7 +2,7 @@ from enum import Enum
 from datetime import datetime
 from pydantic import BaseModel
 from typing import Any, Optional, List, Union
-
+from uuid import UUID
 class TradeStatus(str, Enum):
     READY = "ready"
     ACTIVATED = "activated"
@@ -17,6 +17,7 @@ class TradeStoplossType(str, Enum):
     TRAILING = "trailing"
 
 class Trade(BaseModel):
+    id: UUID
     validfrom: datetime
     status: TradeStatus
     direction: TradeDirection
@@ -24,4 +25,5 @@ class Trade(BaseModel):
     # stoploss_type: TradeStoplossType
     stoploss_value: Optional[float] = None
     profit: Optional[float] = None
+    profit_sum: Optional[float] = None
     

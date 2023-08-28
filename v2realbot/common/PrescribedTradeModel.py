@@ -18,12 +18,12 @@ class TradeStoplossType(str, Enum):
 
 class Trade(BaseModel):
     id: UUID
-    validfrom: datetime
+    last_update: datetime
     status: TradeStatus
     direction: TradeDirection
     entry_price: Optional[float] = None
     # stoploss_type: TradeStoplossType
     stoploss_value: Optional[float] = None
-    profit: Optional[float] = None
-    profit_sum: Optional[float] = None
+    profit: Optional[float] = 0
+    profit_sum: Optional[float] = 0
     

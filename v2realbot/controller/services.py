@@ -9,6 +9,7 @@ from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, Orde
 from v2realbot.common.model import StrategyInstance, Runner, RunRequest, RunArchive, RunArchiveDetail, RunArchiveChange, Bar, TradeEvent
 from v2realbot.utils.utils import AttributeDict, zoneNY, dict_replace_value, Store, parse_toml_string, json_serial, is_open_hours, send_to_telegram
 from v2realbot.utils.ilog import delete_logs
+from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
 from datetime import datetime
 from threading import Thread, current_thread, Event, enumerate
 from v2realbot.config import STRATVARS_UNCHANGEABLES, ACCOUNT1_LIVE_API_KEY, ACCOUNT1_LIVE_SECRET_KEY, DATA_DIR,BT_FILL_CONS_TRADES_REQUIRED,BT_FILL_LOG_SURROUNDING_TRADES,BT_FILL_CONDITION_BUY_LIMIT,BT_FILL_CONDITION_SELL_LIMIT, GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN
@@ -466,9 +467,45 @@ def populate_metrics_output_directory(strat: StrategyInstance):
     #filt = max_positions['side'] == 'OrderSide.BUY'
     res = dict(zip(max_positions['qty'], max_positions['count']))
 
-    #pridani klice obsahujici prescribed trades
+    #metrikz z prescribedTrades, pokud existuji
     try:
+        long_profit = 0
+        short_profit = 0
+        long_losses = 0
+        short_losses = 0
+        long_wins = 0
+        short_wins = 0
+        max_profit = 0
+        max_profit_time = None
+        for trade in strat.state.vars.prescribedTrades:
+            if trade.profit_sum > max_profit:
+                max_profit = trade.profit_sum
+                max_profit_time = trade.last_update
+            if trade.status == TradeStatus.ACTIVATED and trade.direction == TradeDirection.LONG:
+                if trade.profit is not None:
+                    long_profit += trade.profit
+                    if trade.profit < 0:
+                        long_losses += trade.profit
+                    if trade.profit > 0:
+                        long_wins += trade.profit
+            if trade.status == TradeStatus.ACTIVATED and trade.direction == TradeDirection.SHORT:
+                if trade.profit is not None:
+                    short_profit += trade.profit
+                    if trade.profit < 0:
+                        short_losses += trade.profit
+                    if trade.profit > 0:
+                        short_wins += trade.profit
+        res["long_profit"] = round(long_profit,2)
+        res["short_profit"] = round(short_profit,2)
+        res["long_losses"] = round(long_losses,2)
+        res["short_losses"] = round(short_losses,2)
+        res["long_wins"] = round(long_wins,2)
+        res["short_wins"] = round(short_wins,2)
+        res["max_profit"] = round(max_profit,2)
+        res["max_profit_time"] = str(max_profit_time)
+        #vlozeni celeho listu
         res["prescr_trades"]=json.loads(json.dumps(strat.state.vars.prescribedTrades, default=json_serial))
+
     except NameError:
         pass
 

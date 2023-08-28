@@ -2,10 +2,12 @@ from v2realbot.strategy.base import Strategy
 from v2realbot.utils.utils import parse_alpaca_timestamp, ltp, AttributeDict,trunc,price2dec, zoneNY, print, json_serial, safe_get, get_tick
 from v2realbot.utils.tlog import tlog, tlog_exception
 from v2realbot.enums.enums import Mode, Order, Account, RecordType
-from alpaca.trading.models import TradeUpdate
+#from alpaca.trading.models import TradeUpdate
+from  v2realbot.common.model import TradeUpdate
 from alpaca.trading.enums import TradeEvent, OrderStatus
 from v2realbot.indicators.indicators import ema
 import json
+from datetime import datetime
 #from rich import print
 from random import randrange
 from alpaca.common.exceptions import APIError
@@ -49,7 +51,8 @@ class StrategyClassicSL(Strategy):
                 #zapsat profit do prescr.trades
                 for trade in self.state.vars.prescribedTrades:
                     if trade.id == self.state.vars.pending:
-                        trade.profit = trade_profit
+                        trade.last_update = datetime.fromtimestamp(self.state.time).astimezone(zoneNY)
+                        trade.profit += trade_profit
                         trade.profit_sum = self.state.profit
 
                 #zapsat update profitu do tradeList
@@ -96,7 +99,8 @@ class StrategyClassicSL(Strategy):
                 #zapsat profit do prescr.trades
                 for trade in self.state.vars.prescribedTrades:
                     if trade.id == self.state.vars.pending:
-                        trade.profit = trade_profit
+                        trade.last_update = datetime.fromtimestamp(self.state.time).astimezone(zoneNY)
+                        trade.profit += trade_profit
                         trade.profit_sum = self.state.profit
 
                 #zapsat update profitu do tradeList

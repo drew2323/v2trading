@@ -423,6 +423,8 @@ class Strategy:
     async def order_updates(self, data: TradeUpdate):
         if self.mode == Mode.LIVE or self.mode == Mode.PAPER:
             now = datetime.now().timestamp()
+            #z alpakýho TradeEvent si udelame svuj rozsireny TradeEvent (obsahujici navic profit atp.)
+            data = TradeUpdate(**data.dict())
         else:
             now = self.bt.time
 

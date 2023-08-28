@@ -80,7 +80,11 @@ def crossed(threshold, list):
 
 def get_tick(price: float, normalized_ticks: float = 0.01):
     """
-    prevede normalizovany tick na tick odpovidajici vstupni cene
+    Pozor existuje varianta "normalize_tick", ktera je lepsi a podporuje direktivy ve strategii:
+        Normalize_ticks= true
+        Normalized Tick base price = 30
+    Tahle verze pracuje s globalnim nastavenim.
+    Prevede normalizovany tick na tick odpovidajici vstupni cene
     vysledek je zaokoruhleny na 2 des.mista
 
     u cen pod 30, vrací 0.01. U cen nad 30 vrací pomerne zvetsene, 

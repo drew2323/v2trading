@@ -93,7 +93,7 @@ async def get(username: Annotated[str, Depends(get_current_username)]):
 
 @app.websocket("/runners/{runner_id}/ws")
 async def websocket_endpoint(
-    *,
+    *, 
     websocket: WebSocket,
     runner_id: str,
     api_key: Annotated[str, Depends(get_api_key)],

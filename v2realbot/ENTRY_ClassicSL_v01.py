@@ -498,10 +498,18 @@ def next(data, state: StrategyState):
                     lookbacktime = state.bars.time[-slope_lookback]
                 else:
                     #kdyz neni  dostatek hodnot, pouzivame jako levy bod open hodnotu close[0]
-                    #lookbackprice = state.bars.close[0]
-
+                    lookbackprice = state.bars.vwap[0]
+                    
+                    #pokud neni dostatek, bereme vzdy petinu ze stávajících barů
+                    # cnt = len(state.bars.close)
+                    # if cnt>5:
+                    #     sliced_to = int(cnt/5)
+                    #     lookbackprice= Average(state.bars.vwap[:sliced_to])
+                        
+                    # else:
+                    #     lookbackprice = state.bars.vwap[0]
                     #update -- lookback je pole z toho co mame
-                    lookbackprice = Average(state.bars.vwap)
+                    #lookbackprice = Average(state.bars.vwap)
                     lookbacktime = state.bars.time[0]
                     state.ilog(e=f"IND {name} slope - not enough data bereme left bod open", slope_lookback=slope_lookback)
 

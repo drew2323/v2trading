@@ -162,7 +162,8 @@ class StrategyClassicSL(Strategy):
 
         self.state.blockbuy = 1
         self.state.vars.lastbuyindex = self.state.bars['index'][-1]
-        self.state.ilog(e="send MARKET buy to if", msg="S:"+str(size), ltp=self.state.interface.get_last_price(self.state.symbol))
+        #self.state.ilog(e="send MARKET buy to if", msg="S:"+str(size), ltp=self.state.interface.get_last_price(self.state.symbol))
+        self.state.ilog(e="send MARKET buy to if", msg="S:"+str(size), ltp=self.state.bars['close'][-1])
         return self.state.interface.buy(size=sizer)
 
     #overidden methods
@@ -186,7 +187,8 @@ class StrategyClassicSL(Strategy):
 
         #self.state.blocksell = 1
         #self.state.vars.lastbuyindex = self.state.bars['index'][-1]
-        self.state.ilog(e="send MARKET SELL to if", msg="S:"+str(size), ltp=self.state.interface.get_last_price(self.state.symbol))
+        #self.state.ilog(e="send MARKET SELL to if", msg="S:"+str(size), ltp=self.state.interface.get_last_price(self.state.symbol))
+        self.state.ilog(e="send MARKET SELL to if", msg="S:"+str(size), ltp=self.state.bars['close'][-1])
         return self.state.interface.sell(size=size)
 
     async def get_limitka_price(self):

@@ -107,7 +107,7 @@ class Trade_Offline_Streamer(Thread):
             #make it offset aware
             day.open = day.open.replace(tzinfo=zoneNY)
             #add 20 minutes of premarket
-            day.open = day.open - timedelta(minutes=20)
+            #day.open = day.open - timedelta(minutes=20)
             day.close = day.close.replace(tzinfo=zoneNY)
                                      
             ##pokud datum do je mensi day.open, tak tento den neresime
@@ -159,7 +159,7 @@ class Trade_Offline_Streamer(Thread):
             # (např. požadovaná start až od 10:00)
 
             #docasne disablujeme wait for queue, aby nam mohl jit i premarket
-            if self.time_from > day.open or 1==1:
+            if self.time_from > day.open: # or 1==1:
                 wait_for_q = False
             else:
                 wait_for_q = True
@@ -183,7 +183,8 @@ class Trade_Offline_Streamer(Thread):
                     ##ic(t['t'])
 
                     #poustime i 20 minut premarketu pro presnejsi populaci slopu v prvnich minutech
-                    if self.time_from - timedelta(minutes=20) < to_datetime(t['t']) < self.time_to:
+                    # - timedelta(minutes=20)
+                    if self.time_from < to_datetime(t['t']) < self.time_to:
                         #poustime dal, jinak ne
                         if wait_for_q:
                             #cekame na Q nebo na O (nekterym dnum chybelo Q)

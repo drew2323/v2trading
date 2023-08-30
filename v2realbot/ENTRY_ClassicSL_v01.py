@@ -7,6 +7,7 @@ from v2realbot.indicators.indicators import ema
 from v2realbot.indicators.oscillators import rsi
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
 from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, print, safe_get, round2five, is_open_rush, is_close_rush, eval_cond_dict, Average, crossed_down, crossed_up, crossed, is_pivot, json_serial
+from v2realbot.common.model import SLHistory
 from datetime import datetime
 from uuid import uuid4
 import json
@@ -498,20 +499,25 @@ def next(data, state: StrategyState):
                     lookbacktime = state.bars.time[-slope_lookback]
                 else:
                     #kdyz neni  dostatek hodnot, pouzivame jako levy bod open hodnotu close[0]
-                    lookbackprice = state.bars.vwap[0]
+                    #lookbackprice = state.bars.vwap[0]
                     
-                    #pokud neni dostatek, bereme vzdy petinu ze stávajících barů
-                    # cnt = len(state.bars.close)
-                    # if cnt>5:
-                    #     sliced_to = int(cnt/5)
-                    #     lookbackprice= Average(state.bars.vwap[:sliced_to])
-                        
-                    # else:
-                    #     lookbackprice = state.bars.vwap[0]
-                    #update -- lookback je pole z toho co mame
+                    #dalsi vyarianta-- lookback je pole z toho všeho co mame
                     #lookbackprice = Average(state.bars.vwap)
-                    lookbacktime = state.bars.time[0]
-                    state.ilog(e=f"IND {name} slope - not enough data bereme left bod open", slope_lookback=slope_lookback)
+
+                    
+
+                    #pokud neni dostatek, bereme vzdy prvni petinu z dostupnych barů
+                    # a z ní uděláme průměr
+                    cnt = len(state.bars.close)
+                    if cnt>5:
+                        sliced_to = int(cnt/5)
+                        lookbackprice= Average(state.bars.vwap[:sliced_to])
+                        lookbacktime = state.bars.time[int(sliced_to/2)]
+                    else:
+                        lookbackprice = Average(state.bars.vwap)
+                        lookbacktime = state.bars.time[0]
+                    
+                    state.ilog(e=f"IND {name} slope - not enough data bereme left bod open", slope_lookback=slope_lookback, lookbackprice=lookbackprice)
 
                 #výpočet úhlu - a jeho normalizace
                 slope = ((state.bars.close[-1] - lookbackprice)/lookbackprice)*100
@@ -533,7 +539,7 @@ def next(data, state: StrategyState):
                     state.indicators[name+"MA"][-1]=slopeMA
                     last_slopesMA = state.indicators[name+"MA"][-10:]
 
-                state.ilog(e=f"{name=} {slope=} {slopeMA=}", msg=f"{lookbackprice=}", lookbackoffset=lookback_offset, minimum_slope=minimum_slope, last_slopes=state.indicators[name][-10:], last_slopesMA=last_slopesMA)
+                state.ilog(e=f"{name=} {slope=} {slopeMA=}", msg=f"{lookbackprice=} {lookbacktime=}", slope_lookback=slope_lookback, lookbackoffset=lookback_offset, lookbacktime=lookbacktime, minimum_slope=minimum_slope, last_slopes=state.indicators[name][-10:], last_slopesMA=last_slopesMA)
                 #dale pracujeme s timto MAckovanym slope
                 #slope = slopeMA         
 
@@ -752,7 +758,11 @@ def next(data, state: StrategyState):
         # return result 
 
 
-    def trail_SL_if_required(direction: TradeDirection):
+    def insert_SL_history():
+    #insert stoploss history as key sl_history into runner archive extended data
+        state.extData["sl_history"].append(SLHistory(id=state.vars.activeTrade.id, time=state.time, sl_val=state.vars.activeTrade.stoploss_value))
+
+    def trail_SL_management():
     #pokud se cena posouva nasim smerem olespon o (0.05) nad (SL + 0.09val), posuneme SL o offset
     #+ varianta - skoncit breakeven
 
@@ -768,43 +778,68 @@ def next(data, state: StrategyState):
     # #zda trailing zastavit na brakeeven
     # SL_trailing_stop_at_breakeven_short = true
     # SL_trailing_stop_at_breakeven_long = true
-        if direction == TradeDirection.LONG:
-            smer = "long"
-        else:
-            smer = "short"
-        
-        options = safe_get(state.vars, 'exit_conditions', None)
-        if options is None:
-            state.ilog(e="Trail SL. No options for exit conditions in stratvars.")
-            return
-        
-        if safe_get(options, 'SL_trailing_enabled_'+str(smer), False) is True:
-            stop_breakeven = safe_get(options, 'SL_trailing_stop_at_breakeven_'+str(smer), False)
-            def_SL = safe_get(options, 'SL_defval_'+str(smer), 0.01)
-            offset = safe_get(options, "SL_trailing_offset_"+str(smer), 0.01)
+        if int(state.positions) != 0 and float(state.avgp)>0 and state.vars.pending is None:
 
-            #pokud je pozadovan trail jen do breakeven a uz prekroceno
-            if (direction == TradeDirection.LONG and stop_breakeven and state.vars.activeTrade.stoploss_value >= float(state.avgp)) or (direction == TradeDirection.SHORT and stop_breakeven and state.vars.activeTrade.stoploss_value <= float(state.avgp)):
-                state.ilog(e=f"SL trail stop at breakeven {str(smer)} SL:{state.vars.activeTrade.stoploss_value} UNCHANGED", stop_breakeven=stop_breakeven)
+            if int(state.positions) < 0:
+                direction = TradeDirection.SHORT
+                smer = "short"
+            else:
+                direction = TradeDirection.LONG
+                smer = "long"
+            
+            options = safe_get(state.vars, 'exit_conditions', None)
+            if options is None:
+                state.ilog(e="Trail SL. No options for exit conditions in stratvars.")
                 return
             
-            #IDEA: Nyni posouvame SL o offset, mozna ji posunout jen o direktivu step ?
+            if safe_get(options, 'SL_trailing_enabled_'+str(smer), False) is True:
+                stop_breakeven = safe_get(options, 'SL_trailing_stop_at_breakeven_'+str(smer), False)
+                def_SL = safe_get(options, 'SL_defval_'+str(smer), 0.01)
+                offset = safe_get(options, "SL_trailing_offset_"+str(smer), 0.01)
 
-            offset_normalized = normalize_tick(offset) #to ticks and from options
-            def_SL_normalized = normalize_tick(def_SL)
-            if direction == TradeDirection.LONG:
-                move_SL_threshold = state.vars.activeTrade.stoploss_value + offset_normalized + def_SL_normalized
-                state.ilog(e=f"SL trailing EVAL {smer} SL:{state.vars.activeTrade.stoploss_value} MOVETHRESHOLD:{move_SL_threshold}", def_SL=def_SL, offset=offset, offset_normalized=offset_normalized, def_SL_normalized=def_SL_normalized)
-                if (move_SL_threshold) < data['close']:
-                    state.vars.activeTrade.stoploss_value += offset_normalized
-                    state.ilog(e=f"SL TRAIL TH {smer} reached {move_SL_threshold} SL moved to {state.vars.activeTrade.stoploss_value}", offset_normalized=offset_normalized, def_SL_normalized=def_SL_normalized)
-            elif direction == TradeDirection.SHORT:
-                move_SL_threshold = state.vars.activeTrade.stoploss_value - offset_normalized - def_SL_normalized
-                state.ilog(e=f"SL trailing EVAL {smer} SL:{state.vars.activeTrade.stoploss_value} MOVETHRESHOLD:{move_SL_threshold}", def_SL=def_SL, offset=offset, offset_normalized=offset_normalized, def_SL_normalized=def_SL_normalized)
-                if (move_SL_threshold) > data['close']:
-                    state.vars.activeTrade.stoploss_value -= offset_normalized
-                    state.ilog(e=f"SL TRAIL TH {smer} reached {move_SL_threshold} SL moved to {state.vars.activeTrade.stoploss_value}", offset_normalized=offset_normalized, def_SL_normalized=def_SL_normalized)                            
+                #pokud je pozadovan trail jen do breakeven a uz prekroceno
+                if (direction == TradeDirection.LONG and stop_breakeven and state.vars.activeTrade.stoploss_value >= float(state.avgp)) or (direction == TradeDirection.SHORT and stop_breakeven and state.vars.activeTrade.stoploss_value <= float(state.avgp)):
+                    state.ilog(e=f"SL trail STOP at breakeven {str(smer)} SL:{state.vars.activeTrade.stoploss_value} UNCHANGED", stop_breakeven=stop_breakeven)
+                    return
+                
+                #IDEA: Nyni posouvame SL o offset, mozna ji posunout jen o direktivu step ?
 
+                offset_normalized = normalize_tick(offset) #to ticks and from options
+                def_SL_normalized = normalize_tick(def_SL)
+                if direction == TradeDirection.LONG:
+                    move_SL_threshold = state.vars.activeTrade.stoploss_value + offset_normalized + def_SL_normalized
+                    state.ilog(e=f"SL TRAIL EVAL {smer} SL:{round(state.vars.activeTrade.stoploss_value,3)} TRAILGOAL:{move_SL_threshold}", def_SL=def_SL, offset=offset, offset_normalized=offset_normalized, def_SL_normalized=def_SL_normalized)
+                    if (move_SL_threshold) < data['close']:
+                        state.vars.activeTrade.stoploss_value += offset_normalized
+                        insert_SL_history()
+                        state.ilog(e=f"SL TRAIL TH {smer} reached {move_SL_threshold} SL moved to {state.vars.activeTrade.stoploss_value}", offset_normalized=offset_normalized, def_SL_normalized=def_SL_normalized)
+                elif direction == TradeDirection.SHORT:
+                    move_SL_threshold = state.vars.activeTrade.stoploss_value - offset_normalized - def_SL_normalized
+                    state.ilog(e=f"SL TRAIL EVAL {smer} SL:{round(state.vars.activeTrade.stoploss_value,3)} TRAILGOAL:{move_SL_threshold}", def_SL=def_SL, offset=offset, offset_normalized=offset_normalized, def_SL_normalized=def_SL_normalized)
+                    if (move_SL_threshold) > data['close']:
+                        state.vars.activeTrade.stoploss_value -= offset_normalized
+                        insert_SL_history()
+                        state.ilog(e=f"SL TRAIL GOAL {smer} reached {move_SL_threshold} SL moved to {state.vars.activeTrade.stoploss_value}", offset_normalized=offset_normalized, def_SL_normalized=def_SL_normalized)                            
+
+    def close_position(direction: TradeDirection, reason: str):
+        state.ilog(e=f"CLOSING TRADE {reason} {str(direction)}", curr_price=data["close"], trade=state.vars.activeTrade)
+        if direction == TradeDirection.SHORT:
+            res = state.buy(size=abs(int(state.positions)))
+            if isinstance(res, int) and res < 0:
+                raise Exception(f"error in required operation {reason} {res}")
+
+        elif direction == TradeDirection.LONG:
+            res = state.sell(size=state.positions)
+            if isinstance(res, int) and res < 0:
+                raise Exception(f"error in required operation STOPLOSS SELL {res}")
+        
+        else:
+            raise Exception(f"unknow TradeDirection in close_position")
+
+        #pri uzavreni tradu zapisujeme SL history - lepsi zorbazeni v grafu
+        insert_SL_history()
+        state.vars.pending = state.vars.activeTrade.id
+        state.vars.activeTrade = None        
 
     def eval_close_position():
         curr_price = float(data['close'])
@@ -817,32 +852,21 @@ def next(data, state: StrategyState):
             state.ilog(e=f"Goal price {goal_price} max price {max_price}")
             
             #close position handling
+            #TBD pridat OPTIMALIZACI POZICE - EXIT 1/2
 
-            #mame short pozice - (IDEA: rozlisovat na zaklade aktivniho tradu - umozni mi spoustet i long pozicemi)
+            #mame short pozice - (IDEA: rozlisovat na zaklade aktivniho tradu - umozni mi spoustet i pri soucasne long pozicemi)
             if int(state.positions) < 0:
                 #EOD EXIT - TBD
-
-                #SL TRAILING
-                trail_SL_if_required(direction=TradeDirection.SHORT)
+                #FORCED EXIT PRI KONCI DNE
 
                 #SL - execution
                 if curr_price > state.vars.activeTrade.stoploss_value:
-                    state.ilog(e=f"STOPLOSS reached on SHORT", curr_price=curr_price, trade=state.vars.activeTrade)
-                    res = state.buy(size=abs(int(state.positions)))
-                    if isinstance(res, int) and res < 0:
-                        raise Exception(f"error in required operation STOPLOSS BUY {res}")
-                    state.vars.pending = state.vars.activeTrade.id
-                    state.vars.activeTrade = None
+                    close_position(direction=TradeDirection.SHORT, reason="SL REACHED")
                     return
                 
                 #CLOSING BASED ON EXIT CONDITIONS
                 if exit_conditions_met(TradeDirection.SHORT):
-                        res = state.buy(size=abs(int(state.positions)))
-                        if isinstance(res, int) and res < 0:
-                            raise Exception(f"error in required operation EXIT COND BUY {res}")
-                        state.vars.pending = state.vars.activeTrade.id
-                        state.vars.activeTrade = None
-                        state.ilog(e=f"EXIT COND MET. market BUY was sent {curr_price=}", positions=state.positions, avgp=state.avgp)
+                        close_position(direction=TradeDirection.SHORT, reason="EXIT COND MET")
                         return                   
 
                 #PROFIT
@@ -853,37 +877,19 @@ def next(data, state: StrategyState):
                     max_price_signal = curr_price<=max_price
                     #OPTIMALIZACE pri stoupajícím angle
                     if max_price_signal or sell_protection_enabled() is False:
-                        res = state.buy(size=abs(int(state.positions)))
-                        if isinstance(res, int) and res < 0:
-                            raise Exception(f"error in required operation PROFIT BUY {res}")
-                        state.vars.pending = state.vars.activeTrade.id
-                        state.vars.activeTrade = None
-                        state.ilog(e=f"PROFIT MET EXIT. market BUY was sent {curr_price=} {max_price_signal=}", positions=state.positions, avgp=state.avgp)
+                        close_position(direction=TradeDirection.SHORT, reason=f"PROFIT or MAXPROFIT REACHED {max_price_signal=}")
                         return
             #mame long
             elif int(state.positions) > 0:
                 #EOD EXIT - TBD
 
-                #SL - trailing
-                trail_SL_if_required(direction=TradeDirection.LONG)
-
                 #SL - execution
                 if curr_price < state.vars.activeTrade.stoploss_value:
-                    state.ilog(e=f"STOPLOSS reached on LONG", curr_price=curr_price, trade=state.vars.activeTrade)
-                    res = state.sell(size=state.positions)
-                    if isinstance(res, int) and res < 0:
-                        raise Exception(f"error in required operation STOPLOSS SELL {res}")
-                    state.vars.pending = state.vars.activeTrade.id
-                    state.vars.activeTrade = None
+                    close_position(direction=TradeDirection.LONG, reason="SL REACHED")
                     return
 
                 if exit_conditions_met(TradeDirection.LONG):
-                        res = state.sell(size=abs(int(state.positions)))
-                        if isinstance(res, int) and res < 0:
-                            raise Exception(f"error in required operation EXIT COND SELL {res}")
-                        state.vars.pending = state.vars.activeTrade.id
-                        state.vars.activeTrade = None
-                        state.ilog(e=f"EXIT COND MET. market SELL was sent {curr_price=}", positions=state.positions, avgp=state.avgp)
+                        close_position(direction=TradeDirection.LONG, reason="EXIT CONDS MET")
                         return    
 
                 #PROFIT
@@ -894,12 +900,7 @@ def next(data, state: StrategyState):
                     max_price_signal = curr_price>=max_price
                     #OPTIMALIZACE pri stoupajícím angle
                     if max_price_signal or sell_protection_enabled() is False:
-                        res = state.sell(size=state.positions)
-                        if isinstance(res, int) and res < 0:
-                            raise Exception(f"error in required operation PROFIT SELL {res}")
-                        state.vars.pending = state.vars.activeTrade.id
-                        state.vars.activeTrade = None
-                        state.ilog(e=f"PROFIT MET EXIT. market SELL was sent {curr_price=} {max_price_signal=}", positions=state.positions, avgp=state.avgp, sellinprogress=state.vars.sell_in_progress)
+                        close_position(direction=TradeDirection.LONG, reason=f"PROFIT or MAXPROFIT REACHED {max_price_signal=}")
                         return
 
     def execute_prescribed_trades():
@@ -939,6 +940,7 @@ def next(data, state: StrategyState):
                     #normalizuji dle aktualni ceny 
                     sl_defvalue_normalized = normalize_tick(sl_defvalue)
                     state.vars.activeTrade.stoploss_value = float(data['close']) - sl_defvalue_normalized
+                    insert_SL_history()
                     state.ilog(e=f"Nastaveno SL na {sl_defvalue}, priced normalized: {sl_defvalue_normalized} price: {state.vars.activeTrade.stoploss_value }")
                 state.vars.pending = state.vars.activeTrade.id
             elif state.vars.activeTrade.direction == TradeDirection.SHORT:
@@ -952,6 +954,7 @@ def next(data, state: StrategyState):
                     #normalizuji dle aktualni ceny 
                     sl_defvalue_normalized = normalize_tick(sl_defvalue)
                     state.vars.activeTrade.stoploss_value = float(data['close']) + sl_defvalue_normalized
+                    insert_SL_history()
                     state.ilog(e=f"Nastaveno SL na {sl_defvalue}, priced normalized: {sl_defvalue_normalized} price: {state.vars.activeTrade.stoploss_value }")
                 state.vars.pending = state.vars.activeTrade.id
             else:
@@ -966,7 +969,7 @@ def next(data, state: StrategyState):
     def execute_asr():
         pass
     
-    #preconditions and conditions of BUY SIGNAL
+    #preconditions and conditions of LONG/SHORT SIGNAL
     def conditions_met(signalname: str, direction: TradeDirection):
         if direction == TradeDirection.LONG:
             smer = "long"
@@ -989,6 +992,8 @@ def next(data, state: StrategyState):
         # dont_buy_when['last_buy_offset_too_soon'] =  data['index'] < (int(state.vars.lastbuyindex) + int(safe_get(state.vars, "lastbuy_offset",3)))
         # dont_buy_when['blockbuy_active'] = (state.vars.blockbuy == 1)
         # dont_buy_when['jevylozeno_active'] = (state.vars.jevylozeno == 1)
+
+        #obecne open_rush platne pro vsechny
         dont_do_when['open_rush'] = is_open_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), safe_get(state.vars, "open_rush",0))
         dont_do_when['close_rush'] = is_close_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), safe_get(state.vars, "close_rush",0))
     
@@ -1065,13 +1070,26 @@ def next(data, state: StrategyState):
             state.ilog(e="No options for {name} in stratvars")
             return
         
-        validfrom = safe_get(options, "validfrom", 0)
-        validto = safe_get(options, "validto", 0)
+        #check working windows
+        close_rush = safe_get(options, "close_rush",0)
+        open_rush = safe_get(options, "open_rush",0)
+
+        if is_open_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), open_rush) or is_close_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), close_rush):
+            state.ilog(e="SINGAL {name} OUT of WORKING WINDOW", msg=f"{open_rush=} {close_rush=} ")
+            return
+
+        #natvrdo nebo na podminku
+        activated = safe_get(options, "activated", True)
+
         recurring = safe_get(options, "reccurring", False)
         on_confirmed_only = safe_get(options, 'on_confirmed_only', False)
         plugin = safe_get(options, 'plugin', None)
         short_enabled = safe_get(state.vars, "short_enabled",True)
         long_enabled = safe_get(state.vars, "long_enabled",True)
+
+        if activated is False:
+            state.ilog(e="SIGNAL {name} NOT ACTIVATED")
+            return            
 
         #pokud je plugin True, spusti se kod
         if plugin:
@@ -1121,7 +1139,10 @@ def next(data, state: StrategyState):
         trade = state.vars.activeTrade
         if trade is None:
             return -1
-        
+
+         #SL - trailing
+        trail_SL_management()
+
         eval_close_position()
         #SELL STOPLOSS
         #SELL PROFIT
@@ -1204,8 +1225,10 @@ def init(state: StrategyState):
             state.vars.work_dict_dont_do[signalname+"_"+ smer] = get_work_dict_with_directive(starts_with=signalname+"_dont_"+ smer +"_if")
             state.vars.work_dict_signal_if[signalname+"_"+ smer] = get_work_dict_with_directive(starts_with=signalname+"_"+smer+"_if")
 
-    #nove atributy na rizeni tradu
+    #init klice v extData pro ulozeni historie SL
+    state.extData["sl_history"] = []
 
+    #nove atributy na rizeni tradu
     #identifikuje provedenou změnu na Tradu (neděláme změny dokud nepřijde potvrzeni z notifikace)
     state.vars.pending = None
     #obsahuje aktivni Trade a jeho nastaveni

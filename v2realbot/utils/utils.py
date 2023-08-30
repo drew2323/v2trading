@@ -9,7 +9,7 @@ import decimal
 from v2realbot.enums.enums import RecordType, Mode, StartBarAlign
 import pickle
 import os
-from v2realbot.common.model import StrategyInstance, Runner, RunArchive, RunArchiveDetail, Intervals
+from v2realbot.common.model import StrategyInstance, Runner, RunArchive, RunArchiveDetail, Intervals, SLHistory
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
 from typing import List
 import tomli
@@ -207,6 +207,8 @@ def json_serial(obj):
     if type(obj) is RunArchiveDetail:
         return obj.__dict__
     if type(obj) is Intervals:
+        return obj.__dict__
+    if type(obj) is SLHistory:
         return obj.__dict__
     
     raise TypeError (str(obj)+"Type %s not serializable" % type(obj))

@@ -595,12 +595,14 @@ def archive_runner(runner: Runner, strat: StrategyInstance):
         #             flattened_indicators[key]= value   
         # flattened_indicators_list.append(flattened_indicators)
 
+
         runArchiveDetail: RunArchiveDetail = RunArchiveDetail(id = runner.id,
                                                             name=runner.run_name,
                                                             bars=strat.state.bars,
                                                             indicators=flattened_indicators_list,
                                                             statinds=strat.state.statinds,
-                                                            trades=strat.state.tradeList)
+                                                            trades=strat.state.tradeList,
+                                                            ext_data=strat.state.extData)
         with lock:
             resh = db_arch_h.insert(runArchive.__dict__)
             resd = insert_archive_detail(runArchiveDetail)

@@ -5,6 +5,7 @@ var CHART_SHOW_TEXT = false
 // var volumeSeries = null
 var markersLine = null
 var avgBuyLine = null
+var slLine = []
 //TRANSFORM object returned from REST API get_arch_run_detail
 //to series and markers required by lightweigth chart
 //input array object bars = { high: [1,2,3], time: [1,2,3], close: [2,2,2]...}
@@ -15,6 +16,49 @@ function transform_data(data) {
     var bars = []
     var volume = []
     var vwap = []
+
+    //pokud mame tak projedeme ext_data pro dane klice a s nimi pracujeme
+    var sl_line = []
+    var sl_line_markers = []
+    var sl_line_sada = []
+    var sl_line_markers_sada = []
+    //console.log(JSON.stringify(data.ext_data.sl_history, null, 2))
+    prev_id = 0
+    data.ext_data.sl_history.forEach((histRecord, index, array) => {
+        
+        console.log("plnime")
+
+        //nova sada
+        if (prev_id !== histRecord.id) {
+            if (prev_id !== 0) {
+                //push sadu do pole
+                sl_line.push(sl_line_sada)
+                sl_line_markers.push(sl_line_markers_sada)
+            }
+            //init nova sada
+            sl_line_sada = []
+            sl_line_markers_sada = []
+        }
+
+        prev_id = histRecord.id
+        //prevedeme iso data na timestampy
+        cas = histRecord.time
+        //line pro buy/sell markery
+        sline = {}
+        sline["time"] = cas
+        sline["value"] = histRecord.sl_val
+        sl_line_sada.push(sline)
+
+        sline_markers = {}
+        sline_markers["time"] = cas
+        sline_markers["position"] = "inBar" 
+        sline_markers["color"] = "#f5aa42"
+        //sline_markers["shape"] = "circle"
+        sline_markers["text"] = histRecord.sl_val.toFixed(3)
+        sl_line_markers_sada.push(sline_markers)
+
+        });
+
     data.bars.time.forEach((element, index, array) => {
         sbars = {};
         svolume = {};
@@ -117,7 +161,7 @@ function transform_data(data) {
             marker["text"] += (trade.position_qty == 0) ? closed_trade_marker_and_profit : ""
         } else {
             closed_trade_marker_and_profit = (trade.profit) ? "c" + trade.profit.toFixed(1) + "/" + trade.profit_sum.toFixed(1) : "c"
-            marker["text"] = (trade.position_qty == 0) ? closed_trade_marker_and_profit : ""
+            marker["text"] = (trade.position_qty == 0) ? closed_trade_marker_and_profit : trade.price.toFixed(3)
         }
 
         markers.push(marker)
@@ -153,7 +197,11 @@ function transform_data(data) {
     transformed["avgp_markers"] = avgp_markers
     transformed["markers"] = markers
     transformed["markers_line"] = markers_line
-
+    transformed["sl_line"] = sl_line
+    transformed["sl_line_markers"] = sl_line_markers
+    console.log("naplnene", sl_line, sl_line_markers)
+    //console_log(JSON.stringify(transformed["sl_line"],null,2))
+    //console_log(JSON.stringify(transformed["sl_line_markers"],null,2))
     //get additional indicators
     return transformed
 }
@@ -539,10 +587,46 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
 
         if (markersLine) {
             chart.removeSeries(markersLine)
-        }      
+        }
+
+        slLine.forEach((series, index, array) => {
+            chart.removeSeries(series)
+        })
+        // if (slLine) {
+        //     chart.removeSeries(slLine)
+        // }      
 
         //console.log("avgp_buy_line",JSON.stringify(transformed_data["avgp_buy_line"],null,2))
         //console.log("avgp_markers",JSON.stringify(transformed_data["avgp_markers"],null,2))
+
+        //if (transformed_data["sl_line"].length > 0) {
+        //console.log(JSON.stringify(transformed_data["sl_line"]), null,2)
+        //xx - ted bude slLine pole
+        transformed_data["sl_line"].forEach((slRecord, index, array) => {
+
+            console.log("uvnitr")
+            slLine_temp = chart.addLineSeries({
+                //    title: "avgpbuyline",
+                    color: '#e4c76d',
+                //    color: 'transparent',
+                    lineWidth: 1,
+                    lastValueVisible: false
+                });
+
+                slLine_temp.applyOptions({
+                lastValueVisible: false,
+                priceLineVisible: false,
+            });
+
+            slLine_temp.setData(slRecord);
+            //zatim nemame markery pro sl history
+            slLine_temp.setMarkers(transformed_data["sl_line_markers"][index]);
+            slLine.push(slLine_temp)
+
+            //xx
+    })
+
+        //}
 
         if (transformed_data["avgp_buy_line"].length > 0) {
             avgBuyLine = chart.addLineSeries({

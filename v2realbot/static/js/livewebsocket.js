@@ -3,6 +3,7 @@ var pbiList = []
 var ws = null;
 var logcnt = 0
 var positionsPriceLine = null
+var stoplossPriceLine = null
 var limitkaPriceLine = null
 var angleSeries = {}
 //var angleSeries_slow = 1
@@ -200,6 +201,24 @@ function connect(event) {
                 candlestickSeries.removePriceLine(positionsPriceLine)
             }
             positionsPriceLine = candlestickSeries.createPriceLine(posLine);
+
+            if (positions.sl_value !== null) {
+                if (stoplossPriceLine !== null) {
+                    candlestickSeries.removePriceLine(stoplossPriceLine)
+                }
+                const stoplossLine = {
+                    price: positions.sl_value,
+                    color: '#f5aa42',
+                    lineWidth: 1,
+                    lineStyle: 1, // LineStyle.Dotted
+                    axisLabelVisible: true,
+                    title: "SL",
+                };
+
+                stoplossPriceLine = candlestickSeries.createPriceLine(stoplossLine);
+            }
+
+            
         }
 
         if (parsed_data.hasOwnProperty("statinds")) { 

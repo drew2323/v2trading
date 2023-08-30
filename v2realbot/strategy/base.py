@@ -514,7 +514,14 @@ class Strategy:
 
             #vkladame average price and positions, pokud existuji
             #self.state.avgp , self.state.positions
-            rt_out["positions"] = dict(time=self.state.time, positions=self.state.positions, avgp=self.state.avgp)
+            
+            #pro typ strategie Classic, posilame i vysi stoploss
+            try:
+                sl_value = self.state.vars["activeTrade"].stoploss_value
+            except (KeyError, AttributeError):
+                sl_value = None
+
+            rt_out["positions"] = dict(time=self.state.time, positions=self.state.positions, avgp=self.state.avgp, sl_value=sl_value)
 
             #vkladame limitku a pendingbuys
             try:
@@ -652,6 +659,8 @@ class StrategyState:
         self.iter_log_list = []
         self.profit = 0
         self.tradeList = []
+        #nova promenna pro externi data do ArchiveDetaili, napr. pro zobrazeni v grafu, je zde např. SL history
+        self.extData = {}
         self.mode = None
     
     def ilog(self, e: str = None, msg: str = None, **kwargs):

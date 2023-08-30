@@ -199,6 +199,12 @@ class RunArchive(BaseModel):
     end_positions_avgp: float = 0
     open_orders: Union[dict, int] = None
 
+#trida pro ukladani historie stoplossy do ext_data
+class SLHistory(BaseModel):
+    id: Optional[UUID]
+    time: datetime
+    sl_val: float
+
 #Contains archive of running strategies (runner) - detail data
 class RunArchiveDetail(BaseModel):
     id: UUID
@@ -208,6 +214,7 @@ class RunArchiveDetail(BaseModel):
     indicators: List[dict]
     statinds: dict
     trades: List[TradeUpdate]
+    ext_data: Optional[dict]
 
 # class Trade(BaseModel):
 #     order: Order

@@ -140,6 +140,8 @@ def next(data, state: StrategyState):
     # v tuplu (nazevind,direktiva,hodnota)
     # do OR jsou dane i bez prefixu
     # {'AND': [('nazev indikatoru', 'nazev direktivy', 'hodnotadirektivy')], 'OR': []}
+    #POZOR TOTO JE STARY FORMAT - podminky jsou uvnitr sekce indikatoru
+    #v INITU uz mame novy format uvnitr sekce signal v podsekci conditions
     def get_work_dict_with_directive(starts_with: str):
         reslist = dict(AND=[], OR=[])
 
@@ -670,10 +672,17 @@ def next(data, state: StrategyState):
             return tick
 
     def get_default_sl_value(direction: TradeDirection):
+
+
+
         if direction == TradeDirection.LONG:
             smer = "long"
         else:
             smer = "short"
+        
+        #TODO zda signal, ktery activeTrade vygeneroval, nema vlastni nastaveni + fallback na general
+
+
         options = safe_get(state.vars, 'exit_conditions', None)
         if options is None:
             state.ilog(e="No options for exit conditions in stratvars. Fallback.")
@@ -683,23 +692,28 @@ def next(data, state: StrategyState):
         return val
 
     def get_profit_target_price():
+        #TODO zda signal, ktery activeTrade vygeneroval, nema vlastni nastaveni + fallback na general
+
         def_profit = safe_get(state.vars, "def_profit",state.vars.profit) 
         cena = float(state.avgp)
         return price2dec(cena+normalize_tick(float(state.vars.profit)),3) if int(state.positions) > 0 else price2dec(cena-normalize_tick(float(state.vars.profit)),3)
         
     def get_max_profit_price():
+        #TODO zda signal, ktery activeTrade vygeneroval, nema vlastni nastaveni + fallback na general
+
         max_profit = float(safe_get(state.vars, "max_profit",0.03))
         cena = float(state.avgp)
         return price2dec(cena+normalize_tick(max_profit),3) if int(state.positions) > 0 else price2dec(cena-normalize_tick(max_profit),3)    
 
     #TBD pripadne opet dat parsovani pole do INITu
 
-    #TODO nejspis u exitu neporovnavat s MA i kdyz indikator ma, ale s online hodnotou ??
     def exit_conditions_met(direction: TradeDirection):
         if direction == TradeDirection.LONG:
             smer = "long"
         else:
             smer = "short"
+
+        #TODO zda signal, ktery activeTrade vygeneroval, nema vlastni EXIT nastaveni + fallback na general
 
         options = safe_get(state.vars, 'exit_conditions', None)
         if options is None:
@@ -720,6 +734,8 @@ def next(data, state: StrategyState):
             state.ilog(e=f"EXIT_CONDITION for{smer} DISABLED by {conditions_met}", **conditions_met)
             return False
         
+
+        #EXIT zatim po staru v indikatorech pro vsechny
         work_dict_exit_if = get_work_dict_with_directive(starts_with="exit_"+smer+"_if")
         state.ilog(e=f"EXIT CONDITION for {smer}  work_dict", message=work_dict_exit_if)
 
@@ -846,6 +862,9 @@ def next(data, state: StrategyState):
         state.ilog(e="Eval CLOSE", price=curr_price, pos=state.positions, avgp=state.avgp, pending=state.vars.pending, activeTrade=str(state.vars.activeTrade))
           
         if int(state.positions) != 0 and float(state.avgp)>0 and state.vars.pending is None:
+            
+            #podivam se zda dana 
+            
             #pevny target - presunout toto do INIT a pak jen pristupovat
             goal_price = get_profit_target_price()
             max_price = get_max_profit_price()
@@ -1014,6 +1033,11 @@ def next(data, state: StrategyState):
         work_dict_dont_do = state.vars.work_dict_dont_do[signalname+"_"+ smer]
         
         state.ilog(e=f"{smer} PRECOND DONT{smer} work_dict for {signalname}", message=work_dict_dont_do)
+
+        #TEMP docasne
+        state.ilog(e=f"{smer} ALT NA SROVNANI DONT{smer} work_dict for {signalname}", message=state.vars.work_dict_dont_do_new)
+
+
         #u techto ma smysl pouze OR
         precond = create_conditions_from_directives(work_dict_dont_do, "OR")
         result, conditions_met = eval_cond_dict(precond)
@@ -1050,6 +1074,10 @@ def next(data, state: StrategyState):
         work_dict_signal_if = state.vars.work_dict_signal_if[signalname+"_"+ smer]
 
         state.ilog(e=f"{smer} SIGNAL work_dict {signalname}", message=work_dict_signal_if)
+
+        #TEMP DOCASNE
+        state.ilog(e=f"{smer} ALT NA SROVNANI SIGNAL work_dict {signalname}", message=state.vars.work_dict_signal_if_new)
+        state.ilog(e=f"ACTIVATION  work_dict {signalname}", message=state.vars.work_dict_signal_activate_if)
 
         buy_or_cond = create_conditions_from_directives(work_dict_signal_if, "OR")
         result, conditions_met = eval_cond_dict(buy_or_cond)
@@ -1102,6 +1130,7 @@ def next(data, state: StrategyState):
                                         id=uuid4(),
                                         last_update=datetime.fromtimestamp(state.time).astimezone(zoneNY),
                                         status=TradeStatus.READY,
+                                        generated_by=name,
                                         direction=TradeDirection.LONG,
                                         entry_price=None,
                                         stoploss_value = None))
@@ -1110,6 +1139,7 @@ def next(data, state: StrategyState):
                         id=uuid4(),
                         last_update=datetime.fromtimestamp(state.time).astimezone(zoneNY),
                         status=TradeStatus.READY,
+                        generated_by=name,
                         direction=TradeDirection.SHORT,
                         entry_price=None,
                         stoploss_value = None))
@@ -1179,10 +1209,12 @@ def init(state: StrategyState):
     #place to declare new vars
     print("INIT v main",state.name)
 
-    #pomocna funkce pro inicializaci
+    #pomocna funkce pro inicializaci - stary format uvnitr indikatoru (napr. trendfollow_long_if, AND.trendfollow_long_if)
     def get_work_dict_with_directive(starts_with: str):
         reslist = dict(AND=[], OR=[])
+        #vraci v kazdem klici truple (indname, volba, hodnota) 
 
+        #vracime podle puvodniho formatu direktiv uvnitr indikatoru
         for indname, indsettings in state.vars.indicators.items():
             for option,value in indsettings.items():
                     if option.startswith(starts_with):
@@ -1197,7 +1229,42 @@ def init(state: StrategyState):
                         for key, val in value.items():
                             if key.startswith(starts_with):
                                 reslist["OR"].append((indname, key, val))
-        return reslist   
+        return reslist
+        
+
+    #pomocna funkce pro vytvoreni podminkoveho directory z direktiv v novem formatu
+    # direktiva v CONDITIONS sekci u daneho SIGNALU
+    # 
+    # stratvars.signals.trendfollow.conditions
+    # slope30.short_if_below = 0.3
+    # slope20.AND.lonf_if_above = 2
+    # slope30.AND.ACTION_if_above
+    # ACTION: long_, short_, exit_ (action)
+    # AND: optional operator AND/OR
+    def get_work_dict_from_signal_section(action: str, signal_name: str):
+        reslist = dict(AND=[], OR=[])
+        
+        try:
+            for indname, condition in state.vars.signals[signal_name]["conditions"].items():
+                #prvnim je vzdy indikator na ktery se direktiva odkazuje, tzn. projedeme vsechny tyto indikatory
+                for directive, value in condition.items():
+                    if directive.startswith(action):
+                        reslist["OR"].append((indname, directive, value))
+                    if directive == "AND":
+                        #vsechny buy direktivy, ktere jsou pod AND
+                        for key, val in value.items():
+                            if key.startswith(action):
+                                reslist["AND"].append((indname, key, val))
+                    if directive == "OR" :
+                        #vsechny buy direktivy, ktere jsou pod OR
+                        for key, val in value.items():
+                            if key.startswith(action):
+                                reslist["OR"].append((indname, key, val))
+        except KeyError:
+            pass
+        
+        #vysledek: v kazdem klici truple (indname, volba, hodnota) 
+        return reslist
 
     def initialize_dynamic_indicators():
         #pro vsechny indikatory, ktere maji ve svych stratvars TYPE inicializujeme
@@ -1215,15 +1282,28 @@ def init(state: StrategyState):
                     state.statinds[indname] = dict(minimum_slope=safe_get(indsettings, 'minimum_slope', -1), maximum_slope=safe_get(indsettings, 'maximum_slope', 1))
 
     def intialize_work_dict():
+        #inciializace pro akce: short, long, dont_short, dont_long, activate
+        state.vars
         state.vars.work_dict_dont_do = {}
         state.vars.work_dict_signal_if = {}
+
+        state.vars.work_dict_dont_do_new = {}
+        state.vars.work_dict_signal_if_new = {}
+        state.vars.work_dict_signal_activate_if = {}
+
+        #pro kazdy signal si vytvorime promenou, ktera bude obsahovat direktivy podminek pro akce activation, dont doshort/long and short/long
         for signalname, signalsettings in state.vars.signals.items():
-            smer = TradeDirection.LONG
-            state.vars.work_dict_dont_do[signalname+"_"+ smer] = get_work_dict_with_directive(starts_with=signalname+"_dont_"+ smer +"_if")
-            state.vars.work_dict_signal_if[signalname+"_"+ smer] = get_work_dict_with_directive(starts_with=signalname+"_"+smer+"_if")
-            smer = TradeDirection.SHORT
-            state.vars.work_dict_dont_do[signalname+"_"+ smer] = get_work_dict_with_directive(starts_with=signalname+"_dont_"+ smer +"_if")
-            state.vars.work_dict_signal_if[signalname+"_"+ smer] = get_work_dict_with_directive(starts_with=signalname+"_"+smer+"_if")
+            #TEMP: direktiva pro aktivaci zatim wip
+            state.vars.work_dict_signal_activate_if[signalname] = get_work_dict_from_signal_section(action="activate_if", signal_name=signalname)
+
+            for smer in TradeDirection:
+                state.vars.work_dict_dont_do[signalname+"_"+ smer] = get_work_dict_with_directive(starts_with=signalname+"_dont_"+ smer +"_if")
+                state.vars.work_dict_signal_if[signalname+"_"+ smer] = get_work_dict_with_directive(starts_with=signalname+"_"+smer+"_if")
+
+                #TEMP:zatim nove direktivy pro porovnanin
+                state.vars.work_dict_dont_do_new[signalname+"_"+ smer] = get_work_dict_from_signal_section(action="dont_" + smer +"_if", signal_name=signalname)
+                state.vars.work_dict_signal_if_new[signalname+"_"+ smer] = get_work_dict_from_signal_section(action=smer +"_if", signal_name=signalname)
+
 
     #init klice v extData pro ulozeni historie SL
     state.extData["sl_history"] = []

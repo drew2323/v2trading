@@ -589,9 +589,11 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
             chart.removeSeries(markersLine)
         }
 
-        slLine.forEach((series, index, array) => {
-            chart.removeSeries(series)
-        })
+        if (slLine) {
+            slLine.forEach((series, index, array) => {
+                chart.removeSeries(series)
+            })
+        }
         // if (slLine) {
         //     chart.removeSeries(slLine)
         // }      

@@ -20,6 +20,7 @@ class Trade(BaseModel):
     id: UUID
     last_update: datetime
     status: TradeStatus
+    generated_by: Optional[str] = None
     direction: TradeDirection
     entry_price: Optional[float] = None
     # stoploss_type: TradeStoplossType

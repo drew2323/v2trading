@@ -25,6 +25,7 @@ import pandas as pd
 from collections import deque
 
 
+
 #is_pivot function to check if there is A(V) shaped pivot in the list, each leg consists of N points
 #middle point is the shared one [1,2,3,2,1] - one leg is [1,2,3] second leg is [3,2,1]
 def is_pivot(source: list, leg_number: int, type: str = "A"):

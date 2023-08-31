@@ -7,8 +7,10 @@ from v2realbot.indicators.indicators import ema
 from v2realbot.indicators.oscillators import rsi
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
 from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, print, safe_get, round2five, is_open_rush, is_close_rush, eval_cond_dict, Average, crossed_down, crossed_up, crossed, is_pivot, json_serial
+from v2realbot.utils.directive_utils import get_conditions_from_configuration
 from v2realbot.common.model import SLHistory
 from datetime import datetime
+from v2realbot.config import KW
 from uuid import uuid4
 import json
 #from icecream import install, ic
@@ -95,7 +97,7 @@ def next(data, state: StrategyState):
             return ret
 
     #funkce vytvori podminky (bud pro AND/OR) z pracovniho dict
-    def create_conditions_from_directives(work_dict, cond_type):
+    def evaluate_directive_conditions(work_dict, cond_type):
         cond = {}
         cond[cond_type] = {}
         for indname, directive, value in work_dict[cond_type]:
@@ -133,7 +135,8 @@ def next(data, state: StrategyState):
             # elif directive == "buy_if_necospecifckeho":
             #     pass
 
-        return cond
+        return eval_cond_dict(cond)
+
 
     #tato funkce vytvori dictionary typu podminek (OR/AND) 
     # z indikatoru, ktere obsahuji direktivami daneho typu(buy_if, dont_buy_when)
@@ -142,24 +145,24 @@ def next(data, state: StrategyState):
     # {'AND': [('nazev indikatoru', 'nazev direktivy', 'hodnotadirektivy')], 'OR': []}
     #POZOR TOTO JE STARY FORMAT - podminky jsou uvnitr sekce indikatoru
     #v INITU uz mame novy format uvnitr sekce signal v podsekci conditions
-    def get_work_dict_with_directive(starts_with: str):
-        reslist = dict(AND=[], OR=[])
+    # def get_work_dict_with_directive(starts_with: str):
+    #     reslist = dict(AND=[], OR=[])
 
-        for indname, indsettings in state.vars.indicators.items():
-            for option,value in indsettings.items():
-                    if option.startswith(starts_with):
-                        reslist["OR"].append((indname, option, value))
-                    if option == "AND":
-                        #vsechny buy direktivy, ktere jsou pod AND
-                        for key, val in value.items():
-                            if key.startswith(starts_with):
-                                reslist["AND"].append((indname, key, val))
-                    if option == "OR" :
-                        #vsechny buy direktivy, ktere jsou pod OR
-                        for key, val in value.items():
-                            if key.startswith(starts_with):
-                                reslist["OR"].append((indname, key, val))
-        return reslist     
+    #     for indname, indsettings in state.vars.indicators.items():
+    #         for option,value in indsettings.items():
+    #                 if option.startswith(starts_with):
+    #                     reslist["OR"].append((indname, option, value))
+    #                 if option == "AND":
+    #                     #vsechny buy direktivy, ktere jsou pod AND
+    #                     for key, val in value.items():
+    #                         if key.startswith(starts_with):
+    #                             reslist["AND"].append((indname, key, val))
+    #                 if option == "OR" :
+    #                     #vsechny buy direktivy, ktere jsou pod OR
+    #                     for key, val in value.items():
+    #                         if key.startswith(starts_with):
+    #                             reslist["OR"].append((indname, key, val))
+    #     return reslist     
 
     def get_source_or_MA(indicator):
         #pokud ma, pouzije MAcko, pokud ne tak standardni indikator
@@ -585,12 +588,16 @@ def next(data, state: StrategyState):
     # region Subfunction
     #toto upravit na take profit
     #pripadne smazat - zatim nahrazeno by exit_conditions_met()
+    #TODO toto refactorovat
     def sell_protection_enabled():
         options = safe_get(state.vars, 'sell_protection', None)
         if options is None:
             state.ilog(e="No options for sell protection in stratvars")
             return False
         
+        #docasne disabled, upravit pokud budu chtit pouzit
+        return False
+
         disable_sell_proteciton_when = dict(AND=dict(), OR=dict())
 
         #preconditions
@@ -608,14 +615,14 @@ def next(data, state: StrategyState):
         work_dict_dont_sell_if = get_work_dict_with_directive(starts_with="dont_sell_if")
         state.ilog(e=f"SELL PROTECTION work_dict", message=work_dict_dont_sell_if)
 
-        or_cond = create_conditions_from_directives(work_dict_dont_sell_if, "OR")
+        or_cond = evaluate_directive_conditions(work_dict_dont_sell_if, "OR")
         result, conditions_met = eval_cond_dict(or_cond)
         state.ilog(e=f"SELL PROTECTION =OR= {result}", **conditions_met)
         if result:
             return True
         
         #OR neprosly testujeme AND
-        and_cond = create_conditions_from_directives(work_dict_dont_sell_if, "AND")
+        and_cond = evaluate_directive_conditions(work_dict_dont_sell_if, "AND")
         result, conditions_met = eval_cond_dict(and_cond)
         state.ilog(e=f"SELL PROTECTION =AND= {result}", **conditions_met)
         return result    
@@ -673,8 +680,6 @@ def next(data, state: StrategyState):
 
     def get_default_sl_value(direction: TradeDirection):
 
-
-
         if direction == TradeDirection.LONG:
             smer = "long"
         else:
@@ -682,10 +687,9 @@ def next(data, state: StrategyState):
         
         #TODO zda signal, ktery activeTrade vygeneroval, nema vlastni nastaveni + fallback na general
 
-
-        options = safe_get(state.vars, 'exit_conditions', None)
+        options = safe_get(state.vars, 'exit', None)
         if options is None:
-            state.ilog(e="No options for exit conditions in stratvars. Fallback.")
+            state.ilog(e="No options for exit in stratvars. Fallback.")
             return 0.01
         val = safe_get(options, 'SL_defval_'+str(smer), 0.01)
         state.ilog(e=f"SL value for {str(smer)} is {val}", message=str(options))
@@ -693,17 +697,24 @@ def next(data, state: StrategyState):
 
     def get_profit_target_price():
         #TODO zda signal, ktery activeTrade vygeneroval, nema vlastni nastaveni + fallback na general
+        mother_signal = state.vars.activeTrade.generated_by
 
-        def_profit = safe_get(state.vars, "def_profit",state.vars.profit) 
-        cena = float(state.avgp)
-        return price2dec(cena+normalize_tick(float(state.vars.profit)),3) if int(state.positions) > 0 else price2dec(cena-normalize_tick(float(state.vars.profit)),3)
+        def_profit = safe_get(state.vars, "profit", 0.50)
+
+        if mother_signal is not None:
+            def_profit = safe_get(state.vars.signals[mother_signal], "profit", def_profit) 
+
+        return price2dec(data["close"]+normalize_tick(float(def_profit)),3) if int(state.positions) > 0 else price2dec(data["close"]-normalize_tick(float(def_profit)),3)
         
     def get_max_profit_price():
         #TODO zda signal, ktery activeTrade vygeneroval, nema vlastni nastaveni + fallback na general
+        max_profit = safe_get(state.vars, "max_profit", 0.35)
 
-        max_profit = float(safe_get(state.vars, "max_profit",0.03))
-        cena = float(state.avgp)
-        return price2dec(cena+normalize_tick(max_profit),3) if int(state.positions) > 0 else price2dec(cena-normalize_tick(max_profit),3)    
+        mother_signal = state.vars.activeTrade.generated_by
+        if mother_signal is not None:
+            max_profit = safe_get(state.vars.signals[mother_signal], "max_profit", max_profit) 
+
+        return price2dec(data["close"]+normalize_tick(max_profit),3) if int(state.positions) > 0 else price2dec(data["close"]-normalize_tick(max_profit),3)    
 
     #TBD pripadne opet dat parsovani pole do INITu
 
@@ -713,44 +724,60 @@ def next(data, state: StrategyState):
         else:
             smer = "short"
 
-        #TODO zda signal, ktery activeTrade vygeneroval, nema vlastni EXIT nastaveni + fallback na general
-
-        options = safe_get(state.vars, 'exit_conditions', None)
-        if options is None:
-            state.ilog(e="No options for exit conditions in stratvars")
-            return False
+        #TOTO ZATIM NEMA VYZNAM
+        # options = safe_get(state.vars, 'exit_conditions', None)
+        # if options is None:
+        #     state.ilog(e="No options for exit conditions in stratvars")
+        #     return False
         
-        disable_exit_proteciton_when = dict(AND=dict(), OR=dict())
+        # disable_exit_proteciton_when = dict(AND=dict(), OR=dict())
 
-        #preconditions
-        disable_exit_proteciton_when['disabled_in_config'] = safe_get(options, 'enabled', False) is False
-        #too good to be true (maximum profit)
-        #disable_sell_proteciton_when['tgtbt_reached'] = safe_get(options, 'tgtbt', False) is False
-        disable_exit_proteciton_when['disable_if_positions_above'] = int(safe_get(options, 'disable_if_positions_above', 0)) < abs(int(state.positions))
+        # #preconditions
+        # disable_exit_proteciton_when['disabled_in_config'] = safe_get(options, 'enabled', False) is False
+        # #too good to be true (maximum profit)
+        # #disable_sell_proteciton_when['tgtbt_reached'] = safe_get(options, 'tgtbt', False) is False
+        # disable_exit_proteciton_when['disable_if_positions_above'] = int(safe_get(options, 'disable_if_positions_above', 0)) < abs(int(state.positions))
 
-        #testing preconditions
-        result, conditions_met = eval_cond_dict(disable_exit_proteciton_when)
-        if result:
-            state.ilog(e=f"EXIT_CONDITION for{smer} DISABLED by {conditions_met}", **conditions_met)
-            return False
+        # #testing preconditions
+        # result, conditions_met = eval_cond_dict(disable_exit_proteciton_when)
+        # if result:
+        #     state.ilog(e=f"EXIT_CONDITION for{smer} DISABLED by {conditions_met}", **conditions_met)
+        #     return False
         
+        #bereme bud exit condition signalu, ktery activeTrade vygeneroval+ fallback na general
+        state.ilog(e=f"EXIT CONDITIONS ENTRY {smer}", conditions=state.vars.conditions[KW.exit])
 
-        #EXIT zatim po staru v indikatorech pro vsechny
-        work_dict_exit_if = get_work_dict_with_directive(starts_with="exit_"+smer+"_if")
-        state.ilog(e=f"EXIT CONDITION for {smer}  work_dict", message=work_dict_exit_if)
+        mother_signal = state.vars.activeTrade.generated_by
 
-        or_cond = create_conditions_from_directives(work_dict_exit_if, "OR")
-        result, conditions_met = eval_cond_dict(or_cond)
-        state.ilog(e=f"EXIT CONDITIONS for {smer} =OR= {result}", **conditions_met)
+        if mother_signal is not None:
+            cond_dict = state.vars.conditions[KW.exit][state.vars.activeTrade.generated_by][smer]
+            result, conditions_met = evaluate_directive_conditions(cond_dict, "OR")
+            state.ilog(e=f"EXIT CONDITIONS of activeTrade {smer} =OR= {result}", **conditions_met, cond_dict=cond_dict)
+            if result:
+                return True
+            
+            #OR neprosly testujeme AND
+            result, conditions_met = evaluate_directive_conditions(cond_dict, "AND")
+            state.ilog(e=f"EXIT CONDITIONS of activeTrade {smer} =AND= {result}", **conditions_met, cond_dict=cond_dict)
+            if result:
+                return True
+
+
+        #pokud nemame mother signal nebo exit nevratil nic, fallback na common
+        cond_dict = state.vars.conditions[KW.exit]["common"][smer]
+        cond_dict = state.vars.conditions[KW.exit][state.vars.activeTrade.generated_by][smer]
+        result, conditions_met = evaluate_directive_conditions(cond_dict, "OR")
+        state.ilog(e=f"EXIT CONDITIONS of COMMON {smer} =OR= {result}", **conditions_met, cond_dict=cond_dict)
         if result:
             return True
         
         #OR neprosly testujeme AND
-        and_cond = create_conditions_from_directives(work_dict_exit_if, "AND")
-        result, conditions_met = eval_cond_dict(and_cond)
-        state.ilog(e=f"EXIT CONDITION =AND= {result}", **conditions_met)
-        return result    
+        result, conditions_met = evaluate_directive_conditions(cond_dict, "AND")
+        state.ilog(e=f"EXIT CONDITIONS of COMMON {smer} =AND= {result}", **conditions_met, cond_dict=cond_dict)
+        if result:
+            return True
 
+ 
         #ZVAZIT JESTLI nesledujici puvodni pravidlo pro dontsellwhen pujdou realizovat inverzne jako exit when
         #PUVODNI NASTAVENI - IDENTIFIKOVAce rustoveho MOMENTA - pokud je momentum, tak prodávat později
         
@@ -772,7 +799,6 @@ def next(data, state: StrategyState):
         # if result:
         #     state.ilog(e=f"SELL_PROTECTION {conditions_met} enabled")
         # return result 
-
 
     def insert_SL_history():
     #insert stoploss history as key sl_history into runner archive extended data
@@ -989,61 +1015,30 @@ def next(data, state: StrategyState):
         pass
     
     #preconditions and conditions of LONG/SHORT SIGNAL
-    def conditions_met(signalname: str, direction: TradeDirection):
+    def go_conditions_met(signalname: str, direction: TradeDirection):
         if direction == TradeDirection.LONG:
             smer = "long"
         else:
             smer = "short"
-        #preconditiony dle smeru
-        #dont_long_when, dont_short_when
-        #signal direktivy
-        #nazevgeneratoru_long_if_above
-        #nazevgeneratoru_short_if_above
-
-        
-        # #preconditiony zatim preskoceny
-        dont_do_when = dict(AND=dict(), OR=dict())
-
-        # #OBECNE DONT BUYS
-        if safe_get(state.vars, "signal_only_on_confirmed",True):
-            dont_do_when['bar_not_confirmed'] = (data['confirmed'] == 0)
-        # #od posledniho vylozeni musi ubehnout N baru
-        # dont_buy_when['last_buy_offset_too_soon'] =  data['index'] < (int(state.vars.lastbuyindex) + int(safe_get(state.vars, "lastbuy_offset",3)))
-        # dont_buy_when['blockbuy_active'] = (state.vars.blockbuy == 1)
-        # dont_buy_when['jevylozeno_active'] = (state.vars.jevylozeno == 1)
-
-        #obecne open_rush platne pro vsechny
-        dont_do_when['open_rush'] = is_open_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), safe_get(state.vars, "open_rush",0))
-        dont_do_when['close_rush'] = is_close_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), safe_get(state.vars, "close_rush",0))
-    
-        # #testing preconditions
-        result, cond_met = eval_cond_dict(dont_do_when)
-        if result:
-            state.ilog(e=f"{smer} PRECOND GENERAL not met {cond_met}", message=cond_met)
-            return False
+        #preconditiony dle smer
 
         #SPECIFICKE DONT BUYS - direktivy zacinajici dont_buy
         #dont_buy_below = value nebo nazev indikatoru
         #dont_buy_above = value nebo hazev indikatoru
 
-        #do INITU
-        #work_dict_dont_do = get_work_dict_with_directive(starts_with=signalname+"_dont_"+ smer +"_if")
-
-        #z initu
-        work_dict_dont_do = state.vars.work_dict_dont_do[signalname+"_"+ smer]
-        
-        state.ilog(e=f"{smer} PRECOND DONT{smer} work_dict for {signalname}", message=work_dict_dont_do)
-
-        #TEMP docasne
-        state.ilog(e=f"{smer} ALT NA SROVNANI DONT{smer} work_dict for {signalname}", message=state.vars.work_dict_dont_do_new)
-
-
-        #u techto ma smysl pouze OR
-        precond = create_conditions_from_directives(work_dict_dont_do, "OR")
-        result, conditions_met = eval_cond_dict(precond)
-        state.ilog(e=f"{smer} PRECOND DONT{smer} =OR= {result}", **conditions_met)
+        #TESTUJEME SPECIFICKY DONT_GO - 
+        #u techto ma smysl pouze OR 
+        cond_dict = state.vars.conditions[KW.dont_go][signalname][smer]
+        result, conditions_met = evaluate_directive_conditions(cond_dict, "OR")
+        state.ilog(e=f"SPECIFIC PRECOND {smer} =OR= {result}", **conditions_met, cond_dict=cond_dict)
         if result:
-            return False
+            return True
+        
+        # #OR neprosly testujeme AND
+        # result, conditions_met = evaluate_directive_conditions(cond_dict, "AND")
+        # state.ilog(e=f"EXIT CONDITIONS of activeTrade {smer} =AND= {result}", **conditions_met, cond_dict=cond_dict)
+        # if result:
+        #     return True
 
         #tyto timto nahrazeny - dat do konfigurace (dont_short_when, dont_long_when)
         #dont_buy_when['rsi_too_high'] = state.indicators.RSI14[-1] > safe_get(state.vars, "rsi_dont_buy_above",50)
@@ -1071,25 +1066,81 @@ def next(data, state: StrategyState):
         #dict oindexovane podminkou (OR/AND) obsahuje vsechny buy_if direktivy v tuplu (nazevind,direktiva,hodnota
         # {'AND': [('nazev indikatoru', 'nazev direktivy', 'hodnotadirektivy')], 'OR': []}
         #work_dict_signal_if = get_work_dict_with_directive(starts_with=signalname+"_"+smer+"_if")
-        work_dict_signal_if = state.vars.work_dict_signal_if[signalname+"_"+ smer]
-
-        state.ilog(e=f"{smer} SIGNAL work_dict {signalname}", message=work_dict_signal_if)
-
-        #TEMP DOCASNE
-        state.ilog(e=f"{smer} ALT NA SROVNANI SIGNAL work_dict {signalname}", message=state.vars.work_dict_signal_if_new)
-        state.ilog(e=f"ACTIVATION  work_dict {signalname}", message=state.vars.work_dict_signal_activate_if)
-
-        buy_or_cond = create_conditions_from_directives(work_dict_signal_if, "OR")
-        result, conditions_met = eval_cond_dict(buy_or_cond)
-        state.ilog(e=f"{smer} SIGNAL =OR= {result}", **conditions_met)
+        
+        #TESTUJEME GO SIGNAL
+        cond_dict = state.vars.conditions[KW.go][signalname][smer]
+        result, conditions_met = evaluate_directive_conditions(cond_dict, "OR")
+        state.ilog(e=f"GO SIGNAL {smer} =OR= {result}", **conditions_met, cond_dict=cond_dict)
         if result:
             return True
         
         #OR neprosly testujeme AND
-        buy_and_cond = create_conditions_from_directives(work_dict_signal_if, "AND")
-        result, conditions_met = eval_cond_dict(buy_and_cond)
-        state.ilog(e=f"{smer} SIGNAL =AND= {result}", **conditions_met)
-        return result     
+        result, conditions_met = evaluate_directive_conditions(cond_dict, "AND")
+        state.ilog(e=f"GO SIGNAL {smer} =AND= {result}", **conditions_met, cond_dict=cond_dict)
+        if result:
+            return True
+        
+        return False
+
+    #obecne precondition preds vstupem - platne jak pro condition based tak pro plugin
+    def common_go_preconditions_check(signalname: str, direction: TradeDirection, options: dict):
+        if direction == TradeDirection.LONG:
+            smer = "long"
+        else:
+            smer = "short"
+        #preconditiony dle smeru
+
+        #ZAKLADNI KONTROLY ATRIBUTU s fallbackem na obecné
+        #check working windows
+        close_rush = safe_get(options, "close_rush",safe_get(state.vars, "open_rush",0))
+        open_rush = safe_get(options, "open_rush",safe_get(state.vars, "close_rush",0))
+
+        if is_open_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), open_rush) or is_close_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), close_rush):
+            state.ilog(e="SINGAL {name} OUT of WORKING WINDOW", msg=f"{open_rush=} {close_rush=} ")
+            return False
+
+        #natvrdo nebo na podminku
+        activated = safe_get(options, "activated", True)
+
+        #check activation
+        if activated is False:
+            cond_dict = state.vars.conditions[KW.activate][signalname]
+            result, conditions_met = evaluate_directive_conditions(cond_dict, "OR")
+            state.ilog(e=f"ACTIVATION CONDITION =OR= {result}", **conditions_met, cond_dict=cond_dict)
+
+            if result is False:            
+                #OR neprosly testujeme AND
+                result, conditions_met = evaluate_directive_conditions(cond_dict, "AND")
+                state.ilog(e=f"ACTIVATION CONDITION  =AND= {result}", **conditions_met, cond_dict=cond_dict)
+
+            if result is False:
+                state.ilog(e=f"not ACTIVATED")
+                return False
+            else:
+                state.vars.signals[signalname].activated = True
+        
+        # OBECNE PRECONDITIONS - typu dont_do_when
+        precond_check = dict(AND=dict(), OR=dict())
+
+        # #OBECNE DONT BUYS
+        if safe_get(options, "signal_only_on_confirmed",safe_get(state.vars, "signal_only_on_confirmed",True)):
+            precond_check['bar_not_confirmed'] = (data['confirmed'] == 0)
+        # #od posledniho vylozeni musi ubehnout N baru
+        # dont_buy_when['last_buy_offset_too_soon'] =  data['index'] < (int(state.vars.lastbuyindex) + int(safe_get(state.vars, "lastbuy_offset",3)))
+        # dont_buy_when['blockbuy_active'] = (state.vars.blockbuy == 1)
+        # dont_buy_when['jevylozeno_active'] = (state.vars.jevylozeno == 1)
+
+        #obecne open_rush platne pro vsechny
+        precond_check['on_confirmed_only'] = safe_get(options, 'on_confirmed_only', False)
+        precond_check['short_enabled'] = safe_get(options, "short_enabled",safe_get(state.vars, "short_enabled",True))
+        precond_check['long_enabled'] = safe_get(options, "long_enabled",safe_get(state.vars, "long_enabled",True))
+
+        # #testing preconditions
+        result, cond_met = eval_cond_dict(precond_check)
+        if result:
+            state.ilog(e=f"{smer} PRECOND GENERAL not met {cond_met}", message=cond_met, precond_check=precond_check)
+            return False
+        return True
 
     def execute_signal_generator(name):
         options = safe_get(state.vars.signals, name, None)
@@ -1098,26 +1149,10 @@ def next(data, state: StrategyState):
             state.ilog(e="No options for {name} in stratvars")
             return
         
-        #check working windows
-        close_rush = safe_get(options, "close_rush",0)
-        open_rush = safe_get(options, "open_rush",0)
-
-        if is_open_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), open_rush) or is_close_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), close_rush):
-            state.ilog(e="SINGAL {name} OUT of WORKING WINDOW", msg=f"{open_rush=} {close_rush=} ")
+        if common_go_preconditions_check() is False:
             return
 
-        #natvrdo nebo na podminku
-        activated = safe_get(options, "activated", True)
-
-        recurring = safe_get(options, "reccurring", False)
-        on_confirmed_only = safe_get(options, 'on_confirmed_only', False)
         plugin = safe_get(options, 'plugin', None)
-        short_enabled = safe_get(state.vars, "short_enabled",True)
-        long_enabled = safe_get(state.vars, "long_enabled",True)
-
-        if activated is False:
-            state.ilog(e="SIGNAL {name} NOT ACTIVATED")
-            return            
 
         #pokud je plugin True, spusti se kod
         if plugin:
@@ -1125,7 +1160,7 @@ def next(data, state: StrategyState):
         else:
             #common signals based on 1) configured signals in stratvars
             #toto umoznuje jednoduchy prescribed trade bez ceny
-            if long_enabled and conditions_met(signalname=name, direction=TradeDirection.LONG):
+            if go_conditions_met(signalname=name, direction=TradeDirection.LONG):
                 state.vars.prescribedTrades.append(Trade(
                                         id=uuid4(),
                                         last_update=datetime.fromtimestamp(state.time).astimezone(zoneNY),
@@ -1134,7 +1169,7 @@ def next(data, state: StrategyState):
                                         direction=TradeDirection.LONG,
                                         entry_price=None,
                                         stoploss_value = None))
-            elif short_enabled and conditions_met(signalname=name, direction=TradeDirection.SHORT):
+            elif go_conditions_met(signalname=name, direction=TradeDirection.SHORT):
                 state.vars.prescribedTrades.append(Trade(
                         id=uuid4(),
                         last_update=datetime.fromtimestamp(state.time).astimezone(zoneNY),
@@ -1145,25 +1180,34 @@ def next(data, state: StrategyState):
                         stoploss_value = None))
 
     def signal_search():
-        # SIGNAL sekce ve stratvars obsahuje signal generator (obsahujici obecne veci jako name,validfrom, validto, validfrom, recurring) + specificke
-        #jako plugin
+        # SIGNAL sekce ve stratvars obsahuje signaly: Ty se skladaji z obecnych parametru a podsekce podminek.
+        # Obecne parametry mohou overridnout root parametry nebo dalsi upresneni(napr. plugin). Podsekce CONDITIONS,obsahuji podminky vstup a vystupu
+        # OBECNE:
+        # [stratvars.signals.trend2]
+        # signal_only_on_confirmed = true
+        # open_rush = 2
+        # close_rush = 6000
+        # short_enabled = false
+        # long_enabled = false
+        # activated = true
+        # profit = 0.2
+        # max_profit = 0.4
+        # PODMINKY:
+        # [stratvars.signals.trend2.conditions]
+        # slope20.AND.in_long_if_above = 0.23
+        # slope10.AND.in_long_if_rising = 5
+        # slope10.out_long_if_crossed_down = -0.1
+        # slope10.in_short_if_crossed_down = -0.1
+        # slope10.out_short_if_above = 0
+        # ema.AND.short_if_below = 28
 
-        #spoustime kazdy nakonfigurovany signal generator (signal sekce v startvars)
-
-        #ZAMYSLET SE JAK PRACOVAT S MULTI SIGNAL SEKCEMI ve stratvars
         for signalname, signalsettings in state.vars.signals.items():
             state.ilog(e=f"reading {signalname}", message=str(signalsettings))
             execute_signal_generator(signalname)
 
         # #vysledek je vložení Trade Prescription a to bud s cenou nebo immediate
-        # trade = Trade(validfrom=datetime.now(tz=zoneNY),
-        #             status=TradeStatus.READY,
-        #             direction=TradeDirection.LONG,
-        #             entry_price=None,
-        #             stoploss_value = None)
-    
-        # ##add prescribed trade to list
-        # state.vars.prescribedTrades.append(trade)
+        # pokud je s cenou ceka se na cenu, pokud immmediate tak se hned provede
+        # to vse za predpokladu, ze neni aktivni trade
 
     def manage_active_trade():
         trade = state.vars.activeTrade
@@ -1183,7 +1227,7 @@ def next(data, state: StrategyState):
 
     #MAIN LOOP
     lp = data['close']
-    state.ilog(e="ENTRY", msg=f"LP:{lp} P:{state.positions}/{round(float(state.avgp),3)} SL:{state.vars.activeTrade.stoploss_value if state.vars.activeTrade is not None else None} profit:{round(float(state.profit),2)} Trades:{len(state.tradeList)}", activeTrade=json.loads(json.dumps(state.vars.activeTrade, default=json_serial)), prescribedTrades=json.loads(json.dumps(state.vars.prescribedTrades, default=json_serial)), pending=str(state.vars.pending), last_price=lp, data=data, stratvars=str(state.vars))
+    state.ilog(e="ENTRY", msg=f"LP:{lp} P:{state.positions}/{round(float(state.avgp),3)} SL:{state.vars.activeTrade.stoploss_value if state.vars.activeTrade is not None else None} profit:{round(float(state.profit),2)} Trades:{len(state.tradeList)}", activeTrade=json.loads(json.dumps(state.vars.activeTrade, default=json_serial)), prescribedTrades=json.loads(json.dumps(state.vars.prescribedTrades, default=json_serial)), pending=str(state.vars.pending), conditions=state.vars.conditions, last_price=lp, data=data, stratvars=str(state.vars))
     inds = get_last_ind_vals()
     state.ilog(e="Indikatory", **inds)
 
@@ -1209,63 +1253,6 @@ def init(state: StrategyState):
     #place to declare new vars
     print("INIT v main",state.name)
 
-    #pomocna funkce pro inicializaci - stary format uvnitr indikatoru (napr. trendfollow_long_if, AND.trendfollow_long_if)
-    def get_work_dict_with_directive(starts_with: str):
-        reslist = dict(AND=[], OR=[])
-        #vraci v kazdem klici truple (indname, volba, hodnota) 
-
-        #vracime podle puvodniho formatu direktiv uvnitr indikatoru
-        for indname, indsettings in state.vars.indicators.items():
-            for option,value in indsettings.items():
-                    if option.startswith(starts_with):
-                        reslist["OR"].append((indname, option, value))
-                    if option == "AND":
-                        #vsechny buy direktivy, ktere jsou pod AND
-                        for key, val in value.items():
-                            if key.startswith(starts_with):
-                                reslist["AND"].append((indname, key, val))
-                    if option == "OR" :
-                        #vsechny buy direktivy, ktere jsou pod OR
-                        for key, val in value.items():
-                            if key.startswith(starts_with):
-                                reslist["OR"].append((indname, key, val))
-        return reslist
-        
-
-    #pomocna funkce pro vytvoreni podminkoveho directory z direktiv v novem formatu
-    # direktiva v CONDITIONS sekci u daneho SIGNALU
-    # 
-    # stratvars.signals.trendfollow.conditions
-    # slope30.short_if_below = 0.3
-    # slope20.AND.lonf_if_above = 2
-    # slope30.AND.ACTION_if_above
-    # ACTION: long_, short_, exit_ (action)
-    # AND: optional operator AND/OR
-    def get_work_dict_from_signal_section(action: str, signal_name: str):
-        reslist = dict(AND=[], OR=[])
-        
-        try:
-            for indname, condition in state.vars.signals[signal_name]["conditions"].items():
-                #prvnim je vzdy indikator na ktery se direktiva odkazuje, tzn. projedeme vsechny tyto indikatory
-                for directive, value in condition.items():
-                    if directive.startswith(action):
-                        reslist["OR"].append((indname, directive, value))
-                    if directive == "AND":
-                        #vsechny buy direktivy, ktere jsou pod AND
-                        for key, val in value.items():
-                            if key.startswith(action):
-                                reslist["AND"].append((indname, key, val))
-                    if directive == "OR" :
-                        #vsechny buy direktivy, ktere jsou pod OR
-                        for key, val in value.items():
-                            if key.startswith(action):
-                                reslist["OR"].append((indname, key, val))
-        except KeyError:
-            pass
-        
-        #vysledek: v kazdem klici truple (indname, volba, hodnota) 
-        return reslist
-
     def initialize_dynamic_indicators():
         #pro vsechny indikatory, ktere maji ve svych stratvars TYPE inicializujeme
         for indname, indsettings in state.vars.indicators.items():
@@ -1280,30 +1267,75 @@ def init(state: StrategyState):
                 if value == "slope":
                     #inicializujeme statinds (pro uhel na FE)
                     state.statinds[indname] = dict(minimum_slope=safe_get(indsettings, 'minimum_slope', -1), maximum_slope=safe_get(indsettings, 'maximum_slope', 1))
-
-    def intialize_work_dict():
+    
+    #TODO hlavne tedy do INITu dat exit dict, ty jsou evaluovane kazdy tick
+    def intialize_directive_conditions():
         #inciializace pro akce: short, long, dont_short, dont_long, activate
-        state.vars
-        state.vars.work_dict_dont_do = {}
-        state.vars.work_dict_signal_if = {}
 
-        state.vars.work_dict_dont_do_new = {}
-        state.vars.work_dict_signal_if_new = {}
-        state.vars.work_dict_signal_activate_if = {}
+        state.vars.conditions = {}
 
-        #pro kazdy signal si vytvorime promenou, ktera bude obsahovat direktivy podminek pro akce activation, dont doshort/long and short/long
+        # state.vars.work_dict_dont_do = {}
+        # state.vars.work_dict_signal_if = {}
+
+        # state.vars.work_dict_dont_do_new = {}
+        # state.vars.work_dict_signal_if_new = {}
+        # state.vars.work_dict_signal_activate_if = {}
+
+
+        #KEYWORDS_if_CONDITION = value
+        # např. go_short_if_below = 10
+
+        
+
+        #possible KEYWORDS in directive: (AND/OR) support
+        #  go_DIRECTION(go_long_if, go_short_if)
+        #  dont_go_DIRECTION (dont_long_if, dont_short_if)
+        #  exit_DIRECTION (exit_long_if, exit_short_if)
+        #  activate (activate_if)
+
+        #possible CONDITIONs:
+        # below, above, falling, rising, crossed_up, crossed_down
+
+        #Tyto mohou byt bud v sekci conditions a nebo v samostatne sekci common
+
+        #pro kazdou sekci "conditions" v signals
+        #si vytvorime podminkove dictionary pro kazdou akci
+        #projdeme vsechny singaly
+
+
+        #nejprve genereujeme ze SIGNALu
         for signalname, signalsettings in state.vars.signals.items():
-            #TEMP: direktiva pro aktivaci zatim wip
-            state.vars.work_dict_signal_activate_if[signalname] = get_work_dict_from_signal_section(action="activate_if", signal_name=signalname)
 
-            for smer in TradeDirection:
-                state.vars.work_dict_dont_do[signalname+"_"+ smer] = get_work_dict_with_directive(starts_with=signalname+"_dont_"+ smer +"_if")
-                state.vars.work_dict_signal_if[signalname+"_"+ smer] = get_work_dict_with_directive(starts_with=signalname+"_"+smer+"_if")
+            if "conditions" in signalsettings:
+                section = signalsettings["conditions"]
 
-                #TEMP:zatim nove direktivy pro porovnanin
-                state.vars.work_dict_dont_do_new[signalname+"_"+ smer] = get_work_dict_from_signal_section(action="dont_" + smer +"_if", signal_name=signalname)
-                state.vars.work_dict_signal_if_new[signalname+"_"+ smer] = get_work_dict_from_signal_section(action=smer +"_if", signal_name=signalname)
+                #directivy non direction related
+                state.vars.conditions[KW.activate][signalname] = get_conditions_from_configuration(action=KW.activate+"_if", section=section)
 
+                #direktivy direction related
+                for smer in TradeDirection:
+                    #IDEA navrhy condition dictionary - ty v signal sekci
+                    # state.vars.conditions["nazev_evaluacni_sekce"]["nazevsignalu_smer"] = #sada podminek
+                    #signal related
+                    # state.vars.conditions["activate"]["trendfollow"] = #sada podminek
+                    # state.vars.conditions["dont_go"]["trendfollow"]["long"] = #sada podminek
+                    # state.vars.conditions["go"]["trendfollow"]["short"] = #sada podminek
+                    # state.vars.conditions["exit"]["trendfollow"]["long"] = #sada podminek
+                    #common
+                    # state.vars.conditions["exit"]["common"]["long"] = #sada podminek
+                    # state.vars.conditions["exit"]["common"]["long"] = #sada podminek
+
+                    state.vars.conditions[KW.dont_go][signalname][smer] = get_conditions_from_configuration(action=KW.dont_go+"_" + smer +"_if", section=section)
+                    state.vars.conditions[KW.go][signalname][smer] = get_conditions_from_configuration(action=KW.go+"_" + smer +"_if", section=section)
+                    state.vars.conditions[KW.exit][signalname][smer] = get_conditions_from_configuration(action=KW.exit+"_" + smer +"_if", section=section)
+
+                    # state.vars.work_dict_dont_do[signalname+"_"+ smer] = get_work_dict_with_directive(starts_with=signalname+"_dont_"+ smer +"_if")
+                    # state.vars.work_dict_signal_if[signalname+"_"+ smer] = get_work_dict_with_directive(starts_with=signalname+"_"+smer+"_if")
+
+        #POTOM generujeme z obecnych sekci, napr. EXIT.EXIT_CONDITIONS, kde je fallback pro signal exity
+        section = state.vars.exit["conditions"]
+        for smer in TradeDirection:
+            state.vars.conditions[KW.exit]["common"][smer] = get_conditions_from_configuration(action=KW.exit+"_" + smer +"_if", section=section)
 
     #init klice v extData pro ulozeni historie SL
     state.extData["sl_history"] = []
@@ -1343,7 +1375,7 @@ def init(state: StrategyState):
     #state.indicators['RSI14'] = []
 
     initialize_dynamic_indicators()
-    intialize_work_dict()
+    intialize_directive_conditions()
 
     #TODO - predelat tuto cas, aby dynamicky inicializovala indikatory na zaklade stratvars a type
     # vsechno nize vytvorit volana funkce

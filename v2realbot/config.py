@@ -98,3 +98,8 @@ ACCOUNT2_PAPER_MAX_BATCH_SIZE = 1
 ACCOUNT2_PAPER_PAPER = True
 ACCOUNT2_PAPER_FEED = DataFeed.IEX
 
+class KW:
+    dont_go: str = "dont_go"
+    go: str = "go"
+    activate: str = "activate"
+    exit: str = "exit"

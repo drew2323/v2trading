@@ -678,6 +678,21 @@ def next(data, state: StrategyState):
         else:
             return tick
 
+    #funkce pro direktivy, ktere muzou byt overridnute v signal sekci
+    #tato funkce vyhleda signal sekci aktivniho tradu a pokusi se danou direktivu vyhledat tam,
+    #pokud nenajde tak vrati default, ktery byl poskytnut
+    def get_override_for_active_trade(directive_name: str, default_value: str):
+        val = default_value
+        override = "NO"
+        mother_signal = state.vars.activeTrade.generated_by
+
+        if mother_signal is not None:
+            override = "YES "+mother_signal
+            val = safe_get(state.vars.signals[mother_signal], directive_name, default_value)
+
+        state.ilog(e=f"{directive_name} OVERRIDE {override} NEWVAL:{val} ORIGINAL:{default_value} {mother_signal}", mother_signal=mother_signal,default_value=default_value)
+        return val
+
     def get_default_sl_value(direction: TradeDirection):
 
         if direction == TradeDirection.LONG:
@@ -688,33 +703,33 @@ def next(data, state: StrategyState):
         #TODO zda signal, ktery activeTrade vygeneroval, nema vlastni nastaveni + fallback na general
 
         options = safe_get(state.vars, 'exit', None)
+
         if options is None:
             state.ilog(e="No options for exit in stratvars. Fallback.")
             return 0.01
-        val = safe_get(options, 'SL_defval_'+str(smer), 0.01)
-        state.ilog(e=f"SL value for {str(smer)} is {val}", message=str(options))
+        directive_name = 'SL_defval_'+str(smer)
+        val = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(options, directive_name, 0.01))
         return val
 
     def get_profit_target_price():
-        #TODO zda signal, ktery activeTrade vygeneroval, nema vlastni nastaveni + fallback na general
-        mother_signal = state.vars.activeTrade.generated_by
+        directive_name = "profit"
+        def_profit = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, 0.50))
 
-        def_profit = safe_get(state.vars, "profit", 0.50)
+        normalized_def_profit = normalize_tick(float(def_profit))
 
-        if mother_signal is not None:
-            def_profit = safe_get(state.vars.signals[mother_signal], "profit", def_profit) 
+        state.ilog(e=f"PROFIT {def_profit=} {normalized_def_profit=}")
 
-        return price2dec(data["close"]+normalize_tick(float(def_profit)),3) if int(state.positions) > 0 else price2dec(data["close"]-normalize_tick(float(def_profit)),3)
+        return price2dec(data["close"]+normalized_def_profit,3) if int(state.positions) > 0 else price2dec(data["close"]-normalized_def_profit,3)
         
     def get_max_profit_price():
-        #TODO zda signal, ktery activeTrade vygeneroval, nema vlastni nastaveni + fallback na general
-        max_profit = safe_get(state.vars, "max_profit", 0.35)
+        directive_name = "max_profit"
+        max_profit = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, 0.35))
 
-        mother_signal = state.vars.activeTrade.generated_by
-        if mother_signal is not None:
-            max_profit = safe_get(state.vars.signals[mother_signal], "max_profit", max_profit) 
+        normalized_max_profit = normalize_tick(float(max_profit))
 
-        return price2dec(data["close"]+normalize_tick(max_profit),3) if int(state.positions) > 0 else price2dec(data["close"]-normalize_tick(max_profit),3)    
+        state.ilog(e=f"MAX PROFIT {max_profit=} {normalized_max_profit=}")
+
+        return price2dec(data["close"]+normalized_max_profit,3) if int(state.positions) > 0 else price2dec(data["close"]-normalized_max_profit,3)    
 
     #TBD pripadne opet dat parsovani pole do INITu
 
@@ -752,28 +767,27 @@ def next(data, state: StrategyState):
         if mother_signal is not None:
             cond_dict = state.vars.conditions[KW.exit][state.vars.activeTrade.generated_by][smer]
             result, conditions_met = evaluate_directive_conditions(cond_dict, "OR")
-            state.ilog(e=f"EXIT CONDITIONS of activeTrade {smer} =OR= {result}", **conditions_met, cond_dict=cond_dict)
+            state.ilog(e=f"EXIT CONDITIONS of {mother_signal} =OR= {result}", **conditions_met, cond_dict=cond_dict)
             if result:
                 return True
             
             #OR neprosly testujeme AND
             result, conditions_met = evaluate_directive_conditions(cond_dict, "AND")
-            state.ilog(e=f"EXIT CONDITIONS of activeTrade {smer} =AND= {result}", **conditions_met, cond_dict=cond_dict)
+            state.ilog(e=f"EXIT CONDITIONS of {mother_signal}  =AND= {result}", **conditions_met, cond_dict=cond_dict)
             if result:
                 return True
 
 
         #pokud nemame mother signal nebo exit nevratil nic, fallback na common
         cond_dict = state.vars.conditions[KW.exit]["common"][smer]
-        cond_dict = state.vars.conditions[KW.exit][state.vars.activeTrade.generated_by][smer]
         result, conditions_met = evaluate_directive_conditions(cond_dict, "OR")
-        state.ilog(e=f"EXIT CONDITIONS of COMMON {smer} =OR= {result}", **conditions_met, cond_dict=cond_dict)
+        state.ilog(e=f"EXIT CONDITIONS of COMMON =OR= {result}", **conditions_met, cond_dict=cond_dict)
         if result:
             return True
         
         #OR neprosly testujeme AND
         result, conditions_met = evaluate_directive_conditions(cond_dict, "AND")
-        state.ilog(e=f"EXIT CONDITIONS of COMMON {smer} =AND= {result}", **conditions_met, cond_dict=cond_dict)
+        state.ilog(e=f"EXIT CONDITIONS of COMMON =AND= {result}", **conditions_met, cond_dict=cond_dict)
         if result:
             return True
 
@@ -829,15 +843,24 @@ def next(data, state: StrategyState):
                 direction = TradeDirection.LONG
                 smer = "long"
             
-            options = safe_get(state.vars, 'exit_conditions', None)
+            # zatim nastaveni SL plati pro vsechny - do budoucna per signal - pridat sekci
+
+            options = safe_get(state.vars, 'exit', None)
             if options is None:
                 state.ilog(e="Trail SL. No options for exit conditions in stratvars.")
                 return
             
-            if safe_get(options, 'SL_trailing_enabled_'+str(smer), False) is True:
-                stop_breakeven = safe_get(options, 'SL_trailing_stop_at_breakeven_'+str(smer), False)
-                def_SL = safe_get(options, 'SL_defval_'+str(smer), 0.01)
-                offset = safe_get(options, "SL_trailing_offset_"+str(smer), 0.01)
+            directive_name = 'SL_trailing_enabled_'+str(smer)
+            sl_trailing_enabled = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(options, directive_name, False))
+     
+            
+            if sl_trailing_enabled is True:
+                directive_name = 'SL_trailing_stop_at_breakeven_'+str(smer)
+                stop_breakeven = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(options, directive_name, False))
+                directive_name = 'SL_defval_'+str(smer)
+                def_SL = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(options, directive_name, 0.01))
+                directive_name = "SL_trailing_offset_"+str(smer)
+                offset = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(options, directive_name, 0.01))
 
                 #pokud je pozadovan trail jen do breakeven a uz prekroceno
                 if (direction == TradeDirection.LONG and stop_breakeven and state.vars.activeTrade.stoploss_value >= float(state.avgp)) or (direction == TradeDirection.SHORT and stop_breakeven and state.vars.activeTrade.stoploss_value <= float(state.avgp)):
@@ -1030,9 +1053,9 @@ def next(data, state: StrategyState):
         #u techto ma smysl pouze OR 
         cond_dict = state.vars.conditions[KW.dont_go][signalname][smer]
         result, conditions_met = evaluate_directive_conditions(cond_dict, "OR")
-        state.ilog(e=f"SPECIFIC PRECOND {smer} =OR= {result}", **conditions_met, cond_dict=cond_dict)
+        state.ilog(e=f"SPECIFIC PRECOND {smer} {result}", **conditions_met, cond_dict=cond_dict)
         if result:
-            return True
+            return False
         
         # #OR neprosly testujeme AND
         # result, conditions_met = evaluate_directive_conditions(cond_dict, "AND")
@@ -1070,33 +1093,27 @@ def next(data, state: StrategyState):
         #TESTUJEME GO SIGNAL
         cond_dict = state.vars.conditions[KW.go][signalname][smer]
         result, conditions_met = evaluate_directive_conditions(cond_dict, "OR")
-        state.ilog(e=f"GO SIGNAL {smer} =OR= {result}", **conditions_met, cond_dict=cond_dict)
+        state.ilog(e=f"EVAL GO SIGNAL {smer} =OR= {result}", **conditions_met, cond_dict=cond_dict)
         if result:
             return True
         
         #OR neprosly testujeme AND
         result, conditions_met = evaluate_directive_conditions(cond_dict, "AND")
-        state.ilog(e=f"GO SIGNAL {smer} =AND= {result}", **conditions_met, cond_dict=cond_dict)
+        state.ilog(e=f"EVAL GO SIGNAL {smer} =AND= {result}", **conditions_met, cond_dict=cond_dict)
         if result:
             return True
         
         return False
 
     #obecne precondition preds vstupem - platne jak pro condition based tak pro plugin
-    def common_go_preconditions_check(signalname: str, direction: TradeDirection, options: dict):
-        if direction == TradeDirection.LONG:
-            smer = "long"
-        else:
-            smer = "short"
-        #preconditiony dle smeru
-
+    def common_go_preconditions_check(signalname: str, options: dict):
         #ZAKLADNI KONTROLY ATRIBUTU s fallbackem na obecné
         #check working windows
         close_rush = safe_get(options, "close_rush",safe_get(state.vars, "open_rush",0))
         open_rush = safe_get(options, "open_rush",safe_get(state.vars, "close_rush",0))
 
         if is_open_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), open_rush) or is_close_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), close_rush):
-            state.ilog(e="SINGAL {name} OUT of WORKING WINDOW", msg=f"{open_rush=} {close_rush=} ")
+            state.ilog(e=f"SIGNAL {signalname} - RUSH STANDBY", msg=f"{open_rush=} {close_rush=} ")
             return False
 
         #natvrdo nebo na podminku
@@ -1106,12 +1123,12 @@ def next(data, state: StrategyState):
         if activated is False:
             cond_dict = state.vars.conditions[KW.activate][signalname]
             result, conditions_met = evaluate_directive_conditions(cond_dict, "OR")
-            state.ilog(e=f"ACTIVATION CONDITION =OR= {result}", **conditions_met, cond_dict=cond_dict)
+            state.ilog(e=f"EVAL ACTIVATION CONDITION =OR= {result}", **conditions_met, cond_dict=cond_dict)
 
             if result is False:            
                 #OR neprosly testujeme AND
                 result, conditions_met = evaluate_directive_conditions(cond_dict, "AND")
-                state.ilog(e=f"ACTIVATION CONDITION  =AND= {result}", **conditions_met, cond_dict=cond_dict)
+                state.ilog(e=f"EVAL ACTIVATION CONDITION  =AND= {result}", **conditions_met, cond_dict=cond_dict)
 
             if result is False:
                 state.ilog(e=f"not ACTIVATED")
@@ -1138,18 +1155,19 @@ def next(data, state: StrategyState):
         # #testing preconditions
         result, cond_met = eval_cond_dict(precond_check)
         if result:
-            state.ilog(e=f"{smer} PRECOND GENERAL not met {cond_met}", message=cond_met, precond_check=precond_check)
+            state.ilog(e=f"PRECOND GENERAL not met {cond_met}", message=cond_met, precond_check=precond_check)
             return False
         return True
 
     def execute_signal_generator(name):
+        state.ilog(e=f"SIGNAL SEARCH for {name}")
         options = safe_get(state.vars.signals, name, None)
 
         if options is None:
             state.ilog(e="No options for {name} in stratvars")
             return
         
-        if common_go_preconditions_check() is False:
+        if common_go_preconditions_check(signalname=name, options=options) is False:
             return
 
         plugin = safe_get(options, 'plugin', None)
@@ -1202,7 +1220,6 @@ def next(data, state: StrategyState):
         # ema.AND.short_if_below = 28
 
         for signalname, signalsettings in state.vars.signals.items():
-            state.ilog(e=f"reading {signalname}", message=str(signalsettings))
             execute_signal_generator(signalname)
 
         # #vysledek je vložení Trade Prescription a to bud s cenou nebo immediate
@@ -1310,7 +1327,9 @@ def init(state: StrategyState):
                 section = signalsettings["conditions"]
 
                 #directivy non direction related
-                state.vars.conditions[KW.activate][signalname] = get_conditions_from_configuration(action=KW.activate+"_if", section=section)
+                state.vars.conditions.setdefault(KW.activate,{})[signalname] = get_conditions_from_configuration(action=KW.activate+"_if", section=section)
+
+
 
                 #direktivy direction related
                 for smer in TradeDirection:
@@ -1325,9 +1344,9 @@ def init(state: StrategyState):
                     # state.vars.conditions["exit"]["common"]["long"] = #sada podminek
                     # state.vars.conditions["exit"]["common"]["long"] = #sada podminek
 
-                    state.vars.conditions[KW.dont_go][signalname][smer] = get_conditions_from_configuration(action=KW.dont_go+"_" + smer +"_if", section=section)
-                    state.vars.conditions[KW.go][signalname][smer] = get_conditions_from_configuration(action=KW.go+"_" + smer +"_if", section=section)
-                    state.vars.conditions[KW.exit][signalname][smer] = get_conditions_from_configuration(action=KW.exit+"_" + smer +"_if", section=section)
+                    state.vars.conditions.setdefault(KW.dont_go,{}).setdefault(signalname,{})[smer] = get_conditions_from_configuration(action=KW.dont_go+"_" + smer +"_if", section=section)
+                    state.vars.conditions.setdefault(KW.go,{}).setdefault(signalname,{})[smer] = get_conditions_from_configuration(action=KW.go+"_" + smer +"_if", section=section)
+                    state.vars.conditions.setdefault(KW.exit,{}).setdefault(signalname,{})[smer] = get_conditions_from_configuration(action=KW.exit+"_" + smer +"_if", section=section)
 
                     # state.vars.work_dict_dont_do[signalname+"_"+ smer] = get_work_dict_with_directive(starts_with=signalname+"_dont_"+ smer +"_if")
                     # state.vars.work_dict_signal_if[signalname+"_"+ smer] = get_work_dict_with_directive(starts_with=signalname+"_"+smer+"_if")
@@ -1335,7 +1354,7 @@ def init(state: StrategyState):
         #POTOM generujeme z obecnych sekci, napr. EXIT.EXIT_CONDITIONS, kde je fallback pro signal exity
         section = state.vars.exit["conditions"]
         for smer in TradeDirection:
-            state.vars.conditions[KW.exit]["common"][smer] = get_conditions_from_configuration(action=KW.exit+"_" + smer +"_if", section=section)
+            state.vars.conditions.setdefault(KW.exit,{}).setdefault("common",{})[smer] = get_conditions_from_configuration(action=KW.exit+"_" + smer +"_if", section=section)
 
     #init klice v extData pro ulozeni historie SL
     state.extData["sl_history"] = []

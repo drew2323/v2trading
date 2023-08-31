@@ -61,7 +61,7 @@ class StrategyClassicSL(Strategy):
                         #pridat jako attribut, aby proslo i na LIVE a PAPPER, kde se bere TradeUpdate z Alpaca
                         setattr(tradeData, "profit", trade_profit)
                         setattr(tradeData, "profit_sum", self.state.profit)
-                        self.state.ilog(f"updatnut tradeList o profi {str(tradeData)}")
+                        #self.state.ilog(f"updatnut tradeList o profit", tradeData=json.loads(json.dumps(tradeData, default=json_serial)))
             
             else:
                 self.state.ilog(e="BUY: Jde o LONG nakuú nepocitame profit zatim")

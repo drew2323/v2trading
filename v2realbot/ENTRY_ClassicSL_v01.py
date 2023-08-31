@@ -982,14 +982,14 @@ def next(data, state: StrategyState):
             if trade.status == TradeStatus.READY and trade.direction == TradeDirection.LONG and (trade.entry_price is None or trade.entry_price >= data['close']):
                 trade.status = TradeStatus.ACTIVATED
                 trade.last_update = datetime.fromtimestamp(state.time).astimezone(zoneNY)
-                state.ilog(e=f"evaluated SHORT {str(trade)}", prescrTrades=json.loads(json.dumps(state.vars.prescribedTrades, default=json_serial)))
+                state.ilog(e=f"evaluated LONG", trade=json.loads(json.dumps(trade, default=json_serial)), prescrTrades=json.loads(json.dumps(state.vars.prescribedTrades, default=json_serial)))
                 state.vars.activeTrade = trade
                 break
         #evaluate shorts
         if not state.vars.activeTrade:
             for trade in state.vars.prescribedTrades:
                 if trade.status == TradeStatus.READY and trade.direction == TradeDirection.SHORT and (trade.entry_price is None or trade.entry_price <= data['close']):
-                    state.ilog(e=f"evaluaed SHORT {str(trade)}", prescTrades=json.loads(json.dumps(state.vars.prescribedTrades, default=json_serial)))
+                    state.ilog(e=f"evaluaed SHORT", trade=json.loads(json.dumps(trade, default=json_serial)), prescTrades=json.loads(json.dumps(state.vars.prescribedTrades, default=json_serial)))
                     trade.status = TradeStatus.ACTIVATED
                     trade.last_update = datetime.fromtimestamp(state.time).astimezone(zoneNY)
                     state.vars.activeTrade = trade
@@ -1244,7 +1244,8 @@ def next(data, state: StrategyState):
 
     #MAIN LOOP
     lp = data['close']
-    state.ilog(e="ENTRY", msg=f"LP:{lp} P:{state.positions}/{round(float(state.avgp),3)} SL:{state.vars.activeTrade.stoploss_value if state.vars.activeTrade is not None else None} profit:{round(float(state.profit),2)} Trades:{len(state.tradeList)}", activeTrade=json.loads(json.dumps(state.vars.activeTrade, default=json_serial)), prescribedTrades=json.loads(json.dumps(state.vars.prescribedTrades, default=json_serial)), pending=str(state.vars.pending), conditions=state.vars.conditions, last_price=lp, data=data, stratvars=str(state.vars))
+    ispending = "N" if state.vars.pending is None else "Y"
+    state.ilog(e="ENTRY", msg=f"LP:{lp} P:{state.positions}/{round(float(state.avgp),3)} SL:{state.vars.activeTrade.stoploss_value if state.vars.activeTrade is not None else None} profit:{round(float(state.profit),2)} Trades:{len(state.tradeList)} pending:{ispending}", activeTrade=json.loads(json.dumps(state.vars.activeTrade, default=json_serial)), prescribedTrades=json.loads(json.dumps(state.vars.prescribedTrades, default=json_serial)), pending=str(state.vars.pending), conditions=state.vars.conditions, last_price=lp, data=data, stratvars=str(state.vars))
     inds = get_last_ind_vals()
     state.ilog(e="Indikatory", **inds)
 

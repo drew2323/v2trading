@@ -12,7 +12,6 @@ class Order:
         self.filled_time = filled_time 
         self.limit_price = limit_price
 
-
 class FillCondition(str, Enum):
     """
     Execution settings:

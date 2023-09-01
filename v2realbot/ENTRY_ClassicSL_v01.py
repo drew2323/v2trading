@@ -1121,6 +1121,7 @@ def next(data, state: StrategyState):
 
         #check activation
         if activated is False:
+            state.ilog(e=f"{signalname} not ACTIVATED")
             cond_dict = state.vars.conditions[KW.activate][signalname]
             result, conditions_met = evaluate_directive_conditions(cond_dict, "OR")
             state.ilog(e=f"EVAL ACTIVATION CONDITION =OR= {result}", **conditions_met, cond_dict=cond_dict)
@@ -1134,7 +1135,8 @@ def next(data, state: StrategyState):
                 state.ilog(e=f"not ACTIVATED")
                 return False
             else:
-                state.vars.signals[signalname].activated = True
+                state.ilog(e=f"{signalname} JUST ACTIVATED")
+                state.vars.signals[signalname]["activated"] = True
         
         # OBECNE PRECONDITIONS - typu dont_do_when
         precond_check = dict(AND=dict(), OR=dict())
@@ -1148,19 +1150,19 @@ def next(data, state: StrategyState):
         # dont_buy_when['jevylozeno_active'] = (state.vars.jevylozeno == 1)
 
         #obecne open_rush platne pro vsechny
-        precond_check['on_confirmed_only'] = safe_get(options, 'on_confirmed_only', False)
-        precond_check['short_enabled'] = safe_get(options, "short_enabled",safe_get(state.vars, "short_enabled",True))
-        precond_check['long_enabled'] = safe_get(options, "long_enabled",safe_get(state.vars, "long_enabled",True))
+        #precond_check['on_confirmed_only'] = safe_get(options, 'on_confirmed_only', False) - chybi realizace podminky, pripadne dodelat na short_on_confirmed
 
         # #testing preconditions
         result, cond_met = eval_cond_dict(precond_check)
         if result:
             state.ilog(e=f"PRECOND GENERAL not met {cond_met}", message=cond_met, precond_check=precond_check)
             return False
+        
+        state.ilog(e=f"{signalname} ALL PRECOND MET")
         return True
 
     def execute_signal_generator(name):
-        state.ilog(e=f"SIGNAL SEARCH for {name}")
+        state.ilog(e=f"SIGNAL SEARCH for {name}", cond_go=state.vars.conditions[KW.go][name], cond_dontgo=state.vars.conditions[KW.dont_go][name], cond_activate=state.vars.conditions[KW.activate][name] )
         options = safe_get(state.vars.signals, name, None)
 
         if options is None:
@@ -1176,9 +1178,15 @@ def next(data, state: StrategyState):
         if plugin:
             execute_signal_generator_plugin(name)
         else:
+            short_enabled = safe_get(options, "short_enabled",safe_get(state.vars, "short_enabled",True))
+            long_enabled = safe_get(options, "long_enabled",safe_get(state.vars, "long_enabled",True))
             #common signals based on 1) configured signals in stratvars
             #toto umoznuje jednoduchy prescribed trade bez ceny
-            if go_conditions_met(signalname=name, direction=TradeDirection.LONG):
+            if short_enabled is False:
+                state.ilog(e=f"{name} SHORT DISABLED")
+            if long_enabled is False:
+                state.ilog(e=f"{name} LONG DISABLED")
+            if long_enabled and go_conditions_met(signalname=name, direction=TradeDirection.LONG):
                 state.vars.prescribedTrades.append(Trade(
                                         id=uuid4(),
                                         last_update=datetime.fromtimestamp(state.time).astimezone(zoneNY),
@@ -1187,7 +1195,7 @@ def next(data, state: StrategyState):
                                         direction=TradeDirection.LONG,
                                         entry_price=None,
                                         stoploss_value = None))
-            elif go_conditions_met(signalname=name, direction=TradeDirection.SHORT):
+            elif short_enabled and go_conditions_met(signalname=name, direction=TradeDirection.SHORT):
                 state.vars.prescribedTrades.append(Trade(
                         id=uuid4(),
                         last_update=datetime.fromtimestamp(state.time).astimezone(zoneNY),
@@ -1196,6 +1204,8 @@ def next(data, state: StrategyState):
                         direction=TradeDirection.SHORT,
                         entry_price=None,
                         stoploss_value = None))
+            else:
+                state.ilog(e=f"{name} NO SIGNAL")
 
     def signal_search():
         # SIGNAL sekce ve stratvars obsahuje signaly: Ty se skladaji z obecnych parametru a podsekce podminek.
@@ -1244,8 +1254,7 @@ def next(data, state: StrategyState):
 
     #MAIN LOOP
     lp = data['close']
-    ispending = "N" if state.vars.pending is None else "Y"
-    state.ilog(e="ENTRY", msg=f"LP:{lp} P:{state.positions}/{round(float(state.avgp),3)} SL:{state.vars.activeTrade.stoploss_value if state.vars.activeTrade is not None else None} profit:{round(float(state.profit),2)} Trades:{len(state.tradeList)} pending:{ispending}", activeTrade=json.loads(json.dumps(state.vars.activeTrade, default=json_serial)), prescribedTrades=json.loads(json.dumps(state.vars.prescribedTrades, default=json_serial)), pending=str(state.vars.pending), conditions=state.vars.conditions, last_price=lp, data=data, stratvars=str(state.vars))
+    state.ilog(e="ENTRY", msg=f"LP:{lp} P:{state.positions}/{round(float(state.avgp),3)} SL:{state.vars.activeTrade.stoploss_value if state.vars.activeTrade is not None else None} profit:{round(float(state.profit),2)} Trades:{len(state.tradeList)} pend:{state.vars.pending}", activeTrade=json.loads(json.dumps(state.vars.activeTrade, default=json_serial)), prescribedTrades=json.loads(json.dumps(state.vars.prescribedTrades, default=json_serial)), pending=str(state.vars.pending), last_price=lp, data=data, stratvars=state.vars)
     inds = get_last_ind_vals()
     state.ilog(e="Indikatory", **inds)
 
@@ -1253,6 +1262,7 @@ def next(data, state: StrategyState):
 
     #pokud mame prazdne pozice a neceka se na nic
     if state.positions == 0 and state.vars.pending is None:
+
         execute_prescribed_trades()
         #pokud se neaktivoval nejaky trade, poustime signal search - ale jen jednou za bar?
         #if conf_bar == 1:
@@ -1265,7 +1275,7 @@ def next(data, state: StrategyState):
     elif state.vars.activeTrade and state.vars.pending is None:
             manage_active_trade() #optimalize, close
                # - close means change status in prescribed Trends,update profit, delete from activeTrade
-    
+
 
 def init(state: StrategyState):
     #place to declare new vars

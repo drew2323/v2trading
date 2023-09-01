@@ -57,6 +57,12 @@ function transform_data(data) {
         sline_markers["text"] = histRecord.sl_val.toFixed(3)
         sl_line_markers_sada.push(sline_markers)
 
+        if (index === array.length - 1) {
+                //pro posledni zaznam push sadu do pole
+                sl_line.push(sl_line_sada)
+                sl_line_markers.push(sl_line_markers_sada)
+        }
+
         });
 
     data.bars.time.forEach((element, index, array) => {

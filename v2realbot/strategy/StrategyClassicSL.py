@@ -1,5 +1,5 @@
 from v2realbot.strategy.base import Strategy
-from v2realbot.utils.utils import parse_alpaca_timestamp, ltp, AttributeDict,trunc,price2dec, zoneNY, print, json_serial, safe_get, get_tick
+from v2realbot.utils.utils import parse_alpaca_timestamp, ltp, AttributeDict,trunc,price2dec, zoneNY, print, json_serial, safe_get, get_tick, send_to_telegram
 from v2realbot.utils.tlog import tlog, tlog_exception
 from v2realbot.enums.enums import Mode, Order, Account, RecordType
 #from alpaca.trading.models import TradeUpdate
@@ -23,10 +23,28 @@ class StrategyClassicSL(Strategy):
     def __init__(self, name: str, symbol: str, next: callable, init: callable, account: Account, mode: Mode = Mode.PAPER, stratvars: AttributeDict = None, open_rush: int = 30, close_rush: int = 30, pe: Event = None, se: Event = None, runner_id: UUID = None, ilog_save: bool = False) -> None:
         super().__init__(name, symbol, next, init, account, mode, stratvars, open_rush, close_rush, pe, se, runner_id, ilog_save)
 
-    #todo dodelat profit, podle toho jestli jde o short nebo buy
+    #zkontroluje zda aktualni profit/loss - nedosahnul limit a pokud ano tak vypne strategii
+    async def check_max_profit_loss(self):
+        self.state.ilog(e="CHECK MAX PROFIT")
+        max_sum_profit_to_quit = safe_get(self.state.vars, "max_sum_profit_to_quit", None)
+        max_sum_loss_to_quit = safe_get(self.state.vars, "max_sum_loss_to_quit", None)
+
+        if max_sum_profit_to_quit is not None:
+            if float(self.state.profit) >= float(max_sum_profit_to_quit):
+                self.state.ilog(e=f"QUITTING MAX SUM PROFIT REACHED {max_sum_profit_to_quit=} {self.state.profit=}")
+                self.state.vars.pending = "max_sum_profit_to_quit"
+                send_to_telegram(f"QUITTING MAX SUM PROFIT REACHED {max_sum_profit_to_quit=} {self.state.profit=}")
+                self.se.set()
+        if max_sum_loss_to_quit is not None:
+            if float(self.state.profit) < 0 and float(self.state.profit) <= float(max_sum_loss_to_quit):
+                self.state.ilog(e=f"QUITTING MAX SUM LOSS REACHED {max_sum_loss_to_quit=} {self.state.profit=}")
+                self.state.vars.pending = "max_sum_loss_to_quit"
+                send_to_telegram(f"QUITTING MAX SUM LOSS REACHED {max_sum_loss_to_quit=} {self.state.profit=}")
+                self.se.set()
 
     async def orderUpdateBuy(self, data: TradeUpdate):
         o: Order = data.order
+        signal_name = None
         ##nejak to vymyslet, aby se dal poslat cely Trade a serializoval se
         self.state.ilog(e="Příchozí BUY notif", msg=o.status, trade=json.loads(json.dumps(data, default=json_serial)))
 
@@ -54,6 +72,7 @@ class StrategyClassicSL(Strategy):
                         trade.last_update = datetime.fromtimestamp(self.state.time).astimezone(zoneNY)
                         trade.profit += trade_profit
                         trade.profit_sum = self.state.profit
+                        signal_name = trade.generated_by
 
                 #zapsat update profitu do tradeList
                 for tradeData in self.state.tradeList:
@@ -61,9 +80,23 @@ class StrategyClassicSL(Strategy):
                         #pridat jako attribut, aby proslo i na LIVE a PAPPER, kde se bere TradeUpdate z Alpaca
                         setattr(tradeData, "profit", trade_profit)
                         setattr(tradeData, "profit_sum", self.state.profit)
+                        setattr(tradeData, "signal_name", signal_name)
                         #self.state.ilog(f"updatnut tradeList o profit", tradeData=json.loads(json.dumps(tradeData, default=json_serial)))
-            
+
+                #test na maximalni profit/loss
+                await self.check_max_profit_loss()             
+
             else:
+                #zjistime nazev signalu a updatneme do tradeListu - abychom meli svazano
+                for trade in self.state.vars.prescribedTrades:
+                    if trade.id == self.state.vars.pending:
+                        signal_name = trade.generated_by
+
+                #zapsat update profitu do tradeList
+                for tradeData in self.state.tradeList:
+                    if tradeData.execution_id == data.execution_id:
+                        setattr(tradeData, "signal_name", signal_name)
+
                 self.state.ilog(e="BUY: Jde o LONG nakuú nepocitame profit zatim")
 
             #ic("vstupujeme do orderupdatebuy")
@@ -102,6 +135,7 @@ class StrategyClassicSL(Strategy):
                         trade.last_update = datetime.fromtimestamp(self.state.time).astimezone(zoneNY)
                         trade.profit += trade_profit
                         trade.profit_sum = self.state.profit
+                        signal_name = trade.generated_by
 
                 #zapsat update profitu do tradeList
                 for tradeData in self.state.tradeList:
@@ -109,9 +143,22 @@ class StrategyClassicSL(Strategy):
                         #pridat jako attribut, aby proslo i na LIVE a PAPPER, kde se bere TradeUpdate z Alpaca
                         setattr(tradeData, "profit", trade_profit)
                         setattr(tradeData, "profit_sum", self.state.profit)
-                        self.state.ilog(f"updatnut tradeList o profi {str(tradeData)}")
+                        setattr(tradeData, "signal_name", signal_name)
+                        #self.state.ilog(f"updatnut tradeList o profi {str(tradeData)}")
+
+                await self.check_max_profit_loss()
 
             else:
+                #zjistime nazev signalu a updatneme do tradeListu - abychom meli svazano
+                for trade in self.state.vars.prescribedTrades:
+                    if trade.id == self.state.vars.pending:
+                        signal_name = trade.generated_by
+
+                #zapsat update profitu do tradeList
+                for tradeData in self.state.tradeList:
+                    if tradeData.execution_id == data.execution_id:
+                        setattr(tradeData, "signal_name", signal_name)
+
                 self.state.ilog(e="SELL: Jde o SHORT nepocitame profit zatim")
 
             #update pozic, v trade update je i pocet zbylych pozic

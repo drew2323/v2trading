@@ -168,6 +168,7 @@ class TradeUpdate(BaseModel):
     pos_avg_price: Optional[float]
     profit: Optional[float]
     profit_sum: Optional[float]
+    signal_name: Optional[str]
 
 
 class RunArchiveChange(BaseModel):

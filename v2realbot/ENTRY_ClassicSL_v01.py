@@ -6,7 +6,7 @@ from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, Orde
 from v2realbot.indicators.indicators import ema
 from v2realbot.indicators.oscillators import rsi
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
-from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, print, safe_get, round2five, is_open_rush, is_close_rush, eval_cond_dict, Average, crossed_down, crossed_up, crossed, is_pivot, json_serial
+from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, print, safe_get, round2five, is_open_rush, is_close_rush, is_window_open, eval_cond_dict, Average, crossed_down, crossed_up, crossed, is_pivot, json_serial
 from v2realbot.utils.directive_utils import get_conditions_from_configuration
 from v2realbot.common.model import SLHistory
 from datetime import datetime
@@ -1108,13 +1108,17 @@ def next(data, state: StrategyState):
     #obecne precondition preds vstupem - platne jak pro condition based tak pro plugin
     def common_go_preconditions_check(signalname: str, options: dict):
         #ZAKLADNI KONTROLY ATRIBUTU s fallbackem na obecné
-        #check working windows
-        close_rush = safe_get(options, "close_rush",safe_get(state.vars, "open_rush",0))
-        open_rush = safe_get(options, "open_rush",safe_get(state.vars, "close_rush",0))
+        #check working windows (open - close, in minutes from the start of marker)
+        window_open = safe_get(options, "window_open",safe_get(state.vars, "window_open",0))
+        window_close = safe_get(options, "window_close",safe_get(state.vars, "window_close",390))
 
-        if is_open_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), open_rush) or is_close_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), close_rush):
-            state.ilog(e=f"SIGNAL {signalname} - RUSH STANDBY", msg=f"{open_rush=} {close_rush=} ")
-            return False
+        if is_window_open(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), window_open, window_close) is False:
+            state.ilog(e=f"SIGNAL {signalname} - WINDOW CLOSED", msg=f"{window_open=} {window_close=} ")
+            return False           
+
+        # if is_open_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), open_rush) or is_close_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), close_rush):
+        #     state.ilog(e=f"SIGNAL {signalname} - WINDOW CLOSED", msg=f"{open_rush=} {close_rush=} ")
+        #     return False
 
         #natvrdo nebo na podminku
         activated = safe_get(options, "activated", True)

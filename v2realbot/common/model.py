@@ -27,6 +27,7 @@ from alpaca.data.enums import Exchange
 class Intervals(BaseModel):
     start: str
     end: str
+    note: Optional[str] = None
 
 # Define the data model for the TestLists
 class TestList(BaseModel):
@@ -71,6 +72,7 @@ class RunRequest(BaseModel):
     ilog_save: bool = False
     bt_from: datetime = None
     bt_to: datetime = None
+    test_batch_id: Optional[str] = None
     cash: int = 100000
 
 

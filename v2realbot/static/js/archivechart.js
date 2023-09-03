@@ -24,6 +24,8 @@ function transform_data(data) {
     var sl_line_markers_sada = []
     //console.log(JSON.stringify(data.ext_data.sl_history, null, 2))
     prev_id = 0
+    //cas of first record, nekdy jsou stejny - musim pridat setinku
+    prev_cas = 0
     data.ext_data.sl_history.forEach((histRecord, index, array) => {
         
         console.log("plnime")
@@ -41,8 +43,16 @@ function transform_data(data) {
         }
 
         prev_id = histRecord.id
+
         //prevedeme iso data na timestampy
         cas = histRecord.time
+
+        if (cas == prev_cas) {
+            cas = cas + 0.001
+        }
+
+        prev_cas = cas
+
         //line pro buy/sell markery
         sline = {}
         sline["time"] = cas
@@ -599,6 +609,8 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
             slLine.forEach((series, index, array) => {
                 chart.removeSeries(series)
             })
+            slLine=[]
+
         }
         // if (slLine) {
         //     chart.removeSeries(slLine)
@@ -627,7 +639,6 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
             });
 
             slLine_temp.setData(slRecord);
-            //zatim nemame markery pro sl history
             slLine_temp.setMarkers(transformed_data["sl_line_markers"][index]);
             slLine.push(slLine_temp)
 

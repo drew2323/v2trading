@@ -223,6 +223,7 @@ function cleanup_chart() {
         clear_status_header()
         chart = null
         indList = [];
+        slLine = []
         markersLine = null
         avgBuyLine = null
         volumeSeries = null

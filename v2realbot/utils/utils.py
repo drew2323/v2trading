@@ -284,6 +284,34 @@ def is_open_rush(dt: datetime, mins: int = 30):
     rushtime = (datetime.combine(date.today(), business_hours["from"]) + timedelta(minutes=mins)).time()
     return business_hours["from"] <= dt.time() < rushtime
 
+#TODO market time pro dany den si dotahnout z Alpaca
+def is_window_open(dt: datetime, start: int = 0, end: int = 390):
+    """"
+    Returns true if time (start in minutes and end in minutes) is in working window
+    """
+    if start < 0 or start > 389:
+        return False
+    
+    if end < 0 or end > 389:
+        return False   
+
+    dt = dt.astimezone(zoneNY)
+    business_hours = {
+        "from": time(hour=9, minute=30),
+        "to": time(hour=16, minute=0)
+    }
+    startime = (datetime.combine(date.today(), business_hours["from"]) + timedelta(minutes=start)).time()
+    endtime = (datetime.combine(date.today(), business_hours["from"]) + timedelta(minutes=end)).time()
+
+    #time not within business hours
+    if not business_hours["from"] <= dt.time() <= business_hours["to"]:
+        return False
+    
+    if startime <= dt.time() <= endtime:
+        return True
+    else:
+        return False
+
 def is_close_rush(dt: datetime, mins: int = 30):
     """"
     Returns true if time is within afternoon rush (close-mins)

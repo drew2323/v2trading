@@ -6,7 +6,7 @@ from alpaca.data.requests import StockTradesRequest, StockBarsRequest
 from alpaca.data.enums import DataFeed
 from alpaca.data.timeframe import TimeFrame
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, OrderSide
-from v2realbot.common.model import StrategyInstance, Runner, RunRequest, RunArchive, RunArchiveDetail, RunArchiveChange, Bar, TradeEvent
+from v2realbot.common.model import StrategyInstance, Runner, RunRequest, RunArchive, RunArchiveDetail, RunArchiveChange, Bar, TradeEvent, TestList, Intervals
 from v2realbot.utils.utils import AttributeDict, zoneNY, dict_replace_value, Store, parse_toml_string, json_serial, is_open_hours, send_to_telegram
 from v2realbot.utils.ilog import delete_logs
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
@@ -19,6 +19,7 @@ from tinydb import TinyDB, Query, where
 from tinydb.operations import set
 import json
 from numpy import ndarray
+from rich import print
 import pandas as pd
 from traceback import format_exc
 from datetime import timedelta, time
@@ -309,8 +310,94 @@ def capsule(target: object, db: object):
                 db.runners.remove(i)
 
     print("Runner STOPPED")
+
+#vrátí konkrétní sadu testlistu
+def get_testlist_byID(record_id: str):
+    conn = pool.get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, name, dates FROM test_list WHERE id = ?", (record_id,))
+        row = cursor.fetchone()
+    finally:
+        pool.release_connection(conn)
+    
+    if row is None:
+        return -2, "not found"
+    else:
+        return 0, TestList(id=row[0], name=row[1], dates=json.loads(row[2]))
+
+
+#volano pro batchove spousteni (BT,)
+def run_batch_stratin(id: UUID, runReq: RunRequest):
+    if runReq.test_batch_id is None:
+        return (-1, "batch_id required for batch run")
+    
+    if runReq.mode != Mode.BT:
+        return (-1, "batch run only for backtest")
+    
+    print("request values:", runReq)
+
+    print("getting intervals")
+    testlist: TestList
+
+    res, testlist = get_testlist_byID(record_id=runReq.test_batch_id)
+
+    if res < 0:
+        return (-1, f"not existing ID of testlists with {runReq.test_batch_id}")
+
+#spousti se vlakno s paralelnim behem a vracime ok
+    ridici_vlakno = Thread(target=batch_run_manager, args=(id, runReq, testlist), name=f"Batch run controll thread started.")
+    ridici_vlakno.start()    
+    print(enumerate())
+
+    return 0, f"Batch run started"
+
+
+#thread, ktery bude ridit paralelni spousteni 
+# bud ceka na dokonceni v runners nebo to bude ridit jinak a bude mit jednoho runnera?
+# nejak vymyslet.
+# logovani zatim jen do print
+def batch_run_manager(id: UUID, runReq: RunRequest, testlist: TestList):
+    #zde muzu iterovat nad intervaly
+    #cekat az dobehne jeden interval a pak spustit druhy
+    #pripadne naplanovat beh - to uvidim
+    #domyslet kompatibilitu s budoucim automatickym "dennim" spousteni strategii
+    #taky budu mit nejaky konfiguracni RUN MANAGER, tak by krome rizeniho denniho runu
+    #mohl podporovat i BATCH RUNy.
+    batch_id = str(uuid4())[:8]
+    print("generated batch_ID", batch_id)
+
+    print("test batch", testlist)
+
+    print("test date", testlist.dates)
+    interval: Intervals
+    cnt_max = len(testlist.dates)
+    cnt = 0
+    for intrvl in testlist.dates:
+        cnt += 1
+        interval = intrvl
+        if interval.note is not None:
+            print("mame zde note")
+        print("Datum od", interval.start)
+        print("Datum do", interval.end)
+        print("starting")
+
+        #předání atributů datetime.fromisoformat
+        runReq.bt_from = datetime.fromisoformat(interval.start)
+        runReq.bt_to = datetime.fromisoformat(interval.end)
+        runReq.note = f"Batch {batch_id} run #{cnt}/{cnt_max} Note:{interval.note}"
+
+        #protoze jsme v ridicim vlaknu, poustime za sebou jednotlive stratiny v synchronnim modu
+        res, id_val = run_stratin(id=id, runReq=runReq, synchronous=True)
+        if res < 0:
+            print(f"CHyba v runu #{cnt} od:{runReq.bt_from} do {runReq.bt_to} -> {id_val}")
+            break
+
+    print("Batch manager FINISHED")
+
+
 #stratin run
-def run_stratin(id: UUID, runReq: RunRequest):
+def run_stratin(id: UUID, runReq: RunRequest, synchronous: bool = False):
     if runReq.mode == Mode.BT:
         if runReq.bt_from is None:
             return (-1, "start date required for BT")
@@ -405,6 +492,12 @@ def run_stratin(id: UUID, runReq: RunRequest):
                 print(db.runners)
                 print(i)
                 print(enumerate())
+
+                #pokud spoustime v batch módu, tak čekáme na výsledek a pak pouštíme další run
+                if synchronous:
+                    print(f"waiting for thread {vlakno} to finish")
+                    vlakno.join()
+
                 return (0, id)
             except Exception as e:
                 return (-2, "Exception: "+str(e)+format_exc())

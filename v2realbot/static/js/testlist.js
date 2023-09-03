@@ -16,7 +16,15 @@ $(document).ready(function() {
       datesArray.forEach(function(dates) {
         var tag = $('<div class="tag">' + dates.start + " --- " + dates.end + '<span class="close">X</span></div>');
         tag.find('.close').click(function() {
+          var dateText = tag.text();
+          console.log("clicked")
+          datesArray = datesArray.filter(function(date) {
+            tagcontent = date.start + " --- " + date.end + "X"
+            console.log(tagcontent,dateText)
+            return tagcontent !== dateText;
+          });
           $(this).parent().remove();
+          console.log("ccclickd")
         });
         $('#tagContainer').append(tag);
       });
@@ -29,9 +37,13 @@ $(document).ready(function() {
       records.forEach(function(record) {
         var recordItem = $('<div class="recordItem"></div>');
         var recordDetails = $('<div class="recordDetails"></div>').html('<strong>ID:</strong> ' + record.id + '<br><strong>Name:</strong> ' + record.name + '<br><strong>Dates:</strong> ');
-        
+  
         record.dates.forEach(function(interval) {
-          var intervalItem = $('<div class="intervalContainer"></div>').html('<strong>Start:</strong> ' + interval.start + '<br><strong>End:</strong> ' + interval.end);
+          var note = ""
+          if (interval.note !== null) {
+            var note = '<br><strong>Note:</strong> ' + interval.note 
+          }
+          var intervalItem = $('<div class="intervalContainer"></div>').html('<strong>Start:</strong> ' + interval.start + '<br><strong>End:</strong> ' + interval.end + note);
           recordDetails.append(intervalItem);
         });        
         
@@ -98,15 +110,24 @@ $(document).ready(function() {
     $('#addTagBtn').click(function() {
       var dateTextStart = $('#datepickerstart').val().trim();
       var dateTextEnd = $('#datepickerend').val().trim();
+      var datenote = $('#datenote').val();
       if ((dateTextStart !== '') && (dateTextEnd !== '')) {
         var tag = $('<div class="tag">' + dateTextStart + " --- " + dateTextEnd + '<span class="close">X</span></div>');
         tag.find('.close').click(function() {
+          var dateText = tag.text();
+          console.log("clicked")
+          datesArray = datesArray.filter(function(date) {
+            tagcontent = date.start + " --- " + date.end + "X"
+            console.log(tagcontent,dateText)
+            return tagcontent !== dateText;
+          });
           $(this).parent().remove();
         });
         $('#tagContainer').append(tag);
         var interval = {}
         interval["start"] = dateTextStart
         interval["end"] = dateTextEnd
+        interval["note"] = datenote
         datesArray.push(interval);
         $('#datepicker').val('');
       }
@@ -145,15 +166,17 @@ $(document).ready(function() {
       cancelEdit();
     });
   
-    $('#tagContainer').on('click', '.tag .close', function() {
-      var tag = $(this).parent();
-      var dateText = tag.text();
-      datesArray = datesArray.filter(function(date) {
-        tagcontent = date.start + " --- " + date.end
-        return tagcontent !== dateText;
-      });
-      tag.remove();
-    });
+    // $('#tagContainer').on('click', '.tag .close', function() {
+    //   var tag = $(this).parent();
+    //   var dateText = tag.text();
+    //   console.log("clicked")
+    //   datesArray = datesArray.filter(function(date) {
+    //     tagcontent = date.start + " --- " + date.end
+    //     console.log(tagcontent,dateText)
+    //     return tagcontent !== dateText;
+    //   });
+    //   tag.remove();
+    // });
   
     function getRecords() {
       $.ajax({

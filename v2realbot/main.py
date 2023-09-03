@@ -226,7 +226,11 @@ def _get_stratin(stratin_id) -> StrategyInstance:
 
 @app.put("/stratins/{stratin_id}/run", dependencies=[Depends(api_key_auth)], status_code=status.HTTP_200_OK)
 def _run_stratin(stratin_id: UUID, runReq: RunRequest):
-    res, id = cs.run_stratin(id=stratin_id, runReq=runReq)
+    print(runReq)
+    if runReq.test_batch_id is not None:
+        res, id = cs.run_batch_stratin(id=stratin_id, runReq=runReq)
+    else:
+        res, id = cs.run_stratin(id=stratin_id, runReq=runReq)
     if res == 0: return id
     elif res < 0:
         raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error: {res}:{id}")
@@ -336,8 +340,8 @@ def _get_alpaca_history_bars(symbol: str, datetime_object_from: datetime, dateti
 @app.post('/testlists/', dependencies=[Depends(api_key_auth)])
 def create_record(testlist: TestList):
     # Generate a new UUID for the record
-    testlist.id = str(uuid4())
-    
+    testlist.id = str(uuid4())[:8]
+
     # Insert the record into the database
     conn = pool.get_connection()
     cursor = conn.cursor()
@@ -366,17 +370,12 @@ def get_testlists():
 # API endpoint to retrieve a single record by ID
 @app.get('/testlists/{record_id}')
 def get_testlist(record_id: str):
-    conn = pool.get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT id, name, dates FROM test_list WHERE id = ?", (record_id,))
-    row = cursor.fetchone()
-    pool.release_connection(conn)
-    
-    if row is None:
+    res, testlist = cs.get_testlist_byID(record_id=record_id)
+
+    if res == 0:
+        return testlist
+    elif res < 0:
         raise HTTPException(status_code=404, detail='Record not found')
-    
-    testlist = TestList(id=row[0], name=row[1], dates=json.loads(row[2]))
-    return testlist
 
 # API endpoint to update a record
 @app.put('/testlists/{record_id}')

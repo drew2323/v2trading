@@ -406,11 +406,32 @@ $(document).ready(function () {
         //console.log(localStorage.getItem("bt_from"))
         $('#bt_to').val(localStorage.getItem("bt_to"));
         //console.log(localStorage.getItem("bt_to"))
+        $('#test_batch_id').val(localStorage.getItem("test_batch_id"));
         $('#mode').val(localStorage.getItem("mode"));
         $('#account').val(localStorage.getItem("account"));
         $('#debug').val(localStorage.getItem("debug"));
         $('#ilog_save').val(localStorage.getItem("ilog_save"));
         $('#runid').val(row.id);
+
+        // Initially, check the value of "batch" and enable/disable "from" and "to" accordingly
+        if ($("#test_batch_id").val() !== "") {
+            $("#bt_from, #bt_to").prop("disabled", true);
+        } else {
+            $("#bt_from, #bt_to").prop("disabled", false);
+        }
+
+        // Listen for changes in the "batch" input
+        $("#test_batch_id").on("input", function() {
+            if ($(this).val() !== "") {
+                // If "batch" is not empty, disable "from" and "to"
+                $("#bt_from, #bt_to").prop("disabled", true);
+            } else {
+                // If "batch" is empty, enable "from" and "to"
+                $("#bt_from, #bt_to").prop("disabled", false);
+            }
+        });
+
+
     });
 
     //button add
@@ -441,6 +462,23 @@ $(document).ready(function () {
         $('.modal-title').html(" Edit Records");
         $('#action').val('updateRecord');
         $('#save').val('Save');
+    //code for toml editor
+  // Initialize Monaco Editor
+
+        // require.config({ paths: { vs: 'monaco-editor/min/vs' } });
+        // require(['vs/editor/editor.main'], function () {
+        //     var editor = $("#editor").monacoEditor({
+        //         language: "toml",
+        //         value: row.stratvars_conf
+        //         });   
+        //     // Get content from Monaco Editor and set it to the textarea using jQuery
+        //     editor.getModels()[0].onDidChangeContent(function() {
+        //         var tomlContent = monaco.editor.getModels()[0].getValue();
+        //         $('#stratvars_conf').val(tomlContent);
+        //     });
+        // }); 
+
+
     });
     //delete button
     $('#button_delete').click(function () {
@@ -576,6 +614,7 @@ var runnerRecords =
 $("#runModal").on('submit','#runForm', function(event){
     localStorage.setItem("bt_from", $('#bt_from').val());
     localStorage.setItem("bt_to", $('#bt_to').val());
+    localStorage.setItem("test_batch_id", $('#test_batch_id').val());
     localStorage.setItem("mode", $('#mode').val());
     localStorage.setItem("account", $('#account').val());
     localStorage.setItem("debug", $('#debug').val());
@@ -587,7 +626,7 @@ $("#runModal").on('submit','#runForm', function(event){
     //rename runid to id
     Object.defineProperty(formData, "id", Object.getOwnPropertyDescriptor(formData, "runid"));
     delete formData["runid"];
-    //console.log(formData)
+    console.log(formData)
     if ($('#ilog_save').prop('checked')) {
         formData.ilog_save = true;
     }
@@ -598,6 +637,8 @@ $("#runModal").on('submit','#runForm', function(event){
     // $('#subscribe').prop('checked')
     if (formData.bt_from == "") {delete formData["bt_from"];}
     if (formData.bt_to == "") {delete formData["bt_to"];}
+
+    if (formData.test_batch_id == "") {delete formData["test_batch_id"];}
 
     //create strat_json - snapshot of stratin
     row = stratinRecords.row('.selected').data();

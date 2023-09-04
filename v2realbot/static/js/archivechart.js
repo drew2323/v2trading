@@ -1,6 +1,9 @@
+
 var tradeDetails = new Map();
 var toolTip = null
-var CHART_SHOW_TEXT = false
+var CHART_SHOW_TEXT = get_from_config("CHART_SHOW_TEXT", false)
+
+console.log("CHART_SHOW_TEXT archchart", CHART_SHOW_TEXT)
 // var vwapSeries = null
 // var volumeSeries = null
 var markersLine = null
@@ -11,6 +14,7 @@ var slLine = []
 //input array object bars = { high: [1,2,3], time: [1,2,3], close: [2,2,2]...}
 //output array [{ time: 111, open: 11, high: 33, low: 333, close: 333},..]
 function transform_data(data) {
+    var SHOW_SL_DIGITS = get_from_config("SHOW_SL_DIGITS", true)
     transformed = []
     //get basic bars, volume and vvwap
     var bars = []
@@ -64,7 +68,8 @@ function transform_data(data) {
         sline_markers["position"] = "inBar" 
         sline_markers["color"] = "#f5aa42"
         //sline_markers["shape"] = "circle"
-        sline_markers["text"] = histRecord.sl_val.toFixed(3)
+        console.log("SHOW_SL_DIGITS",SHOW_SL_DIGITS)
+        sline_markers["text"] = SHOW_SL_DIGITS ? histRecord.sl_val.toFixed(3) : ""
         sl_line_markers_sada.push(sline_markers)
 
         if (index === array.length - 1) {

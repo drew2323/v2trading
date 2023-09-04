@@ -525,7 +525,7 @@ var stratinRecords =
                     {data: 'history', visible: false},
                     {data: 'id', visible: true},
                 ],
-        paging: false,
+        paging: true,
         processing: false,
         columnDefs: [{
             targets: 12,

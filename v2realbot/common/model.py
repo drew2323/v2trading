@@ -24,6 +24,12 @@ from alpaca.data.enums import Exchange
 #  return user.id
 #  raise HTTPException(status_code=404, detail=f"Could not find user with id: {id}")
 
+# Define a Pydantic model for input data
+class ConfigItem(BaseModel):
+    id: Optional[int] = None
+    item_name: str
+    json_data: str
+
 class Intervals(BaseModel):
     start: str
     end: str

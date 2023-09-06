@@ -17,11 +17,11 @@ if (statusBarConfig == null) {
 
 const sorter = (a, b) => a.time > b.time ? 1 : -1;
 
-indConfig = {}
+var indConfig = null
 settings = {}
 settings
 //ostatni indicatory nez vwap, volume a bary
-indConfig = [ {name: "ema", titlevisible: false, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},
+var indConfig_default = [ {name: "ema", titlevisible: false, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},
               {name: "ema20", titlevisible: false, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},              
               {name: "tick_volume", histogram: true, titlevisible: true, embed: true, display: true, priceScaleId: '', lastValueVisible: false},
               {name: "tick_price", titlevisible: true, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},
@@ -50,7 +50,7 @@ indConfig = [ {name: "ema", titlevisible: false, embed: true, display: true, pri
               {name: "ppo", titlevisible: true, embed: true, display: true, priceScaleId: "middle", lastValueVisible: false},
               {name: "stoch2", titlevisible: true, embed: true, display: true, priceScaleId: "middle", lastValueVisible: false},
               {name: "sec_price", titlevisible: true, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},]
-console.log(JSON.stringify(indConfig, null,null, 2))
+console.log(JSON.stringify(indConfig_default, null,null, 2))
 
 
 function initialize_statusheader() {
@@ -129,6 +129,11 @@ function initialize_statusheader() {
 
 
 function get_ind_config(indName) {
+
+    if (indConfig == null) {
+      indConfig = get_from_config("indConfig", indConfig_default)
+    }
+
     const i = indConfig.findIndex(e => e.name === indName);
     if (i>-1)
         {

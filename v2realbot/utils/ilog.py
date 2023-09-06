@@ -63,6 +63,7 @@ def get_log_window(runner_id: UUID, timestamp_from: float = 0, timestamp_to: flo
         c = conn.cursor()
         res = c.execute(f"SELECT data FROM runner_logs WHERE runner_id='{str(runner_id)}' AND time >={timestamp_from} AND time <={timestamp_to} ORDER BY time")
     finally:
+        conn.row_factory = None
         pool.release_connection(conn)
     return res.fetchall()
 

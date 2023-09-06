@@ -1,4 +1,6 @@
 //JS code for using config value on the frontend
+//TODO zvazit presunuti do TOML z JSONu
+
 configData = {}
 
 function get_from_config(name, def_value) {

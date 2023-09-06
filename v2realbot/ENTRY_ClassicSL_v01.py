@@ -6,7 +6,7 @@ from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, Orde
 from v2realbot.indicators.indicators import ema
 from v2realbot.indicators.oscillators import rsi
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
-from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, print, safe_get, round2five, is_open_rush, is_close_rush, is_window_open, eval_cond_dict, Average, crossed_down, crossed_up, crossed, is_pivot, json_serial
+from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, print, safe_get, round2five, is_open_rush, is_close_rush, is_still, is_window_open, eval_cond_dict, Average, crossed_down, crossed_up, crossed, is_pivot, json_serial
 from v2realbot.utils.directive_utils import get_conditions_from_configuration
 from v2realbot.common.model import SLHistory
 from datetime import datetime
@@ -130,6 +130,9 @@ def next(data, state: StrategyState):
                 cond[cond_type][directive+"_"+indname+"_"+str(value)] = is_pivot(source=get_source_or_MA(indname), leg_number=value, type="A")
             elif directive.endswith("pivot_v"):
                 cond[cond_type][directive+"_"+indname+"_"+str(value)] = is_pivot(source=get_source_or_MA(indname), leg_number=value, type="V")
+            elif directive.endswith("still_for"):
+                #for 2 decimals
+                cond[cond_type][directive+"_"+indname+"_"+str(value)] = is_still(get_source_or_MA(indname),value, 2)
 
             #PRIPADNE DALSI SPECIFICKE ZDE
             # elif directive == "buy_if_necospecifckeho":
@@ -389,8 +392,8 @@ def next(data, state: StrategyState):
 
                         #pokud mame aktivni pozice, nastavime lookbackprice a time podle posledniho tradu
                         #pokud se ale dlouho nenakupuje (uplynulo od posledniho nakupu vic nez back_to_standard_after baru), tak se vracime k prumeru
-                        if state.avgp > 0 and state.bars.index[-1] < int(state.vars.lastbuyindex)+back_to_standard_after:
-                            lb_index = -1 - (state.bars.index[-1] - int(state.vars.lastbuyindex))
+                        if state.avgp > 0 and state.bars.index[-1] < int(state.vars.last_buy_index)+back_to_standard_after:
+                            lb_index = -1 - (state.bars.index[-1] - int(state.vars.last_buy_index))
                             lookbackprice = state.bars.vwap[lb_index]
                             state.ilog(e=f"IND {name} slope {leftpoint}- LEFT POINT OVERRIDE bereme ajko cenu lastbuy {lookbackprice=} {lookbacktime=} {lb_index=}")
                         else:
@@ -719,7 +722,7 @@ def next(data, state: StrategyState):
 
         state.ilog(e=f"PROFIT {def_profit=} {normalized_def_profit=}")
 
-        return price2dec(data["close"]+normalized_def_profit,3) if int(state.positions) > 0 else price2dec(data["close"]-normalized_def_profit,3)
+        return price2dec(float(state.avgp)+normalized_def_profit,3) if int(state.positions) > 0 else price2dec(float(state.avgp)-normalized_def_profit,3)
         
     def get_max_profit_price():
         directive_name = "max_profit"
@@ -729,7 +732,7 @@ def next(data, state: StrategyState):
 
         state.ilog(e=f"MAX PROFIT {max_profit=} {normalized_max_profit=}")
 
-        return price2dec(data["close"]+normalized_max_profit,3) if int(state.positions) > 0 else price2dec(data["close"]-normalized_max_profit,3)    
+        return price2dec(float(state.avgp)+normalized_max_profit,3) if int(state.positions) > 0 else price2dec(float(state.avgp)-normalized_max_profit,3)    
 
     #TBD pripadne opet dat parsovani pole do INITu
 
@@ -738,6 +741,18 @@ def next(data, state: StrategyState):
             smer = "long"
         else:
             smer = "short"
+
+        #get name of strategy
+        signal_originator = state.vars.activeTrade.generated_by
+
+        if signal_originator is not None:
+            exit_cond_only_on_confirmed = safe_get(state.vars.signals[signal_originator], "exit_cond_only_on_confirmed", safe_get(state.vars, "exit_cond_only_on_confirmed", False))
+        else:
+            exit_cond_only_on_confirmed = safe_get(state.vars, "exit_cond_only_on_confirmed", False)
+
+        if exit_cond_only_on_confirmed and data['confirmed'] == 0:
+            state.ilog("EXIT COND ONLY ON CONFIRMED BAR")
+            return False
 
         #TOTO ZATIM NEMA VYZNAM
         # options = safe_get(state.vars, 'exit_conditions', None)
@@ -909,10 +924,8 @@ def next(data, state: StrategyState):
     def eval_close_position():
         curr_price = float(data['close'])
         state.ilog(e="Eval CLOSE", price=curr_price, pos=state.positions, avgp=state.avgp, pending=state.vars.pending, activeTrade=str(state.vars.activeTrade))
-          
+
         if int(state.positions) != 0 and float(state.avgp)>0 and state.vars.pending is None:
-            
-            #podivam se zda dana 
             
             #pevny target - presunout toto do INIT a pak jen pristupovat
             goal_price = get_profit_target_price()
@@ -984,6 +997,7 @@ def next(data, state: StrategyState):
                 trade.last_update = datetime.fromtimestamp(state.time).astimezone(zoneNY)
                 state.ilog(e=f"evaluated LONG", trade=json.loads(json.dumps(trade, default=json_serial)), prescrTrades=json.loads(json.dumps(state.vars.prescribedTrades, default=json_serial)))
                 state.vars.activeTrade = trade
+                state.vars.last_buy_index = data["index"]
                 break
         #evaluate shorts
         if not state.vars.activeTrade:
@@ -993,6 +1007,7 @@ def next(data, state: StrategyState):
                     trade.status = TradeStatus.ACTIVATED
                     trade.last_update = datetime.fromtimestamp(state.time).astimezone(zoneNY)
                     state.vars.activeTrade = trade
+                    state.vars.last_buy_index = data["index"]
                     break
 
         #odeslani ORDER + NASTAVENI STOPLOSS (zatim hardcoded)
@@ -1109,6 +1124,15 @@ def next(data, state: StrategyState):
     def common_go_preconditions_check(signalname: str, options: dict):
         #ZAKLADNI KONTROLY ATRIBUTU s fallbackem na obecné
         #check working windows (open - close, in minutes from the start of marker)
+
+        next_signal_offset = safe_get(options, "next_signal_offset_from_last",safe_get(state.vars, "next_signal_offset_from_last",0))
+
+        if state.vars.last_buy_index is not None:
+            index_to_compare = int(state.vars.last_buy_index)+int(next_signal_offset) 
+            if index_to_compare > int(data["index"]):
+                state.ilog(e=f"NEXT SIGNAL OFFSET {next_signal_offset} waiting - TOO SOON", currindex=data["index"], index_to_compare=index_to_compare)
+                return False      
+
         window_open = safe_get(options, "window_open",safe_get(state.vars, "window_open",0))
         window_close = safe_get(options, "window_close",safe_get(state.vars, "window_close",390))
 
@@ -1390,7 +1414,7 @@ def init(state: StrategyState):
     state.vars.last_50_deltas = []
     state.vars.last_tick_volume = 0
     state.vars.next_new = 0
-    state.vars.lastbuyindex = 0
+    state.vars.last_buy_index = None
     state.vars.last_update_time = 0
     state.vars.reverse_position_waiting_amount = 0
     #INIT promenne, ktere byly zbytecne ve stratvars

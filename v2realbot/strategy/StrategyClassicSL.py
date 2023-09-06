@@ -65,7 +65,7 @@ class StrategyClassicSL(Strategy):
                 trade_profit = round((avg_costs-bought_amount),2)
                 self.state.profit += trade_profit
                 self.state.ilog(e=f"BUY notif - SHORT PROFIT:{round(float(trade_profit),3)} celkem:{round(float(self.state.profit),3)}", msg=str(data.event), bought_amount=bought_amount, avg_costs=avg_costs, trade_qty=data.qty, trade_price=data.price, orderid=str(data.order.id))
-            
+
                 #zapsat profit do prescr.trades
                 for trade in self.state.vars.prescribedTrades:
                     if trade.id == self.state.vars.pending:

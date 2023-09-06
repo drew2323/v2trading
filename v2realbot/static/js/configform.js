@@ -5,7 +5,6 @@ $(document).ready(function () {
         let editingItemId = null;
         var localArray = []
 
-
         // Function to populate the config list and load JSON data initially
         function populateConfigList(to_select = null) {
             $.ajax({
@@ -28,6 +27,20 @@ $(document).ready(function () {
                             $('#itemName').val(item.item_name);
                             $('#jsonTextarea').val(item.json_data);
                             editingItemId = item.id;
+                            // Get the textarea element.
+                            var textarea = $("#jsonTextarea");
+
+                            // // Highlight the JSON formatted string in the textarea.
+                            // hljs.highlightElement(textarea.get(0));
+                            // console.log(textarea.get(0))
+                            // console.log(textarea.get(1))
+
+                            // // Highlight the JSON formatted string whenever the textarea is edited.
+                            // textarea.on("input", function() {
+                            //     hljs.highlightElement(textarea.get(0));
+                            //     //hljs.highlightBlock(textarea.get(0),{ language: 'json' });
+                            // });
+
                         }
                         configList.append(`<option value="${item.id}" ${selected}>${item.item_name}</option>`);
                     });

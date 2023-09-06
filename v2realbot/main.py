@@ -1,7 +1,7 @@
 import os,sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from v2realbot.enums.enums import Mode, Account
-from v2realbot.config import WEB_API_KEY
+from v2realbot.config import WEB_API_KEY, DATA_DIR
 from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from datetime import datetime
 #from icecream import install, ic
@@ -271,7 +271,41 @@ def get_trade_history(symbol: str, timestamp_from: float, timestamp_to:float) ->
     else:
         raise HTTPException(status_code=404, detail=f"No trades found {res}")
 
+@app.put("/migrate", dependencies=[Depends(api_key_auth)], status_code=status.HTTP_200_OK)
+def migrate():
+    lock_file = DATA_DIR + "/migr.lock"
+    
+    #if lock file not present, we can continue and create the file
+    if not os.path.exists(lock_file):
+
+        #migration code
+        print("migration code done")
+        conn = pool.get_connection()
+        try:
+            conn.row_factory = lambda c, r: json.loads(r[0])
+            c = conn.cursor()
+            res = c.execute(f'CREATE TABLE "runner_header" ("runner_id"	varchar(32) NOT NULL,"data"	json NOT NULL, PRIMARY KEY("runner_id"))')
+            print(res)
+            print("table created")
+            conn.commit()
+        finally:
+            conn.row_factory = None
+            pool.release_connection(conn)  
+             
+        res, set =cs.migrate_archived_runners()
+        if res == 0:
+            open(lock_file, 'w').close()
+            return set
+        else:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No data found")
+
+
+    else:
+        raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Migration lock file present {lock_file}")
+
+
 #ARCHIVE RUNNERS SECTION
+# region Archive runners
 
 #get all archived runners header
 @app.get("/archived_runners/", dependencies=[Depends(api_key_auth)])
@@ -326,6 +360,8 @@ def _get_archived_runner_log_byID(runner_id: UUID, timestamp_from: float, timest
         return res
     else:
         raise HTTPException(status_code=404, detail=f"No logs found with id: {runner_id} and between {timestamp_from} and {timestamp_to}")
+
+# endregion 
 
 #get alpaca history bars
 @app.get("/history_bars/", dependencies=[Depends(api_key_auth)])

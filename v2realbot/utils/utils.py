@@ -25,6 +25,27 @@ import pandas as pd
 from collections import deque
 
 
+def is_still(lst: list, how_many_last_items: int, precision: int):
+    """
+    Checks if the last N members of a list are equal within a given precision.
+
+    Args:
+    lst (list): The list of floats to check.
+    how_many_last_items (int): The number of last items to compare.
+    precision (int): The number of decimal places to round to for comparison.
+
+    Returns:
+    bool: True if the last N members are equal within the specified precision, False otherwise.
+    """
+    if len(lst) < how_many_last_items:
+        raise ValueError("The list does not have enough items to compare.")
+
+    last_items = lst[-how_many_last_items:]  # Get the last N items
+    rounded_last_items = [round(item, precision) for item in last_items]
+    
+    # Check if all rounded items are equal
+    return all(rounded_last_items[0] == item for item in rounded_last_items)
+
 
 #is_pivot function to check if there is A(V) shaped pivot in the list, each leg consists of N points
 #middle point is the shared one [1,2,3,2,1] - one leg is [1,2,3] second leg is [3,2,1]
@@ -53,22 +74,43 @@ def is_pivot(source: list, leg_number: int, type: str = "A"):
 def crossed_up(threshold, list):
     """check if threshold has crossed up last thresholdue in list"""
     try:
-        #upraveno, ze threshold muze byt vetsi nez predpredposledni
-        if threshold < list[-1] and threshold >= list[-2] or threshold < list[-1] and threshold >= list[-3]:
+        if threshold < list[-1] and threshold > list[-2]:
             return True
-        else:
-            return False
+
+        # #upraveno, ze threshold muze byt vetsi nez predpredposledni
+        # if threshold < list[-1] and threshold >= list[-2] or threshold < list[-1] and threshold >= list[-3]:
+        #     return True
+        # else:
+        #     return False
     except IndexError:
         return False
     
 def crossed_down(threshold, list):
     """check if threshold has crossed down last thresholdue in list"""
+    """
+    Checks if a threshold has just crossed down a line represented by a list.
+
+    Args:
+    threshold (float): The threshold value to check.
+    lst (list): The list representing the line.
+
+    Returns:
+    bool: True if the threshold just crossed down the line, False otherwise.
+    """
+
     try:
-        #upraveno, ze threshold muze byt mensi nez predpredposledni
-        if threshold > list[-1] and threshold <= list[-2] or threshold > list[-1] and threshold <= list[-3]:
+        #upraveno na jednoduchou verzi
+        if threshold > list[-1] and threshold < list[-2]:
             return True
-        else:
-            return False
+
+        return False
+
+
+        # #upraveno, ze threshold muze byt mensi nez predpredposledni
+        # if threshold > list[-1] and threshold <= list[-2] or threshold > list[-1] and threshold <= list[-3]:
+        #     return True
+        # else:
+        #     return False
     except IndexError:
         return False
 

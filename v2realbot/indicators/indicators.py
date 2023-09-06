@@ -5,6 +5,14 @@ from collections import deque
 import typing
 from v2realbot.utils.utils import check_series, convert_to_numpy
 
+
+def natr(data_high, data_low, data_close, period: int = 5):
+    data_high = convert_to_numpy(data_high)
+    data_low = convert_to_numpy(data_low)
+    data_close = convert_to_numpy(data_close)
+    natr = ti.natr(data_high, data_low, data_close, period=period)
+    return natr
+
 def ema(data, period: int = 50, use_series=False):
     if check_series(data):
         use_series = True

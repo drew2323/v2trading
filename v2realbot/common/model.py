@@ -121,6 +121,7 @@ class Runner(BaseModel):
     run_instance: Optional[object] = None
     run_pause_ev: Optional[object] = None
     run_stop_ev: Optional[object] = None
+    run_stratvars_toml: Optional[str] = None
 
 
 class Bar(BaseModel):
@@ -207,6 +208,7 @@ class RunArchive(BaseModel):
     end_positions: int = 0
     end_positions_avgp: float = 0
     open_orders: Union[dict, int] = None
+    stratvars_toml: Optional[str] = None
 
 #trida pro ukladani historie stoplossy do ext_data
 class SLHistory(BaseModel):

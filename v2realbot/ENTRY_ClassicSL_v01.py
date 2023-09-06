@@ -3,7 +3,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from v2realbot.strategy.base import StrategyState
 from v2realbot.strategy.StrategyOrderLimitVykladaciNormalizedMYSELL import StrategyOrderLimitVykladaciNormalizedMYSELL
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, OrderSide, OrderType
-from v2realbot.indicators.indicators import ema
+from v2realbot.indicators.indicators import ema, natr
 from v2realbot.indicators.oscillators import rsi
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
 from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, print, safe_get, round2five, is_open_rush, is_close_rush, is_still, is_window_open, eval_cond_dict, Average, crossed_down, crossed_up, crossed, is_pivot, json_serial
@@ -248,6 +248,8 @@ def next(data, state: StrategyState):
             populate_dynamic_RSI_indicator(name = name)
         elif type == "EMA":
             populate_dynamic_ema_indicator(name = name)
+        elif type == "NATR":
+            populate_dynamic_natr_indicator(name = name)
         else:
             return
 
@@ -284,6 +286,34 @@ def next(data, state: StrategyState):
                 #    state.ilog(e=f"IND {name} EMA necháváme 0", message="not enough source data", source=source, ema_length=ema_length)
             except Exception as e:
                 state.ilog(e=f"IND ERROR {name} EMA necháváme 0", message=str(e)+format_exc())
+
+    #NATR INDICATOR
+    # type = NATR, ĺength = [14], on_confirmed_only = [true, false]
+    def populate_dynamic_natr_indicator(name):
+        ind_type = "NATR"
+        options = safe_get(state.vars.indicators, name, None)
+        if options is None:
+            state.ilog(e=f"No options for {name} in stratvars")
+            return       
+        
+        #poustet kazdy tick nebo jenom na confirmed baru (on_confirmed_only = true)
+        on_confirmed_only = safe_get(options, 'on_confirmed_only', False)
+        natr_length = int(safe_get(options, "length",5))
+        if on_confirmed_only is False or (on_confirmed_only is True and data['confirmed']==1):
+            try:
+                source_high = state.bars["high"][-natr_length:]
+                source_low = state.bars["low"][-natr_length:]
+                source_close = state.bars["close"][-natr_length:]
+                #if len(source) > ema_length:
+                natr_value = natr(source_high, source_low, source_close, natr_length)
+                val = round(natr_value[-1],4)
+                state.indicators[name][-1]= val
+                #state.indicators[name][-1]= round2five(val)
+                state.ilog(e=f"IND {name} NATR {val} {natr_length=}")
+                #else:
+                #    state.ilog(e=f"IND {name} EMA necháváme 0", message="not enough source data", source=source, ema_length=ema_length)
+            except Exception as e:
+                state.ilog(e=f"IND ERROR {name} NATR necháváme 0", message=str(e)+format_exc())
 
     #RSI INDICATOR
     # type = RSI, source = [close, vwap, hlcc4], rsi_length = [14], MA_length = int (optional), on_confirmed_only = [true, false]
@@ -742,17 +772,31 @@ def next(data, state: StrategyState):
         else:
             smer = "short"
 
-        #get name of strategy
-        signal_originator = state.vars.activeTrade.generated_by
-
-        if signal_originator is not None:
-            exit_cond_only_on_confirmed = safe_get(state.vars.signals[signal_originator], "exit_cond_only_on_confirmed", safe_get(state.vars, "exit_cond_only_on_confirmed", False))
-        else:
-            exit_cond_only_on_confirmed = safe_get(state.vars, "exit_cond_only_on_confirmed", False)
+        directive_name = "exit_cond_only_on_confirmed"
+        exit_cond_only_on_confirmed = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, False))
 
         if exit_cond_only_on_confirmed and data['confirmed'] == 0:
             state.ilog("EXIT COND ONLY ON CONFIRMED BAR")
             return False
+
+        #POKUD je nastaven MIN PROFIT, zkontrolujeme ho a az pripadne pustime CONDITIONY
+        directive_name = "exit_cond_min_profit"
+        exit_cond_min_profit = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, None))
+
+        #máme nastavený exit_cond_min_profit
+        # zjistíme, zda jsme v daném profit a případně nepustíme dál
+        # , zjistíme aktuální cenu a přičteme k avgp tento profit a podle toho pustime dal
+
+        if exit_cond_min_profit is not None:
+            exit_cond_min_profit_normalized = normalize_tick(float(exit_cond_min_profit))
+            exit_cond_goal_price = price2dec(float(state.avgp)+exit_cond_min_profit_normalized,3) if int(state.positions) > 0 else price2dec(float(state.avgp)-exit_cond_min_profit_normalized,3) 
+            curr_price = float(data["close"])
+            state.ilog(e=f"EXIT COND min profit {exit_cond_goal_price=} {exit_cond_min_profit=} {exit_cond_min_profit_normalized=} {curr_price=}")
+            if (int(state.positions) < 0 and curr_price<=exit_cond_goal_price) or (int(state.positions) > 0 and curr_price>=exit_cond_goal_price):
+                state.ilog(e=f"EXIT COND min profit PASS - POKRACUJEME")
+            else:
+                state.ilog(e=f"EXIT COND min profit NOT PASS")
+                return False
 
         #TOTO ZATIM NEMA VYZNAM
         # options = safe_get(state.vars, 'exit_conditions', None)
@@ -919,7 +963,8 @@ def next(data, state: StrategyState):
         #pri uzavreni tradu zapisujeme SL history - lepsi zorbazeni v grafu
         insert_SL_history()
         state.vars.pending = state.vars.activeTrade.id
-        state.vars.activeTrade = None        
+        state.vars.activeTrade = None   
+        state.vars.last_exit_index = data["index"]     
 
     def eval_close_position():
         curr_price = float(data['close'])
@@ -1125,20 +1170,20 @@ def next(data, state: StrategyState):
         #ZAKLADNI KONTROLY ATRIBUTU s fallbackem na obecné
         #check working windows (open - close, in minutes from the start of marker)
 
-        next_signal_offset = safe_get(options, "next_signal_offset_from_last",safe_get(state.vars, "next_signal_offset_from_last",0))
-
-        if state.vars.last_buy_index is not None:
-            index_to_compare = int(state.vars.last_buy_index)+int(next_signal_offset) 
-            if index_to_compare > int(data["index"]):
-                state.ilog(e=f"NEXT SIGNAL OFFSET {next_signal_offset} waiting - TOO SOON", currindex=data["index"], index_to_compare=index_to_compare)
-                return False      
-
         window_open = safe_get(options, "window_open",safe_get(state.vars, "window_open",0))
         window_close = safe_get(options, "window_close",safe_get(state.vars, "window_close",390))
 
         if is_window_open(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), window_open, window_close) is False:
             state.ilog(e=f"SIGNAL {signalname} - WINDOW CLOSED", msg=f"{window_open=} {window_close=} ")
             return False           
+
+        next_signal_offset = safe_get(options, "next_signal_offset_from_last_exit",safe_get(state.vars, "next_signal_offset_from_last_exit",0))
+
+        if state.vars.last_exit_index is not None:
+            index_to_compare = int(state.vars.last_exit_index)+int(next_signal_offset) 
+            if index_to_compare > int(data["index"]):
+                state.ilog(e=f"NEXT SIGNAL OFFSET from EXIT {next_signal_offset} waiting - TOO SOON", currindex=data["index"], index_to_compare=index_to_compare, last_exit_index=state.vars.last_exit_index)
+                return False
 
         # if is_open_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), open_rush) or is_close_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), close_rush):
         #     state.ilog(e=f"SIGNAL {signalname} - WINDOW CLOSED", msg=f"{open_rush=} {close_rush=} ")
@@ -1415,6 +1460,7 @@ def init(state: StrategyState):
     state.vars.last_tick_volume = 0
     state.vars.next_new = 0
     state.vars.last_buy_index = None
+    state.vars.last_exit_index = None
     state.vars.last_update_time = 0
     state.vars.reverse_position_waiting_amount = 0
     #INIT promenne, ktere byly zbytecne ve stratvars

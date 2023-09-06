@@ -100,7 +100,15 @@ $(document).ready(function () {
         $('#editidarchive').val(row.id);
         $('#editnote').val(row.note);
         $('#metrics').val(JSON.stringify(row.open_orders,null,2));
-        $('#editstratvars').val(JSON.stringify(row.stratvars,null,2));
+        //$('#metrics').val(TOML.parse(row.open_orders));
+        if (row.stratvars_toml) {
+            $('#editstratvars').val(row.stratvars_toml);
+        }
+        else{
+            $('#editstratvars').val(JSON.stringify(row.stratvars,null,2));
+        }
+        
+        
         $('#editstratjson').val(row.strat_json);
     });
 
@@ -237,7 +245,8 @@ var archiveRecords =
                     {data: 'end_positions', visible: true},
                     {data: 'end_positions_avgp', visible: true},
                     {data: 'strat_json', visible: false},
-                    {data: 'open_orders', visible: true}
+                    {data: 'open_orders', visible: true},
+                    {data: 'stratvars_toml', visible: false},
                 ],
         paging: false,
         processing: false,

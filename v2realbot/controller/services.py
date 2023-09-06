@@ -490,7 +490,8 @@ def run_stratin(id: UUID, runReq: RunRequest, synchronous: bool = False, inter_b
                         run_account = runReq.account,
                         run_ilog_save = runReq.ilog_save,
                         run_mode = runReq.mode,
-                        run_instance = instance)
+                        run_instance = instance,
+                        run_stratvars_toml=i.stratvars_conf)
                 db.runners.append(runner)
                 print(db.runners)
                 print(i)
@@ -666,7 +667,8 @@ def archive_runner(runner: Runner, strat: StrategyInstance, inter_batch_params: 
                                             trade_count=len(strat.state.tradeList),
                                             end_positions=strat.state.positions,
                                             end_positions_avgp=round(float(strat.state.avgp),3),
-                                            open_orders=results_metrics
+                                            open_orders=results_metrics,
+                                            stratvars_toml=runner.run_stratvars_toml
                                             )
         
         #flatten indicators from numpy array

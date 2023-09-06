@@ -30,55 +30,57 @@ function transform_data(data) {
     prev_id = 0
     //cas of first record, nekdy jsou stejny - musim pridat setinku
     prev_cas = 0
-    data.ext_data.sl_history.forEach((histRecord, index, array) => {
-        
-        console.log("plnime")
+    if ((data.ext_data !== null) && (data.ext_data.sl_history)) {
+        data.ext_data.sl_history.forEach((histRecord, index, array) => {
+            
+            console.log("plnime")
 
-        //nova sada
-        if (prev_id !== histRecord.id) {
-            if (prev_id !== 0) {
-                //push sadu do pole
-                sl_line.push(sl_line_sada)
-                sl_line_markers.push(sl_line_markers_sada)
+            //nova sada
+            if (prev_id !== histRecord.id) {
+                if (prev_id !== 0) {
+                    //push sadu do pole
+                    sl_line.push(sl_line_sada)
+                    sl_line_markers.push(sl_line_markers_sada)
+                }
+                //init nova sada
+                sl_line_sada = []
+                sl_line_markers_sada = []
             }
-            //init nova sada
-            sl_line_sada = []
-            sl_line_markers_sada = []
+
+            prev_id = histRecord.id
+
+            //prevedeme iso data na timestampy
+            cas = histRecord.time
+
+            if (cas == prev_cas) {
+                cas = cas + 0.001
+            }
+
+            prev_cas = cas
+
+            //line pro buy/sell markery
+            sline = {}
+            sline["time"] = cas
+            sline["value"] = histRecord.sl_val
+            sl_line_sada.push(sline)
+
+            sline_markers = {}
+            sline_markers["time"] = cas
+            sline_markers["position"] = "inBar" 
+            sline_markers["color"] = "#f5aa42"
+            //sline_markers["shape"] = "circle"
+            console.log("SHOW_SL_DIGITS",SHOW_SL_DIGITS)
+            sline_markers["text"] = SHOW_SL_DIGITS ? histRecord.sl_val.toFixed(3) : ""
+            sl_line_markers_sada.push(sline_markers)
+
+            if (index === array.length - 1) {
+                    //pro posledni zaznam push sadu do pole
+                    sl_line.push(sl_line_sada)
+                    sl_line_markers.push(sl_line_markers_sada)
+            }
+
+            });
         }
-
-        prev_id = histRecord.id
-
-        //prevedeme iso data na timestampy
-        cas = histRecord.time
-
-        if (cas == prev_cas) {
-            cas = cas + 0.001
-        }
-
-        prev_cas = cas
-
-        //line pro buy/sell markery
-        sline = {}
-        sline["time"] = cas
-        sline["value"] = histRecord.sl_val
-        sl_line_sada.push(sline)
-
-        sline_markers = {}
-        sline_markers["time"] = cas
-        sline_markers["position"] = "inBar" 
-        sline_markers["color"] = "#f5aa42"
-        //sline_markers["shape"] = "circle"
-        console.log("SHOW_SL_DIGITS",SHOW_SL_DIGITS)
-        sline_markers["text"] = SHOW_SL_DIGITS ? histRecord.sl_val.toFixed(3) : ""
-        sl_line_markers_sada.push(sline_markers)
-
-        if (index === array.length - 1) {
-                //pro posledni zaznam push sadu do pole
-                sl_line.push(sl_line_sada)
-                sl_line_markers.push(sl_line_markers_sada)
-        }
-
-        });
 
     data.bars.time.forEach((element, index, array) => {
         sbars = {};

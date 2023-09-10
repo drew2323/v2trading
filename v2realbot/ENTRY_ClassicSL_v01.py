@@ -9,9 +9,10 @@ from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeSt
 from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, print, safe_get, round2five, is_open_rush, is_close_rush, is_still, is_window_open, eval_cond_dict, Average, crossed_down, crossed_up, crossed, is_pivot, json_serial
 from v2realbot.utils.directive_utils import get_conditions_from_configuration
 from v2realbot.common.model import SLHistory
-from datetime import datetime
+from datetime import datetime, timedelta
 from v2realbot.config import KW
 from uuid import uuid4
+import random
 import json
 #from icecream import install, ic
 #from rich import print
@@ -250,9 +251,174 @@ def next(data, state: StrategyState):
             populate_dynamic_ema_indicator(name = name)
         elif type == "NATR":
             populate_dynamic_natr_indicator(name = name)
+        elif type == "custom":
+            populate_dynamic_custom_indicator(name = name)
         else:
             return
 
+
+    #WIP -
+    def populate_dynamic_custom_indicator(name):
+        ind_type = "custom"
+        options = safe_get(state.vars.indicators, name, None)
+        if options is None:
+            state.ilog(e=f"No options for {name} in stratvars")
+            return       
+        
+        if safe_get(options, "type", False) is False or safe_get(options, "type", False) != ind_type:
+            state.ilog(e="Type error")
+            return
+        
+        #poustet kazdy tick nebo jenom na confirmed baru (on_confirmed_only = true)
+        subtype = safe_get(options, 'subtype', False)
+        if subtype is False:
+            state.ilog(e=f"No subtype for {name} in stratvars")
+            return
+        
+        #if MA is required
+        MA_length = safe_get(options, "MA_length", None)
+
+        def is_time_to_run():
+            # on_confirmed_only = true (def. False)
+            # start_at_bar_index = 2 (def. None)
+            # start_at_time = "9:31" (def. None)
+            # repeat_every_Nbar =  N (def.None) (opakovat každý N bar, 1 - každý bar, 2 - každý 2., 0 - pouze jednou)
+            # repeat_every_Nmin =  N (def. None) opakovat každých N minut
+
+            on_confirmed_only = safe_get(options, 'on_confirmed_only', False)
+            start_at_bar_index = safe_get(options, 'start_at_bar_index', None)
+            start_at_time = safe_get(options, 'start_at_time', None) # "9:30"
+            repeat_every_Nbar = safe_get(options, 'repeat_every_Nbar', None)
+            repeat_every_Nmin = safe_get(options, 'repeat_every_Nmin', None)
+
+            #stavové promenne v ramci indikatoru last_run_time a last_run_index - pro repeat_every.. direktivy
+            last_run_time = safe_get(options, 'last_run_time', None)
+            last_run_index = safe_get(options, 'last_run_index', None)
+
+            #confirmed
+            cond = on_confirmed_only is False or (on_confirmed_only is True and data['confirmed']==1)
+            if cond is False:
+                return cond, "not confirmed"
+
+            #start_at_time - v rámci optimalizace presunout do INIT parametru indikátorů, které se naplní v initu a celou dobu se nemění
+            if start_at_time is not None:
+                dt_now = datetime.fromtimestamp(data["updated"]).astimezone(zoneNY)
+                # Parse the maxTime string into a datetime object with the same date as timeA
+                req_start_time = datetime.strptime(start_at_time, "%H:%M").replace(
+                    year=dt_now.year, month=dt_now.month, day=dt_now.day)
+
+                # Compare the time components (hours and minutes) of timeA and maxTime
+                if dt_now.time() > req_start_time.time():
+                    state.ilog(e=f"IND {name} {subtype} START FROM TIME - PASSED: now:{dt_now.time()} reqtime:{req_start_time.time()}")
+                else:
+                    state.ilog(e=f"IND {name} {subtype} START FROM TIME - NOT YET: now:{dt_now.time()} reqtime:{req_start_time.time()}")
+                    cond = False
+
+            if cond is False:
+                return cond, "start_at_time not yet"
+
+            #start_on_bar = 0
+            if start_at_bar_index is not None:
+                cond = start_at_bar_index < data["index"]
+                if cond:
+                    state.ilog(e=f"IND {name} {subtype} START FROM BAR - PASSED: now:{data['index']} reqbar:{start_at_bar_index}")
+                else:
+                    state.ilog(e=f"IND {name} {subtype} START FROM BAR  - NOT YET: now:{data['index']} reqbar:{start_at_bar_index}")
+        
+            if cond is False:
+                return cond, "start_at_bar_index not yet"
+
+            #pokud 0 - opakujeme jednou, pokud 1 tak opakujeme vzdy, jinak dle poctu
+            if repeat_every_Nbar is not None:
+                #jiz bezelo - delame dalsi checky, pokud nebezelo, poustime jako true
+                if last_run_index is not None:
+                    required_bar_to_run = last_run_index + repeat_every_Nbar
+                    if repeat_every_Nbar == 0:
+                        state.ilog(e=f"IND {name} {subtype} RUN ONCE ALREADY at:{last_run_index} at:{last_run_time}", repeat_every_Nbar=repeat_every_Nbar, last_run_index=last_run_index)
+                        cond = False 
+                    elif repeat_every_Nbar == 1:
+                        pass
+                    elif data["index"] < required_bar_to_run:
+                        state.ilog(e=f"IND {name} {subtype} REPEAT EVERY N BAR WAITING: req:{required_bar_to_run} now:{data['index']}", repeat_every_Nbar=repeat_every_Nbar, last_run_index=last_run_index)
+                        cond = False
+                  
+            if cond is False:
+                return cond, "repeat_every_Nbar not yet"
+
+            #pokud nepozadovano, pak poustime
+            if repeat_every_Nmin is not None:
+                #porovnavame jen pokud uz bezelo
+                if last_run_time is not None:
+                    required_time_to_run = last_run_time + timedelta(minutes=repeat_every_Nmin)
+                    datetime_now = datetime.fromtimestamp(data["updated"]).astimezone(zoneNY)
+                    if datetime_now < required_time_to_run:
+                        state.ilog(e=f"IND {name} {subtype} REPEAT EVERY {repeat_every_Nmin}MINS WAITING", last_run_time=last_run_time, required_time_to_run=required_time_to_run, datetime_now=datetime_now)
+                        cond = False
+
+            if cond is False:
+                return cond, "repeat_every_Nmin not yet"
+
+            return cond, "ok"
+
+        #testing custom indicator CODE
+        #TODO customer params bud implicitne **params nebo jako dict
+        # return 0, new_val or -2, "err msg"
+        def opengap(params):
+            funcName = "opengap"
+            param1 = safe_get(params, "param1")
+            param2 = safe_get(params, "param2")
+            state.ilog(e=f"INSIDE {funcName} {param1=} {param2=}", **params)
+            return 0, random.randint(10, 20)
+
+        should_run, msg = is_time_to_run()
+
+        if should_run:
+            #TODO get custom params
+            custom_params = safe_get(options, "cp", None)
+            #vyplnime last_run_time a last_run_index
+            state.vars.indicators[name]["last_run_time"] = datetime.fromtimestamp(data["updated"]).astimezone(zoneNY)
+            state.vars.indicators[name]["last_run_index"] = data["index"]
+
+            # - volame custom funkci pro ziskani hodnoty indikatoru
+            #        - tu ulozime jako novou hodnotu indikatoru a prepocteme MAcka pokud je pozadovane
+            # - pokud cas neni, nechavame puvodni, vcetna pripadneho MAcka
+            #pozor jako defaultní hodnotu dává engine 0 - je to ok?
+            try:
+                custom_function = eval(subtype)
+                res_code, new_val = custom_function(custom_params)
+                if res_code == 0:
+                    state.indicators[name][-1]=new_val
+                    state.ilog(e=f"IND {name} {subtype} VAL FROM FUNCTION: {new_val}", lastruntime=state.vars.indicators[name]["last_run_time"], lastrunindex=state.vars.indicators[name]["last_run_index"])
+                    #prepocitame MA if required
+                    if MA_length is not None:
+                        src = state.indicators[name][-MA_length:]
+                        MA_res = ema(src, MA_length)
+                        MA_value = round(MA_res[-1],4)
+                        state.indicators[name+"MA"][-1]=MA_value
+                        state.ilog(e=f"IND {name}MA {subtype} {MA_value}")
+
+                else:
+                    raise ValueError(f"IND  ERROR {name} {subtype}Funkce {custom_function} vratila {res_code} {new_val}.")
+                
+            except Exception as e:
+                if len(state.indicators[name]) >= 2:
+                    state.indicators[name][-1]=state.indicators[name][-2]
+                if MA_length is not None and len(state.indicators[name+"MA"]):
+                    state.indicators[name+"MA"][-1]=state.indicators[name+"MA"][-2]
+                state.ilog(e=f"IND ERROR {name} {subtype} necháváme původní", message=str(e)+format_exc())
+        
+        else:
+            state.ilog(e=f"IND {name} {subtype} COND NOT READY: {msg}")
+
+            #not time to run
+            if len(state.indicators[name]) >= 2:
+                state.indicators[name][-1]=state.indicators[name][-2]
+
+            if MA_length is not None and len(state.indicators[name+"MA"]):
+                state.indicators[name+"MA"][-1]=state.indicators[name+"MA"][-2]
+
+            state.ilog(e=f"IND {name} {subtype} NOT TIME TO RUN - value(and MA) still original")            
+    
     #EMA INDICATOR
     # type = EMA, source = [close, vwap, hlcc4], length = [14], on_confirmed_only = [true, false]
     def populate_dynamic_ema_indicator(name):
@@ -502,60 +668,72 @@ def next(data, state: StrategyState):
 
         if on_confirmed_only is False or (on_confirmed_only is True and data['confirmed']==1):
             try:
-                #slow_slope = 99
                 slope_lookback = safe_get(options, 'slope_lookback', 100)
+                lookback_priceline = safe_get(options, 'lookback_priceline', None)
+                lookback_offset = safe_get(options, 'lookback_offset', 25)
                 minimum_slope =  safe_get(options, 'minimum_slope', 25)
                 maximum_slope = safe_get(options, "maximum_slope",0.9)
-                lookback_offset = safe_get(options, 'lookback_offset', 25)
 
-                #lookback has to be even
-                if lookback_offset % 2 != 0:
-                    lookback_offset += 1
+                #jako levy body pouzivame lookback_priceline INDIKATOR vzdaleny slope_lookback barů
+                if lookback_priceline is not None:
+                        try:
+                            lookbackprice = state.indicators[lookback_priceline][-slope_lookback-1]
+                            lookbacktime = state.bars.updated[-slope_lookback-1]
+                        except IndexError:
+                            max_delka = len(state.indicators[lookback_priceline])
+                            lookbackprice = state.indicators[lookback_priceline][-max_delka]
+                            lookbacktime = state.bars.updated[-max_delka]
 
-                #TBD pripdadne /2
-                if len(state.bars.close) > (slope_lookback + lookback_offset):
-                    #test prumer nejvyssi a nejnizsi hodnoty 
-                    # if name == "slope":
-
-                    #levy bod bude vzdy vzdaleny o slope_lookback
-                    #ten bude prumerem hodnot lookback_offset a to tak ze polovina offsetu z kazde strany
-                    array_od = slope_lookback + int(lookback_offset/2)
-                    array_do = slope_lookback - int(lookback_offset/2)
-                    lookbackprice_array = state.bars.vwap[-array_od:-array_do]
-
-                        #dame na porovnani jen prumer
-                    lookbackprice = round(sum(lookbackprice_array)/lookback_offset,3)
-                        #lookbackprice = round((min(lookbackprice_array)+max(lookbackprice_array))/2,3)
-                    # else:
-                    #     #puvodni lookback a od te doby dozadu offset
-                    #     array_od = slope_lookback + lookback_offset
-                    #     array_do = slope_lookback
-                    #     lookbackprice_array = state.bars.vwap[-array_od:-array_do]
-                    #     #obycejný prumer hodnot
-                    #     lookbackprice = round(sum(lookbackprice_array)/lookback_offset,3)
-                    
-                    lookbacktime = state.bars.time[-slope_lookback]
                 else:
-                    #kdyz neni  dostatek hodnot, pouzivame jako levy bod open hodnotu close[0]
-                    #lookbackprice = state.bars.vwap[0]
-                    
-                    #dalsi vyarianta-- lookback je pole z toho všeho co mame
-                    #lookbackprice = Average(state.bars.vwap)
+                #NEMAME LOOKBACK PRICLINE - pouzivame stary způsob výpočtu, toto pozdeji decomissionovat
+                    #lookback has to be even
+                    if lookback_offset % 2 != 0:
+                        lookback_offset += 1
 
-                    
+                    #TBD pripdadne /2
+                    if len(state.bars.close) > (slope_lookback + lookback_offset):
+                        #test prumer nejvyssi a nejnizsi hodnoty 
+                        # if name == "slope":
 
-                    #pokud neni dostatek, bereme vzdy prvni petinu z dostupnych barů
-                    # a z ní uděláme průměr
-                    cnt = len(state.bars.close)
-                    if cnt>5:
-                        sliced_to = int(cnt/5)
-                        lookbackprice= Average(state.bars.vwap[:sliced_to])
-                        lookbacktime = state.bars.time[int(sliced_to/2)]
+                        #levy bod bude vzdy vzdaleny o slope_lookback
+                        #ten bude prumerem hodnot lookback_offset a to tak ze polovina offsetu z kazde strany
+                        array_od = slope_lookback + int(lookback_offset/2)
+                        array_do = slope_lookback - int(lookback_offset/2)
+                        lookbackprice_array = state.bars.vwap[-array_od:-array_do]
+
+                            #dame na porovnani jen prumer
+                        lookbackprice = round(sum(lookbackprice_array)/lookback_offset,3)
+                            #lookbackprice = round((min(lookbackprice_array)+max(lookbackprice_array))/2,3)
+                        # else:
+                        #     #puvodni lookback a od te doby dozadu offset
+                        #     array_od = slope_lookback + lookback_offset
+                        #     array_do = slope_lookback
+                        #     lookbackprice_array = state.bars.vwap[-array_od:-array_do]
+                        #     #obycejný prumer hodnot
+                        #     lookbackprice = round(sum(lookbackprice_array)/lookback_offset,3)
+                        
+                        lookbacktime = state.bars.time[-slope_lookback]
                     else:
-                        lookbackprice = Average(state.bars.vwap)
-                        lookbacktime = state.bars.time[0]
-                    
-                    state.ilog(e=f"IND {name} slope - not enough data bereme left bod open", slope_lookback=slope_lookback, lookbackprice=lookbackprice)
+                        #kdyz neni  dostatek hodnot, pouzivame jako levy bod open hodnotu close[0]
+                        #lookbackprice = state.bars.vwap[0]
+                        
+                        #dalsi vyarianta-- lookback je pole z toho všeho co mame
+                        #lookbackprice = Average(state.bars.vwap)
+
+                        
+
+                        #pokud neni dostatek, bereme vzdy prvni petinu z dostupnych barů
+                        # a z ní uděláme průměr
+                        cnt = len(state.bars.close)
+                        if cnt>5:
+                            sliced_to = int(cnt/5)
+                            lookbackprice= Average(state.bars.vwap[:sliced_to])
+                            lookbacktime = state.bars.time[int(sliced_to/2)]
+                        else:
+                            lookbackprice = Average(state.bars.vwap)
+                            lookbacktime = state.bars.time[0]
+                        
+                        state.ilog(e=f"IND {name} slope - not enough data bereme left bod open", slope_lookback=slope_lookback, lookbackprice=lookbackprice)
 
                 #výpočet úhlu - a jeho normalizace
                 slope = ((state.bars.close[-1] - lookbackprice)/lookbackprice)*100
@@ -577,7 +755,9 @@ def next(data, state: StrategyState):
                     state.indicators[name+"MA"][-1]=slopeMA
                     last_slopesMA = state.indicators[name+"MA"][-10:]
 
-                state.ilog(e=f"{name=} {slope=} {slopeMA=}", msg=f"{lookbackprice=} {lookbacktime=}", slope_lookback=slope_lookback, lookbackoffset=lookback_offset, lookbacktime=lookbacktime, minimum_slope=minimum_slope, last_slopes=state.indicators[name][-10:], last_slopesMA=last_slopesMA)
+                lb_priceline_string = "from "+lookback_priceline if lookback_priceline is not None else ""
+
+                state.ilog(e=f"IND {name} {lb_priceline_string} {slope=} {slopeMA=}", msg=f"{lookbackprice=} {lookbacktime=}", lookback_priceline=lookback_priceline, lookbackprice=lookbackprice, lookbacktime=lookbacktime, slope_lookback=slope_lookback, lookbackoffset=lookback_offset, minimum_slope=minimum_slope, last_slopes=state.indicators[name][-10:], last_slopesMA=last_slopesMA)
                 #dale pracujeme s timto MAckovanym slope
                 #slope = slopeMA         
 
@@ -764,7 +944,91 @@ def next(data, state: StrategyState):
 
         return price2dec(float(state.avgp)+normalized_max_profit,3) if int(state.positions) > 0 else price2dec(float(state.avgp)-normalized_max_profit,3)    
 
-    #TBD pripadne opet dat parsovani pole do INITu
+
+    def reverse_conditions_met(direction: TradeDirection):
+            if direction == TradeDirection.LONG:
+                smer = "long"
+            else:
+                smer = "short"
+
+            directive_name = "exit_cond_only_on_confirmed"
+            exit_cond_only_on_confirmed = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, False))
+
+            if exit_cond_only_on_confirmed and data['confirmed'] == 0:
+                state.ilog("REVERSAL CHECK COND ONLY ON CONFIRMED BAR")
+                return False
+
+            #TOTO zatim u REVERSU neresime
+            # #POKUD je nastaven MIN PROFIT, zkontrolujeme ho a az pripadne pustime CONDITIONY
+            # directive_name = "exit_cond_min_profit"
+            # exit_cond_min_profit = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, None))
+
+            # #máme nastavený exit_cond_min_profit
+            # # zjistíme, zda jsme v daném profit a případně nepustíme dál
+            # # , zjistíme aktuální cenu a přičteme k avgp tento profit a podle toho pustime dal
+
+            # if exit_cond_min_profit is not None:
+            #     exit_cond_min_profit_normalized = normalize_tick(float(exit_cond_min_profit))
+            #     exit_cond_goal_price = price2dec(float(state.avgp)+exit_cond_min_profit_normalized,3) if int(state.positions) > 0 else price2dec(float(state.avgp)-exit_cond_min_profit_normalized,3) 
+            #     curr_price = float(data["close"])
+            #     state.ilog(e=f"EXIT COND min profit {exit_cond_goal_price=} {exit_cond_min_profit=} {exit_cond_min_profit_normalized=} {curr_price=}")
+            #     if (int(state.positions) < 0 and curr_price<=exit_cond_goal_price) or (int(state.positions) > 0 and curr_price>=exit_cond_goal_price):
+            #         state.ilog(e=f"EXIT COND min profit PASS - POKRACUJEME")
+            #     else:
+            #         state.ilog(e=f"EXIT COND min profit NOT PASS")
+            #         return False
+
+            #TOTO ZATIM NEMA VYZNAM
+            # options = safe_get(state.vars, 'exit_conditions', None)
+            # if options is None:
+            #     state.ilog(e="No options for exit conditions in stratvars")
+            #     return False
+            
+            # disable_exit_proteciton_when = dict(AND=dict(), OR=dict())
+
+            # #preconditions
+            # disable_exit_proteciton_when['disabled_in_config'] = safe_get(options, 'enabled', False) is False
+            # #too good to be true (maximum profit)
+            # #disable_sell_proteciton_when['tgtbt_reached'] = safe_get(options, 'tgtbt', False) is False
+            # disable_exit_proteciton_when['disable_if_positions_above'] = int(safe_get(options, 'disable_if_positions_above', 0)) < abs(int(state.positions))
+
+            # #testing preconditions
+            # result, conditions_met = eval_cond_dict(disable_exit_proteciton_when)
+            # if result:
+            #     state.ilog(e=f"EXIT_CONDITION for{smer} DISABLED by {conditions_met}", **conditions_met)
+            #     return False
+            
+            #bereme bud exit condition signalu, ktery activeTrade vygeneroval+ fallback na general
+            state.ilog(e=f"REVERSE CONDITIONS ENTRY {smer}", conditions=state.vars.conditions[KW.reverse])
+
+            mother_signal = state.vars.activeTrade.generated_by
+
+            if mother_signal is not None:
+                cond_dict = state.vars.conditions[KW.reverse][state.vars.activeTrade.generated_by][smer]
+                result, conditions_met = evaluate_directive_conditions(cond_dict, "OR")
+                state.ilog(e=f"REVERSE CONDITIONS of {mother_signal} =OR= {result}", **conditions_met, cond_dict=cond_dict)
+                if result:
+                    return True
+                
+                #OR neprosly testujeme AND
+                result, conditions_met = evaluate_directive_conditions(cond_dict, "AND")
+                state.ilog(e=f"REVERSE CONDITIONS of {mother_signal}  =AND= {result}", **conditions_met, cond_dict=cond_dict)
+                if result:
+                    return True
+
+
+            #pokud nemame mother signal nebo exit nevratil nic, fallback na common
+            cond_dict = state.vars.conditions[KW.reverse]["common"][smer]
+            result, conditions_met = evaluate_directive_conditions(cond_dict, "OR")
+            state.ilog(e=f"REVERSE CONDITIONS of COMMON =OR= {result}", **conditions_met, cond_dict=cond_dict)
+            if result:
+                return True
+            
+            #OR neprosly testujeme AND
+            result, conditions_met = evaluate_directive_conditions(cond_dict, "AND")
+            state.ilog(e=f"REVERSE CONDITIONS of COMMON =AND= {result}", **conditions_met, cond_dict=cond_dict)
+            if result:
+                return True
 
     def exit_conditions_met(direction: TradeDirection):
         if direction == TradeDirection.LONG:
@@ -945,8 +1209,9 @@ def next(data, state: StrategyState):
                         insert_SL_history()
                         state.ilog(e=f"SL TRAIL GOAL {smer} reached {move_SL_threshold} SL moved to {state.vars.activeTrade.stoploss_value}", offset_normalized=offset_normalized, def_SL_normalized=def_SL_normalized)                            
 
-    def close_position(direction: TradeDirection, reason: str):
-        state.ilog(e=f"CLOSING TRADE {reason} {str(direction)}", curr_price=data["close"], trade=state.vars.activeTrade)
+    def close_position(direction: TradeDirection, reason: str, reverse: bool = False):
+        reversal_text = "REVERSAL" if reverse else ""
+        state.ilog(e=f"CLOSING TRADE {reversal_text} {reason} {str(direction)}", curr_price=data["close"], trade=state.vars.activeTrade)
         if direction == TradeDirection.SHORT:
             res = state.buy(size=abs(int(state.positions)))
             if isinstance(res, int) and res < 0:
@@ -959,12 +1224,14 @@ def next(data, state: StrategyState):
         
         else:
             raise Exception(f"unknow TradeDirection in close_position")
-
+        
         #pri uzavreni tradu zapisujeme SL history - lepsi zorbazeni v grafu
         insert_SL_history()
         state.vars.pending = state.vars.activeTrade.id
         state.vars.activeTrade = None   
-        state.vars.last_exit_index = data["index"]     
+        state.vars.last_exit_index = data["index"]    
+        if reverse:
+            state.vars.reverse_requested = True
 
     def eval_close_position():
         curr_price = float(data['close'])
@@ -987,12 +1254,24 @@ def next(data, state: StrategyState):
 
                 #SL - execution
                 if curr_price > state.vars.activeTrade.stoploss_value:
-                    close_position(direction=TradeDirection.SHORT, reason="SL REACHED")
+
+                    directive_name = 'reverse_for_SL_exit_short'
+                    reverse_for_SL_exit = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, False))
+
+                    close_position(direction=TradeDirection.SHORT, reason="SL REACHED", reverse=reverse_for_SL_exit)
                     return
                 
+                #REVERSE BASED ON REVERSE CONDITIONS
+                if reverse_conditions_met(TradeDirection.SHORT):
+                        close_position(direction=TradeDirection.SHORT, reason="REVERSE COND MET", reverse=True)
+                        return  
+
                 #CLOSING BASED ON EXIT CONDITIONS
                 if exit_conditions_met(TradeDirection.SHORT):
-                        close_position(direction=TradeDirection.SHORT, reason="EXIT COND MET")
+                        directive_name = 'reverse_for_cond_exit_short'
+                        reverse_for_cond_exit = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, False))
+
+                        close_position(direction=TradeDirection.SHORT, reason="EXIT COND MET", reverse=reverse_for_cond_exit)
                         return                   
 
                 #PROFIT
@@ -1011,11 +1290,24 @@ def next(data, state: StrategyState):
 
                 #SL - execution
                 if curr_price < state.vars.activeTrade.stoploss_value:
-                    close_position(direction=TradeDirection.LONG, reason="SL REACHED")
-                    return
+                    directive_name = 'reverse_for_SL_exit_long'
+                    reverse_for_SL_exit = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, False))
 
+                    close_position(direction=TradeDirection.LONG, reason="SL REACHED", reverse=reverse_for_SL_exit)
+                    return
+                
+
+                #REVERSE BASED ON REVERSE CONDITIONS
+                if reverse_conditions_met(TradeDirection.LONG):
+                        close_position(direction=TradeDirection.LONG, reason="REVERSE COND MET", reverse=True)
+                        return  
+
+                #EXIT CONDITIONS
                 if exit_conditions_met(TradeDirection.LONG):
-                        close_position(direction=TradeDirection.LONG, reason="EXIT CONDS MET")
+                        directive_name = 'reverse_for_cond_exit_long'
+                        reverse_for_cond_exit = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, False))
+
+                        close_position(direction=TradeDirection.LONG, reason="EXIT CONDS MET", reverse=reverse_for_cond_exit)
                         return    
 
                 #PROFIT
@@ -1059,7 +1351,11 @@ def next(data, state: StrategyState):
         if state.vars.activeTrade:
             if state.vars.activeTrade.direction == TradeDirection.LONG:
                 state.ilog(e="odesilame LONG ORDER", trade=json.loads(json.dumps(state.vars.activeTrade, default=json_serial)))
-                res = state.buy(size=state.vars.chunk)
+                if state.vars.activeTrade.size is not None:
+                    size = state.vars.activeTrade.size
+                else:
+                    size = state.vars.chunk
+                res = state.buy(size=size)
                 if isinstance(res, int) and res < 0:
                     raise Exception(f"error in required operation LONG {res}")
                 #pokud neni nastaveno SL v prescribe, tak nastavuji default dle stratvars
@@ -1073,7 +1369,11 @@ def next(data, state: StrategyState):
                 state.vars.pending = state.vars.activeTrade.id
             elif state.vars.activeTrade.direction == TradeDirection.SHORT:
                 state.ilog(e="odesilame SHORT ORDER",trade=json.loads(json.dumps(state.vars.activeTrade, default=json_serial)))
-                res = state.sell(size=state.vars.chunk)
+                if state.vars.activeTrade.size is not None:
+                    size = state.vars.activeTrade.size
+                else:
+                    size = state.vars.chunk
+                res = state.sell(size=size)
                 if isinstance(res, int) and res < 0:
                     raise Exception(f"error in required operation SHORT {res}")
                 #pokud neni nastaveno SL v prescribe, tak nastavuji default dle stratvars
@@ -1245,11 +1545,19 @@ def next(data, state: StrategyState):
         if common_go_preconditions_check(signalname=name, options=options) is False:
             return
 
-        plugin = safe_get(options, 'plugin', None)
+        # signal_plugin = "reverzni"
+        # signal_plugin_run_once_at_index = 3
+        #pokud existuje plugin, tak pro signal search volame plugin a ignorujeme conditiony
+        signal_plugin = safe_get(options, 'plugin', None)
+        signal_plugin_run_once_at_index = safe_get(options, 'signal_plugin_run_once_at_index', 3)
 
         #pokud je plugin True, spusti se kod
-        if plugin:
-            execute_signal_generator_plugin(name)
+        if signal_plugin is not None and signal_plugin_run_once_at_index==data["index"]:
+            try:
+                custom_function = eval(signal_plugin)
+                custom_function()
+            except NameError:
+                state.ilog(e="Custom plugin {signal_plugin} not found")
         else:
             short_enabled = safe_get(options, "short_enabled",safe_get(state.vars, "short_enabled",True))
             long_enabled = safe_get(options, "long_enabled",safe_get(state.vars, "long_enabled",True))
@@ -1431,6 +1739,7 @@ def init(state: StrategyState):
                     state.vars.conditions.setdefault(KW.dont_go,{}).setdefault(signalname,{})[smer] = get_conditions_from_configuration(action=KW.dont_go+"_" + smer +"_if", section=section)
                     state.vars.conditions.setdefault(KW.go,{}).setdefault(signalname,{})[smer] = get_conditions_from_configuration(action=KW.go+"_" + smer +"_if", section=section)
                     state.vars.conditions.setdefault(KW.exit,{}).setdefault(signalname,{})[smer] = get_conditions_from_configuration(action=KW.exit+"_" + smer +"_if", section=section)
+                    state.vars.conditions.setdefault(KW.reverse,{}).setdefault(signalname,{})[smer] = get_conditions_from_configuration(action=KW.reverse+"_" + smer +"_if", section=section)
 
                     # state.vars.work_dict_dont_do[signalname+"_"+ smer] = get_work_dict_with_directive(starts_with=signalname+"_dont_"+ smer +"_if")
                     # state.vars.work_dict_signal_if[signalname+"_"+ smer] = get_work_dict_with_directive(starts_with=signalname+"_"+smer+"_if")
@@ -1439,6 +1748,7 @@ def init(state: StrategyState):
         section = state.vars.exit["conditions"]
         for smer in TradeDirection:
             state.vars.conditions.setdefault(KW.exit,{}).setdefault("common",{})[smer] = get_conditions_from_configuration(action=KW.exit+"_" + smer +"_if", section=section)
+            state.vars.conditions.setdefault(KW.reverse,{}).setdefault("common",{})[smer] = get_conditions_from_configuration(action=KW.reverse+"_" + smer +"_if", section=section)
 
     #init klice v extData pro ulozeni historie SL
     state.extData["sl_history"] = []
@@ -1450,6 +1760,8 @@ def init(state: StrategyState):
     state.vars.activeTrade = None #pending/Trade
     #obsahuje pripravene Trady ve frontě
     state.vars.prescribedTrades = []
+    #flag pro reversal
+    state.vars.reverse_requested = False
 
     #TODO presunout inicializaci work_dict u podminek - sice hodnoty nepujdou zmenit, ale zlepsi se performance
     #pripadne udelat refresh kazdych x-iterací

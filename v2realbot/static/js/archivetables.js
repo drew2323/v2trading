@@ -38,6 +38,7 @@ $(document).ready(function () {
         rows = archiveRecords.rows('.selected').data();
         var record1 = new Object()
         //console.log(JSON.stringify(rows))
+
         record1 = JSON.parse(rows[0].strat_json)
         //record1.json = rows[0].json
         //record1.id = rows[0].id;
@@ -48,6 +49,8 @@ $(document).ready(function () {
         // record1.script = rows[0].script;
         // record1.open_rush = rows[0].open_rush;
         // record1.close_rush = rows[0].close_rush;
+        //console.log(record1.stratvars_conf)
+
         record1.stratvars_conf = TOML.parse(record1.stratvars_conf);
         record1.add_data_conf = TOML.parse(record1.add_data_conf);
         // record1.note = rows[0].note;
@@ -65,6 +68,7 @@ $(document).ready(function () {
         // record2.script = rows[1].script;
         // record2.open_rush = rows[1].open_rush;
         // record2.close_rush = rows[1].close_rush;
+  
         record2.stratvars_conf = TOML.parse(record2.stratvars_conf);
         record2.add_data_conf = TOML.parse(record2.add_data_conf);
         // record2.note = rows[1].note;

@@ -103,3 +103,4 @@ class KW:
     go: str = "go"
     activate: str = "activate"
     exit: str = "exit"
+    reverse: str = "reverse"

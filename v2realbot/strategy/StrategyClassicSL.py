@@ -4,6 +4,7 @@ from v2realbot.utils.tlog import tlog, tlog_exception
 from v2realbot.enums.enums import Mode, Order, Account, RecordType
 #from alpaca.trading.models import TradeUpdate
 from  v2realbot.common.model import TradeUpdate
+from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus
 from alpaca.trading.enums import TradeEvent, OrderStatus
 from v2realbot.indicators.indicators import ema
 import json
@@ -13,7 +14,7 @@ from random import randrange
 from alpaca.common.exceptions import APIError
 import copy
 from threading import Event
-from uuid import UUID
+from uuid import UUID, uuid4
 
 
 class StrategyClassicSL(Strategy):
@@ -42,12 +43,29 @@ class StrategyClassicSL(Strategy):
                 send_to_telegram(f"QUITTING MAX SUM LOSS REACHED {max_sum_loss_to_quit=} {self.state.profit=}")
                 self.se.set()
 
+
+    async def add_reversal(self, direction: TradeDirection, size: int, signal_name: str):
+        trade_to_add = Trade(
+            id=uuid4(),
+            last_update=datetime.fromtimestamp(self.state.time).astimezone(zoneNY),
+            status=TradeStatus.READY,
+            size=size,
+            generated_by=signal_name,
+            direction=direction,
+            entry_price=None,
+            stoploss_value = None)
+
+        self.state.vars.prescribedTrades.append(trade_to_add)
+        
+        self.state.vars.reverse_requested = None
+
+        self.state.ilog(e=f"REVERZAL {direction} added to prescr.trades {signal_name=} {size=}", trade=trade_to_add)
+
     async def orderUpdateBuy(self, data: TradeUpdate):
         o: Order = data.order
         signal_name = None
         ##nejak to vymyslet, aby se dal poslat cely Trade a serializoval se
         self.state.ilog(e="Příchozí BUY notif", msg=o.status, trade=json.loads(json.dumps(data, default=json_serial)))
-
 
         if data.event == TradeEvent.FILL or data.event == TradeEvent.PARTIAL_FILL:
 
@@ -84,7 +102,12 @@ class StrategyClassicSL(Strategy):
                         #self.state.ilog(f"updatnut tradeList o profit", tradeData=json.loads(json.dumps(tradeData, default=json_serial)))
 
                 #test na maximalni profit/loss
-                await self.check_max_profit_loss()             
+                await self.check_max_profit_loss()
+
+                #pIF REVERSAL REQUIRED - reverse position is added to prescr.Trades with same signal name
+                #jen při celém FILLU
+                if data.event == TradeEvent.FILL and self.state.vars.reverse_requested:
+                        await self.add_reversal(direction=TradeDirection.LONG, size=data.qty, signal_name=signal_name)
 
             else:
                 #zjistime nazev signalu a updatneme do tradeListu - abychom meli svazano
@@ -108,6 +131,7 @@ class StrategyClassicSL(Strategy):
         if o.status == OrderStatus.FILLED or o.status == OrderStatus.CANCELED:
             #davame pryc pending
             self.state.vars.pending = None
+
 
     async def orderUpdateSell(self, data: TradeUpdate): 
 
@@ -147,6 +171,10 @@ class StrategyClassicSL(Strategy):
                         #self.state.ilog(f"updatnut tradeList o profi {str(tradeData)}")
 
                 await self.check_max_profit_loss()
+
+                #IF REVERSAL REQUIRED - reverse position is added to prescr.Trades with same signal name
+                if data.event == TradeEvent.FILL and self.state.vars.reverse_requested:
+                        await self.add_reversal(direction=TradeDirection.SHORT, size=data.qty, signal_name=signal_name)
 
             else:
                 #zjistime nazev signalu a updatneme do tradeListu - abychom meli svazano

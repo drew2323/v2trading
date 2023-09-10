@@ -23,6 +23,7 @@ class Trade(BaseModel):
     generated_by: Optional[str] = None
     direction: TradeDirection
     entry_price: Optional[float] = None
+    size: Optional[int] = None
     # stoploss_type: TradeStoplossType
     stoploss_value: Optional[float] = None
     profit: Optional[float] = 0

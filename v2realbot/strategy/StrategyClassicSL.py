@@ -249,7 +249,7 @@ class StrategyClassicSL(Strategy):
             size = abs(int(self.state.positions))
 
         #jde o uzavreni long pozice
-        if int(self.state.positions) > 0 and (int(self.state.positions) - size) < 0:
+        if int(self.state.positions) > 0 and (int(self.state.positions) - int(size)) < 0:
             self.state.ilog(e="nelze prodat vic nez longuji", positions=self.state.positions, size=size)
             print("nelze prodat vic nez longuji") 
             return -2

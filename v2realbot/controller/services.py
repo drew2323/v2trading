@@ -19,7 +19,7 @@ from tinydb import TinyDB, Query, where
 from tinydb.operations import set
 import json
 from numpy import ndarray
-from rich import print
+#from rich import print
 import pandas as pd
 from traceback import format_exc
 from datetime import timedelta, time
@@ -803,22 +803,28 @@ def edit_archived_runners(runner_id: UUID, archChange: RunArchiveChange):
         return -2, str(e)
 
 #delete runner in archive and archive detail and runner logs
+#predelano do JEDNE TRANSAKCE
 def delete_archived_runners_byID(id: UUID):
     try:
-            with lock:
-                print("header del")
-                resh = delete_archive_header_byID(id)
-                #resh = db_arch_h.remove(where('id') == id)
-                print("detail del")
-                #resd = db_arch_d.remove(where('id') == id)
-                resd = delete_archive_detail_byID(id)
-            print("Arch header and detail removed. Log deletition will start.")
-            reslogs = delete_logs(id) 
-            if resh == 0 or resd == 0:
-                return -1, "not found "+str(resh) + " " + str(resd) + " " + str(reslogs)
-            return 0, str(resh) + " " + str(resd) + " " + str(reslogs)
+        conn = pool.get_connection()
+        c = conn.cursor()
+        resh = c.execute(f"DELETE from runner_header WHERE runner_id='{str(id)}';")
+        print("header deleted",resh.rowcount)
+        resd = c.execute(f"DELETE from runner_detail WHERE runner_id='{str(id)}';")
+        print("detail deleted",resd.rowcount)
+        resl = c.execute(f"DELETE from runner_logs WHERE runner_id='{str(id)}';")
+        print("log deleted",resl.rowcount)
+        conn.commit()
+        print("commit")
+        if resh.rowcount == 0 or resd.rowcount == 0:
+            return -1, "not found "+str(resh.rowcount) + " " + str(resd.rowcount) + " " + str(resl.rowcount)
+        return 0, str(resh.rowcount) + " " + str(resd.rowcount) + " " + str(resl.rowcount)
+        
     except Exception as e:
-        return -2, str(e)
+        conn.rollback()
+        return -2, "ROLLBACKED" + str(e)
+    finally:
+        pool.release_connection(conn)
 
 #returns number of deleted elements
 def delete_archive_header_byID(id: UUID):

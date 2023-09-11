@@ -16,6 +16,7 @@ import tomli
 from v2realbot.config import DATA_DIR, QUIET_MODE,NORMALIZED_TICK_BASE_PRICE
 import requests
 from uuid import UUID
+#from decimal import Decimal
 from enum import Enum
 #from v2realbot.enums.enums import Order
 from v2realbot.common.model import Order as btOrder, TradeUpdate as btTradeUpdate
@@ -24,6 +25,16 @@ import numpy as np
 import pandas as pd
 from collections import deque
 
+def pct_diff(num1: float, num2: float, decimals: int = 3, absolute: bool = False):
+    if num1 == 0:
+        return 0
+    
+    diff = num1 - num2
+    if absolute:
+        percentage_diff = (abs(diff) / abs(num2)) * 100
+    else:
+        percentage_diff = (diff / abs(num2)) * 100
+    return round(percentage_diff, decimals)
 
 def is_still(lst: list, how_many_last_items: int, precision: int):
     """

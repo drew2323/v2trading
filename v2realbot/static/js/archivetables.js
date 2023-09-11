@@ -92,9 +92,21 @@ $(document).ready(function () {
 
     //delete button
     $('#button_delete_arch').click(function () {
-        row = archiveRecords.row('.selected').data();
-        window.$('#delModalArchive').modal('show');
-        $('#delidarchive').val(row.id);
+        rows = archiveRecords.rows('.selected');
+        $('#listofids').html("");
+
+        if(rows.data().length > 0 ) {
+            ids_to_del = ""
+            // Loop through the selected rows and display an alert with each row's ID
+            rows.every(function (rowIdx, tableLoop, rowLoop ) {
+                var data = this.data()
+                    ids_to_del = ids_to_del  + data.id + "<br>"
+            });
+
+            $('#listofids').html(ids_to_del);
+            window.$('#delModalArchive').modal('show');
+            //$('#delidarchive').val(row.id);
+        }
     });
 
     //edit button
@@ -185,13 +197,7 @@ $("#editModalArchive").on('submit','#editFormArchive', function(event){
     })
 });
 
-
-//delete modal
-$("#delModalArchive").on('submit','#delFormArchive', function(event){
-    event.preventDefault();
-    $('#deletearchive').attr('disabled','disabled');
-    id = $('#delidarchive').val()
-    //var formData = $(this).serializeJSON();
+function delete_arch_row(id) {
     $.ajax({
         url:"/archived_runners/"+id,
         beforeSend: function (xhr) {
@@ -214,6 +220,20 @@ $("#delModalArchive").on('submit','#delFormArchive', function(event){
             archiveRecords.ajax.reload();
         }
     })
+}
+
+//delete modal
+$("#delModalArchive").on('submit','#delFormArchive', function(event){
+    event.preventDefault();
+    $('#deletearchive').attr('disabled','disabled');
+    //rows = archiveRecords.rows('.selected');
+    if(rows.data().length > 0 ) {
+        // Loop through the selected rows and display an alert with each row's ID
+        rows.every(function (rowIdx, tableLoop, rowLoop ) {
+            var data = this.data()
+            delete_arch_row(data.id)
+        });
+    }
 });
 
 //archive table

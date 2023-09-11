@@ -3,10 +3,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from v2realbot.strategy.base import StrategyState
 from v2realbot.strategy.StrategyOrderLimitVykladaciNormalizedMYSELL import StrategyOrderLimitVykladaciNormalizedMYSELL
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, OrderSide, OrderType
-from v2realbot.indicators.indicators import ema, natr
+from v2realbot.indicators.indicators import ema, natr, roc
 from v2realbot.indicators.oscillators import rsi
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
-from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, print, safe_get, round2five, is_open_rush, is_close_rush, is_still, is_window_open, eval_cond_dict, Average, crossed_down, crossed_up, crossed, is_pivot, json_serial
+from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, print, safe_get, round2five, is_open_rush, is_close_rush, is_still, is_window_open, eval_cond_dict, Average, crossed_down, crossed_up, crossed, is_pivot, json_serial, pct_diff
 from v2realbot.utils.directive_utils import get_conditions_from_configuration
 from v2realbot.common.model import SLHistory
 from datetime import datetime, timedelta
@@ -14,6 +14,7 @@ from v2realbot.config import KW
 from uuid import uuid4
 import random
 import json
+from numpy import inf
 #from icecream import install, ic
 #from rich import print
 from threading import Event
@@ -66,7 +67,7 @@ def next(data, state: StrategyState):
         #CBAR RSI indicator
         options = safe_get(state.vars.indicators, 'crsi', None)
         if options is None:
-            state.ilog(e="No options for crsi in stratvars")
+            state.ilog(lvl=1,e="No options for crsi in stratvars")
             return
 
         try:
@@ -77,9 +78,9 @@ def next(data, state: StrategyState):
             if str(crsi_value) == "nan":
                 crsi_value = 0
             state.cbar_indicators.CRSI[-1]=crsi_value
-            #state.ilog(e=f"RSI {rsi_length=} {rsi_value=} {rsi_dont_buy=} {rsi_buy_signal=}", rsi_indicator=state.indicators.RSI14[-5:])
+            #state.ilog(lvl=0,e=f"RSI {rsi_length=} {rsi_value=} {rsi_dont_buy=} {rsi_buy_signal=}", rsi_indicator=state.indicators.RSI14[-5:])
         except Exception as e:
-            state.ilog(e=f"CRSI {crsi_length=} necháváme 0", message=str(e)+format_exc())
+            state.ilog(lvl=1,e=f"CRSI {crsi_length=} necháváme 0", message=str(e)+format_exc())
             #state.indicators.RSI14[-1]=0
 
     def value_or_indicator(value):
@@ -91,10 +92,10 @@ def next(data, state: StrategyState):
             try:
                 #pokud existuje MA bereme MA jinak standard
                 ret = get_source_or_MA(indicator=value)[-1]
-                state.ilog(e=f"Pro porovnani bereme posledni hodnotu {ret} z indikatoru {value}")
+                state.ilog(lvl=0,e=f"Pro porovnani bereme posledni hodnotu {ret} z indikatoru {value}")
             except Exception as e   :
                 ret = 0
-                state.ilog(e=f"Neexistuje indikator s nazvem {value} vracime 0" + str(e) + format_exc())
+                state.ilog(lvl=1,e=f"Neexistuje indikator s nazvem {value} vracime 0" + str(e) + format_exc())
             return ret
 
     #funkce vytvori podminky (bud pro AND/OR) z pracovniho dict
@@ -177,19 +178,19 @@ def next(data, state: StrategyState):
     # #vrati true pokud dany indikator krosnul obema smery
     # def buy_if_crossed(indicator, value):
     #     res = crossed(threshold=value, list=get_source_or_MA(indicator))
-    #     state.ilog(e=f"buy_if_crossed {indicator} {value} {res}")
+    #     state.ilog(lvl=0,e=f"buy_if_crossed {indicator} {value} {res}")
     #     return res
 
     #vrati true pokud dany indikator prekrocil threshold dolu
     def buy_if_crossed_down(indicator, value):
         res = crossed_down(threshold=value, list=get_source_or_MA(indicator))
-        state.ilog(e=f"signal_if_crossed_down {indicator} {value} {res}")
+        state.ilog(lvl=0,e=f"signal_if_crossed_down {indicator} {value} {res}")
         return res
 
     #vrati true pokud dany indikator prekrocil threshold nahoru
     def buy_if_crossed_up(indicator, value):
         res = crossed_up(threshold=value, list=get_source_or_MA(indicator))
-        state.ilog(e=f"signal_if_crossed_up {indicator} {value} {res}")
+        state.ilog(lvl=0,e=f"signal_if_crossed_up {indicator} {value} {res}")
         return res    
 
     def populate_cbar_tick_price_indicator():
@@ -210,7 +211,7 @@ def next(data, state: StrategyState):
         except:
             pass
 
-        state.ilog(e=f"TICK PRICE {tick_price} VOLUME {tick_delta_volume} {conf_bar=}", prev_price=state.vars.last_tick_price, prev_volume=state.vars.last_tick_volume)
+        state.ilog(lvl=0,e=f"TICK PRICE {tick_price} VOLUME {tick_delta_volume} {conf_bar=}", prev_price=state.vars.last_tick_price, prev_volume=state.vars.last_tick_volume)
 
         state.vars.last_tick_price = tick_price
         state.vars.last_tick_volume = data['volume']
@@ -262,17 +263,17 @@ def next(data, state: StrategyState):
         ind_type = "custom"
         options = safe_get(state.vars.indicators, name, None)
         if options is None:
-            state.ilog(e=f"No options for {name} in stratvars")
+            state.ilog(lvl=1,e=f"No options for {name} in stratvars")
             return       
         
         if safe_get(options, "type", False) is False or safe_get(options, "type", False) != ind_type:
-            state.ilog(e="Type error")
+            state.ilog(lvl=1,e="Type error")
             return
         
         #poustet kazdy tick nebo jenom na confirmed baru (on_confirmed_only = true)
         subtype = safe_get(options, 'subtype', False)
         if subtype is False:
-            state.ilog(e=f"No subtype for {name} in stratvars")
+            state.ilog(lvl=1,e=f"No subtype for {name} in stratvars")
             return
         
         #if MA is required
@@ -309,9 +310,9 @@ def next(data, state: StrategyState):
 
                 # Compare the time components (hours and minutes) of timeA and maxTime
                 if dt_now.time() > req_start_time.time():
-                    state.ilog(e=f"IND {name} {subtype} START FROM TIME - PASSED: now:{dt_now.time()} reqtime:{req_start_time.time()}")
+                    state.ilog(lvl=0,e=f"IND {name} {subtype} START FROM TIME - PASSED: now:{dt_now.time()} reqtime:{req_start_time.time()}")
                 else:
-                    state.ilog(e=f"IND {name} {subtype} START FROM TIME - NOT YET: now:{dt_now.time()} reqtime:{req_start_time.time()}")
+                    state.ilog(lvl=0,e=f"IND {name} {subtype} START FROM TIME - NOT YET: now:{dt_now.time()} reqtime:{req_start_time.time()}")
                     cond = False
 
             if cond is False:
@@ -321,9 +322,9 @@ def next(data, state: StrategyState):
             if start_at_bar_index is not None:
                 cond = start_at_bar_index < data["index"]
                 if cond:
-                    state.ilog(e=f"IND {name} {subtype} START FROM BAR - PASSED: now:{data['index']} reqbar:{start_at_bar_index}")
+                    state.ilog(lvl=0,e=f"IND {name} {subtype} START FROM BAR - PASSED: now:{data['index']} reqbar:{start_at_bar_index}")
                 else:
-                    state.ilog(e=f"IND {name} {subtype} START FROM BAR  - NOT YET: now:{data['index']} reqbar:{start_at_bar_index}")
+                    state.ilog(lvl=0,e=f"IND {name} {subtype} START FROM BAR  - NOT YET: now:{data['index']} reqbar:{start_at_bar_index}")
         
             if cond is False:
                 return cond, "start_at_bar_index not yet"
@@ -334,12 +335,12 @@ def next(data, state: StrategyState):
                 if last_run_index is not None:
                     required_bar_to_run = last_run_index + repeat_every_Nbar
                     if repeat_every_Nbar == 0:
-                        state.ilog(e=f"IND {name} {subtype} RUN ONCE ALREADY at:{last_run_index} at:{last_run_time}", repeat_every_Nbar=repeat_every_Nbar, last_run_index=last_run_index)
+                        state.ilog(lvl=0,e=f"IND {name} {subtype} RUN ONCE ALREADY at:{last_run_index} at:{last_run_time}", repeat_every_Nbar=repeat_every_Nbar, last_run_index=last_run_index)
                         cond = False 
                     elif repeat_every_Nbar == 1:
                         pass
                     elif data["index"] < required_bar_to_run:
-                        state.ilog(e=f"IND {name} {subtype} REPEAT EVERY N BAR WAITING: req:{required_bar_to_run} now:{data['index']}", repeat_every_Nbar=repeat_every_Nbar, last_run_index=last_run_index)
+                        state.ilog(lvl=0,e=f"IND {name} {subtype} REPEAT EVERY N BAR WAITING: req:{required_bar_to_run} now:{data['index']}", repeat_every_Nbar=repeat_every_Nbar, last_run_index=last_run_index)
                         cond = False
                   
             if cond is False:
@@ -352,7 +353,7 @@ def next(data, state: StrategyState):
                     required_time_to_run = last_run_time + timedelta(minutes=repeat_every_Nmin)
                     datetime_now = datetime.fromtimestamp(data["updated"]).astimezone(zoneNY)
                     if datetime_now < required_time_to_run:
-                        state.ilog(e=f"IND {name} {subtype} REPEAT EVERY {repeat_every_Nmin}MINS WAITING", last_run_time=last_run_time, required_time_to_run=required_time_to_run, datetime_now=datetime_now)
+                        state.ilog(lvl=0,e=f"IND {name} {subtype} REPEAT EVERY {repeat_every_Nmin}MINS WAITING", last_run_time=last_run_time, required_time_to_run=required_time_to_run, datetime_now=datetime_now)
                         cond = False
 
             if cond is False:
@@ -367,8 +368,74 @@ def next(data, state: StrategyState):
             funcName = "opengap"
             param1 = safe_get(params, "param1")
             param2 = safe_get(params, "param2")
-            state.ilog(e=f"INSIDE {funcName} {param1=} {param2=}", **params)
-            return 0, random.randint(10, 20)
+            state.ilog(lvl=0,e=f"INSIDE {funcName} {param1=} {param2=}", **params)
+            last_close = 28.45
+            today_open = 29.45
+            val = pct_diff(last_close, today_open)
+            return 0, val
+            #random.randint(10, 20)
+
+        #abs/rel divergence of two indicators
+        def divergence(params):
+            funcName = "indicatorDivergence"
+            source1 = safe_get(params, "source1", None)
+            if source1 in ["open","high","low","close","vwap","hlcc4"]:
+                source1_series = state.bars[source1]
+            else:
+                source1_series = state.indicators[source1]
+            source2 = safe_get(params, "source2", None)
+            if source2 in ["open","high","low","close","vwap","hlcc4"]:
+                source2_series = state.bars[source2]
+            else:
+                source2_series = state.indicators[source2]
+            mode = safe_get(params, "type")
+            state.ilog(lvl=0,e=f"INSIDE {funcName} {source1=} {source2=} {mode=}", **params)
+            val = 0
+            if mode == "abs":
+                val =  round(abs(float(source1_series[-1]) - float(source2_series[-1])),4)
+            elif mode == "absn":
+                val =  round((abs(float(source1_series[-1]) - float(source2_series[-1])))/float(source1_series[-1]),4)
+            elif mode == "rel":
+                val =  round(float(source1_series[-1]) - float(source2_series[-1]),4)
+            elif mode == "reln":
+                val =  round((float(source1_series[-1]) - float(source2_series[-1]))/float(source1_series[-1]),4)
+            elif mode == "pctabs":
+                val = pct_diff(num1=float(source1_series[-1]),num2=float(source2_series[-1]), absolute=True)
+            elif mode == "pct":
+                val = pct_diff(num1=float(source1_series[-1]),num2=float(source2_series[-1]))
+            return 0, val
+        
+        #rate of change - last value of source indicator vs lookback value of lookback_priceline indicator
+        def slope(params):
+            funcName = "slope"
+            source = safe_get(params, "source", None)
+            if source in ["open","high","low","close","vwap","hlcc4"]:
+                source_series = state.bars[source]
+            else:
+                source_series = state.indicators[source]
+                
+            lookback = safe_get(params, "lookback", 5)
+            lookback_priceline = safe_get(params, "lookback_priceline", None)
+            if lookback_priceline is None:
+                lookback_series = source_series
+            else:
+                lookback_series = state.indicators[lookback_priceline]
+
+            try:
+                lookbackprice = lookback_series[-lookback-1]
+                lookbacktime = state.bars.updated[-lookback-1]
+            except IndexError:
+                max_delka = len(lookback_series)
+                lookbackprice =lookback_series[-max_delka]
+                lookbacktime = state.bars.updated[-max_delka]
+
+            #výpočet úhlu - a jeho normalizace
+            currval = source_series[-1]
+            slope = ((currval - lookbackprice)/abs(lookbackprice))*100
+            #slope = round(slope, 4)
+
+            state.ilog(lvl=0,e=f"INSIDE {funcName} {slope} {source=} {lookback=}", currval_source=currval, lookbackprice=lookbackprice, lookbacktime=lookbacktime, **params)
+            return 0, slope
 
         should_run, msg = is_time_to_run()
 
@@ -388,14 +455,14 @@ def next(data, state: StrategyState):
                 res_code, new_val = custom_function(custom_params)
                 if res_code == 0:
                     state.indicators[name][-1]=new_val
-                    state.ilog(e=f"IND {name} {subtype} VAL FROM FUNCTION: {new_val}", lastruntime=state.vars.indicators[name]["last_run_time"], lastrunindex=state.vars.indicators[name]["last_run_index"])
+                    state.ilog(lvl=1,e=f"IND {name} {subtype} VAL FROM FUNCTION: {new_val}", lastruntime=state.vars.indicators[name]["last_run_time"], lastrunindex=state.vars.indicators[name]["last_run_index"])
                     #prepocitame MA if required
                     if MA_length is not None:
                         src = state.indicators[name][-MA_length:]
                         MA_res = ema(src, MA_length)
-                        MA_value = round(MA_res[-1],4)
+                        MA_value = round(MA_res[-1],7)
                         state.indicators[name+"MA"][-1]=MA_value
-                        state.ilog(e=f"IND {name}MA {subtype} {MA_value}")
+                        state.ilog(lvl=0,e=f"IND {name}MA {subtype} {MA_value}")
 
                 else:
                     raise ValueError(f"IND  ERROR {name} {subtype}Funkce {custom_function} vratila {res_code} {new_val}.")
@@ -403,21 +470,21 @@ def next(data, state: StrategyState):
             except Exception as e:
                 if len(state.indicators[name]) >= 2:
                     state.indicators[name][-1]=state.indicators[name][-2]
-                if MA_length is not None and len(state.indicators[name+"MA"]):
+                if MA_length is not None and len(state.indicators[name+"MA"])>=2:
                     state.indicators[name+"MA"][-1]=state.indicators[name+"MA"][-2]
-                state.ilog(e=f"IND ERROR {name} {subtype} necháváme původní", message=str(e)+format_exc())
+                state.ilog(lvl=1,e=f"IND ERROR {name} {subtype} necháváme původní", message=str(e)+format_exc())
         
         else:
-            state.ilog(e=f"IND {name} {subtype} COND NOT READY: {msg}")
+            state.ilog(lvl=0,e=f"IND {name} {subtype} COND NOT READY: {msg}")
 
             #not time to run
             if len(state.indicators[name]) >= 2:
                 state.indicators[name][-1]=state.indicators[name][-2]
 
-            if MA_length is not None and len(state.indicators[name+"MA"]):
+            if MA_length is not None and len(state.indicators[name+"MA"])>=2:
                 state.indicators[name+"MA"][-1]=state.indicators[name+"MA"][-2]
 
-            state.ilog(e=f"IND {name} {subtype} NOT TIME TO RUN - value(and MA) still original")            
+            state.ilog(lvl=0,e=f"IND {name} {subtype} NOT TIME TO RUN - value(and MA) still original")            
     
     #EMA INDICATOR
     # type = EMA, source = [close, vwap, hlcc4], length = [14], on_confirmed_only = [true, false]
@@ -425,18 +492,18 @@ def next(data, state: StrategyState):
         ind_type = "EMA"
         options = safe_get(state.vars.indicators, name, None)
         if options is None:
-            state.ilog(e=f"No options for {name} in stratvars")
+            state.ilog(lvl=1,e=f"No options for {name} in stratvars")
             return       
         
         if safe_get(options, "type", False) is False or safe_get(options, "type", False) != ind_type:
-            state.ilog(e="Type error")
+            state.ilog(lvl=1,e="Type error")
             return
         
         #poustet kazdy tick nebo jenom na confirmed baru (on_confirmed_only = true)
         on_confirmed_only = safe_get(options, 'on_confirmed_only', False)
         req_source = safe_get(options, 'source', 'vwap')
         if req_source not in ["close", "vwap","hlcc4"]:
-            state.ilog(e=f"Unknown source error {req_source} for {name}")
+            state.ilog(lvl=1,e=f"Unknown source error {req_source} for {name}")
             return
         ema_length = int(safe_get(options, "length",14))
         if on_confirmed_only is False or (on_confirmed_only is True and data['confirmed']==1):
@@ -447,11 +514,11 @@ def next(data, state: StrategyState):
                 val = round(ema_value[-1],4)
                 state.indicators[name][-1]= val
                 #state.indicators[name][-1]= round2five(val)
-                state.ilog(e=f"IND {name} EMA {val} {ema_length=}")
+                state.ilog(lvl=0,e=f"IND {name} EMA {val} {ema_length=}")
                 #else:
-                #    state.ilog(e=f"IND {name} EMA necháváme 0", message="not enough source data", source=source, ema_length=ema_length)
+                #    state.ilog(lvl=0,e=f"IND {name} EMA necháváme 0", message="not enough source data", source=source, ema_length=ema_length)
             except Exception as e:
-                state.ilog(e=f"IND ERROR {name} EMA necháváme 0", message=str(e)+format_exc())
+                state.ilog(lvl=1,e=f"IND ERROR {name} EMA necháváme 0", message=str(e)+format_exc())
 
     #NATR INDICATOR
     # type = NATR, ĺength = [14], on_confirmed_only = [true, false]
@@ -459,7 +526,7 @@ def next(data, state: StrategyState):
         ind_type = "NATR"
         options = safe_get(state.vars.indicators, name, None)
         if options is None:
-            state.ilog(e=f"No options for {name} in stratvars")
+            state.ilog(lvl=1,e=f"No options for {name} in stratvars")
             return       
         
         #poustet kazdy tick nebo jenom na confirmed baru (on_confirmed_only = true)
@@ -475,11 +542,11 @@ def next(data, state: StrategyState):
                 val = round(natr_value[-1],4)
                 state.indicators[name][-1]= val
                 #state.indicators[name][-1]= round2five(val)
-                state.ilog(e=f"IND {name} NATR {val} {natr_length=}")
+                state.ilog(lvl=0,e=f"IND {name} NATR {val} {natr_length=}")
                 #else:
-                #    state.ilog(e=f"IND {name} EMA necháváme 0", message="not enough source data", source=source, ema_length=ema_length)
+                #    state.ilog(lvl=0,e=f"IND {name} EMA necháváme 0", message="not enough source data", source=source, ema_length=ema_length)
             except Exception as e:
-                state.ilog(e=f"IND ERROR {name} NATR necháváme 0", message=str(e)+format_exc())
+                state.ilog(lvl=0,e=f"IND ERROR {name} NATR necháváme 0", message=str(e)+format_exc())
 
     #RSI INDICATOR
     # type = RSI, source = [close, vwap, hlcc4], rsi_length = [14], MA_length = int (optional), on_confirmed_only = [true, false]
@@ -488,18 +555,18 @@ def next(data, state: StrategyState):
         ind_type = "RSI"
         options = safe_get(state.vars.indicators, name, None)
         if options is None:
-            state.ilog(e=f"No options for {name} in stratvars")
+            state.ilog(lvl=1,e=f"No options for {name} in stratvars")
             return       
         
         if safe_get(options, "type", False) is False or safe_get(options, "type", False) != ind_type:
-            state.ilog(e="Type error")
+            state.ilog(lvl=1,e="Type error")
             return
         
         #poustet kazdy tick nebo jenom na confirmed baru (on_confirmed_only = true)
         on_confirmed_only = safe_get(options, 'on_confirmed_only', False)
         req_source = safe_get(options, 'source', 'vwap')
         if req_source not in ["close", "vwap","hlcc4"]:
-            state.ilog(e=f"Unknown source error {req_source} for {name}")
+            state.ilog(lvl=1,e=f"Unknown source error {req_source} for {name}")
             return
         rsi_length = int(safe_get(options, "RSI_length",14))
         rsi_MA_length = safe_get(options, "MA_length", None)
@@ -512,30 +579,30 @@ def next(data, state: StrategyState):
                     rsi_res = rsi(source, rsi_length)
                     rsi_value = round(rsi_res[-1],4)
                     state.indicators[name][-1]=rsi_value
-                    state.ilog(e=f"IND {name} RSI {rsi_value}")
+                    state.ilog(lvl=0,e=f"IND {name} RSI {rsi_value}")
 
                     if rsi_MA_length is not None:
                         src = state.indicators[name][-rsi_MA_length:]
                         rsi_MA_res = ema(src, rsi_MA_length)
                         rsi_MA_value = round(rsi_MA_res[-1],4)
                         state.indicators[name+"MA"][-1]=rsi_MA_value
-                        state.ilog(e=f"IND {name} RSIMA {rsi_MA_value}")
+                        state.ilog(lvl=0,e=f"IND {name} RSIMA {rsi_MA_value}")
 
                 else:
-                    state.ilog(e=f"IND {name} RSI necháváme 0", message="not enough source data", source=source, rsi_length=rsi_length)
+                    state.ilog(lvl=0,e=f"IND {name} RSI necháváme 0", message="not enough source data", source=source, rsi_length=rsi_length)
             except Exception as e:
-                state.ilog(e=f"IND ERROR {name} RSI necháváme 0", message=str(e)+format_exc())
+                state.ilog(lvl=1,e=f"IND ERROR {name} RSI necháváme 0", message=str(e)+format_exc())
 
     #SLOPE LP
     def populate_dynamic_slopeLP_indicator(name):
         ind_type = "slopeLP"
         options = safe_get(state.vars.indicators, name, None)
         if options is None:
-            state.ilog(e=f"No options for {name} in stratvars")
+            state.ilog(lvl=1,e=f"No options for {name} in stratvars")
             return
         
         if safe_get(options, "type", False) is False or safe_get(options, "type", False) != ind_type:
-            state.ilog(e="Type error")
+            state.ilog(lvl=1,e="Type error")
             return
         
         #poustet kazdy tick nebo jenom na confirmed baru (on_confirmed_only = true)
@@ -591,7 +658,7 @@ def next(data, state: StrategyState):
                         if state.avgp > 0 and state.bars.index[-1] < int(state.vars.last_buy_index)+back_to_standard_after:
                             lb_index = -1 - (state.bars.index[-1] - int(state.vars.last_buy_index))
                             lookbackprice = state.bars.vwap[lb_index]
-                            state.ilog(e=f"IND {name} slope {leftpoint}- LEFT POINT OVERRIDE bereme ajko cenu lastbuy {lookbackprice=} {lookbacktime=} {lb_index=}")
+                            state.ilog(lvl=0,e=f"IND {name} slope {leftpoint}- LEFT POINT OVERRIDE bereme ajko cenu lastbuy {lookbackprice=} {lookbacktime=} {lb_index=}")
                         else:
                             #dame na porovnani jen prumer
                             lookbackprice = round(sum(lookbackprice_array)/lookback_offset,3)
@@ -605,18 +672,18 @@ def next(data, state: StrategyState):
                             #     lookbackprice = round(sum(lookbackprice_array)/lookback_offset,3)
                             
                             lookbacktime = state.bars.time[-slope_lookback]
-                            state.ilog(e=f"IND {name} slope {leftpoint} - LEFT POINT STANDARD {lookbackprice=} {lookbacktime=}")
+                            state.ilog(lvl=0,e=f"IND {name} slope {leftpoint} - LEFT POINT STANDARD {lookbackprice=} {lookbacktime=}")
                     else:
                         #kdyz neni  dostatek hodnot, pouzivame jako levy bod open hodnotu close[0]
                         lookbackprice = state.bars.close[0]
                         lookbacktime = state.bars.time[0]
-                        state.ilog(e=f"IND {name} slope - not enough data bereme left bod open", slope_lookback=slope_lookback)
+                        state.ilog(lvl=0,e=f"IND {name} slope - not enough data bereme left bod open", slope_lookback=slope_lookback)
                 elif leftpoint == "baropen":
                     lookbackprice = state.bars.open[-1]
                     lookbacktime = state.bars.time[-1]
-                    state.ilog(e=f"IND {name} slope {leftpoint}- bereme cenu bar OPENu ", lookbackprice=lookbackprice, lookbacktime=lookbacktime)
+                    state.ilog(lvl=0,e=f"IND {name} slope {leftpoint}- bereme cenu bar OPENu ", lookbackprice=lookbackprice, lookbacktime=lookbacktime)
                 else:
-                    state.ilog(e=f"IND {name} UNKNOW LEFT POINT TYPE {leftpoint=}")
+                    state.ilog(lvl=0,e=f"IND {name} UNKNOW LEFT POINT TYPE {leftpoint=}")
 
                 #výpočet úhlu - a jeho normalizace
                 slope = ((state.bars.close[-1] - lookbackprice)/lookbackprice)*100
@@ -638,22 +705,22 @@ def next(data, state: StrategyState):
                     state.indicators[name+"MA"][-1]=slopeMA
                     last_slopesMA = state.indicators[name+"MA"][-10:]
 
-                state.ilog(e=f"{name=} {slope=} {slopeMA=}", msg=f"{lookbackprice=}", lookbackoffset=lookback_offset, minimum_slope=minimum_slope, last_slopes=state.indicators[name][-10:], last_slopesMA=last_slopesMA)
+                state.ilog(lvl=0,e=f"{name=} {slope=} {slopeMA=}", msg=f"{lookbackprice=}", lookbackoffset=lookback_offset, minimum_slope=minimum_slope, last_slopes=state.indicators[name][-10:], last_slopesMA=last_slopesMA)
                 #dale pracujeme s timto MAckovanym slope
                 #slope = slopeMA         
 
             except Exception as e:
                 print(f"Exception in {name} slope Indicator section", str(e))
-                state.ilog(e=f"EXCEPTION in {name}", msg="Exception in slope Indicator section" + str(e) + format_exc())
+                state.ilog(lvl=1,e=f"EXCEPTION in {name}", msg="Exception in slope Indicator section" + str(e) + format_exc())
 
     def populate_dynamic_slope_indicator(name):
         options = safe_get(state.vars.indicators, name, None)
         if options is None:
-            state.ilog(e="No options for slow slope in stratvars")
+            state.ilog(lvl=1,e="No options for slow slope in stratvars")
             return
         
         if safe_get(options, "type", False) is False or safe_get(options, "type", False) != "slope":
-            state.ilog(e="Type error")
+            state.ilog(lvl=1,e="Type error")
             return
         
         #poustet kazdy tick nebo jenom na confirmed baru (on_confirmed_only = true)
@@ -733,7 +800,7 @@ def next(data, state: StrategyState):
                             lookbackprice = Average(state.bars.vwap)
                             lookbacktime = state.bars.time[0]
                         
-                        state.ilog(e=f"IND {name} slope - not enough data bereme left bod open", slope_lookback=slope_lookback, lookbackprice=lookbackprice)
+                        state.ilog(lvl=1,e=f"IND {name} slope - not enough data bereme left bod open", slope_lookback=slope_lookback, lookbackprice=lookbackprice)
 
                 #výpočet úhlu - a jeho normalizace
                 slope = ((state.bars.close[-1] - lookbackprice)/lookbackprice)*100
@@ -757,13 +824,13 @@ def next(data, state: StrategyState):
 
                 lb_priceline_string = "from "+lookback_priceline if lookback_priceline is not None else ""
 
-                state.ilog(e=f"IND {name} {lb_priceline_string} {slope=} {slopeMA=}", msg=f"{lookbackprice=} {lookbacktime=}", lookback_priceline=lookback_priceline, lookbackprice=lookbackprice, lookbacktime=lookbacktime, slope_lookback=slope_lookback, lookbackoffset=lookback_offset, minimum_slope=minimum_slope, last_slopes=state.indicators[name][-10:], last_slopesMA=last_slopesMA)
+                state.ilog(lvl=1,e=f"IND {name} {lb_priceline_string} {slope=} {slopeMA=}", msg=f"{lookbackprice=} {lookbacktime=}", lookback_priceline=lookback_priceline, lookbackprice=lookbackprice, lookbacktime=lookbacktime, slope_lookback=slope_lookback, lookbackoffset=lookback_offset, minimum_slope=minimum_slope, last_slopes=state.indicators[name][-10:], last_slopesMA=last_slopesMA)
                 #dale pracujeme s timto MAckovanym slope
                 #slope = slopeMA         
 
             except Exception as e:
                 print(f"Exception in {name} slope Indicator section", str(e))
-                state.ilog(e=f"EXCEPTION in {name}", msg="Exception in slope Indicator section" + str(e) + format_exc())
+                state.ilog(lvl=1,e=f"EXCEPTION in {name}", msg="Exception in slope Indicator section" + str(e) + format_exc())
 
     def process_delta():
         #PROCESs DELTAS - to function
@@ -775,14 +842,14 @@ def next(data, state: StrategyState):
         state.vars.last_50_deltas.append(last_update_delta)
         avg_delta = Average(state.vars.last_50_deltas)
 
-        state.ilog(e=f"---{data['index']}-{conf_bar}--delta:{last_update_delta}---AVGdelta:{avg_delta}")
+        state.ilog(lvl=1,e=f"-----{data['index']}-{conf_bar}--delta:{last_update_delta}---AVGdelta:{avg_delta}")
 
     conf_bar = data['confirmed']
     process_delta()
     #kroky pro CONFIRMED BAR only
     if conf_bar == 1:
         #logika pouze pro potvrzeny bar
-        state.ilog(e="BAR potvrzeny")
+        state.ilog(lvl=0,e="BAR potvrzeny")
 
         #pri potvrzem CBARu nulujeme counter volume pro tick based indicator
         state.vars.last_tick_volume = 0
@@ -805,7 +872,7 @@ def next(data, state: StrategyState):
     def sell_protection_enabled():
         options = safe_get(state.vars, 'sell_protection', None)
         if options is None:
-            state.ilog(e="No options for sell protection in stratvars")
+            state.ilog(lvl=0,e="No options for sell protection in stratvars")
             return False
         
         #docasne disabled, upravit pokud budu chtit pouzit
@@ -822,22 +889,22 @@ def next(data, state: StrategyState):
         #testing preconditions
         result, conditions_met = eval_cond_dict(disable_sell_proteciton_when)
         if result:
-            state.ilog(e=f"SELL_PROTECTION DISABLED by {conditions_met}", **conditions_met)
+            state.ilog(lvl=0,e=f"SELL_PROTECTION DISABLED by {conditions_met}", **conditions_met)
             return False
         
         work_dict_dont_sell_if = get_work_dict_with_directive(starts_with="dont_sell_if")
-        state.ilog(e=f"SELL PROTECTION work_dict", message=work_dict_dont_sell_if)
+        state.ilog(lvl=0,e=f"SELL PROTECTION work_dict", message=work_dict_dont_sell_if)
 
         or_cond = evaluate_directive_conditions(work_dict_dont_sell_if, "OR")
         result, conditions_met = eval_cond_dict(or_cond)
-        state.ilog(e=f"SELL PROTECTION =OR= {result}", **conditions_met)
+        state.ilog(lvl=0,e=f"SELL PROTECTION =OR= {result}", **conditions_met)
         if result:
             return True
         
         #OR neprosly testujeme AND
         and_cond = evaluate_directive_conditions(work_dict_dont_sell_if, "AND")
         result, conditions_met = eval_cond_dict(and_cond)
-        state.ilog(e=f"SELL PROTECTION =AND= {result}", **conditions_met)
+        state.ilog(lvl=0,e=f"SELL PROTECTION =AND= {result}", **conditions_met)
         return result    
 
         #PUVODNI NASTAVENI - IDENTIFIKOVAce rustoveho MOMENTA - pokud je momentum, tak prodávat později
@@ -858,7 +925,7 @@ def next(data, state: StrategyState):
  
         # result, conditions_met = eval_cond_dict(dont_sell_when)
         # if result:
-        #     state.ilog(e=f"SELL_PROTECTION {conditions_met} enabled")
+        #     state.ilog(lvl=0,e=f"SELL_PROTECTION {conditions_met} enabled")
         # return result 
 
     def normalize_tick(tick: float, price: float = None, return_two_decimals: bool = False):
@@ -903,7 +970,7 @@ def next(data, state: StrategyState):
             override = "YES "+mother_signal
             val = safe_get(state.vars.signals[mother_signal], directive_name, default_value)
 
-        state.ilog(e=f"{directive_name} OVERRIDE {override} NEWVAL:{val} ORIGINAL:{default_value} {mother_signal}", mother_signal=mother_signal,default_value=default_value)
+        state.ilog(lvl=0,e=f"{directive_name} OVERRIDE {override} NEWVAL:{val} ORIGINAL:{default_value} {mother_signal}", mother_signal=mother_signal,default_value=default_value)
         return val
 
     def get_default_sl_value(direction: TradeDirection):
@@ -918,7 +985,7 @@ def next(data, state: StrategyState):
         options = safe_get(state.vars, 'exit', None)
 
         if options is None:
-            state.ilog(e="No options for exit in stratvars. Fallback.")
+            state.ilog(lvl=1,e="No options for exit in stratvars. Fallback.")
             return 0.01
         directive_name = 'SL_defval_'+str(smer)
         val = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(options, directive_name, 0.01))
@@ -930,7 +997,7 @@ def next(data, state: StrategyState):
 
         normalized_def_profit = normalize_tick(float(def_profit))
 
-        state.ilog(e=f"PROFIT {def_profit=} {normalized_def_profit=}")
+        state.ilog(lvl=0,e=f"PROFIT {def_profit=} {normalized_def_profit=}")
 
         return price2dec(float(state.avgp)+normalized_def_profit,3) if int(state.positions) > 0 else price2dec(float(state.avgp)-normalized_def_profit,3)
         
@@ -940,7 +1007,7 @@ def next(data, state: StrategyState):
 
         normalized_max_profit = normalize_tick(float(max_profit))
 
-        state.ilog(e=f"MAX PROFIT {max_profit=} {normalized_max_profit=}")
+        state.ilog(lvl=0,e=f"MAX PROFIT {max_profit=} {normalized_max_profit=}")
 
         return price2dec(float(state.avgp)+normalized_max_profit,3) if int(state.positions) > 0 else price2dec(float(state.avgp)-normalized_max_profit,3)    
 
@@ -955,7 +1022,7 @@ def next(data, state: StrategyState):
             exit_cond_only_on_confirmed = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, False))
 
             if exit_cond_only_on_confirmed and data['confirmed'] == 0:
-                state.ilog("REVERSAL CHECK COND ONLY ON CONFIRMED BAR")
+                state.ilog(lvl=0,e="REVERSAL CHECK COND ONLY ON CONFIRMED BAR")
                 return False
 
             #TOTO zatim u REVERSU neresime
@@ -971,17 +1038,17 @@ def next(data, state: StrategyState):
             #     exit_cond_min_profit_normalized = normalize_tick(float(exit_cond_min_profit))
             #     exit_cond_goal_price = price2dec(float(state.avgp)+exit_cond_min_profit_normalized,3) if int(state.positions) > 0 else price2dec(float(state.avgp)-exit_cond_min_profit_normalized,3) 
             #     curr_price = float(data["close"])
-            #     state.ilog(e=f"EXIT COND min profit {exit_cond_goal_price=} {exit_cond_min_profit=} {exit_cond_min_profit_normalized=} {curr_price=}")
+            #     state.ilog(lvl=0,e=f"EXIT COND min profit {exit_cond_goal_price=} {exit_cond_min_profit=} {exit_cond_min_profit_normalized=} {curr_price=}")
             #     if (int(state.positions) < 0 and curr_price<=exit_cond_goal_price) or (int(state.positions) > 0 and curr_price>=exit_cond_goal_price):
-            #         state.ilog(e=f"EXIT COND min profit PASS - POKRACUJEME")
+            #         state.ilog(lvl=0,e=f"EXIT COND min profit PASS - POKRACUJEME")
             #     else:
-            #         state.ilog(e=f"EXIT COND min profit NOT PASS")
+            #         state.ilog(lvl=0,e=f"EXIT COND min profit NOT PASS")
             #         return False
 
             #TOTO ZATIM NEMA VYZNAM
             # options = safe_get(state.vars, 'exit_conditions', None)
             # if options is None:
-            #     state.ilog(e="No options for exit conditions in stratvars")
+            #     state.ilog(lvl=0,e="No options for exit conditions in stratvars")
             #     return False
             
             # disable_exit_proteciton_when = dict(AND=dict(), OR=dict())
@@ -995,24 +1062,24 @@ def next(data, state: StrategyState):
             # #testing preconditions
             # result, conditions_met = eval_cond_dict(disable_exit_proteciton_when)
             # if result:
-            #     state.ilog(e=f"EXIT_CONDITION for{smer} DISABLED by {conditions_met}", **conditions_met)
+            #     state.ilog(lvl=0,e=f"EXIT_CONDITION for{smer} DISABLED by {conditions_met}", **conditions_met)
             #     return False
             
             #bereme bud exit condition signalu, ktery activeTrade vygeneroval+ fallback na general
-            state.ilog(e=f"REVERSE CONDITIONS ENTRY {smer}", conditions=state.vars.conditions[KW.reverse])
+            state.ilog(lvl=0,e=f"REVERSE CONDITIONS ENTRY {smer}", conditions=state.vars.conditions[KW.reverse])
 
             mother_signal = state.vars.activeTrade.generated_by
 
             if mother_signal is not None:
                 cond_dict = state.vars.conditions[KW.reverse][state.vars.activeTrade.generated_by][smer]
                 result, conditions_met = evaluate_directive_conditions(cond_dict, "OR")
-                state.ilog(e=f"REVERSE CONDITIONS of {mother_signal} =OR= {result}", **conditions_met, cond_dict=cond_dict)
+                state.ilog(lvl=1,e=f"REVERSE CONDITIONS of {mother_signal} =OR= {result}", **conditions_met, cond_dict=cond_dict)
                 if result:
                     return True
                 
                 #OR neprosly testujeme AND
                 result, conditions_met = evaluate_directive_conditions(cond_dict, "AND")
-                state.ilog(e=f"REVERSE CONDITIONS of {mother_signal}  =AND= {result}", **conditions_met, cond_dict=cond_dict)
+                state.ilog(lvl=1,e=f"REVERSE CONDITIONS of {mother_signal}  =AND= {result}", **conditions_met, cond_dict=cond_dict)
                 if result:
                     return True
 
@@ -1020,13 +1087,13 @@ def next(data, state: StrategyState):
             #pokud nemame mother signal nebo exit nevratil nic, fallback na common
             cond_dict = state.vars.conditions[KW.reverse]["common"][smer]
             result, conditions_met = evaluate_directive_conditions(cond_dict, "OR")
-            state.ilog(e=f"REVERSE CONDITIONS of COMMON =OR= {result}", **conditions_met, cond_dict=cond_dict)
+            state.ilog(lvl=1,e=f"REVERSE CONDITIONS of COMMON =OR= {result}", **conditions_met, cond_dict=cond_dict)
             if result:
                 return True
             
             #OR neprosly testujeme AND
             result, conditions_met = evaluate_directive_conditions(cond_dict, "AND")
-            state.ilog(e=f"REVERSE CONDITIONS of COMMON =AND= {result}", **conditions_met, cond_dict=cond_dict)
+            state.ilog(lvl=0,e=f"REVERSE CONDITIONS of COMMON =AND= {result}", **conditions_met, cond_dict=cond_dict)
             if result:
                 return True
 
@@ -1040,7 +1107,7 @@ def next(data, state: StrategyState):
         exit_cond_only_on_confirmed = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, False))
 
         if exit_cond_only_on_confirmed and data['confirmed'] == 0:
-            state.ilog("EXIT COND ONLY ON CONFIRMED BAR")
+            state.ilog(lvl=0,e="EXIT COND ONLY ON CONFIRMED BAR")
             return False
 
         #POKUD je nastaven MIN PROFIT, zkontrolujeme ho a az pripadne pustime CONDITIONY
@@ -1055,17 +1122,17 @@ def next(data, state: StrategyState):
             exit_cond_min_profit_normalized = normalize_tick(float(exit_cond_min_profit))
             exit_cond_goal_price = price2dec(float(state.avgp)+exit_cond_min_profit_normalized,3) if int(state.positions) > 0 else price2dec(float(state.avgp)-exit_cond_min_profit_normalized,3) 
             curr_price = float(data["close"])
-            state.ilog(e=f"EXIT COND min profit {exit_cond_goal_price=} {exit_cond_min_profit=} {exit_cond_min_profit_normalized=} {curr_price=}")
+            state.ilog(lvl=1,e=f"EXIT COND min profit {exit_cond_goal_price=} {exit_cond_min_profit=} {exit_cond_min_profit_normalized=} {curr_price=}")
             if (int(state.positions) < 0 and curr_price<=exit_cond_goal_price) or (int(state.positions) > 0 and curr_price>=exit_cond_goal_price):
-                state.ilog(e=f"EXIT COND min profit PASS - POKRACUJEME")
+                state.ilog(lvl=1,e=f"EXIT COND min profit PASS - POKRACUJEME")
             else:
-                state.ilog(e=f"EXIT COND min profit NOT PASS")
+                state.ilog(lvl=1,e=f"EXIT COND min profit NOT PASS")
                 return False
 
         #TOTO ZATIM NEMA VYZNAM
         # options = safe_get(state.vars, 'exit_conditions', None)
         # if options is None:
-        #     state.ilog(e="No options for exit conditions in stratvars")
+        #     state.ilog(lvl=0,e="No options for exit conditions in stratvars")
         #     return False
         
         # disable_exit_proteciton_when = dict(AND=dict(), OR=dict())
@@ -1079,24 +1146,24 @@ def next(data, state: StrategyState):
         # #testing preconditions
         # result, conditions_met = eval_cond_dict(disable_exit_proteciton_when)
         # if result:
-        #     state.ilog(e=f"EXIT_CONDITION for{smer} DISABLED by {conditions_met}", **conditions_met)
+        #     state.ilog(lvl=0,e=f"EXIT_CONDITION for{smer} DISABLED by {conditions_met}", **conditions_met)
         #     return False
         
         #bereme bud exit condition signalu, ktery activeTrade vygeneroval+ fallback na general
-        state.ilog(e=f"EXIT CONDITIONS ENTRY {smer}", conditions=state.vars.conditions[KW.exit])
+        state.ilog(lvl=0,e=f"EXIT CONDITIONS ENTRY {smer}", conditions=state.vars.conditions[KW.exit])
 
         mother_signal = state.vars.activeTrade.generated_by
 
         if mother_signal is not None:
             cond_dict = state.vars.conditions[KW.exit][state.vars.activeTrade.generated_by][smer]
             result, conditions_met = evaluate_directive_conditions(cond_dict, "OR")
-            state.ilog(e=f"EXIT CONDITIONS of {mother_signal} =OR= {result}", **conditions_met, cond_dict=cond_dict)
+            state.ilog(lvl=1,e=f"EXIT CONDITIONS of {mother_signal} =OR= {result}", **conditions_met, cond_dict=cond_dict)
             if result:
                 return True
             
             #OR neprosly testujeme AND
             result, conditions_met = evaluate_directive_conditions(cond_dict, "AND")
-            state.ilog(e=f"EXIT CONDITIONS of {mother_signal}  =AND= {result}", **conditions_met, cond_dict=cond_dict)
+            state.ilog(lvl=1,e=f"EXIT CONDITIONS of {mother_signal}  =AND= {result}", **conditions_met, cond_dict=cond_dict)
             if result:
                 return True
 
@@ -1104,13 +1171,13 @@ def next(data, state: StrategyState):
         #pokud nemame mother signal nebo exit nevratil nic, fallback na common
         cond_dict = state.vars.conditions[KW.exit]["common"][smer]
         result, conditions_met = evaluate_directive_conditions(cond_dict, "OR")
-        state.ilog(e=f"EXIT CONDITIONS of COMMON =OR= {result}", **conditions_met, cond_dict=cond_dict)
+        state.ilog(lvl=1,e=f"EXIT CONDITIONS of COMMON =OR= {result}", **conditions_met, cond_dict=cond_dict)
         if result:
             return True
         
         #OR neprosly testujeme AND
         result, conditions_met = evaluate_directive_conditions(cond_dict, "AND")
-        state.ilog(e=f"EXIT CONDITIONS of COMMON =AND= {result}", **conditions_met, cond_dict=cond_dict)
+        state.ilog(lvl=1,e=f"EXIT CONDITIONS of COMMON =AND= {result}", **conditions_met, cond_dict=cond_dict)
         if result:
             return True
 
@@ -1134,7 +1201,7 @@ def next(data, state: StrategyState):
  
         # result, conditions_met = eval_cond_dict(dont_sell_when)
         # if result:
-        #     state.ilog(e=f"SELL_PROTECTION {conditions_met} enabled")
+        #     state.ilog(lvl=0,e=f"SELL_PROTECTION {conditions_met} enabled")
         # return result 
 
     def insert_SL_history():
@@ -1170,7 +1237,7 @@ def next(data, state: StrategyState):
 
             options = safe_get(state.vars, 'exit', None)
             if options is None:
-                state.ilog(e="Trail SL. No options for exit conditions in stratvars.")
+                state.ilog(lvl=1,e="Trail SL. No options for exit conditions in stratvars.")
                 return
             
             directive_name = 'SL_trailing_enabled_'+str(smer)
@@ -1187,7 +1254,7 @@ def next(data, state: StrategyState):
 
                 #pokud je pozadovan trail jen do breakeven a uz prekroceno
                 if (direction == TradeDirection.LONG and stop_breakeven and state.vars.activeTrade.stoploss_value >= float(state.avgp)) or (direction == TradeDirection.SHORT and stop_breakeven and state.vars.activeTrade.stoploss_value <= float(state.avgp)):
-                    state.ilog(e=f"SL trail STOP at breakeven {str(smer)} SL:{state.vars.activeTrade.stoploss_value} UNCHANGED", stop_breakeven=stop_breakeven)
+                    state.ilog(lvl=1,e=f"SL trail STOP at breakeven {str(smer)} SL:{state.vars.activeTrade.stoploss_value} UNCHANGED", stop_breakeven=stop_breakeven)
                     return
                 
                 #IDEA: Nyni posouvame SL o offset, mozna ji posunout jen o direktivu step ?
@@ -1196,22 +1263,22 @@ def next(data, state: StrategyState):
                 def_SL_normalized = normalize_tick(def_SL)
                 if direction == TradeDirection.LONG:
                     move_SL_threshold = state.vars.activeTrade.stoploss_value + offset_normalized + def_SL_normalized
-                    state.ilog(e=f"SL TRAIL EVAL {smer} SL:{round(state.vars.activeTrade.stoploss_value,3)} TRAILGOAL:{move_SL_threshold}", def_SL=def_SL, offset=offset, offset_normalized=offset_normalized, def_SL_normalized=def_SL_normalized)
+                    state.ilog(lvl=1,e=f"SL TRAIL EVAL {smer} SL:{round(state.vars.activeTrade.stoploss_value,3)} TRAILGOAL:{move_SL_threshold}", def_SL=def_SL, offset=offset, offset_normalized=offset_normalized, def_SL_normalized=def_SL_normalized)
                     if (move_SL_threshold) < data['close']:
                         state.vars.activeTrade.stoploss_value += offset_normalized
                         insert_SL_history()
-                        state.ilog(e=f"SL TRAIL TH {smer} reached {move_SL_threshold} SL moved to {state.vars.activeTrade.stoploss_value}", offset_normalized=offset_normalized, def_SL_normalized=def_SL_normalized)
+                        state.ilog(lvl=1,e=f"SL TRAIL TH {smer} reached {move_SL_threshold} SL moved to {state.vars.activeTrade.stoploss_value}", offset_normalized=offset_normalized, def_SL_normalized=def_SL_normalized)
                 elif direction == TradeDirection.SHORT:
                     move_SL_threshold = state.vars.activeTrade.stoploss_value - offset_normalized - def_SL_normalized
-                    state.ilog(e=f"SL TRAIL EVAL {smer} SL:{round(state.vars.activeTrade.stoploss_value,3)} TRAILGOAL:{move_SL_threshold}", def_SL=def_SL, offset=offset, offset_normalized=offset_normalized, def_SL_normalized=def_SL_normalized)
+                    state.ilog(lvl=0,e=f"SL TRAIL EVAL {smer} SL:{round(state.vars.activeTrade.stoploss_value,3)} TRAILGOAL:{move_SL_threshold}", def_SL=def_SL, offset=offset, offset_normalized=offset_normalized, def_SL_normalized=def_SL_normalized)
                     if (move_SL_threshold) > data['close']:
                         state.vars.activeTrade.stoploss_value -= offset_normalized
                         insert_SL_history()
-                        state.ilog(e=f"SL TRAIL GOAL {smer} reached {move_SL_threshold} SL moved to {state.vars.activeTrade.stoploss_value}", offset_normalized=offset_normalized, def_SL_normalized=def_SL_normalized)                            
+                        state.ilog(lvl=1,e=f"SL TRAIL GOAL {smer} reached {move_SL_threshold} SL moved to {state.vars.activeTrade.stoploss_value}", offset_normalized=offset_normalized, def_SL_normalized=def_SL_normalized)                            
 
     def close_position(direction: TradeDirection, reason: str, reverse: bool = False):
         reversal_text = "REVERSAL" if reverse else ""
-        state.ilog(e=f"CLOSING TRADE {reversal_text} {reason} {str(direction)}", curr_price=data["close"], trade=state.vars.activeTrade)
+        state.ilog(lvl=1,e=f"CLOSING TRADE {reversal_text} {reason} {str(direction)}", curr_price=data["close"], trade=state.vars.activeTrade)
         if direction == TradeDirection.SHORT:
             res = state.buy(size=abs(int(state.positions)))
             if isinstance(res, int) and res < 0:
@@ -1235,14 +1302,14 @@ def next(data, state: StrategyState):
 
     def eval_close_position():
         curr_price = float(data['close'])
-        state.ilog(e="Eval CLOSE", price=curr_price, pos=state.positions, avgp=state.avgp, pending=state.vars.pending, activeTrade=str(state.vars.activeTrade))
+        state.ilog(lvl=0,e="Eval CLOSE", price=curr_price, pos=state.positions, avgp=state.avgp, pending=state.vars.pending, activeTrade=str(state.vars.activeTrade))
 
         if int(state.positions) != 0 and float(state.avgp)>0 and state.vars.pending is None:
             
             #pevny target - presunout toto do INIT a pak jen pristupovat
             goal_price = get_profit_target_price()
             max_price = get_max_profit_price()
-            state.ilog(e=f"Goal price {goal_price} max price {max_price}")
+            state.ilog(lvl=1,e=f"Goal price {goal_price} max price {max_price}")
             
             #close position handling
             #TBD pridat OPTIMALIZACI POZICE - EXIT 1/2
@@ -1327,12 +1394,12 @@ def next(data, state: StrategyState):
         if state.vars.activeTrade is not None or len(state.vars.prescribedTrades) == 0:
             return
         #evaluate long (price/market)
-        state.ilog(e="evaluating prescr trades", trades=json.loads(json.dumps(state.vars.prescribedTrades, default=json_serial)))
+        state.ilog(lvl=1,e="evaluating prescr trades", trades=json.loads(json.dumps(state.vars.prescribedTrades, default=json_serial)))
         for trade in state.vars.prescribedTrades:
             if trade.status == TradeStatus.READY and trade.direction == TradeDirection.LONG and (trade.entry_price is None or trade.entry_price >= data['close']):
                 trade.status = TradeStatus.ACTIVATED
                 trade.last_update = datetime.fromtimestamp(state.time).astimezone(zoneNY)
-                state.ilog(e=f"evaluated LONG", trade=json.loads(json.dumps(trade, default=json_serial)), prescrTrades=json.loads(json.dumps(state.vars.prescribedTrades, default=json_serial)))
+                state.ilog(lvl=1,e=f"evaluated LONG", trade=json.loads(json.dumps(trade, default=json_serial)), prescrTrades=json.loads(json.dumps(state.vars.prescribedTrades, default=json_serial)))
                 state.vars.activeTrade = trade
                 state.vars.last_buy_index = data["index"]
                 break
@@ -1340,7 +1407,7 @@ def next(data, state: StrategyState):
         if not state.vars.activeTrade:
             for trade in state.vars.prescribedTrades:
                 if trade.status == TradeStatus.READY and trade.direction == TradeDirection.SHORT and (trade.entry_price is None or trade.entry_price <= data['close']):
-                    state.ilog(e=f"evaluaed SHORT", trade=json.loads(json.dumps(trade, default=json_serial)), prescTrades=json.loads(json.dumps(state.vars.prescribedTrades, default=json_serial)))
+                    state.ilog(lvl=1,e=f"evaluaed SHORT", trade=json.loads(json.dumps(trade, default=json_serial)), prescTrades=json.loads(json.dumps(state.vars.prescribedTrades, default=json_serial)))
                     trade.status = TradeStatus.ACTIVATED
                     trade.last_update = datetime.fromtimestamp(state.time).astimezone(zoneNY)
                     state.vars.activeTrade = trade
@@ -1350,7 +1417,7 @@ def next(data, state: StrategyState):
         #odeslani ORDER + NASTAVENI STOPLOSS (zatim hardcoded)
         if state.vars.activeTrade:
             if state.vars.activeTrade.direction == TradeDirection.LONG:
-                state.ilog(e="odesilame LONG ORDER", trade=json.loads(json.dumps(state.vars.activeTrade, default=json_serial)))
+                state.ilog(lvl=1,e="odesilame LONG ORDER", trade=json.loads(json.dumps(state.vars.activeTrade, default=json_serial)))
                 if state.vars.activeTrade.size is not None:
                     size = state.vars.activeTrade.size
                 else:
@@ -1365,10 +1432,10 @@ def next(data, state: StrategyState):
                     sl_defvalue_normalized = normalize_tick(sl_defvalue)
                     state.vars.activeTrade.stoploss_value = float(data['close']) - sl_defvalue_normalized
                     insert_SL_history()
-                    state.ilog(e=f"Nastaveno SL na {sl_defvalue}, priced normalized: {sl_defvalue_normalized} price: {state.vars.activeTrade.stoploss_value }")
+                    state.ilog(lvl=1,e=f"Nastaveno SL na {sl_defvalue}, priced normalized: {sl_defvalue_normalized} price: {state.vars.activeTrade.stoploss_value }")
                 state.vars.pending = state.vars.activeTrade.id
             elif state.vars.activeTrade.direction == TradeDirection.SHORT:
-                state.ilog(e="odesilame SHORT ORDER",trade=json.loads(json.dumps(state.vars.activeTrade, default=json_serial)))
+                state.ilog(lvl=1,e="odesilame SHORT ORDER",trade=json.loads(json.dumps(state.vars.activeTrade, default=json_serial)))
                 if state.vars.activeTrade.size is not None:
                     size = state.vars.activeTrade.size
                 else:
@@ -1383,10 +1450,10 @@ def next(data, state: StrategyState):
                     sl_defvalue_normalized = normalize_tick(sl_defvalue)
                     state.vars.activeTrade.stoploss_value = float(data['close']) + sl_defvalue_normalized
                     insert_SL_history()
-                    state.ilog(e=f"Nastaveno SL na {sl_defvalue}, priced normalized: {sl_defvalue_normalized} price: {state.vars.activeTrade.stoploss_value }")
+                    state.ilog(lvl=1,e=f"Nastaveno SL na {sl_defvalue}, priced normalized: {sl_defvalue_normalized} price: {state.vars.activeTrade.stoploss_value }")
                 state.vars.pending = state.vars.activeTrade.id
             else:
-                state.ilog(e="unknow direction")
+                state.ilog(lvl=1,e="unknow direction")
                 state.vars.activeTrade = None
 
     def execute_signal_generator_plugin(name):
@@ -1413,13 +1480,13 @@ def next(data, state: StrategyState):
         #u techto ma smysl pouze OR 
         cond_dict = state.vars.conditions[KW.dont_go][signalname][smer]
         result, conditions_met = evaluate_directive_conditions(cond_dict, "OR")
-        state.ilog(e=f"SPECIFIC PRECOND {smer} {result}", **conditions_met, cond_dict=cond_dict)
+        state.ilog(lvl=1,e=f"SPECIFIC PRECOND {smer} {result}", **conditions_met, cond_dict=cond_dict)
         if result:
             return False
         
         # #OR neprosly testujeme AND
         # result, conditions_met = evaluate_directive_conditions(cond_dict, "AND")
-        # state.ilog(e=f"EXIT CONDITIONS of activeTrade {smer} =AND= {result}", **conditions_met, cond_dict=cond_dict)
+        # state.ilog(lvl=0,e=f"EXIT CONDITIONS of activeTrade {smer} =AND= {result}", **conditions_met, cond_dict=cond_dict)
         # if result:
         #     return True
 
@@ -1453,13 +1520,13 @@ def next(data, state: StrategyState):
         #TESTUJEME GO SIGNAL
         cond_dict = state.vars.conditions[KW.go][signalname][smer]
         result, conditions_met = evaluate_directive_conditions(cond_dict, "OR")
-        state.ilog(e=f"EVAL GO SIGNAL {smer} =OR= {result}", **conditions_met, cond_dict=cond_dict)
+        state.ilog(lvl=0,e=f"EVAL GO SIGNAL {smer} =OR= {result}", **conditions_met, cond_dict=cond_dict)
         if result:
             return True
         
         #OR neprosly testujeme AND
         result, conditions_met = evaluate_directive_conditions(cond_dict, "AND")
-        state.ilog(e=f"EVAL GO SIGNAL {smer} =AND= {result}", **conditions_met, cond_dict=cond_dict)
+        state.ilog(lvl=0,e=f"EVAL GO SIGNAL {smer} =AND= {result}", **conditions_met, cond_dict=cond_dict)
         if result:
             return True
         
@@ -1474,7 +1541,7 @@ def next(data, state: StrategyState):
         window_close = safe_get(options, "window_close",safe_get(state.vars, "window_close",390))
 
         if is_window_open(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), window_open, window_close) is False:
-            state.ilog(e=f"SIGNAL {signalname} - WINDOW CLOSED", msg=f"{window_open=} {window_close=} ")
+            state.ilog(lvl=1,e=f"SIGNAL {signalname} - WINDOW CLOSED", msg=f"{window_open=} {window_close=} ")
             return False           
 
         next_signal_offset = safe_get(options, "next_signal_offset_from_last_exit",safe_get(state.vars, "next_signal_offset_from_last_exit",0))
@@ -1482,11 +1549,11 @@ def next(data, state: StrategyState):
         if state.vars.last_exit_index is not None:
             index_to_compare = int(state.vars.last_exit_index)+int(next_signal_offset) 
             if index_to_compare > int(data["index"]):
-                state.ilog(e=f"NEXT SIGNAL OFFSET from EXIT {next_signal_offset} waiting - TOO SOON", currindex=data["index"], index_to_compare=index_to_compare, last_exit_index=state.vars.last_exit_index)
+                state.ilog(lvl=1,e=f"NEXT SIGNAL OFFSET from EXIT {next_signal_offset} waiting - TOO SOON", currindex=data["index"], index_to_compare=index_to_compare, last_exit_index=state.vars.last_exit_index)
                 return False
 
         # if is_open_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), open_rush) or is_close_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), close_rush):
-        #     state.ilog(e=f"SIGNAL {signalname} - WINDOW CLOSED", msg=f"{open_rush=} {close_rush=} ")
+        #     state.ilog(lvl=0,e=f"SIGNAL {signalname} - WINDOW CLOSED", msg=f"{open_rush=} {close_rush=} ")
         #     return False
 
         #natvrdo nebo na podminku
@@ -1494,21 +1561,21 @@ def next(data, state: StrategyState):
 
         #check activation
         if activated is False:
-            state.ilog(e=f"{signalname} not ACTIVATED")
+            state.ilog(lvl=1,e=f"{signalname} not ACTIVATED")
             cond_dict = state.vars.conditions[KW.activate][signalname]
             result, conditions_met = evaluate_directive_conditions(cond_dict, "OR")
-            state.ilog(e=f"EVAL ACTIVATION CONDITION =OR= {result}", **conditions_met, cond_dict=cond_dict)
+            state.ilog(lvl=1,e=f"EVAL ACTIVATION CONDITION =OR= {result}", **conditions_met, cond_dict=cond_dict)
 
             if result is False:            
                 #OR neprosly testujeme AND
                 result, conditions_met = evaluate_directive_conditions(cond_dict, "AND")
-                state.ilog(e=f"EVAL ACTIVATION CONDITION  =AND= {result}", **conditions_met, cond_dict=cond_dict)
+                state.ilog(lvl=1,e=f"EVAL ACTIVATION CONDITION  =AND= {result}", **conditions_met, cond_dict=cond_dict)
 
             if result is False:
-                state.ilog(e=f"not ACTIVATED")
+                state.ilog(lvl=1,e=f"not ACTIVATED")
                 return False
             else:
-                state.ilog(e=f"{signalname} JUST ACTIVATED")
+                state.ilog(lvl=1,e=f"{signalname} JUST ACTIVATED")
                 state.vars.signals[signalname]["activated"] = True
         
         # OBECNE PRECONDITIONS - typu dont_do_when
@@ -1528,18 +1595,18 @@ def next(data, state: StrategyState):
         # #testing preconditions
         result, cond_met = eval_cond_dict(precond_check)
         if result:
-            state.ilog(e=f"PRECOND GENERAL not met {cond_met}", message=cond_met, precond_check=precond_check)
+            state.ilog(lvl=1,e=f"PRECOND GENERAL not met {cond_met}", message=cond_met, precond_check=precond_check)
             return False
         
-        state.ilog(e=f"{signalname} ALL PRECOND MET")
+        state.ilog(lvl=0,e=f"{signalname} ALL PRECOND MET")
         return True
 
     def execute_signal_generator(name):
-        state.ilog(e=f"SIGNAL SEARCH for {name}", cond_go=state.vars.conditions[KW.go][name], cond_dontgo=state.vars.conditions[KW.dont_go][name], cond_activate=state.vars.conditions[KW.activate][name] )
+        state.ilog(lvl=1,e=f"SIGNAL SEARCH for {name}", cond_go=state.vars.conditions[KW.go][name], cond_dontgo=state.vars.conditions[KW.dont_go][name], cond_activate=state.vars.conditions[KW.activate][name] )
         options = safe_get(state.vars.signals, name, None)
 
         if options is None:
-            state.ilog(e="No options for {name} in stratvars")
+            state.ilog(lvl=1,e="No options for {name} in stratvars")
             return
         
         if common_go_preconditions_check(signalname=name, options=options) is False:
@@ -1557,16 +1624,16 @@ def next(data, state: StrategyState):
                 custom_function = eval(signal_plugin)
                 custom_function()
             except NameError:
-                state.ilog(e="Custom plugin {signal_plugin} not found")
+                state.ilog(lvl=1,e="Custom plugin {signal_plugin} not found")
         else:
             short_enabled = safe_get(options, "short_enabled",safe_get(state.vars, "short_enabled",True))
             long_enabled = safe_get(options, "long_enabled",safe_get(state.vars, "long_enabled",True))
             #common signals based on 1) configured signals in stratvars
             #toto umoznuje jednoduchy prescribed trade bez ceny
             if short_enabled is False:
-                state.ilog(e=f"{name} SHORT DISABLED")
+                state.ilog(lvl=1,e=f"{name} SHORT DISABLED")
             if long_enabled is False:
-                state.ilog(e=f"{name} LONG DISABLED")
+                state.ilog(lvl=1,e=f"{name} LONG DISABLED")
             if long_enabled and go_conditions_met(signalname=name, direction=TradeDirection.LONG):
                 state.vars.prescribedTrades.append(Trade(
                                         id=uuid4(),
@@ -1586,7 +1653,7 @@ def next(data, state: StrategyState):
                         entry_price=None,
                         stoploss_value = None))
             else:
-                state.ilog(e=f"{name} NO SIGNAL")
+                state.ilog(lvl=0,e=f"{name} NO SIGNAL")
 
     def signal_search():
         # SIGNAL sekce ve stratvars obsahuje signaly: Ty se skladaji z obecnych parametru a podsekce podminek.
@@ -1635,9 +1702,9 @@ def next(data, state: StrategyState):
 
     #MAIN LOOP
     lp = data['close']
-    state.ilog(e="ENTRY", msg=f"LP:{lp} P:{state.positions}/{round(float(state.avgp),3)} SL:{state.vars.activeTrade.stoploss_value if state.vars.activeTrade is not None else None} profit:{round(float(state.profit),2)} Trades:{len(state.tradeList)} pend:{state.vars.pending}", activeTrade=json.loads(json.dumps(state.vars.activeTrade, default=json_serial)), prescribedTrades=json.loads(json.dumps(state.vars.prescribedTrades, default=json_serial)), pending=str(state.vars.pending), last_price=lp, data=data, stratvars=state.vars)
+    state.ilog(lvl=1,e="ENTRY", msg=f"LP:{lp} P:{state.positions}/{round(float(state.avgp),3)} SL:{state.vars.activeTrade.stoploss_value if state.vars.activeTrade is not None else None} profit:{round(float(state.profit),2)} Trades:{len(state.tradeList)} pend:{state.vars.pending}", activeTrade=json.loads(json.dumps(state.vars.activeTrade, default=json_serial)), prescribedTrades=json.loads(json.dumps(state.vars.prescribedTrades, default=json_serial)), pending=str(state.vars.pending))
     inds = get_last_ind_vals()
-    state.ilog(e="Indikatory", **inds)
+    state.ilog(lvl=1,e="Indikatory", **inds)
 
     #TODO dat do initu inciializaci work directory pro directivy 
 
@@ -1664,8 +1731,9 @@ def init(state: StrategyState):
 
     def initialize_dynamic_indicators():
         #pro vsechny indikatory, ktere maji ve svych stratvars TYPE inicializujeme
-        for indname, indsettings in state.vars.indicators.items():
-            for option,value in indsettings.items():
+        dict_copy = state.vars.indicators.copy()
+        for indname, indsettings in dict_copy.items():
+            for option,value in list(indsettings.items()):
                 #inicializujeme nejenom typizovane
                 #if option == "type":
                 state.indicators[indname] = []
@@ -1673,10 +1741,16 @@ def init(state: StrategyState):
                 if safe_get(indsettings, 'MA_length', False):
                     state.indicators[indname+"MA"] = []
                 #specifika pro slope
-                if value == "slope":
-                    #inicializujeme statinds (pro uhel na FE)
-                    state.statinds[indname] = dict(minimum_slope=safe_get(indsettings, 'minimum_slope', -1), maximum_slope=safe_get(indsettings, 'maximum_slope', 1))
-    
+                if option == "type":
+                    if value == "slope":
+                        #inicializujeme statinds (pro uhel na FE)
+                        state.statinds[indname] = dict(minimum_slope=safe_get(indsettings, 'minimum_slope', -1), maximum_slope=safe_get(indsettings, 'maximum_slope', 1))
+                    if value == "custom":
+                        #pro typ custom inicializujeme promenne
+                        state.vars.indicators[indname]["last_run_time"] = None
+                        state.vars.indicators[indname]["last_run_index"] = None
+
+
     #TODO hlavne tedy do INITu dat exit dict, ty jsou evaluovane kazdy tick
     def intialize_directive_conditions():
         #inciializace pro akce: short, long, dont_short, dont_long, activate

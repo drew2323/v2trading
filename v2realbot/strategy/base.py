@@ -6,7 +6,7 @@ from v2realbot.utils.utils import AttributeDict, zoneNY, is_open_rush, is_close_
 from v2realbot.utils.tlog import tlog
 from v2realbot.utils.ilog import insert_log, insert_log_multiple_queue
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Order, Account
-from v2realbot.config import BT_DELAYS, get_key, HEARTBEAT_TIMEOUT, QUIET_MODE, LOG_RUNNER_EVENTS
+from v2realbot.config import BT_DELAYS, get_key, HEARTBEAT_TIMEOUT, QUIET_MODE, LOG_RUNNER_EVENTS, ILOG_SAVE_LEVEL_FROM
 import queue
 #from rich import print
 from v2realbot.loader.aggregator import TradeAggregator2Queue, TradeAggregator2List, TradeAggregator
@@ -663,7 +663,10 @@ class StrategyState:
         self.extData = {}
         self.mode = None
     
-    def ilog(self, e: str = None, msg: str = None, **kwargs):
+    def ilog(self, e: str = None, msg: str = None, lvl: int = 1, **kwargs):
+        if lvl < ILOG_SAVE_LEVEL_FROM:
+            return
+        
         if self.mode == Mode.LIVE or self.mode == Mode.PAPER:
             self.time = datetime.now().timestamp()
 

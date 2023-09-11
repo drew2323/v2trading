@@ -2,6 +2,11 @@ from alpaca.data.enums import DataFeed
 from v2realbot.enums.enums import Mode, Account, FillCondition
 from appdirs import user_data_dir
 
+#TODO vybrane dat do config db a managovat pres GUI
+
+#ilog lvls = 0,1 - 0 debug, 1 info
+ILOG_SAVE_LEVEL_FROM  = 1
+
 #minimalni vzdalenost mezi trady, kterou agregator pousti pro CBAR(0.001 - blokuje mensi nez 1ms)
 GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN = 0.003
 #normalized price for tick 0.01

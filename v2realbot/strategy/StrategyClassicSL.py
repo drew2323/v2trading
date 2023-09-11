@@ -225,7 +225,7 @@ class StrategyClassicSL(Strategy):
         else:
             sizer = size
         #jde o uzavreni short pozice
-        if int(self.state.positions) < 0 and (int(self.state.positions) + sizer) > 0:
+        if int(self.state.positions) < 0 and (int(self.state.positions) + int(sizer)) > 0:
             self.state.ilog(e="buy nelze nakoupit vic nez shortuji", positions=self.state.positions, size=size)
             print("buy nelze nakoupit vic nez shortuji") 
             return -2

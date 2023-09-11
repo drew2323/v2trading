@@ -107,7 +107,7 @@ class StrategyClassicSL(Strategy):
                 #pIF REVERSAL REQUIRED - reverse position is added to prescr.Trades with same signal name
                 #jen při celém FILLU
                 if data.event == TradeEvent.FILL and self.state.vars.reverse_requested:
-                        await self.add_reversal(direction=TradeDirection.LONG, size=data.qty, signal_name=signal_name)
+                        await self.add_reversal(direction=TradeDirection.LONG, size=o.qty, signal_name=signal_name)
 
             else:
                 #zjistime nazev signalu a updatneme do tradeListu - abychom meli svazano
@@ -174,7 +174,7 @@ class StrategyClassicSL(Strategy):
 
                 #IF REVERSAL REQUIRED - reverse position is added to prescr.Trades with same signal name
                 if data.event == TradeEvent.FILL and self.state.vars.reverse_requested:
-                        await self.add_reversal(direction=TradeDirection.SHORT, size=data.qty, signal_name=signal_name)
+                        await self.add_reversal(direction=TradeDirection.SHORT, size=data.order.qty, signal_name=signal_name)
 
             else:
                 #zjistime nazev signalu a updatneme do tradeListu - abychom meli svazano

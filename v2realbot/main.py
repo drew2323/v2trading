@@ -27,8 +27,10 @@ from queue import Queue, Empty
 from threading import Thread
 import asyncio
 from v2realbot.common.db import insert_queue, insert_conn, pool
-from v2realbot.utils.utils import json_serial
+from v2realbot.utils.utils import json_serial, send_to_telegram
 from uuid import uuid4
+from sqlite3 import OperationalError
+from time import sleep
 #from async io import Queue, QueueEmpty
                    
 # install()
@@ -519,17 +521,25 @@ def insert_queue2db():
         # Retrieve data from the queue
         data = insert_queue.get()
 
-        # Unpack the data
-        runner_id, loglist = data
-
-        c = insert_conn.cursor()
-        insert_data = []
-        for i in loglist:
-            row = (str(runner_id), i["time"], json.dumps(i, default=json_serial))
-            insert_data.append(row)
-        c.executemany("INSERT INTO runner_logs VALUES (?,?,?)", insert_data)
-        insert_conn.commit()
-        # Mark the task as done in the queue
+        try:
+            # Unpack the data
+            runner_id, loglist = data
+            c = insert_conn.cursor()
+            insert_data = []
+            for i in loglist:
+                row = (str(runner_id), i["time"], json.dumps(i, default=json_serial))
+                insert_data.append(row)
+            c.executemany("INSERT INTO runner_logs VALUES (?,?,?)", insert_data)
+            insert_conn.commit()
+            # Mark the task as done in the queue
+        except OperationalError as e:
+            send_to_telegram("insert logs daemon returned" + str(e) + "RETRYING")
+            if "database is locked" in str(e):
+                # Database is locked, wait for a while and retry
+                insert_queue.put(data)  # Put the data back into the queue for retry
+                sleep(1)  # You can adjust the sleep duration
+            else:
+                raise  # If it's another error, raise it     
 
 #join cekej na dokonceni vsech
 for i in cs.db.runners:

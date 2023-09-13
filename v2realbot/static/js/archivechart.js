@@ -8,6 +8,7 @@ console.log("CHART_SHOW_TEXT archchart", CHART_SHOW_TEXT)
 // var volumeSeries = null
 var markersLine = null
 var avgBuyLine = null
+var profitLine = null
 var slLine = []
 //TRANSFORM object returned from REST API get_arch_run_detail
 //to series and markers required by lightweigth chart
@@ -111,6 +112,7 @@ function transform_data(data) {
     //get markers - avgp line for all buys
     var avgp_buy_line = []
     var avgp_markers = []
+    var sum_profit_line = []
     var markers = []
     var markers_line = []
     var last_timestamp = 0.1
@@ -139,9 +141,9 @@ function transform_data(data) {
             last_timestamp = timestamp
             iterator = 0.002
         }
-        //puvodne bylo pro buy
-        //pro sell muzeme teoreticky taky mit buyline (pri shortu)
-        if ((trade.order.side == "buy") || (trade.order.side == "sell")) {
+        
+        //AVG BUY LINE - zatim docasne vypiname
+        if (((trade.order.side == "buy") || (trade.order.side == "sell")) && 1==2) {
                 //avgp lajnu vytvarime jen pokud je v tradeventu prumerna cena
                 if ((trade.pos_avg_price !== null) && (trade.pos_avg_price !== 0)) {
                 //line pro avgp markers
@@ -161,6 +163,26 @@ function transform_data(data) {
             }
         }
 
+        if ((trade.order.side == "buy") || (trade.order.side == "sell")) {
+                //avgp lajnu vytvarime jen pokud je v tradeventu prumerna cena
+            if ((trade.profit_sum !== null)) {
+                //line pro avgp markers
+                obj["time"] = timestamp;
+                obj["value"] = trade.profit_sum.toFixed(1);
+                sum_profit_line.push(obj)
+
+                //avgp markers pro prumernou cenu aktualnich pozic
+                // a_markers["time"] = timestamp
+                // a_markers["position"] = "aboveBar"
+                // a_markers["color"] = "#e8c76d"
+                // a_markers["shape"] = "arrowDown"
+                // a_markers["text"] = trade.profit_sum.toFixed(1);
+                // //if (CHART_SHOW_TEXT) 
+                // //a_markers["text"] = trade.position_qty + " " + parseFloat(trade.pos_avg_price).toFixed(3)
+                // //a_markers["text"] = CHART_SHOW_TEXT ? trade.position_qty + "/" + parseFloat(trade.pos_avg_price).toFixed(3) :trade.position_qty
+                // avgp_markers.push(a_markers)
+            }
+        }
         
 
         //buy sell markery
@@ -172,7 +194,7 @@ function transform_data(data) {
         //marker["shape"] = (trade.order.side == "buy") ? "arrowUp" : "arrowDown"
         marker["shape"] = (trade.order.side == "buy") ? "arrowUp" : "arrowDown"
         //marker["text"] =  trade.qty + "/" + trade.price
-        qt_optimized = (trade.qty % 1000 === 0) ? (trade.qty / 1000).toFixed(1) + 'K' : trade.qty
+        qt_optimized = (trade.order.qty % 1000 === 0) ? (trade.order.qty / 1000).toFixed(1) + 'K' : trade.order.qty
   
         if (CHART_SHOW_TEXT) {
             //včetně qty
@@ -215,8 +237,10 @@ function transform_data(data) {
     markers_line.sort(sorter)
     avgp_buy_line.sort(sorter)
     avgp_markers.sort(sorter)
+    sum_profit_line.sort(sorter)
 
-    transformed["avgp_buy_line"] = avgp_buy_line 
+    transformed["avgp_buy_line"] = avgp_buy_line
+    transformed["sum_profit_line"] = sum_profit_line 
     transformed["avgp_markers"] = avgp_markers
     transformed["markers"] = markers
     transformed["markers_line"] = markers_line
@@ -366,7 +390,15 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
         }
         container1.append(indbuttonElement);   
 
+
         display_buy_markers();
+        //TADY JSEM SKONCIL - toto  nize predelat na hide button pro display bar markers
+        // btnElement = document.getElementById("pricelineButtons")
+        // var indbuttonElement = populate_indicator_buttons(false);
+        // if (btnElement) {
+        //     container1.removeChild(btnElement);
+        // }
+        //container1.append(indbuttonElement);   
 
         if (last_range) {
             chart.timeScale().setVisibleRange(last_range);
@@ -604,6 +636,11 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
 
     //displays (redraws) buy markers
     function display_buy_markers() {
+
+        if (profitLine) {
+            chart.removeSeries(profitLine)
+        }
+
         if (avgBuyLine) {
             chart.removeSeries(avgBuyLine)
         }
@@ -650,9 +687,30 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
             slLine.push(slLine_temp)
 
             //xx
-    })
+        })
 
         //}
+
+        if (transformed_data["sum_profit_line"].length > 0) {
+            profitLine = chart.addLineSeries({
+                //    title: "avgpbuyline",
+                    color: '#e8c76d',
+                //    color: 'transparent',
+                    lineWidth: 1,
+                    lastValueVisible: false
+                });
+
+                profitLine.applyOptions({
+                lastValueVisible: false,
+                priceLineVisible: false,
+                priceScaleId: "own"
+            });
+
+
+            profitLine.setData(transformed_data["sum_profit_line"]);
+            //profitLine.setMarkers(transformed_data["sum_profit_line_markers"]);
+        }
+
 
         if (transformed_data["avgp_buy_line"].length > 0) {
             avgBuyLine = chart.addLineSeries({
@@ -714,6 +772,7 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
                     toolTip.innerHTML = "";
                     var data = param.seriesData.get(markersLine);
                     var data2 = param.seriesData.get(avgBuyLine);
+                    var profitdata = param.seriesData.get(profitLine);
                     if ((data !== undefined) || (data2 !== undefined)) {
                     //param.seriesData.forEach((value, key) => {
                         //console.log("key",key)
@@ -733,9 +792,11 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
                             buy_price = parseFloat(data2.value).toFixed(3)
                         }
 
-                        toolTip.innerHTML += `<div>POS:${tradeDetails.get(param.time).position_qty}/${buy_price}</div><div>T:${tradeDetails.get(param.time).qty}/${data.value}</div>`;
-        
-                        //inspirace
+                        toolTip.innerHTML += `<div>POS:${tradeDetails.get(param.time).position_qty}/${buy_price}</div><div>T:${tradeDetails.get(param.time).order.qty}/${data.value}</div>`;
+                        if (profitdata !== undefined) {
+                            toolTip.innerHTML += `<div>P:${parseFloat(profitdata.value).toFixed(1)}</div>`
+                        }
+                            //inspirace
                         // toolTip.innerHTML = `<div style="color: ${'#2962FF'}">Apple Inc.</div><div style="font-size: 24px; margin: 4px 0px; color: ${'black'}">
                         // ${Math.round(100 * price) / 100}
                         // </div><div style="color: ${'black'}">

@@ -104,8 +104,13 @@ ACCOUNT2_PAPER_PAPER = True
 ACCOUNT2_PAPER_FEED = DataFeed.IEX
 
 class KW:
+    activate: str = "activate"
     dont_go: str = "dont_go"
     go: str = "go"
-    activate: str = "activate"
+    # wip addsize: str = "addsize"
     exit: str = "exit"
+    #wip exitsize: str = "exitsize"
+    exitadd: str = "exitadd"
     reverse: str = "reverse"
+    #exitaddsize: str = "exitaddsize"
+

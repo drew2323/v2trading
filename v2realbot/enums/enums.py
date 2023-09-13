@@ -12,6 +12,10 @@ class Order:
         self.filled_time = filled_time 
         self.limit_price = limit_price
 
+class Followup(str, Enum):
+    REVERSE = "reverse"
+    ADD = "add"
+
 class FillCondition(str, Enum):
     """
     Execution settings:

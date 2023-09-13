@@ -2,7 +2,7 @@ import os,sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from v2realbot.strategy.base import StrategyState
 from v2realbot.strategy.StrategyOrderLimitVykladaciNormalizedMYSELL import StrategyOrderLimitVykladaciNormalizedMYSELL
-from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, OrderSide, OrderType
+from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, OrderSide, OrderType, Followup
 from v2realbot.indicators.indicators import ema, natr, roc
 from v2realbot.indicators.oscillators import rsi
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
@@ -1011,8 +1011,9 @@ def next(data, state: StrategyState):
 
         return price2dec(float(state.avgp)+normalized_max_profit,3) if int(state.positions) > 0 else price2dec(float(state.avgp)-normalized_max_profit,3)    
 
-
-    def reverse_conditions_met(direction: TradeDirection):
+    #otestuje keyword podminky (napr. reverse_if, nebo exitadd_if)
+    def keyword_conditions_met(direction: TradeDirection, keyword: KW):
+            action = str(keyword).upper()
             if direction == TradeDirection.LONG:
                 smer = "long"
             else:
@@ -1022,7 +1023,7 @@ def next(data, state: StrategyState):
             exit_cond_only_on_confirmed = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, False))
 
             if exit_cond_only_on_confirmed and data['confirmed'] == 0:
-                state.ilog(lvl=0,e="REVERSAL CHECK COND ONLY ON CONFIRMED BAR")
+                state.ilog(lvl=0,e=f"{action} CHECK COND ONLY ON CONFIRMED BAR")
                 return False
 
             #TOTO zatim u REVERSU neresime
@@ -1066,36 +1067,122 @@ def next(data, state: StrategyState):
             #     return False
             
             #bereme bud exit condition signalu, ktery activeTrade vygeneroval+ fallback na general
-            state.ilog(lvl=0,e=f"REVERSE CONDITIONS ENTRY {smer}", conditions=state.vars.conditions[KW.reverse])
+            state.ilog(lvl=0,e=f"{action} CONDITIONS ENTRY {smer}", conditions=state.vars.conditions[KW.reverse])
 
             mother_signal = state.vars.activeTrade.generated_by
 
             if mother_signal is not None:
-                cond_dict = state.vars.conditions[KW.reverse][state.vars.activeTrade.generated_by][smer]
+                cond_dict = state.vars.conditions[keyword][state.vars.activeTrade.generated_by][smer]
                 result, conditions_met = evaluate_directive_conditions(cond_dict, "OR")
-                state.ilog(lvl=1,e=f"REVERSE CONDITIONS of {mother_signal} =OR= {result}", **conditions_met, cond_dict=cond_dict)
+                state.ilog(lvl=1,e=f"{action} CONDITIONS of {mother_signal} =OR= {result}", **conditions_met, cond_dict=cond_dict)
                 if result:
                     return True
                 
                 #OR neprosly testujeme AND
                 result, conditions_met = evaluate_directive_conditions(cond_dict, "AND")
-                state.ilog(lvl=1,e=f"REVERSE CONDITIONS of {mother_signal}  =AND= {result}", **conditions_met, cond_dict=cond_dict)
+                state.ilog(lvl=1,e=f"{action} CONDITIONS of {mother_signal}  =AND= {result}", **conditions_met, cond_dict=cond_dict)
                 if result:
                     return True
 
 
             #pokud nemame mother signal nebo exit nevratil nic, fallback na common
-            cond_dict = state.vars.conditions[KW.reverse]["common"][smer]
+            cond_dict = state.vars.conditions[keyword]["common"][smer]
             result, conditions_met = evaluate_directive_conditions(cond_dict, "OR")
-            state.ilog(lvl=1,e=f"REVERSE CONDITIONS of COMMON =OR= {result}", **conditions_met, cond_dict=cond_dict)
+            state.ilog(lvl=1,e=f"{action} CONDITIONS of COMMON =OR= {result}", **conditions_met, cond_dict=cond_dict)
             if result:
                 return True
             
             #OR neprosly testujeme AND
             result, conditions_met = evaluate_directive_conditions(cond_dict, "AND")
-            state.ilog(lvl=0,e=f"REVERSE CONDITIONS of COMMON =AND= {result}", **conditions_met, cond_dict=cond_dict)
+            state.ilog(lvl=0,e=f"{action} CONDITIONS of COMMON =AND= {result}", **conditions_met, cond_dict=cond_dict)
             if result:
                 return True
+
+    #DECOMISSIONOVANI  - nahrazeno obacnou keyword_conditions_met
+    # def reverse_conditions_met(direction: TradeDirection):
+    #         if direction == TradeDirection.LONG:
+    #             smer = "long"
+    #         else:
+    #             smer = "short"
+
+    #         directive_name = "exit_cond_only_on_confirmed"
+    #         exit_cond_only_on_confirmed = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, False))
+
+    #         if exit_cond_only_on_confirmed and data['confirmed'] == 0:
+    #             state.ilog(lvl=0,e="REVERSAL CHECK COND ONLY ON CONFIRMED BAR")
+    #             return False
+
+    #         #TOTO zatim u REVERSU neresime
+    #         # #POKUD je nastaven MIN PROFIT, zkontrolujeme ho a az pripadne pustime CONDITIONY
+    #         # directive_name = "exit_cond_min_profit"
+    #         # exit_cond_min_profit = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, None))
+
+    #         # #máme nastavený exit_cond_min_profit
+    #         # # zjistíme, zda jsme v daném profit a případně nepustíme dál
+    #         # # , zjistíme aktuální cenu a přičteme k avgp tento profit a podle toho pustime dal
+
+    #         # if exit_cond_min_profit is not None:
+    #         #     exit_cond_min_profit_normalized = normalize_tick(float(exit_cond_min_profit))
+    #         #     exit_cond_goal_price = price2dec(float(state.avgp)+exit_cond_min_profit_normalized,3) if int(state.positions) > 0 else price2dec(float(state.avgp)-exit_cond_min_profit_normalized,3) 
+    #         #     curr_price = float(data["close"])
+    #         #     state.ilog(lvl=0,e=f"EXIT COND min profit {exit_cond_goal_price=} {exit_cond_min_profit=} {exit_cond_min_profit_normalized=} {curr_price=}")
+    #         #     if (int(state.positions) < 0 and curr_price<=exit_cond_goal_price) or (int(state.positions) > 0 and curr_price>=exit_cond_goal_price):
+    #         #         state.ilog(lvl=0,e=f"EXIT COND min profit PASS - POKRACUJEME")
+    #         #     else:
+    #         #         state.ilog(lvl=0,e=f"EXIT COND min profit NOT PASS")
+    #         #         return False
+
+    #         #TOTO ZATIM NEMA VYZNAM
+    #         # options = safe_get(state.vars, 'exit_conditions', None)
+    #         # if options is None:
+    #         #     state.ilog(lvl=0,e="No options for exit conditions in stratvars")
+    #         #     return False
+            
+    #         # disable_exit_proteciton_when = dict(AND=dict(), OR=dict())
+
+    #         # #preconditions
+    #         # disable_exit_proteciton_when['disabled_in_config'] = safe_get(options, 'enabled', False) is False
+    #         # #too good to be true (maximum profit)
+    #         # #disable_sell_proteciton_when['tgtbt_reached'] = safe_get(options, 'tgtbt', False) is False
+    #         # disable_exit_proteciton_when['disable_if_positions_above'] = int(safe_get(options, 'disable_if_positions_above', 0)) < abs(int(state.positions))
+
+    #         # #testing preconditions
+    #         # result, conditions_met = eval_cond_dict(disable_exit_proteciton_when)
+    #         # if result:
+    #         #     state.ilog(lvl=0,e=f"EXIT_CONDITION for{smer} DISABLED by {conditions_met}", **conditions_met)
+    #         #     return False
+            
+    #         #bereme bud exit condition signalu, ktery activeTrade vygeneroval+ fallback na general
+    #         state.ilog(lvl=0,e=f"REVERSE CONDITIONS ENTRY {smer}", conditions=state.vars.conditions[KW.reverse])
+
+    #         mother_signal = state.vars.activeTrade.generated_by
+
+    #         if mother_signal is not None:
+    #             cond_dict = state.vars.conditions[KW.reverse][state.vars.activeTrade.generated_by][smer]
+    #             result, conditions_met = evaluate_directive_conditions(cond_dict, "OR")
+    #             state.ilog(lvl=1,e=f"REVERSE CONDITIONS of {mother_signal} =OR= {result}", **conditions_met, cond_dict=cond_dict)
+    #             if result:
+    #                 return True
+                
+    #             #OR neprosly testujeme AND
+    #             result, conditions_met = evaluate_directive_conditions(cond_dict, "AND")
+    #             state.ilog(lvl=1,e=f"REVERSE CONDITIONS of {mother_signal}  =AND= {result}", **conditions_met, cond_dict=cond_dict)
+    #             if result:
+    #                 return True
+
+
+    #         #pokud nemame mother signal nebo exit nevratil nic, fallback na common
+    #         cond_dict = state.vars.conditions[KW.reverse]["common"][smer]
+    #         result, conditions_met = evaluate_directive_conditions(cond_dict, "OR")
+    #         state.ilog(lvl=1,e=f"REVERSE CONDITIONS of COMMON =OR= {result}", **conditions_met, cond_dict=cond_dict)
+    #         if result:
+    #             return True
+            
+    #         #OR neprosly testujeme AND
+    #         result, conditions_met = evaluate_directive_conditions(cond_dict, "AND")
+    #         state.ilog(lvl=0,e=f"REVERSE CONDITIONS of COMMON =AND= {result}", **conditions_met, cond_dict=cond_dict)
+    #         if result:
+    #             return True
 
     def exit_conditions_met(direction: TradeDirection):
         if direction == TradeDirection.LONG:
@@ -1276,9 +1363,9 @@ def next(data, state: StrategyState):
                         insert_SL_history()
                         state.ilog(lvl=1,e=f"SL TRAIL GOAL {smer} reached {move_SL_threshold} SL moved to {state.vars.activeTrade.stoploss_value}", offset_normalized=offset_normalized, def_SL_normalized=def_SL_normalized)                            
 
-    def close_position(direction: TradeDirection, reason: str, reverse: bool = False):
-        reversal_text = "REVERSAL" if reverse else ""
-        state.ilog(lvl=1,e=f"CLOSING TRADE {reversal_text} {reason} {str(direction)}", curr_price=data["close"], trade=state.vars.activeTrade)
+    def close_position(direction: TradeDirection, reason: str, followup: Followup = None):
+        followup_text = str(followup) if followup is not None else ""
+        state.ilog(lvl=1,e=f"CLOSING TRADE {followup_text} {reason} {str(direction)}", curr_price=data["close"], trade=state.vars.activeTrade)
         if direction == TradeDirection.SHORT:
             res = state.buy(size=abs(int(state.positions)))
             if isinstance(res, int) and res < 0:
@@ -1297,8 +1384,8 @@ def next(data, state: StrategyState):
         state.vars.pending = state.vars.activeTrade.id
         state.vars.activeTrade = None   
         state.vars.last_exit_index = data["index"]    
-        if reverse:
-            state.vars.reverse_requested = True
+        if followup is not None:
+            state.vars.requested_followup = followup
 
     def eval_close_position():
         curr_price = float(data['close'])
@@ -1324,21 +1411,33 @@ def next(data, state: StrategyState):
 
                     directive_name = 'reverse_for_SL_exit_short'
                     reverse_for_SL_exit = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, False))
-
-                    close_position(direction=TradeDirection.SHORT, reason="SL REACHED", reverse=reverse_for_SL_exit)
+                    followup_action = Followup.REVERSE if reverse_for_SL_exit else None
+                    close_position(direction=TradeDirection.SHORT, reason="SL REACHED", followup=followup_action)
                     return
                 
                 #REVERSE BASED ON REVERSE CONDITIONS
-                if reverse_conditions_met(TradeDirection.SHORT):
-                        close_position(direction=TradeDirection.SHORT, reason="REVERSE COND MET", reverse=True)
+                if keyword_conditions_met(direction=TradeDirection.SHORT, keyword=KW.reverse):
+                        close_position(direction=TradeDirection.SHORT, reason="REVERSE COND MET", followup=Followup.REVERSE)
+                        return  
+
+                #EXIT ADD CONDITIONS MET (exit and add)
+                if keyword_conditions_met(direction=TradeDirection.SHORT, keyword=KW.exitadd):
+                        close_position(direction=TradeDirection.SHORT, reason="EXITADD COND MET", followup=Followup.ADD)
                         return  
 
                 #CLOSING BASED ON EXIT CONDITIONS
                 if exit_conditions_met(TradeDirection.SHORT):
                         directive_name = 'reverse_for_cond_exit_short'
-                        reverse_for_cond_exit = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, False))
-
-                        close_position(direction=TradeDirection.SHORT, reason="EXIT COND MET", reverse=reverse_for_cond_exit)
+                        reverse_for_cond_exit_short = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, False))
+                        directive_name = 'add_for_cond_exit_short'
+                        add_for_cond_exit_short = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, False))
+                        if reverse_for_cond_exit_short:
+                            followup_action = Followup.REVERSE
+                        elif add_for_cond_exit_short: 
+                            followup_action = Followup.ADD
+                        else:
+                            followup_action = None
+                        close_position(direction=TradeDirection.SHORT, reason="EXIT COND MET", followup=followup_action)
                         return                   
 
                 #PROFIT
@@ -1359,22 +1458,34 @@ def next(data, state: StrategyState):
                 if curr_price < state.vars.activeTrade.stoploss_value:
                     directive_name = 'reverse_for_SL_exit_long'
                     reverse_for_SL_exit = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, False))
-
-                    close_position(direction=TradeDirection.LONG, reason="SL REACHED", reverse=reverse_for_SL_exit)
+                    followup_action = Followup.REVERSE if reverse_for_SL_exit else None
+                    close_position(direction=TradeDirection.LONG, reason="SL REACHED", followup=followup_action)
                     return
                 
 
                 #REVERSE BASED ON REVERSE CONDITIONS
-                if reverse_conditions_met(TradeDirection.LONG):
-                        close_position(direction=TradeDirection.LONG, reason="REVERSE COND MET", reverse=True)
+                if keyword_conditions_met(TradeDirection.LONG, KW.reverse):
+                        close_position(direction=TradeDirection.LONG, reason="REVERSE COND MET", followup=Followup.REVERSE)
+                        return  
+
+                #EXIT ADD CONDITIONS MET (exit and add)
+                if keyword_conditions_met(TradeDirection.LONG, KW.exitadd):
+                        close_position(direction=TradeDirection.LONG, reason="EXITADD COND MET", followup=Followup.ADD)
                         return  
 
                 #EXIT CONDITIONS
                 if exit_conditions_met(TradeDirection.LONG):
                         directive_name = 'reverse_for_cond_exit_long'
-                        reverse_for_cond_exit = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, False))
-
-                        close_position(direction=TradeDirection.LONG, reason="EXIT CONDS MET", reverse=reverse_for_cond_exit)
+                        reverse_for_cond_exit_long = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, False))
+                        directive_name = 'add_for_cond_exit_long'
+                        add_for_cond_exit_long = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, False))
+                        if reverse_for_cond_exit_long:
+                            followup_action = Followup.REVERSE
+                        elif add_for_cond_exit_long: 
+                            followup_action = Followup.ADD
+                        else:
+                            followup_action = None
+                        close_position(direction=TradeDirection.LONG, reason="EXIT CONDS MET", followup=followup_action)
                         return    
 
                 #PROFIT
@@ -1520,13 +1631,13 @@ def next(data, state: StrategyState):
         #TESTUJEME GO SIGNAL
         cond_dict = state.vars.conditions[KW.go][signalname][smer]
         result, conditions_met = evaluate_directive_conditions(cond_dict, "OR")
-        state.ilog(lvl=0,e=f"EVAL GO SIGNAL {smer} =OR= {result}", **conditions_met, cond_dict=cond_dict)
+        state.ilog(lvl=1,e=f"EVAL GO SIGNAL {smer} =OR= {result}", **conditions_met, cond_dict=cond_dict)
         if result:
             return True
         
         #OR neprosly testujeme AND
         result, conditions_met = evaluate_directive_conditions(cond_dict, "AND")
-        state.ilog(lvl=0,e=f"EVAL GO SIGNAL {smer} =AND= {result}", **conditions_met, cond_dict=cond_dict)
+        state.ilog(lvl=1,e=f"EVAL GO SIGNAL {smer} =AND= {result}", **conditions_met, cond_dict=cond_dict)
         if result:
             return True
         
@@ -1598,11 +1709,11 @@ def next(data, state: StrategyState):
             state.ilog(lvl=1,e=f"PRECOND GENERAL not met {cond_met}", message=cond_met, precond_check=precond_check)
             return False
         
-        state.ilog(lvl=0,e=f"{signalname} ALL PRECOND MET")
+        state.ilog(lvl=1,e=f"{signalname} ALL PRECOND MET")
         return True
 
     def execute_signal_generator(name):
-        state.ilog(lvl=1,e=f"SIGNAL SEARCH for {name}", cond_go=state.vars.conditions[KW.go][name], cond_dontgo=state.vars.conditions[KW.dont_go][name], cond_activate=state.vars.conditions[KW.activate][name] )
+        state.ilog(lvl=0,e=f"SIGNAL SEARCH for {name}", cond_go=state.vars.conditions[KW.go][name], cond_dontgo=state.vars.conditions[KW.dont_go][name], cond_activate=state.vars.conditions[KW.activate][name] )
         options = safe_get(state.vars.signals, name, None)
 
         if options is None:
@@ -1814,7 +1925,7 @@ def init(state: StrategyState):
                     state.vars.conditions.setdefault(KW.go,{}).setdefault(signalname,{})[smer] = get_conditions_from_configuration(action=KW.go+"_" + smer +"_if", section=section)
                     state.vars.conditions.setdefault(KW.exit,{}).setdefault(signalname,{})[smer] = get_conditions_from_configuration(action=KW.exit+"_" + smer +"_if", section=section)
                     state.vars.conditions.setdefault(KW.reverse,{}).setdefault(signalname,{})[smer] = get_conditions_from_configuration(action=KW.reverse+"_" + smer +"_if", section=section)
-
+                    state.vars.conditions.setdefault(KW.exitadd,{}).setdefault(signalname,{})[smer] = get_conditions_from_configuration(action=KW.exitadd+"_" + smer +"_if", section=section)
                     # state.vars.work_dict_dont_do[signalname+"_"+ smer] = get_work_dict_with_directive(starts_with=signalname+"_dont_"+ smer +"_if")
                     # state.vars.work_dict_signal_if[signalname+"_"+ smer] = get_work_dict_with_directive(starts_with=signalname+"_"+smer+"_if")
 
@@ -1823,7 +1934,7 @@ def init(state: StrategyState):
         for smer in TradeDirection:
             state.vars.conditions.setdefault(KW.exit,{}).setdefault("common",{})[smer] = get_conditions_from_configuration(action=KW.exit+"_" + smer +"_if", section=section)
             state.vars.conditions.setdefault(KW.reverse,{}).setdefault("common",{})[smer] = get_conditions_from_configuration(action=KW.reverse+"_" + smer +"_if", section=section)
-
+            state.vars.conditions.setdefault(KW.exitadd,{}).setdefault("common",{})[smer] = get_conditions_from_configuration(action=KW.exitadd+"_" + smer +"_if", section=section)
     #init klice v extData pro ulozeni historie SL
     state.extData["sl_history"] = []
 
@@ -1835,7 +1946,7 @@ def init(state: StrategyState):
     #obsahuje pripravene Trady ve frontě
     state.vars.prescribedTrades = []
     #flag pro reversal
-    state.vars.reverse_requested = False
+    state.vars.requested_followup = None
 
     #TODO presunout inicializaci work_dict u podminek - sice hodnoty nepujdou zmenit, ale zlepsi se performance
     #pripadne udelat refresh kazdych x-iterací

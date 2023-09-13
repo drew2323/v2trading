@@ -1,7 +1,7 @@
 from v2realbot.strategy.base import Strategy
 from v2realbot.utils.utils import parse_alpaca_timestamp, ltp, AttributeDict,trunc,price2dec, zoneNY, print, json_serial, safe_get, get_tick, send_to_telegram
 from v2realbot.utils.tlog import tlog, tlog_exception
-from v2realbot.enums.enums import Mode, Order, Account, RecordType
+from v2realbot.enums.enums import Mode, Order, Account, RecordType, Followup
 #from alpaca.trading.models import TradeUpdate
 from  v2realbot.common.model import TradeUpdate
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus
@@ -25,7 +25,7 @@ class StrategyClassicSL(Strategy):
         super().__init__(name, symbol, next, init, account, mode, stratvars, open_rush, close_rush, pe, se, runner_id, ilog_save)
 
     #zkontroluje zda aktualni profit/loss - nedosahnul limit a pokud ano tak vypne strategii
-    async def check_max_profit_loss(self):
+    async def stop_when_max_profit_loss(self):
         self.state.ilog(e="CHECK MAX PROFIT")
         max_sum_profit_to_quit = safe_get(self.state.vars, "max_sum_profit_to_quit", None)
         max_sum_loss_to_quit = safe_get(self.state.vars, "max_sum_loss_to_quit", None)
@@ -36,15 +36,19 @@ class StrategyClassicSL(Strategy):
                 self.state.vars.pending = "max_sum_profit_to_quit"
                 send_to_telegram(f"QUITTING MAX SUM PROFIT REACHED {max_sum_profit_to_quit=} {self.state.profit=}")
                 self.se.set()
+                return True
         if max_sum_loss_to_quit is not None:
             if float(self.state.profit) < 0 and float(self.state.profit) <= float(max_sum_loss_to_quit):
                 self.state.ilog(e=f"QUITTING MAX SUM LOSS REACHED {max_sum_loss_to_quit=} {self.state.profit=}")
                 self.state.vars.pending = "max_sum_loss_to_quit"
                 send_to_telegram(f"QUITTING MAX SUM LOSS REACHED {max_sum_loss_to_quit=} {self.state.profit=}")
                 self.se.set()
+                return True
+
+        return False
 
 
-    async def add_reversal(self, direction: TradeDirection, size: int, signal_name: str):
+    async def add_followup(self, direction: TradeDirection, size: int, signal_name: str):
         trade_to_add = Trade(
             id=uuid4(),
             last_update=datetime.fromtimestamp(self.state.time).astimezone(zoneNY),
@@ -57,9 +61,9 @@ class StrategyClassicSL(Strategy):
 
         self.state.vars.prescribedTrades.append(trade_to_add)
         
-        self.state.vars.reverse_requested = None
+        self.state.vars.requested_followup = None
 
-        self.state.ilog(e=f"REVERZAL {direction} added to prescr.trades {signal_name=} {size=}", trade=trade_to_add)
+        self.state.ilog(e=f"FOLLOWUP {direction} added to prescr.trades {signal_name=} {size=}", trade=trade_to_add)
 
     async def orderUpdateBuy(self, data: TradeUpdate):
         o: Order = data.order
@@ -92,23 +96,27 @@ class StrategyClassicSL(Strategy):
                         trade.profit_sum = self.state.profit
                         signal_name = trade.generated_by
 
+                if data.event == TradeEvent.FILL:
                 #zapsat update profitu do tradeList
-                for tradeData in self.state.tradeList:
-                    if tradeData.execution_id == data.execution_id:
-                        #pridat jako attribut, aby proslo i na LIVE a PAPPER, kde se bere TradeUpdate z Alpaca
-                        setattr(tradeData, "profit", trade_profit)
-                        setattr(tradeData, "profit_sum", self.state.profit)
-                        setattr(tradeData, "signal_name", signal_name)
-                        #self.state.ilog(f"updatnut tradeList o profit", tradeData=json.loads(json.dumps(tradeData, default=json_serial)))
+                    for tradeData in self.state.tradeList:
+                        if tradeData.execution_id == data.execution_id:
+                            #pridat jako attribut, aby proslo i na LIVE a PAPPER, kde se bere TradeUpdate z Alpaca
+                            setattr(tradeData, "profit", trade_profit)
+                            setattr(tradeData, "profit_sum", self.state.profit)
+                            setattr(tradeData, "signal_name", signal_name)
+                            #self.state.ilog(f"updatnut tradeList o profit", tradeData=json.loads(json.dumps(tradeData, default=json_serial)))
 
-                #test na maximalni profit/loss
-                await self.check_max_profit_loss()
+                #test na maximalni profit/loss, pokud vypiname pak uz nedelame pripdany reverzal
+                if await self.stop_when_max_profit_loss() is False:
 
-                #pIF REVERSAL REQUIRED - reverse position is added to prescr.Trades with same signal name
-                #jen při celém FILLU
-                if data.event == TradeEvent.FILL and self.state.vars.reverse_requested:
-                        await self.add_reversal(direction=TradeDirection.LONG, size=o.qty, signal_name=signal_name)
-
+                    #pIF REVERSAL REQUIRED - reverse position is added to prescr.Trades with same signal name
+                    #jen při celém FILLU
+                    if data.event == TradeEvent.FILL and self.state.vars.requested_followup is not None:
+                            if self.state.vars.requested_followup == Followup.REVERSE:
+                                await self.add_followup(direction=TradeDirection.LONG, size=o.qty, signal_name=signal_name)
+                            elif self.state.vars.requested_followup == Followup.ADD:
+                                #zatim stejna SIZE
+                                await self.add_followup(direction=TradeDirection.SHORT, size=o.qty, signal_name=signal_name)
             else:
                 #zjistime nazev signalu a updatneme do tradeListu - abychom meli svazano
                 for trade in self.state.vars.prescribedTrades:
@@ -161,20 +169,25 @@ class StrategyClassicSL(Strategy):
                         trade.profit_sum = self.state.profit
                         signal_name = trade.generated_by
 
-                #zapsat update profitu do tradeList
-                for tradeData in self.state.tradeList:
-                    if tradeData.execution_id == data.execution_id:
-                        #pridat jako attribut, aby proslo i na LIVE a PAPPER, kde se bere TradeUpdate z Alpaca
-                        setattr(tradeData, "profit", trade_profit)
-                        setattr(tradeData, "profit_sum", self.state.profit)
-                        setattr(tradeData, "signal_name", signal_name)
-                        #self.state.ilog(f"updatnut tradeList o profi {str(tradeData)}")
+                if data.event == TradeEvent.FILL:
+                    #zapsat update profitu do tradeList
+                    for tradeData in self.state.tradeList:
+                        if tradeData.execution_id == data.execution_id:
+                            #pridat jako attribut, aby proslo i na LIVE a PAPPER, kde se bere TradeUpdate z Alpaca
+                            setattr(tradeData, "profit", trade_profit)
+                            setattr(tradeData, "profit_sum", self.state.profit)
+                            setattr(tradeData, "signal_name", signal_name)
+                            #self.state.ilog(f"updatnut tradeList o profi {str(tradeData)}")
 
-                await self.check_max_profit_loss()
+                if await self.stop_when_max_profit_loss() is False:
 
-                #IF REVERSAL REQUIRED - reverse position is added to prescr.Trades with same signal name
-                if data.event == TradeEvent.FILL and self.state.vars.reverse_requested:
-                        await self.add_reversal(direction=TradeDirection.SHORT, size=data.order.qty, signal_name=signal_name)
+                    #IF REVERSAL REQUIRED - reverse position is added to prescr.Trades with same signal name
+                    if data.event == TradeEvent.FILL and self.state.vars.requested_followup is not None:
+                            if self.state.vars.requested_followup == Followup.REVERSE:
+                                await self.add_followup(direction=TradeDirection.SHORT, size=data.order.qty, signal_name=signal_name)
+                            elif self.state.vars.requested_followup == Followup.ADD:
+                                #zatim stejna SIZE
+                                await self.add_followup(direction=TradeDirection.LONG, size=data.order.qty, signal_name=signal_name)                            
 
             else:
                 #zjistime nazev signalu a updatneme do tradeListu - abychom meli svazano
@@ -206,6 +219,7 @@ class StrategyClassicSL(Strategy):
             #pri chybe api nechavame puvodni hodnoty
             if a != -1:
                 self.state.avgp, self.state.positions = a,p
+            else: self.state.ilog(e=f"Chyba pri dotažení self.interface.pos() {a}")
             #ic(self.state.avgp, self.state.positions)
 
     #this parent method is called by strategy just once before waiting for first data

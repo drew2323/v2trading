@@ -375,6 +375,28 @@ def next(data, state: StrategyState):
             return 0, val
             #random.randint(10, 20)
 
+        #TODO error handling obecne v indicatorech
+        # def average(params):
+        #     funcName = "average"
+        #     lookback = int(safe_get(params, "lookback",1))
+        #     source = safe_get(params, "source", None)
+        #     if source is None:
+        #         state.ilog(lvl=1,e=f"INSIDE {funcName} source required 0", **params)
+        #         return 0,0
+            
+        #     if source in ["open","high","low","close","vwap","hlcc4"]:
+        #         source_series = state.bars[source]
+        #     else:
+        #         source_series = state.indicators[source]
+
+        #     state.ilog(lvl=0,e=f"INSIDE {funcName}", source_series=source_series, **params)
+
+        #     delka_pole = len(source_series)
+        #     if delka_pole < lookback:
+        #         lookback = delka_pole
+
+        #     return 0, Average(source_series[-lookback:])
+
         #abs/rel divergence of two indicators
         def divergence(params):
             funcName = "indicatorDivergence"
@@ -418,6 +440,8 @@ def next(data, state: StrategyState):
             lookback_priceline = safe_get(params, "lookback_priceline", None)
             if lookback_priceline is None:
                 lookback_series = source_series
+            elif lookback_priceline in  ["open","high","low","close","vwap","hlcc4"]:
+                lookback_series = state.bars[lookback_priceline]
             else:
                 lookback_series = state.indicators[lookback_priceline]
 
@@ -842,7 +866,7 @@ def next(data, state: StrategyState):
         state.vars.last_50_deltas.append(last_update_delta)
         avg_delta = Average(state.vars.last_50_deltas)
 
-        state.ilog(lvl=1,e=f"-----{data['index']}-{conf_bar}--delta:{last_update_delta}---AVGdelta:{avg_delta}")
+        state.ilog(lvl=1,e=f"-----{data['index']}-{conf_bar}--delta:{last_update_delta}---AVGdelta:{avg_delta}", data=data)
 
     conf_bar = data['confirmed']
     process_delta()

@@ -271,8 +271,10 @@ class TradeAggregator:
 
             self.newBar['open'] = data['p']
             
+            #UPRAVENO - pouze pro prvni bar a ROUND, jinak bereme cas baru podle noveho tradu
+            #TODO: do budoucna vymyslet, kdyz bude mene tradu, tak to radit vzdy do spravneho intervalu
             #zarovname time prvniho baru podle timeframu kam patří (např. 5, 10, 15 ...) (ROUND)
-            if self.align:
+            if self.align == StartBarAlign.ROUND and self.bar_start == 0:
                 t = datetime.fromtimestamp(data['t'])
                 t = t - timedelta(seconds=t.second % self.timeframe,microseconds=t.microsecond)
                 self.bar_start = datetime.timestamp(t)
@@ -282,9 +284,7 @@ class TradeAggregator:
                 t = datetime.fromtimestamp(int(data['t']))
                 #timestamp
                 self.bar_start = int(data['t'])
-                
             
-           
 
             self.newBar['time'] = t 
             self.newBar['resolution'] = self.timeframe

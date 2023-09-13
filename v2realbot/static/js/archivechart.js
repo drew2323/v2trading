@@ -637,9 +637,11 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
     //displays (redraws) buy markers
     function display_buy_markers() {
 
-        if (profitLine) {
-            chart.removeSeries(profitLine)
-        }
+        // if (profitLine) {
+        //     console.log(profitLine)
+        //     chart.removeSeries(profitLine)
+        //     console.log("nd")
+        // }
 
         if (avgBuyLine) {
             chart.removeSeries(avgBuyLine)

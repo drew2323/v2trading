@@ -196,7 +196,7 @@ class Trade_Offline_Streamer(Thread):
                         #homogenizace timestampu s online streamem
                         t['t'] = Timestamp.from_unix(to_datetime(t['t']).timestamp())
                         
-                        print("PROGRESS ",cnt,"/",celkem)
+                        #print("PROGRESS ",cnt,"/",celkem)
                         #print(t)
                         #na rozdil od wwebsocketu zde nemame v zaznamu symbol ['S']
                         #vsem streamum na tomto symbolu posilame data - tbd mozna udelat i per stream vlakno

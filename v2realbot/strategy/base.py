@@ -177,6 +177,13 @@ class Strategy:
                 #bary updatujeme, pridavame jen prvni
                 self.replace_prev_bar(self.state.bars,item)
 
+                #UPD
+                #tady mozna u standardnich(barovych) identifikatoru updatnout cas na "updated" - aby nebyl
+                #stale zarovnan s casem baru
+                for key in self.state.indicators:
+                    if key == 'time':
+                        self.state.indicators['time'][-1] = item['updated']
+
                 #u cbar indikatoru, pridavame kazdou zmenu ceny, krome potvrzeneho baru
 
                 if item['confirmed'] == 0:
@@ -365,8 +372,8 @@ class Strategy:
                 print(current_thread().name, "Paused.")
                 continue
             #self.state.iter_log(event="INGEST",msg="New data ingested", item=item)
-            print("New data ingested")
-            
+            print("New data ingested", item)
+            print("bars list - previous", self.state.bars)
             #TODO sem pridat ochranu kulometu 
             #pokud je updatetime aktualniho baru mensi nez LIMIT a nejde o potvrzovaci bar
             #tak jej vyhodit

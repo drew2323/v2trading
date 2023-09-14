@@ -162,7 +162,7 @@ function transform_data(data) {
                 avgp_markers.push(a_markers)
             }
         }
-
+        //PROFITLINE
         if ((trade.order.side == "buy") || (trade.order.side == "sell")) {
                 //avgp lajnu vytvarime jen pokud je v tradeventu prumerna cena
             if ((trade.profit_sum !== null)) {

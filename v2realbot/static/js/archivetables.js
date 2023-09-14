@@ -77,7 +77,9 @@ $(document).ready(function () {
 
         $('#diff_first').text(record1.name);
         $('#diff_second').text(record2.name);
-        
+        $('#diff_first_id').text(rows[0].id);
+        $('#diff_second_id').text(rows[1].id);
+
         var delta = compareObjects(record1, record2)
         const htmlMarkup2 = `<pre>{\n${generateHTML(record2, delta)}}\n</pre>`;
         document.getElementById('second').innerHTML = htmlMarkup2;

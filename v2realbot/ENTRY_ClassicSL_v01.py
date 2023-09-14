@@ -458,7 +458,7 @@ def next(data, state: StrategyState):
             slope = ((currval - lookbackprice)/abs(lookbackprice))*100
             #slope = round(slope, 4)
 
-            state.ilog(lvl=0,e=f"INSIDE {funcName} {slope} {source=} {lookback=}", currval_source=currval, lookbackprice=lookbackprice, lookbacktime=lookbacktime, **params)
+            state.ilog(lvl=1,e=f"INSIDE {funcName} {slope} {source=} {lookback=}", currval_source=currval, lookbackprice=lookbackprice, lookbacktime=lookbacktime, **params)
             return 0, slope
 
         should_run, msg = is_time_to_run()
@@ -1220,6 +1220,16 @@ def next(data, state: StrategyState):
         if exit_cond_only_on_confirmed and data['confirmed'] == 0:
             state.ilog(lvl=0,e="EXIT COND ONLY ON CONFIRMED BAR")
             return False
+        
+        ## minimální počet barů od vstupu
+        directive_name = "exit_cond_req_bars"
+        exit_cond_req_bars = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, 1))
+
+        if state.vars.last_in_index is not None:
+            index_to_compare = int(state.vars.last_in_index)+int(exit_cond_req_bars) 
+            if int(data["index"]) < index_to_compare:
+                state.ilog(lvl=1,e=f"EXIT COND WAITING on required bars from IN {exit_cond_req_bars} TOO SOON", currindex=data["index"], index_to_compare=index_to_compare, last_in_index=state.vars.last_in_index)
+                return False
 
         #POKUD je nastaven MIN PROFIT, zkontrolujeme ho a az pripadne pustime CONDITIONY
         directive_name = "exit_cond_min_profit"
@@ -1537,6 +1547,7 @@ def next(data, state: StrategyState):
                 state.ilog(lvl=1,e=f"evaluated LONG", trade=json.loads(json.dumps(trade, default=json_serial)), prescrTrades=json.loads(json.dumps(state.vars.prescribedTrades, default=json_serial)))
                 state.vars.activeTrade = trade
                 state.vars.last_buy_index = data["index"]
+                state.vars.last_in_index = data["index"]
                 break
         #evaluate shorts
         if not state.vars.activeTrade:
@@ -1547,6 +1558,7 @@ def next(data, state: StrategyState):
                     trade.last_update = datetime.fromtimestamp(state.time).astimezone(zoneNY)
                     state.vars.activeTrade = trade
                     state.vars.last_buy_index = data["index"]
+                    state.vars.last_in_index = data["index"]
                     break
 
         #odeslani ORDER + NASTAVENI STOPLOSS (zatim hardcoded)
@@ -1982,6 +1994,7 @@ def init(state: StrategyState):
     state.vars.next_new = 0
     state.vars.last_buy_index = None
     state.vars.last_exit_index = None
+    state.vars.last_in_index = None
     state.vars.last_update_time = 0
     state.vars.reverse_position_waiting_amount = 0
     #INIT promenne, ktere byly zbytecne ve stratvars

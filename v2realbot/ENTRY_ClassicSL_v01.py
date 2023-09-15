@@ -890,67 +890,41 @@ def next(data, state: StrategyState):
     # endregion
 
     # region Subfunction
-    #toto upravit na take profit
-    #pripadne smazat - zatim nahrazeno by exit_conditions_met()
-    #TODO toto refactorovat
-    def sell_protection_enabled():
-        options = safe_get(state.vars, 'sell_protection', None)
-        if options is None:
-            state.ilog(lvl=0,e="No options for sell protection in stratvars")
-            return False
-        
-        #docasne disabled, upravit pokud budu chtit pouzit
-        return False
 
-        disable_sell_proteciton_when = dict(AND=dict(), OR=dict())
+    def dontexit_protection_met(direction: TradeDirection):
+        if direction == TradeDirection.LONG:
+            smer = "long"
+        else:
+            smer = "short"
 
-        #preconditions
-        disable_sell_proteciton_when['disabled_in_config'] = safe_get(options, 'enabled', False) is False
-        #too good to be true (maximum profit)
-        #disable_sell_proteciton_when['tgtbt_reached'] = safe_get(options, 'tgtbt', False) is False
-        disable_sell_proteciton_when['disable_if_positions_above'] = int(safe_get(options, 'disable_if_positions_above', 0)) < state.positions
+        mother_signal = state.vars.activeTrade.generated_by
 
-        #testing preconditions
-        result, conditions_met = eval_cond_dict(disable_sell_proteciton_when)
-        if result:
-            state.ilog(lvl=0,e=f"SELL_PROTECTION DISABLED by {conditions_met}", **conditions_met)
-            return False
-        
-        work_dict_dont_sell_if = get_work_dict_with_directive(starts_with="dont_sell_if")
-        state.ilog(lvl=0,e=f"SELL PROTECTION work_dict", message=work_dict_dont_sell_if)
-
-        or_cond = evaluate_directive_conditions(work_dict_dont_sell_if, "OR")
-        result, conditions_met = eval_cond_dict(or_cond)
-        state.ilog(lvl=0,e=f"SELL PROTECTION =OR= {result}", **conditions_met)
+        if mother_signal is not None:
+            #TESTUJEME DONT_EXIT_
+            cond_dict = state.vars.conditions[KW.dont_exit][mother_signal][smer]
+            #OR 
+            result, conditions_met = evaluate_directive_conditions(cond_dict, "OR")
+            state.ilog(lvl=1,e=f"DONT_EXIT {mother_signal} {smer} =OR= {result}", **conditions_met, cond_dict=cond_dict)
+            if result:
+                return True
+            
+            #OR neprosly testujeme AND
+            result, conditions_met = evaluate_directive_conditions(cond_dict, "AND")
+            state.ilog(lvl=1,e=f"DONT_EXIT {mother_signal}  {smer} =AND= {result}", **conditions_met, cond_dict=cond_dict)
+            if result:
+                return True
+            
+        cond_dict = state.vars.conditions[KW.dont_exit]["common"][smer]            
+        #OR 
+        result, conditions_met = evaluate_directive_conditions(cond_dict, "OR")
+        state.ilog(lvl=1,e=f"DONT_EXIT common {smer} =OR= {result}", **conditions_met, cond_dict=cond_dict)
         if result:
             return True
         
         #OR neprosly testujeme AND
-        and_cond = evaluate_directive_conditions(work_dict_dont_sell_if, "AND")
-        result, conditions_met = eval_cond_dict(and_cond)
-        state.ilog(lvl=0,e=f"SELL PROTECTION =AND= {result}", **conditions_met)
-        return result    
-
-        #PUVODNI NASTAVENI - IDENTIFIKOVAce rustoveho MOMENTA - pokud je momentum, tak prodávat později
-        
-        # #pokud je slope too high, pak prodavame jakmile slopeMA zacne klesat, napr. 4MA (TODO 3)
-
-        # #TODO zkusit pro pevny profit, jednoduse pozdrzet prodej - dokud tick_price roste nebo se drzi tak neprodavat, pokud klesne prodat
-        # #mozna mit dva mody - pri vetsi volatilite pouzivat momentum, pri mensi nebo kdyz potrebuju pryc, tak prodat hned
-
-        #puvodni nastaveni
-        #slopeMA_rising = 2
-        #rsi_not_falling = 3
-
-        # #toto docasne pryc dont_sell_when['slope_too_high'] = slope_too_high() and not isfalling(state.indicators.slopeMA,4)
-        # dont_sell_when['AND']['slopeMA_rising'] = isrising(state.indicators.slopeMA,safe_get(options, 'slopeMA_rising', 2))
-        # dont_sell_when['AND']['rsi_not_falling'] = not isfalling(state.indicators.RSI14,safe_get(options, 'rsi_not_falling',3))
-        # #dont_sell_when['rsi_dont_buy'] = state.indicators.RSI14[-1] > safe_get(state.vars, "rsi_dont_buy_above",50)
- 
-        # result, conditions_met = eval_cond_dict(dont_sell_when)
-        # if result:
-        #     state.ilog(lvl=0,e=f"SELL_PROTECTION {conditions_met} enabled")
-        # return result 
+        result, conditions_met = evaluate_directive_conditions(cond_dict, "AND")
+        state.ilog(lvl=1,e=f"DONT_EXIT common {smer} =AND= {result}", **conditions_met, cond_dict=cond_dict)
+        return result
 
     def normalize_tick(tick: float, price: float = None, return_two_decimals: bool = False):
         """
@@ -1096,7 +1070,7 @@ def next(data, state: StrategyState):
             mother_signal = state.vars.activeTrade.generated_by
 
             if mother_signal is not None:
-                cond_dict = state.vars.conditions[keyword][state.vars.activeTrade.generated_by][smer]
+                cond_dict = state.vars.conditions[keyword][mother_signal][smer]
                 result, conditions_met = evaluate_directive_conditions(cond_dict, "OR")
                 state.ilog(lvl=1,e=f"{action} CONDITIONS of {mother_signal} =OR= {result}", **conditions_met, cond_dict=cond_dict)
                 if result:
@@ -1364,6 +1338,16 @@ def next(data, state: StrategyState):
             directive_name = 'SL_trailing_enabled_'+str(smer)
             sl_trailing_enabled = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(options, directive_name, False))
      
+
+            #SL_trailing_protection_window_short
+            directive_name = 'SL_trailing_protection_window_'+str(smer)
+            SL_trailing_protection_window = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(options, directive_name, 0))
+            index_to_compare = int(state.vars.last_in_index)+int(SL_trailing_protection_window) 
+            if index_to_compare > int(data["index"]):
+                state.ilog(lvl=1,e=f"SL trail PROTECTION WINDOW {SL_trailing_protection_window} - TOO SOON", currindex=data["index"], index_to_compare=index_to_compare, last_in_index=state.vars.last_in_index)
+                return
+
+
             
             if sl_trailing_enabled is True:
                 directive_name = 'SL_trailing_stop_at_breakeven_'+str(smer)
@@ -1481,7 +1465,7 @@ def next(data, state: StrategyState):
                     #TODO pripadne pokud dosahne TGTBB prodat ihned
                     max_price_signal = curr_price<=max_price
                     #OPTIMALIZACE pri stoupajícím angle
-                    if max_price_signal or sell_protection_enabled() is False:
+                    if max_price_signal or dontexit_protection_met(direction=TradeDirection.SHORT) is False:
                         close_position(direction=TradeDirection.SHORT, reason=f"PROFIT or MAXPROFIT REACHED {max_price_signal=}")
                         return
             #mame long
@@ -1529,7 +1513,7 @@ def next(data, state: StrategyState):
                     #TODO pripadne pokud dosahne TGTBB prodat ihned
                     max_price_signal = curr_price>=max_price
                     #OPTIMALIZACE pri stoupajícím angle
-                    if max_price_signal or sell_protection_enabled() is False:
+                    if max_price_signal or dontexit_protection_met(direction=TradeDirection.LONG) is False:
                         close_position(direction=TradeDirection.LONG, reason=f"PROFIT or MAXPROFIT REACHED {max_price_signal=}")
                         return
 
@@ -1958,6 +1942,7 @@ def init(state: StrategyState):
                     # state.vars.conditions["exit"]["common"]["long"] = #sada podminek
 
                     state.vars.conditions.setdefault(KW.dont_go,{}).setdefault(signalname,{})[smer] = get_conditions_from_configuration(action=KW.dont_go+"_" + smer +"_if", section=section)
+                    state.vars.conditions.setdefault(KW.dont_exit,{}).setdefault(signalname,{})[smer] = get_conditions_from_configuration(action=KW.dont_exit+"_" + smer +"_if", section=section)
                     state.vars.conditions.setdefault(KW.go,{}).setdefault(signalname,{})[smer] = get_conditions_from_configuration(action=KW.go+"_" + smer +"_if", section=section)
                     state.vars.conditions.setdefault(KW.exit,{}).setdefault(signalname,{})[smer] = get_conditions_from_configuration(action=KW.exit+"_" + smer +"_if", section=section)
                     state.vars.conditions.setdefault(KW.reverse,{}).setdefault(signalname,{})[smer] = get_conditions_from_configuration(action=KW.reverse+"_" + smer +"_if", section=section)
@@ -1969,6 +1954,7 @@ def init(state: StrategyState):
         section = state.vars.exit["conditions"]
         for smer in TradeDirection:
             state.vars.conditions.setdefault(KW.exit,{}).setdefault("common",{})[smer] = get_conditions_from_configuration(action=KW.exit+"_" + smer +"_if", section=section)
+            state.vars.conditions.setdefault(KW.dont_exit,{}).setdefault("common",{})[smer] = get_conditions_from_configuration(action=KW.dont_exit+"_" + smer +"_if", section=section)
             state.vars.conditions.setdefault(KW.reverse,{}).setdefault("common",{})[smer] = get_conditions_from_configuration(action=KW.reverse+"_" + smer +"_if", section=section)
             state.vars.conditions.setdefault(KW.exitadd,{}).setdefault("common",{})[smer] = get_conditions_from_configuration(action=KW.exitadd+"_" + smer +"_if", section=section)
     #init klice v extData pro ulozeni historie SL

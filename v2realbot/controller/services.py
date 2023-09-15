@@ -581,11 +581,14 @@ def populate_metrics_output_directory(strat: StrategyInstance, inter_batch_param
         short_wins = 0
         max_profit = 0
         max_profit_time = None
+        long_cnt = 0
+        short_cnt = 0
         for trade in strat.state.vars.prescribedTrades:
             if trade.profit_sum > max_profit:
                 max_profit = trade.profit_sum
                 max_profit_time = trade.last_update
             if trade.status == TradeStatus.ACTIVATED and trade.direction == TradeDirection.LONG:
+                long_cnt += 1
                 if trade.profit is not None:
                     long_profit += trade.profit
                     if trade.profit < 0:
@@ -593,12 +596,15 @@ def populate_metrics_output_directory(strat: StrategyInstance, inter_batch_param
                     if trade.profit > 0:
                         long_wins += trade.profit
             if trade.status == TradeStatus.ACTIVATED and trade.direction == TradeDirection.SHORT:
+                short_cnt +=1
                 if trade.profit is not None:
                     short_profit += trade.profit
                     if trade.profit < 0:
                         short_losses += trade.profit
                     if trade.profit > 0:
                         short_wins += trade.profit
+        res["long_cnt"] = long_cnt
+        res["short_cnt"] = short_cnt          
         res["long_profit"] = round(long_profit,2)
         res["short_profit"] = round(short_profit,2)
         res["long_losses"] = round(long_losses,2)

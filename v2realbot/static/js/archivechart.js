@@ -441,7 +441,7 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
 
                                 //MOVE TO UTILS ro reuse??
                                 //if (conf && conf.display) {
-                                if (conf) {
+                                if (conf && conf.embed) {
 
                                     //tranform data do správného formátru
                                     items = []

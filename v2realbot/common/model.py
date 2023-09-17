@@ -207,7 +207,7 @@ class RunArchive(BaseModel):
     trade_count: int = 0
     end_positions: int = 0
     end_positions_avgp: float = 0
-    open_orders: Union[dict, int] = None
+    open_orders: Union[dict, str] = None
     stratvars_toml: Optional[str] = None
 
 #trida pro ukladani historie stoplossy do ext_data

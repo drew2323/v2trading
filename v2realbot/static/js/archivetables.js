@@ -8,6 +8,7 @@ $(document).ready(function () {
     });
 
     //disable buttons (enable on row selection)
+    $('#button_runagain_arch').attr('disabled','disabled');
     $('#button_show_arch').attr('disabled','disabled');
     $('#button_delete_arch').attr('disabled','disabled');
     $('#button_edit_arch').attr('disabled','disabled');
@@ -18,6 +19,7 @@ $(document).ready(function () {
         if ($(this).hasClass('selected')) {
             //$(this).removeClass('selected');
             $('#button_show_arch').attr('disabled','disabled');
+            $('#button_runagain_arch').attr('disabled','disabled');
             $('#button_delete_arch').attr('disabled','disabled');
             $('#button_edit_arch').attr('disabled','disabled');
             $('#button_compare_arch').attr('disabled','disabled');
@@ -25,6 +27,7 @@ $(document).ready(function () {
             //archiveRecords.$('tr.selected').removeClass('selected');
             $(this).addClass('selected');
             $('#button_show_arch').attr('disabled',false);
+            $('#button_runagain_arch').attr('disabled',false);
             $('#button_delete_arch').attr('disabled',false);
             $('#button_edit_arch').attr('disabled',false);
             $('#button_compare_arch').attr('disabled',false);
@@ -51,6 +54,18 @@ $(document).ready(function () {
         // record1.close_rush = rows[0].close_rush;
         //console.log(record1.stratvars_conf)
 
+        //ELEMENTS TO COMPARE
+
+        //profit sekce
+        console.log(rows[0].open_orders)
+
+        try {
+            record1["profit"] = JSON.parse(rows[0].open_orders).profit
+        }
+        catch (e) {
+            console.log(e.message)
+        }
+
         record1.stratvars_conf = TOML.parse(record1.stratvars_conf);
         record1.add_data_conf = TOML.parse(record1.add_data_conf);
         // record1.note = rows[0].note;
@@ -69,6 +84,15 @@ $(document).ready(function () {
         // record2.open_rush = rows[1].open_rush;
         // record2.close_rush = rows[1].close_rush;
   
+        //ELEMENTS TO COMPARE
+        console.log(rows[1].open_orders)
+
+        try {
+            record2["profit"] = JSON.parse(rows[1].open_orders).profit
+        }
+        catch (e) {
+            console.log(e.message)
+        }
         record2.stratvars_conf = TOML.parse(record2.stratvars_conf);
         record2.add_data_conf = TOML.parse(record2.add_data_conf);
         // record2.note = rows[1].note;
@@ -117,7 +141,15 @@ $(document).ready(function () {
         window.$('#editModalArchive').modal('show');
         $('#editidarchive').val(row.id);
         $('#editnote').val(row.note);
-        $('#metrics').val(JSON.stringify(row.open_orders,null,2));
+
+
+        try {
+            metrics = JSON.parse(row.open_orders)
+        }
+        catch (e) {
+            metrics = row.open_orders
+        }
+        $('#metrics').val(JSON.stringify(metrics,null,2));
         //$('#metrics').val(TOML.parse(row.open_orders));
         if (row.stratvars_toml) {
             $('#editstratvars').val(row.stratvars_toml);
@@ -161,6 +193,108 @@ $(document).ready(function () {
             }
         })
     });
+})
+
+    //run again button
+    $('#button_runagain_arch').click(function () {
+        row = archiveRecords.row('.selected').data();
+        $('#button_runagain_arch').attr('disabled',true);
+
+        var record1 = new Object()
+        //console.log(JSON.stringify(rows))
+
+        //record1 = JSON.parse(rows[0].strat_json)
+        //record1.json = rows[0].json
+
+        //TBD mozna zkopirovat jen urcite?
+        record1 = row
+        console.log(record1)
+
+        //smazeneme nepotrebne a pridame potrebne
+        //do budoucna predelat na vytvoreni noveho objektu
+        //nebudeme muset odstanovat pri kazdem pridani noveho atributu v budoucnu
+        delete record1["end_positions"];
+        delete record1["end_positions_avgp"];
+        delete record1["profit"];
+        delete record1["trade_count"];
+        delete record1["stratvars_toml"];
+        delete record1["started"];
+        delete record1["stopped"];
+        delete record1["open_orders"];
+        delete record1["settings"];
+        delete record1["stratvars"];
+
+        record1.note = "RERUN " + record1.note
+
+        if (record1.bt_from == "") {delete record1["bt_from"];}
+        if (record1.bt_to == "") {delete record1["bt_to"];}
+    
+        //mazeme, pouze rerunujeme single
+        record1["test_batch_id"];
+
+        //najdeme ve stratinu radek s danym ID a z tohoto radku a sestavime strat_json
+        var idToFind = record1.strat_id; // Replace with the specific ID you want to find
+
+        var foundRow = stratinRecords.rows().eq(0).filter(function (rowIdx) {
+            return stratinRecords.row(rowIdx).data().id === idToFind;
+        });
+        
+        if (foundRow.length > 0) {
+            // Get the data of the first matching row
+            var stratData = stratinRecords.row(foundRow[0]).data();
+            console.log(stratData);
+        } else {
+            // Handle the case where no matching row is found
+            console.log("No strategy with ID " + idToFind + " found.");
+            window.alert("No strategy with ID " + idToFind + " found.")
+            return
+        }        
+
+        const rec = new Object()
+        rec.id2 = parseInt(stratData.id2);
+        rec.name = stratData.name;
+        rec.symbol = stratData.symbol;
+        rec.class_name = stratData.class_name;
+        rec.script = stratData.script;
+        rec.open_rush = stratData.open_rush;
+        rec.close_rush = stratData.close_rush;
+        rec.stratvars_conf = stratData.stratvars_conf;
+        rec.add_data_conf = stratData.add_data_conf;
+        rec.note = stratData.note;
+        rec.history = "";
+        strat_json = JSON.stringify(rec, null, 2);
+        record1.strat_json = strat_json
+        
+        //zkopirujeme strat_id do id a smazeme strat_id
+        record1.id = record1.strat_id
+        delete record1["strat_id"];
+
+        console.log("record1 pred odeslanim", record1)
+        jsonString = JSON.stringify(record1);
+
+        $.ajax({
+            url:"/stratins/"+record1.id+"/run",
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader('X-API-Key',
+                    API_KEY); },
+            method:"PUT",
+            contentType: "application/json",
+            data: jsonString,
+            success:function(data){							
+                $('#button_runagain_arch').attr('disabled',false);
+                setTimeout(function () {
+                    runnerRecords.ajax.reload();
+                    stratinRecords.ajax.reload();
+                  }, 1500);
+            },
+            error: function(xhr, status, error) {
+                var err = eval("(" + xhr.responseText + ")");
+                window.alert(JSON.stringify(xhr));
+                //console.log(JSON.stringify(xhr));
+                $('#button_runagain_arch').attr('disabled',false);
+            }
+        })
+
 })
 
 //edit modal
@@ -325,6 +459,13 @@ var archiveRecords =
                 {
                     targets: [18],
                     render: function ( data, type, row ) {
+                        try {
+                            data = JSON.parse(data)
+                        }
+                        catch (error) {
+
+                        }
+
                         var res = JSON.stringify(data)
                         const unquoted = res.replace(/"([^"]+)":/g, '$1:')
                         return '<div class="tdmetrics" title="'+unquoted+'">'+unquoted+'</div>'

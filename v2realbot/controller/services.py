@@ -564,12 +564,13 @@ def populate_metrics_output_directory(strat: StrategyInstance, inter_batch_param
     max_positions = max_positions[max_positions['side'] == OrderSide.SELL]
     max_positions = max_positions.drop(columns=['side'], axis=1)
 
+    res = dict(profit={})
     #filt = max_positions['side'] == 'OrderSide.BUY'
-    res = dict(zip(max_positions['qty'], max_positions['count']))
+    res["pos_cnt"] = dict(zip(max_positions['qty'], max_positions['count']))
 
     #naplneni batch sum profitu
     if inter_batch_params is not None:
-        res["batch_sum_profit"] = inter_batch_params["batch_profit"]
+        res["profit"]["batch_sum_profit"] = inter_batch_params["batch_profit"]
 
     #metrikz z prescribedTrades, pokud existuji
     try:
@@ -603,16 +604,16 @@ def populate_metrics_output_directory(strat: StrategyInstance, inter_batch_param
                         short_losses += trade.profit
                     if trade.profit > 0:
                         short_wins += trade.profit
-        res["long_cnt"] = long_cnt
-        res["short_cnt"] = short_cnt          
-        res["long_profit"] = round(long_profit,2)
-        res["short_profit"] = round(short_profit,2)
-        res["long_losses"] = round(long_losses,2)
-        res["short_losses"] = round(short_losses,2)
-        res["long_wins"] = round(long_wins,2)
-        res["short_wins"] = round(short_wins,2)
-        res["max_profit"] = round(max_profit,2)
-        res["max_profit_time"] = str(max_profit_time)
+        res["profit"]["long_cnt"] = long_cnt
+        res["profit"]["short_cnt"] = short_cnt          
+        res["profit"]["long_profit"] = round(long_profit,2)
+        res["profit"]["short_profit"] = round(short_profit,2)
+        res["profit"]["long_losses"] = round(long_losses,2)
+        res["profit"]["short_losses"] = round(short_losses,2)
+        res["profit"]["long_wins"] = round(long_wins,2)
+        res["profit"]["short_wins"] = round(short_wins,2)
+        res["profit"]["max_profit"] = round(max_profit,2)
+        res["profit"]["max_profit_time"] = str(max_profit_time)
         #vlozeni celeho listu
         res["prescr_trades"]=json.loads(json.dumps(strat.state.vars.prescribedTrades, default=json_serial))
 
@@ -673,7 +674,7 @@ def archive_runner(runner: Runner, strat: StrategyInstance, inter_batch_params: 
                                             trade_count=len(strat.state.tradeList),
                                             end_positions=strat.state.positions,
                                             end_positions_avgp=round(float(strat.state.avgp),3),
-                                            open_orders=results_metrics,
+                                            open_orders=json.dumps(results_metrics, default=json_serial),
                                             stratvars_toml=runner.run_stratvars_toml
                                             )
         

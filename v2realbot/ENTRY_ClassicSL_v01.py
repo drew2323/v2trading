@@ -426,7 +426,25 @@ def next(data, state: StrategyState):
             elif mode == "pct":
                 val = pct_diff(num1=float(source1_series[-1]),num2=float(source2_series[-1]))
             return 0, val
-        
+
+        #strength, absolute change of parameter between current value and lookback value (n-past)
+        #used for example to measure unusual peaks
+        def delta(params):
+            funcName = "delta"
+            source = safe_get(params, "source", None)
+            lookback = safe_get(params, "lookback",1)
+            if source in ["open","high","low","close","vwap","hlcc4"]:
+                source_series = state.bars[source]
+            else:
+                source_series = state.indicators[source] 
+
+            lookbackval = source_series[-lookback-1]
+            currval = source_series[-1]
+            delta = currval - lookbackval
+
+            state.ilog(lvl=1,e=f"INSIDE {funcName} {delta} {source=} {lookback=}", currval=currval, lookbackval=lookbackval, **params)
+            return 0, delta
+
         #rate of change - last value of source indicator vs lookback value of lookback_priceline indicator
         def slope(params):
             funcName = "slope"

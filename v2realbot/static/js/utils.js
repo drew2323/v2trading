@@ -329,6 +329,7 @@ function populate_indicator_buttons(def) {
 		var itemEl = document.createElement('button');
 		itemEl.innerText = item.name;
         itemEl.id = "IND"+index;
+        itemEl.title = item.cnf
         itemEl.style.color = item.series.options().color;
 		itemEl.classList.add('switcher-item');
     if (def) {

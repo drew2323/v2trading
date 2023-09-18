@@ -1007,9 +1007,18 @@ def next(data, state: StrategyState):
         val = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(options, directive_name, 0.01))
         return val
 
-    def get_profit_target_price():
+    def get_profit_target_price(direction: TradeDirection):
+        if direction == TradeDirection.LONG:
+            smer = "long"
+        else:
+            smer = "short"
+
         directive_name = "profit"
-        def_profit = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, 0.50))
+        def_profit_both_directions = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, 0.50))
+
+        #profit pro dany smer
+        directive_name = 'profit_'+str(smer)
+        def_profit = get_override_for_active_trade(directive_name=directive_name, default_value=def_profit_both_directions)
 
         normalized_def_profit = normalize_tick(float(def_profit))
 
@@ -1017,9 +1026,18 @@ def next(data, state: StrategyState):
 
         return price2dec(float(state.avgp)+normalized_def_profit,3) if int(state.positions) > 0 else price2dec(float(state.avgp)-normalized_def_profit,3)
         
-    def get_max_profit_price():
+    def get_max_profit_price(direction: TradeDirection):
+        if direction == TradeDirection.LONG:
+            smer = "long"
+        else:
+            smer = "short"
+
         directive_name = "max_profit"
-        max_profit = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, 0.35))
+        max_profit_both_directions = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, 0.35))
+
+        #max profit pro dany smer, s fallbackem na bez smeru
+        directive_name = 'max_profit_'+str(smer)
+        max_profit = get_override_for_active_trade(directive_name=directive_name, default_value=max_profit_both_directions)
 
         normalized_max_profit = normalize_tick(float(max_profit))
 
@@ -1028,19 +1046,20 @@ def next(data, state: StrategyState):
         return price2dec(float(state.avgp)+normalized_max_profit,3) if int(state.positions) > 0 else price2dec(float(state.avgp)-normalized_max_profit,3)    
 
     #otestuje keyword podminky (napr. reverse_if, nebo exitadd_if)
-    def keyword_conditions_met(direction: TradeDirection, keyword: KW):
+    def keyword_conditions_met(direction: TradeDirection, keyword: KW, skip_conf_validation: bool = False):
             action = str(keyword).upper()
             if direction == TradeDirection.LONG:
                 smer = "long"
             else:
                 smer = "short"
 
-            directive_name = "exit_cond_only_on_confirmed"
-            exit_cond_only_on_confirmed = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, False))
+            if skip_conf_validation is False: 
+                directive_name = "exit_cond_only_on_confirmed"
+                exit_cond_only_on_confirmed = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, False))
 
-            if exit_cond_only_on_confirmed and data['confirmed'] == 0:
-                state.ilog(lvl=0,e=f"{action} CHECK COND ONLY ON CONFIRMED BAR")
-                return False
+                if exit_cond_only_on_confirmed and data['confirmed'] == 0:
+                    state.ilog(lvl=0,e=f"{action} CHECK COND ONLY ON CONFIRMED BAR")
+                    return False
 
             #TOTO zatim u REVERSU neresime
             # #POKUD je nastaven MIN PROFIT, zkontrolujeme ho a az pripadne pustime CONDITIONY
@@ -1429,16 +1448,19 @@ def next(data, state: StrategyState):
 
         if int(state.positions) != 0 and float(state.avgp)>0 and state.vars.pending is None:
             
-            #pevny target - presunout toto do INIT a pak jen pristupovat
-            goal_price = get_profit_target_price()
-            max_price = get_max_profit_price()
-            state.ilog(lvl=1,e=f"Goal price {goal_price} max price {max_price}")
+
             
             #close position handling
             #TBD pridat OPTIMALIZACI POZICE - EXIT 1/2
 
             #mame short pozice - (IDEA: rozlisovat na zaklade aktivniho tradu - umozni mi spoustet i pri soucasne long pozicemi)
             if int(state.positions) < 0:
+                #get TARGET PRICE pro dany smer a signal
+                goal_price = get_profit_target_price(TradeDirection.SHORT)
+                max_price = get_max_profit_price(TradeDirection.SHORT)
+                state.ilog(lvl=1,e=f"Goal price {str(TradeDirection.SHORT)} {goal_price} max price {max_price}")
+
+
                 #EOD EXIT - TBD
                 #FORCED EXIT PRI KONCI DNE
 
@@ -1446,8 +1468,14 @@ def next(data, state: StrategyState):
                 if curr_price > state.vars.activeTrade.stoploss_value:
 
                     directive_name = 'reverse_for_SL_exit_short'
-                    reverse_for_SL_exit = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, False))
-                    followup_action = Followup.REVERSE if reverse_for_SL_exit else None
+                    reverse_for_SL_exit = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, "no"))
+
+                    if reverse_for_SL_exit == "always":
+                        followup_action = Followup.REVERSE
+                    elif reverse_for_SL_exit == "cond":
+                        followup_action = Followup.REVERSE if keyword_conditions_met(direction=TradeDirection.SHORT, keyword=KW.slreverseonly, skip_conf_validation=True) else None
+                    else:
+                        followup_action = None
                     close_position(direction=TradeDirection.SHORT, reason="SL REACHED", followup=followup_action)
                     return
                 
@@ -1488,13 +1516,28 @@ def next(data, state: StrategyState):
                         return
             #mame long
             elif int(state.positions) > 0:
+
+                #get TARGET PRICE pro dany smer a signal
+                goal_price = get_profit_target_price(TradeDirection.LONG)
+                max_price = get_max_profit_price(TradeDirection.LONG)
+                state.ilog(lvl=1,e=f"Goal price {str(TradeDirection.LONG)} {goal_price} max price {max_price}")
+
                 #EOD EXIT - TBD
 
                 #SL - execution
                 if curr_price < state.vars.activeTrade.stoploss_value:
                     directive_name = 'reverse_for_SL_exit_long'
-                    reverse_for_SL_exit = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, False))
-                    followup_action = Followup.REVERSE if reverse_for_SL_exit else None
+                    reverse_for_SL_exit = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, "no"))
+
+                    state.ilog(lvl=1, e=f"reverse_for_SL_exit {reverse_for_SL_exit}")
+
+                    if reverse_for_SL_exit == "always":
+                        followup_action = Followup.REVERSE
+                    elif reverse_for_SL_exit == "cond":
+                        followup_action = Followup.REVERSE if keyword_conditions_met(direction=TradeDirection.LONG, keyword=KW.slreverseonly, skip_conf_validation=True) else None
+                    else:
+                        followup_action = None
+
                     close_position(direction=TradeDirection.LONG, reason="SL REACHED", followup=followup_action)
                     return
                 
@@ -1965,6 +2008,7 @@ def init(state: StrategyState):
                     state.vars.conditions.setdefault(KW.exit,{}).setdefault(signalname,{})[smer] = get_conditions_from_configuration(action=KW.exit+"_" + smer +"_if", section=section)
                     state.vars.conditions.setdefault(KW.reverse,{}).setdefault(signalname,{})[smer] = get_conditions_from_configuration(action=KW.reverse+"_" + smer +"_if", section=section)
                     state.vars.conditions.setdefault(KW.exitadd,{}).setdefault(signalname,{})[smer] = get_conditions_from_configuration(action=KW.exitadd+"_" + smer +"_if", section=section)
+                    state.vars.conditions.setdefault(KW.slreverseonly,{}).setdefault(signalname,{})[smer] = get_conditions_from_configuration(action=KW.slreverseonly+"_" + smer +"_if", section=section)
                     # state.vars.work_dict_dont_do[signalname+"_"+ smer] = get_work_dict_with_directive(starts_with=signalname+"_dont_"+ smer +"_if")
                     # state.vars.work_dict_signal_if[signalname+"_"+ smer] = get_work_dict_with_directive(starts_with=signalname+"_"+smer+"_if")
 
@@ -1975,6 +2019,7 @@ def init(state: StrategyState):
             state.vars.conditions.setdefault(KW.dont_exit,{}).setdefault("common",{})[smer] = get_conditions_from_configuration(action=KW.dont_exit+"_" + smer +"_if", section=section)
             state.vars.conditions.setdefault(KW.reverse,{}).setdefault("common",{})[smer] = get_conditions_from_configuration(action=KW.reverse+"_" + smer +"_if", section=section)
             state.vars.conditions.setdefault(KW.exitadd,{}).setdefault("common",{})[smer] = get_conditions_from_configuration(action=KW.exitadd+"_" + smer +"_if", section=section)
+            state.vars.conditions.setdefault(KW.slreverseonly,{}).setdefault("common",{})[smer] = get_conditions_from_configuration(action=KW.slreverseonly+"_" + smer +"_if", section=section)
     #init klice v extData pro ulozeni historie SL
     state.extData["sl_history"] = []
 

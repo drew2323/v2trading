@@ -311,6 +311,8 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
 
     var transformed_data = transform_data(data)
 
+    data["archRecord"] = archRecord
+
     //initialize resolutions
     var native_resolution = data.bars.resolution[0]+"s"
     //console.log("native", native_resolution)
@@ -419,6 +421,10 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
             //vraci se pole indicatoru, kazdy se svoji casovou osou (time) - nyni standard indikatory a cbar indikatory
             var indicatorList = data.indicators
 
+            //ze stratvars daneho runnera si dotahneme nastaveni indikatoru - pro zobrazeni v tooltipu
+            var stratvars_toml = TOML.parse(data.archRecord.stratvars_toml)
+            //console.log(stratvars_toml.stratvars.indicators)
+
             indicatorList.forEach((indicators, index, array) => {
 
                 //var indicators = data.indicators
@@ -426,8 +432,17 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
                 if (Object.keys(indicators).length > 1) {
                     for (const [key, value] of Object.entries(indicators)) {
                         if (key !== "time") {
+                                //get cnf of indicator to display in the button tooltip
+                                var cnf = null
+                                try {
+                                    cnf = JSON.stringify(stratvars_toml.stratvars.indicators[key], null, 2)
+                                }
+                                catch (e) {
+                                    //nic
+                                }
+
                                 //initialize indicator and store reference to array
-                                var obj = {name: key, series: null}
+                                var obj = {name: key, series: null, cnf:cnf}
         
                                 //start
                                 //console.log(key)

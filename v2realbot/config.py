@@ -114,4 +114,4 @@ class KW:
     exitadd: str = "exitadd"
     reverse: str = "reverse"
     #exitaddsize: str = "exitaddsize"
-
+    slreverseonly: str = "slreverseonly"

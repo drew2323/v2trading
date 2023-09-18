@@ -901,7 +901,7 @@ def next(data, state: StrategyState):
         #CBAR INDICATOR pro tick price a deltu VOLUME
         populate_cbar_tick_price_indicator()
         #TBD nize predelat na typizovane RSI (a to jak na urovni CBAR tak confirmed)
-        populate_cbar_rsi_indicator()
+        #populate_cbar_rsi_indicator()
 
     #populate indicators, that have type in stratvars.indicators
     populate_dynamic_indicators()

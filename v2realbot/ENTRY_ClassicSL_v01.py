@@ -1244,7 +1244,11 @@ def next(data, state: StrategyState):
 
         #POKUD je nastaven MIN PROFIT, zkontrolujeme ho a az pripadne pustime CONDITIONY
         directive_name = "exit_cond_min_profit"
-        exit_cond_min_profit = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, None))
+        exit_cond_min_profit_nodir = get_override_for_active_trade(directive_name=directive_name, default_value=safe_get(state.vars, directive_name, None))
+
+        directive_name = "exit_cond_min_profit_" + str(smer)
+        exit_cond_min_profit = get_override_for_active_trade(directive_name=directive_name, default_value=exit_cond_min_profit_nodir)
+
 
         #máme nastavený exit_cond_min_profit
         # zjistíme, zda jsme v daném profit a případně nepustíme dál

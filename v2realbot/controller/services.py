@@ -823,8 +823,8 @@ def delete_archived_runners_byID(id: UUID):
         print("log deleted",resl.rowcount)
         conn.commit()
         print("commit")
-        if resh.rowcount == 0 or resd.rowcount == 0:
-            return -1, "not found "+str(resh.rowcount) + " " + str(resd.rowcount) + " " + str(resl.rowcount)
+        # if resh.rowcount == 0 or resd.rowcount == 0:
+        #     return -1, "not found "+str(resh.rowcount) + " " + str(resd.rowcount) + " " + str(resl.rowcount)
         return 0, str(resh.rowcount) + " " + str(resd.rowcount) + " " + str(resl.rowcount)
         
     except Exception as e:

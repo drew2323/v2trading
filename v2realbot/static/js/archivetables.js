@@ -119,6 +119,9 @@ $(document).ready(function () {
     //delete button
     $('#button_delete_arch').click(function () {
         rows = archiveRecords.rows('.selected');
+        if (rows == undefined) {
+            return
+        }
         $('#listofids').html("");
 
         if(rows.data().length > 0 ) {
@@ -138,6 +141,9 @@ $(document).ready(function () {
     //edit button
     $('#button_edit_arch').click(function () {
         row = archiveRecords.row('.selected').data();
+        if (rows == undefined) {
+            return
+        }
         window.$('#editModalArchive').modal('show');
         $('#editidarchive').val(row.id);
         $('#editnote').val(row.note);

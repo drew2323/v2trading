@@ -7,18 +7,7 @@
   Dual licensed under the MIT (http://www.opensource.org/licenses/mit-license.php)
   and GPL (http://www.opensource.org/licenses/gpl-license.php) licenses.
 */
-(function (factory) {
-    /* global define, require, module */
-    if (typeof define === "function" && define.amd) { // AMD. Register as an anonymous module.
-        define(["jquery"], factory);
-    } else if (typeof exports === "object") { // Node/CommonJS
-        var jQuery = require("jquery");
-        module.exports = factory(jQuery);
-    } else { // Browser globals (zepto supported)
-        factory(window.jQuery || window.Zepto || window.$); // Zepto supported on browsers as well
-    }
-
-}(function ($) {
+(function ($) {
     "use strict";
 
     var rCRLF = /\r?\n/g;
@@ -335,4 +324,4 @@
     var isUndefined =       function(obj) { return obj === void 0; }; // safe check for undefined values
     var isValidArrayIndex = function(val) { return /^[0-9]+$/.test(String(val)); }; // 1,2,3,4 ... are valid array indexes
     var isArray =           Array.isArray || function(obj) { return Object.prototype.toString.call(obj) === "[object Array]"; };
-}));
+})(jQuery);

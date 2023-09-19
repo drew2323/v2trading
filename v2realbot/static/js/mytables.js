@@ -38,9 +38,65 @@ function is_stratin_running(id) {
     return running
 }
 
+let editor;
 
 //STRATIN and RUNNERS TABELS
 $(document).ready(function () {
+
+    //incialize TOML LANGUAGE IN MONACO
+    require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.43.0/min/vs' }});
+            
+    require(["vs/editor/editor.main"], () => {
+
+        // Register the TOML language
+        monaco.languages.register({ id: 'toml' });
+
+        // Define the TOML language configuration
+        monaco.languages.setLanguageConfiguration('toml', {
+        comments: {
+            lineComment: '#',
+        },
+        brackets: [['[', ']']], // Define brackets used in TOML arrays
+        autoClosingPairs: [
+            // Define auto-closing pairs for quotes
+            { open: '"', close: '"', notIn: ['string', 'comment'] },
+            { open: "'", close: "'", notIn: ['string', 'comment'] },
+        ],
+        });
+
+        // Define the TOML tokenizer
+        monaco.languages.setMonarchTokensProvider('toml', {
+        tokenizer: {
+            root: [
+            [/#.*/, 'comment'], // Comments
+            [/".*"/, 'string'], // Double-quoted strings
+            [/'[^']*'/, 'string'], // Single-quoted strings
+            [/-?\d+\.\d+/, 'number'], // Floating-point numbers (including negative)
+            [/-?\d+/, 'number'], // Integer numbers (including negative)
+            [/\btrue\b/, 'boolean-true'], // True values
+            [/\bfalse\b/, 'boolean-false'], // False values
+            [/=\s*/, 'delimiter'], // Key-Value separator
+            [/\[.*\]/, 'array'], // Array brackets
+            [/\.\s*(and|or)\s*\./, 'logical-operator'], 
+            [/[^#=\[\]]+/, 'keyword'], // Keywords (anything not covered above)
+            [/[ \t\r\n]+/, 'white'], // Whitespace
+            ],
+        },
+        });
+        
+        // Define the theme for highlighting true and false values
+        monaco.editor.defineTheme('tomlTheme-dark', {
+            colors: {},
+            base: 'vs-dark', // Use the VS Code Dark Theme as a base
+            inherit: true,
+            rules: [
+            { token: 'boolean-true', foreground: '009485', fontStyle:"" }, // Use the same color as VS Code for true
+            { token: 'boolean-false', foreground: 'e45649', fontStyle:"" }, // Use the same color as VS Code for false
+            ],
+        });
+
+    }); 
+
     stratinRecords.ajax.reload();
     runnerRecords.ajax.reload();
 
@@ -56,6 +112,7 @@ $(document).ready(function () {
     $('#button_stop').attr('disabled','disabled');
     $('#button_connect').attr('disabled','disabled');
     $('#button_edit').attr('disabled','disabled');
+    $('#button_edit_stratvars').attr('disabled','disabled');
     $('#button_dup').attr('disabled','disabled');
     $('#button_copy').attr('disabled','disabled');
     $('#button_delete').attr('disabled','disabled');
@@ -68,6 +125,7 @@ $(document).ready(function () {
             $('#button_dup').attr('disabled','disabled');
             $('#button_copy').attr('disabled','disabled');
             $('#button_edit').attr('disabled','disabled');
+            $('#button_edit_stratvars').attr('disabled','disabled');
             $('#button_delete').attr('disabled','disabled');
             $('#button_run').attr('disabled','disabled');
         } else {
@@ -76,6 +134,7 @@ $(document).ready(function () {
             $('#button_dup').attr('disabled',false);
             $('#button_copy').attr('disabled',false);
             $('#button_edit').attr('disabled',false);
+            $('#button_edit_stratvars').attr('disabled',false);
             $('#button_delete').attr('disabled',false);
             $('#button_run').attr('disabled',false);
         }
@@ -446,6 +505,9 @@ $(document).ready(function () {
     //edit button
     $('#button_edit').click(function () {
         row = stratinRecords.row('.selected').data();
+        if (row== undefined) {
+            return
+        }
         window.$('#recordModal').modal('show');
         $('#id').val(row.id);
         $('#id2').val(row.id2);
@@ -462,22 +524,6 @@ $(document).ready(function () {
         $('.modal-title').html(" Edit Records");
         $('#action').val('updateRecord');
         $('#save').val('Save');
-    //code for toml editor
-  // Initialize Monaco Editor
-
-        // require.config({ paths: { vs: 'monaco-editor/min/vs' } });
-        // require(['vs/editor/editor.main'], function () {
-        //     var editor = $("#editor").monacoEditor({
-        //         language: "toml",
-        //         value: row.stratvars_conf
-        //         });   
-        //     // Get content from Monaco Editor and set it to the textarea using jQuery
-        //     editor.getModels()[0].onDidChangeContent(function() {
-        //         var tomlContent = monaco.editor.getModels()[0].getValue();
-        //         $('#stratvars_conf').val(tomlContent);
-        //     });
-        // }); 
-
 
     });
     //delete button
@@ -493,7 +539,26 @@ $(document).ready(function () {
     $('#button_add_json').click(function () {
         window.$('#jsonModal').modal('show');
     });
+
+    $('#button_edit_stratvars').click(function () {
+        row = stratinRecords.row('.selected').data();
+        if (row== undefined) {
+            return
+        }
+        $('#stratvar_id').val(row.id);
+        require(["vs/editor/editor.main"], () => {
+            editor = monaco.editor.create(document.getElementById('stratvars_editor'), {
+                value: row.stratvars_conf,
+                language: 'toml',
+                theme: 'tomlTheme-dark',
+                automaticLayout: true
+              });
+            });
+        window.$('#stratvarsModal').modal('show');
+        //$('#stratvars_editor_val').val(row.stratvars_conf);
+    }); 
 } );
+
 
 
 //stratin table
@@ -695,6 +760,81 @@ $("#runModal").on('submit','#runForm', function(event){
 
     })
 });
+
+$('#stratvars_close').click(function () {
+    console.log("disposed?")
+        editor.dispose();
+        window.$('#stratvarsModal').modal('hide');
+});
+
+$('#stratvars_close_x').click(function () {
+        editor.dispose();
+        window.$('#stratvarsModal').modal('hide');
+});
+
+//EDIT STRATVARS MONACO
+$('#stratvars_save').click(function () {
+    save_stratvars(exit=false);
+});
+
+$('#stratvars_save_exit').click(function () {
+    save_stratvars(exit=true)
+});
+
+function save_stratvars(exit) {
+    row = stratinRecords.row('.selected').data();
+    const rec = new Object()
+        rec.id = $('#stratvar_id').val()
+        if (row.id ==! rec.id) {
+            window.alert("Overwrite check,. Pozor neco spatne, IDcka se nerovnaji")
+            return
+        }
+        rec.id2 = row.id2
+        rec.name =row.name
+        rec.symbol =row.symbol
+        rec.class_name =row.class_name
+        rec.script =row.script
+        rec.open_rush =row.open_rush
+        rec.close_rush = row.close_rush
+        rec.add_data_conf = row.add_data_conf
+        rec.stratvars_conf = editor.getValue()
+        rec.note = row.note
+        rec.history = row.history
+
+        jsonString = JSON.stringify(rec, null, 2);
+        console.log("pred odeslanim editu", jsonString)
+        $('#stratvars_save').attr('disabled','disabled');
+        $('#stratvars_save_exit').attr('disabled','disabled');
+
+        $.ajax({
+            url:"/stratins/"+rec.id,
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader('X-API-Key',
+                    API_KEY); },
+            method:"PATCH",
+            contentType: "application/json",
+            dataType: "json",
+            data: jsonString,
+            success:function(data){							
+                $('#stratvars_save').attr('disabled',false);
+                $('#stratvars_save_exit').attr('disabled',false);
+                if (exit) {
+                    window.$('#stratvarsModal').modal('hide');
+                    editor.dispose();
+                    $('#stratvar_id').val("");
+                    stratinRecords.ajax.reload();
+                }
+            },
+            error: function(xhr, status, error) {
+                var err = eval("(" + xhr.responseText + ")");
+                window.alert(JSON.stringify(xhr));
+                console.log(JSON.stringify(xhr));
+                $('#stratvars_save').attr('disabled',false);
+                $('#stratvars_save_exit').attr('disabled',false);
+            }
+
+        })
+};	
 
 
 //modal na add/edit

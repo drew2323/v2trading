@@ -488,23 +488,26 @@ function set_timestamp(timestamp) {
 Mousetrap.bind('e', function() { 
     $( "#button_edit" ).trigger( "click" );
 });
-Mousetrap.bind('a', function() { 
-    $( "#button_add" ).trigger( "click" );
-});
+// Mousetrap.bind('a', function() { 
+//     $( "#button_add" ).trigger( "click" );
+// });
 Mousetrap.bind('d', function() { 
-    $( "#button_dup" ).trigger( "click" );
+    $( "#button_delete_arch" ).trigger( "click" );
 });
 Mousetrap.bind('c', function() { 
     $( "#button_copy" ).trigger( "click" );
 });
 Mousetrap.bind('r', function() { 
-    $( "#button_run" ).trigger( "click" );
+    $( "#button_runagain_arch" ).trigger( "click" );
 });
 Mousetrap.bind('p', function() { 
     $( "#button_pause" ).trigger( "click" );
 });
 Mousetrap.bind('s', function() { 
-    $( "#button_stop" ).trigger( "click" );
+    $( "#button_edit_stratvars" ).trigger( "click" );
+});
+Mousetrap.bind('a', function() { 
+  $( "#button_edit_arch" ).trigger( "click" );
 });
 Mousetrap.bind('j', function() { 
     $( "#button_add_json" ).trigger( "click" );

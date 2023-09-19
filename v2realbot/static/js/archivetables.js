@@ -141,7 +141,7 @@ $(document).ready(function () {
     //edit button
     $('#button_edit_arch').click(function () {
         row = archiveRecords.row('.selected').data();
-        if (rows == undefined) {
+        if (row == undefined) {
             return
         }
         window.$('#editModalArchive').modal('show');
@@ -171,6 +171,9 @@ $(document).ready(function () {
     //show button
     $('#button_show_arch').click(function () {
         row = archiveRecords.row('.selected').data();
+        if (row == undefined) {
+            return
+        }
         $('#button_show_arch').attr('disabled',true);
         $.ajax({
             url:"/archived_runners_detail/"+row.id,

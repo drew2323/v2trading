@@ -198,10 +198,12 @@ function update_chart_legend(param) {
         //iterate of custom indicators dictionary to get values of custom lines
         // var customIndicator = {name: key, series: null}
         indList.forEach(function (item) {
+          if (item.series) {
             var ind = param.seriesData.get(item.series)
             var color = item.series.options().color;
             var visibility = item.series.options().visible;
             if (ind !== undefined && visibility) { firstRow.innerHTML += name(item.name, color) + val(ind.value.toFixed(3), color)}
+          }
         }); 
     }
     else {
@@ -361,8 +363,10 @@ function populate_indicator_buttons(def) {
           vis = false;
       }      
       elem.classList.toggle("switcher-active-item");
+      if (indList[index].series) {
       indList[index].series.applyOptions({
           visible: vis });
+      }
     })
   }
 
@@ -373,8 +377,22 @@ function populate_indicator_buttons(def) {
             vis = false;
         }      
         elem.classList.toggle("switcher-active-item");
+        //v ifu kvuli workaroundu
+        if (indList[index].series) {
         indList[index].series.applyOptions({
             visible: vis });
+        }
+        //zatim takto workaround, pak vymyslet systemove pro vsechny tickbased indikatory
+        if (indList[index].name == "tick_price") {
+          if (!vis && indList[index].series) {
+            chart.removeSeries(indList[index].series)
+            chart.timeScale().fitContent();
+            indList[index].series = null
+          }
+        }
+
+
+
 	}
     return buttonElement;
 }
@@ -497,6 +515,9 @@ Mousetrap.bind('d', function() {
 Mousetrap.bind('c', function() { 
     $( "#button_copy" ).trigger( "click" );
 });
+Mousetrap.bind('y', function() { 
+  $( "#button_run" ).trigger( "click" );
+});
 Mousetrap.bind('r', function() { 
     $( "#button_runagain_arch" ).trigger( "click" );
 });
@@ -515,7 +536,14 @@ Mousetrap.bind('j', function() {
 Mousetrap.bind('x', function() { 
     $( "#button_delete" ).trigger( "click" );
 });
+Mousetrap.bind('w', function() { 
+  $( "#button_show_arch" ).trigger( "click" );
+});
 
+//ENTERS
+// Mousetrap.bind('enter', function() { 
+//   $( "#deletearchive" ).trigger( "click" );
+// });
 // function compareObjects(obj1, obj2) {
 //     const diff = {};
   

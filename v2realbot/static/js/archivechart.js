@@ -634,7 +634,10 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
 
         //remove CUSTOMS indicators if exists
         indList.forEach((element, index, array) => {
-            chart.removeSeries(element.series);
+            if (element.series) {
+                //console.log(element.series, "tady series")
+                chart.removeSeries(element.series);
+            }
         }
         );
         indList = [];

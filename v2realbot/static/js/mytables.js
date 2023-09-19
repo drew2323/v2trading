@@ -460,6 +460,9 @@ $(document).ready(function () {
     //button run
     $('#button_run').click(function () {
         row = stratinRecords.row('.selected').data();
+        if (row == undefined) {
+            return
+        }
         window.$('#runModal').modal('show');
         $('#bt_from').val(localStorage.getItem("bt_from"));
         //console.log(localStorage.getItem("bt_from"))

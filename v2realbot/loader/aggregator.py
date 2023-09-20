@@ -107,9 +107,9 @@ class TradeAggregator:
         except KeyError:
             ltp.price[symbol]=data['p']
 
-
-        if float(data['p']) > float(ltp.price[symbol]) + (float(data['p'])/100*pct_off) or float(data['p']) < float(ltp.price[symbol])-(float(data['p'])/100*pct_off):
-            print("ZLO", data,ltp.price[symbol])
+        #DOCASNE VYPNUTO - VYMYSLET JINAK
+        #if float(data['p']) > float(ltp.price[symbol]) + (float(data['p'])/100*pct_off) or float(data['p']) < float(ltp.price[symbol])-(float(data['p'])/100*pct_off):
+            #print("ZLO", data,ltp.price[symbol])
             #nechavame zlo zatim projit
             ##return []
             # with open("cache/wrongtrades.txt", 'a') as fp:

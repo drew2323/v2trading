@@ -25,6 +25,7 @@ from traceback import format_exc
 from datetime import timedelta, time
 from threading import Lock
 from v2realbot.common.db import pool
+#from pyinstrument import Profiler
 #adding lock to ensure thread safety of TinyDB (in future will be migrated to proper db)
 lock = Lock()
 
@@ -284,7 +285,11 @@ def capsule(target: object, db: object, inter_batch_params: dict = None):
     #TODO zde odchytit pripadnou exceptionu a zapsat do history
     #cil aby padnuti jedne nezpusobilo pad enginu
     try:
+
+        # profiler = Profiler()
+        # profiler.start()
         target.start()
+
         print("Strategy instance stopped. Update runners")
         reason = "SHUTDOWN OK"
     except Exception as e:
@@ -294,6 +299,12 @@ def capsule(target: object, db: object, inter_batch_params: dict = None):
         print(reason)
         send_to_telegram(reason)
     finally:
+        # profiler.stop()
+        # now = datetime.now()
+        # results_file = "profiler"+now.strftime("%Y-%m-%d_%H-%M-%S")+".html"
+        # with open(results_file, "w", encoding="utf-8") as f_html:
+        #     f_html.write(profiler.output_html())
+
         # remove runners after thread is stopped and save results to stratin history
         for i in db.runners:
             if i.run_instance == target:
@@ -407,7 +418,7 @@ def run_stratin(id: UUID, runReq: RunRequest, synchronous: bool = False, inter_b
         if runReq.bt_to is None:
             runReq.bt_to = datetime.now().astimezone(zoneNY)
     
-    print("hodnota ID pred",id)
+    #print("hodnota ID pred",id)
     #volani funkce instantiate_strategy
     for i in db.stratins:
         if str(i.id) == str(id):
@@ -493,9 +504,9 @@ def run_stratin(id: UUID, runReq: RunRequest, synchronous: bool = False, inter_b
                         run_instance = instance,
                         run_stratvars_toml=i.stratvars_conf)
                 db.runners.append(runner)
-                print(db.runners)
-                print(i)
-                print(enumerate())
+                #print(db.runners)
+                #print(i)
+                #print(enumerate())
 
                 #pokud spoustime v batch módu, tak čekáme na výsledek a pak pouštíme další run
                 if synchronous:
@@ -584,38 +595,40 @@ def populate_metrics_output_directory(strat: StrategyInstance, inter_batch_param
         max_profit_time = None
         long_cnt = 0
         short_cnt = 0
-        for trade in strat.state.vars.prescribedTrades:
-            if trade.profit_sum > max_profit:
-                max_profit = trade.profit_sum
-                max_profit_time = trade.last_update
-            if trade.status == TradeStatus.ACTIVATED and trade.direction == TradeDirection.LONG:
-                long_cnt += 1
-                if trade.profit is not None:
-                    long_profit += trade.profit
-                    if trade.profit < 0:
-                        long_losses += trade.profit
-                    if trade.profit > 0:
-                        long_wins += trade.profit
-            if trade.status == TradeStatus.ACTIVATED and trade.direction == TradeDirection.SHORT:
-                short_cnt +=1
-                if trade.profit is not None:
-                    short_profit += trade.profit
-                    if trade.profit < 0:
-                        short_losses += trade.profit
-                    if trade.profit > 0:
-                        short_wins += trade.profit
-        res["profit"]["long_cnt"] = long_cnt
-        res["profit"]["short_cnt"] = short_cnt          
-        res["profit"]["long_profit"] = round(long_profit,2)
-        res["profit"]["short_profit"] = round(short_profit,2)
-        res["profit"]["long_losses"] = round(long_losses,2)
-        res["profit"]["short_losses"] = round(short_losses,2)
-        res["profit"]["long_wins"] = round(long_wins,2)
-        res["profit"]["short_wins"] = round(short_wins,2)
-        res["profit"]["max_profit"] = round(max_profit,2)
-        res["profit"]["max_profit_time"] = str(max_profit_time)
-        #vlozeni celeho listu
-        res["prescr_trades"]=json.loads(json.dumps(strat.state.vars.prescribedTrades, default=json_serial))
+
+        if "prescribedTrades" in strat.state.vars:
+            for trade in strat.state.vars.prescribedTrades:
+                if trade.profit_sum > max_profit:
+                    max_profit = trade.profit_sum
+                    max_profit_time = trade.last_update
+                if trade.status == TradeStatus.ACTIVATED and trade.direction == TradeDirection.LONG:
+                    long_cnt += 1
+                    if trade.profit is not None:
+                        long_profit += trade.profit
+                        if trade.profit < 0:
+                            long_losses += trade.profit
+                        if trade.profit > 0:
+                            long_wins += trade.profit
+                if trade.status == TradeStatus.ACTIVATED and trade.direction == TradeDirection.SHORT:
+                    short_cnt +=1
+                    if trade.profit is not None:
+                        short_profit += trade.profit
+                        if trade.profit < 0:
+                            short_losses += trade.profit
+                        if trade.profit > 0:
+                            short_wins += trade.profit
+            res["profit"]["long_cnt"] = long_cnt
+            res["profit"]["short_cnt"] = short_cnt          
+            res["profit"]["long_profit"] = round(long_profit,2)
+            res["profit"]["short_profit"] = round(short_profit,2)
+            res["profit"]["long_losses"] = round(long_losses,2)
+            res["profit"]["short_losses"] = round(short_losses,2)
+            res["profit"]["long_wins"] = round(long_wins,2)
+            res["profit"]["short_wins"] = round(short_wins,2)
+            res["profit"]["max_profit"] = round(max_profit,2)
+            res["profit"]["max_profit_time"] = str(max_profit_time)
+            #vlozeni celeho listu
+            res["prescr_trades"]=json.loads(json.dumps(strat.state.vars.prescribedTrades, default=json_serial))
 
     except NameError:
         pass

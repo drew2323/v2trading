@@ -14,6 +14,7 @@ from msgpack import packb, unpackb
 import asyncio
 import os
 from traceback import format_exc
+#from codetiming import Timer
 
 print(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 """"
@@ -90,6 +91,7 @@ minsize=100
 exthours=false
 """
 
+#@Timer(name="nextfce-timers")
 def next(data, state: StrategyState):
     print(10*"*","NEXT START",10*"*")
     #ic(state.avgp, state.positions)

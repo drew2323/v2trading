@@ -24,7 +24,10 @@ from alpaca.trading.enums import TradeEvent, OrderStatus
 from threading import Event, current_thread
 import json
 from uuid import UUID
+from rich import print as printnow
+#from pyinstrument import Profiler
 
+#profiler = Profiler()
 # obecna Parent strategie podporující queues
 class Strategy:
     def __init__(self, name: str, symbol: str, next: callable, init: callable, account: Account, mode: str = Mode.PAPER, stratvars: AttributeDict = None, open_rush: int = 30, close_rush: int = 30, pe: Event = None, se: Event = None, runner_id: UUID = None, ilog_save: bool = False) -> None:
@@ -324,7 +327,10 @@ class Strategy:
             pass
             #self.state.ilog(e="Rush hour - skipping")
         else:
+            # Profile the function
+            #profiler.start()
             self.next(item, self.state)
+            #profiler.stop()
             self.after_iteration(item)
             
     ##run strategy live
@@ -353,6 +359,7 @@ class Strategy:
             try:
                 #block 5s, after that check signals
                 item = self.q1.get(timeout=HEARTBEAT_TIMEOUT)
+                #printnow(current_thread().name, "Items waiting in queue:", self.q1.qsize())
             except queue.Empty:
                 #check signals
                 if self.se.is_set():
@@ -385,6 +392,11 @@ class Strategy:
 
         tlog(f"FINISHED")
         print(40*"*",self.mode, "STRATEGY ", self.name,"STOPPING",40*"*")
+
+        # now = datetime.now()
+        # results_file = "profiler"+now.strftime("%Y-%m-%d_%H-%M-%S")+".html"
+        # with open(results_file, "w", encoding="utf-8") as f_html:
+        #     f_html.write(profiler.output_html())
 
         self.stop()
 

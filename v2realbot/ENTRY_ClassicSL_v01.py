@@ -6,15 +6,15 @@ from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, Orde
 from v2realbot.indicators.indicators import ema, natr, roc
 from v2realbot.indicators.oscillators import rsi
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
-from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, print, safe_get, round2five, is_open_rush, is_close_rush, is_still, is_window_open, eval_cond_dict, Average, crossed_down, crossed_up, crossed, is_pivot, json_serial, pct_diff
+from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, print, safe_get, round2five, is_open_rush, is_close_rush, is_still, is_window_open, eval_cond_dict, crossed_down, crossed_up, crossed, is_pivot, json_serial, pct_diff
 from v2realbot.utils.directive_utils import get_conditions_from_configuration
 from v2realbot.common.model import SLHistory
 from datetime import datetime, timedelta
 from v2realbot.config import KW
 from uuid import uuid4
-import random
+#import random
 import json
-from numpy import inf
+import numpy as np
 #from icecream import install, ic
 #from rich import print
 from threading import Event
@@ -57,7 +57,6 @@ Hlavní loop:
     - if not exit - eval optimalizations
 
 """
-
 def next(data, state: StrategyState):
     print(10*"*","NEXT START",10*"*")
     # important vars state.avgp, state.positions, state.vars, data
@@ -808,10 +807,14 @@ def next(data, state: StrategyState):
                         #ten bude prumerem hodnot lookback_offset a to tak ze polovina offsetu z kazde strany
                         array_od = slope_lookback + int(lookback_offset/2)
                         array_do = slope_lookback - int(lookback_offset/2)
-                        lookbackprice_array = state.bars.vwap[-array_od:-array_do]
 
-                            #dame na porovnani jen prumer
-                        lookbackprice = round(sum(lookbackprice_array)/lookback_offset,3)
+                        #lookbackprice_array = state.bars.vwap[-array_od:-array_do]
+                        #lookbackprice = round(sum(lookbackprice_array)/lookback_offset,3)
+
+                        #jako optimalizace pouzijeme NUMPY
+                        lookbackprice = np.mean(state.bars.vwap[-array_od:-array_do])
+                        # Round the lookback price to 3 decimal places
+                        lookbackprice = round(lookbackprice, 3)
                             #lookbackprice = round((min(lookbackprice_array)+max(lookbackprice_array))/2,3)
                         # else:
                         #     #puvodni lookback a od te doby dozadu offset
@@ -836,10 +839,13 @@ def next(data, state: StrategyState):
                         cnt = len(state.bars.close)
                         if cnt>5:
                             sliced_to = int(cnt/5)
-                            lookbackprice= Average(state.bars.vwap[:sliced_to])
+                            
+                            lookbackprice = np.mean(state.bars.vwap[:sliced_to])
+                            #lookbackprice= Average(state.bars.vwap[:sliced_to])
                             lookbacktime = state.bars.time[int(sliced_to/2)]
                         else:
-                            lookbackprice = Average(state.bars.vwap)
+                            lookbackprice = np.mean(state.bars.vwap)
+                            #lookbackprice = Average(state.bars.vwap)
                             lookbacktime = state.bars.time[0]
                         
                         state.ilog(lvl=1,e=f"IND {name} slope - not enough data bereme left bod open", slope_lookback=slope_lookback, lookbackprice=lookbackprice)
@@ -882,7 +888,7 @@ def next(data, state: StrategyState):
         if len(state.vars.last_50_deltas) >=50:
             state.vars.last_50_deltas.pop(0)
         state.vars.last_50_deltas.append(last_update_delta)
-        avg_delta = Average(state.vars.last_50_deltas)
+        avg_delta = np.mean(state.vars.last_50_deltas)
 
         state.ilog(lvl=1,e=f"-----{data['index']}-{conf_bar}--delta:{last_update_delta}---AVGdelta:{avg_delta}", data=data)
 
@@ -1739,6 +1745,11 @@ def next(data, state: StrategyState):
         if is_window_open(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), window_open, window_close) is False:
             state.ilog(lvl=1,e=f"SIGNAL {signalname} - WINDOW CLOSED", msg=f"{window_open=} {window_close=} ")
             return False           
+
+        min_bar_index = safe_get(options, "min_bar_index",safe_get(state.vars, "min_bar_index",0))
+        if int(data["index"]) < int(min_bar_index):
+            state.ilog(lvl=1,e=f"MIN BAR INDEX {min_bar_index} waiting - TOO SOON", currindex=data["index"])
+            return False
 
         next_signal_offset = safe_get(options, "next_signal_offset_from_last_exit",safe_get(state.vars, "next_signal_offset_from_last_exit",0))
 

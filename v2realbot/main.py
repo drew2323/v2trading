@@ -228,7 +228,7 @@ def _get_stratin(stratin_id) -> StrategyInstance:
 
 @app.put("/stratins/{stratin_id}/run", dependencies=[Depends(api_key_auth)], status_code=status.HTTP_200_OK)
 def _run_stratin(stratin_id: UUID, runReq: RunRequest):
-    print(runReq)
+    #print(runReq)
     if runReq.test_batch_id is not None:
         res, id = cs.run_batch_stratin(id=stratin_id, runReq=runReq)
     else:

@@ -3,7 +3,7 @@ import math
 from queue import Queue
 from datetime import datetime, timezone, time, timedelta, date
 import pytz
-from dateutil import tz
+#from dateutil import tz
 from rich import print as richprint
 import decimal
 from v2realbot.enums.enums import RecordType, Mode, StartBarAlign
@@ -291,7 +291,8 @@ class Store:
 
 qu = Queue()
 
-zoneNY = tz.gettz('America/New_York')
+#zoneNY = tz.gettz('America/New_York')
+zoneNY = pytz.timezone('US/Eastern')
 
 def print(*args, **kwargs):
     if QUIET_MODE:
@@ -300,12 +301,44 @@ def print(*args, **kwargs):
         ####ic(*args, **kwargs)
         richprint(*args, **kwargs)
 
+#optimized by BARD
 def price2dec(price: float, decimals: int = 2) -> float:
+  """Rounds a price to a specified number of decimal places, but only if the
+  price has more than that number of decimals.
+
+  Args:
+    price: The price to round.
+    decimals: The number of decimals to round to.
+
+  Returns:
+    A rounded price, or the original price if the price has less than or equal
+    to the specified number of decimals.
+  """
+
+  if price.is_integer():
+    return price
+
+  # Calculate the number of decimal places in the price.
+  num_decimals = int(math.floor(math.log10(abs(price - math.floor(price)))))
+
+  # If the price has more than the specified number of decimals, round it.
+  if num_decimals > decimals:
+    return round(price, decimals)
+  else:
+    return price
+
+def price2dec_old(price: float, decimals: int = 2) -> float:
     """
     pousti maximalne 2 decimals
     pokud je trojmistne a vic pak zakrouhli na 2, jinak necha
     """
     return round(price,decimals) if count_decimals(price) > decimals else price
+
+def count_decimals(number: float) -> int:
+    """
+    Count the number of decimals in a given float: 1.4335 -> 4 or 3 -> 0
+    """
+    return abs(decimal.Decimal(str(number)).as_tuple().exponent)
 
 def round2five(price: float):
     """
@@ -314,12 +347,6 @@ def round2five(price: float):
     z 23.346 - 23.345
     """ 
     return (round(price*100*2)/2)/100
-
-def count_decimals(number: float) -> int:
-    """
-    Count the number of decimals in a given float: 1.4335 -> 4 or 3 -> 0
-    """
-    return abs(decimal.Decimal(str(number)).as_tuple().exponent)
 
 def p(var, n = None):
     if n: print(n, f'{var = }')
@@ -337,8 +364,35 @@ def is_open_rush(dt: datetime, mins: int = 30):
     rushtime = (datetime.combine(date.today(), business_hours["from"]) + timedelta(minutes=mins)).time()
     return business_hours["from"] <= dt.time() < rushtime
 
-#TODO market time pro dany den si dotahnout z Alpaca
+#optimalized by BARD
 def is_window_open(dt: datetime, start: int = 0, end: int = 390):
+    """"
+    Returns true if time (start in minutes and end in minutes) is in working window
+    """
+    # Check if start and end are within bounds early to avoid unnecessary computations.
+    if start < 0 or start > 389 or end < 0 or end > 389:
+        return False
+
+    # Convert the datetime object to the New York time zone.
+    dt = dt.astimezone(zoneNY)
+
+    # Get the business hours start and end times.
+    business_hours_start = time(hour=9, minute=30)
+    business_hours_end = time(hour=16, minute=0)
+
+    # Check if the datetime is within business hours.
+    if not business_hours_start <= dt.time() <= business_hours_end:
+        return False
+
+    # Calculate the start and end times of the working window.
+    working_window_start = (datetime.combine(date.today(), business_hours_start) + timedelta(minutes=start)).time()
+    working_window_end = (datetime.combine(date.today(), business_hours_start) + timedelta(minutes=end)).time()
+
+    # Check if the datetime is within the working window.
+    return working_window_start <= dt.time() <= working_window_end
+#puvodni neoptimalizovana verze
+#TODO market time pro dany den si dotahnout z Alpaca
+def is_window_open_old(dt: datetime, start: int = 0, end: int = 390):
     """"
     Returns true if time (start in minutes and end in minutes) is in working window
     """

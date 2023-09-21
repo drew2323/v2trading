@@ -421,7 +421,8 @@ pre {
 
 .switcher-active-item,
 .switcher-active-item:hover {
-	background-color: #e1eff9;
+	/* background-color: #e1eff9; */
+  background-color: #e1eff94d;;
 }
 
 .material-symbols-outlined {

@@ -382,8 +382,8 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
 
         if (interval == native_resolution) {
             //indicators are in native resolution only
-            display_indicators(data, true);
-            var indbuttonElement = populate_indicator_buttons(true);   
+            display_indicators(data, false);
+            var indbuttonElement = populate_indicator_buttons(false);   
         }
         else {
             //na nepuvodnim grafu zobrazit jako offset a zobrazit jako neviditelne 

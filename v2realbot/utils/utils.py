@@ -25,6 +25,58 @@ import numpy as np
 import pandas as pd
 from collections import deque
 
+import numpy as np
+
+def create_new_bars(bars, new_resolution):
+  """Creates new bars dictionary in the new resolution.
+
+  Args:
+    bars: A dictionary representing ohlcv bars.
+    new_resolution: A new resolution in seconds.
+
+  Returns:
+    A dictionary representing ohlcv bars in the new resolution.
+  """
+
+  # Check that the new resolution is a multiple of the old resolution.
+  if new_resolution % bars['resolution'][0] != 0:
+    raise ValueError('New resolution must be a multiple of the old resolution.')
+
+  # Calculate the number of bars in the new resolution.
+  new_bar_count = int(len(bars['time']) / (new_resolution / bars['resolution'][0]))
+
+  # Create a new dictionary to store the new bars.
+  new_bars = {'high': np.empty(new_bar_count),
+                'low': np.empty(new_bar_count),
+                'volume': np.empty(new_bar_count),
+                'close': np.empty(new_bar_count),
+                'open': np.empty(new_bar_count),
+                'time': np.empty(new_bar_count),
+                'resolution': [new_resolution]}
+
+  # Calculate the start and end time of each new bar.
+  new_bar_start_times = np.arange(0, new_bar_count) * new_resolution
+  new_bar_end_times = new_bar_start_times + new_resolution
+
+  # Find all the old bars that are within each new bar.
+  old_bar_indices_in_new_bars = np.searchsorted(bars['time'], new_bar_start_times, side='right') - 1
+
+  # Calculate the high, low, volume, and close of each new bar.
+  new_bar_highs = np.amax(bars['high'][old_bar_indices_in_new_bars:], axis=1)
+  new_bar_lows = np.amin(bars['low'][old_bar_indices_in_new_bars:], axis=1)
+  new_bar_volumes = np.sum(bars['volume'][old_bar_indices_in_new_bars:], axis=1)
+  new_bar_closes = bars['close'][old_bar_indices_in_new_bars[:,-1]]
+
+  # Add the new bars to the new dictionary.
+  new_bars['high'] = new_bar_highs
+  new_bars['low'] = new_bar_lows
+  new_bars['volume'] = new_bar_volumes
+  new_bars['close'] = new_bar_closes
+  new_bars['open'] = new_bar_closes[:-1]
+  new_bars['time'] = new_bar_start_times
+
+  return new_bars
+
 def pct_diff(num1: float, num2: float, decimals: int = 3, absolute: bool = False):
     if num1 == 0:
         return 0
@@ -246,6 +298,8 @@ def json_serial(obj):
         return str(obj)
     if isinstance(obj, Enum):
         return str(obj)
+    if isinstance(obj, np.int64):
+        return int(obj)
     if type(obj) is Order:
         return obj.__dict__
     if type(obj) is TradeUpdate:

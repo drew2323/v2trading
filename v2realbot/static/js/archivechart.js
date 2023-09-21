@@ -333,6 +333,7 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
 
     //define tooltip
     const container1 = document.getElementById('chart');
+    const containerlower = document.getElementById('lowercontainer');
 
     const toolTipWidth = 90;
     const toolTipHeight = 90;
@@ -352,7 +353,7 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
 
     initialize_chart()
 
-    container1.append(switcherElement)
+    containerlower.append(switcherElement)
 
     candlestickSeries = null
 
@@ -376,7 +377,7 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
         remove_indicators();
         btnElement = document.getElementById("indicatorsButtons")
         if (btnElement) {
-            container1.removeChild(btnElement);
+            containerlower.removeChild(btnElement);
         }
 
         if (interval == native_resolution) {
@@ -390,7 +391,7 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
             //buttonky jako vypnute
             var indbuttonElement = populate_indicator_buttons(false);
         }
-        container1.append(indbuttonElement);   
+        containerlower.append(indbuttonElement);   
 
 
         display_buy_markers();

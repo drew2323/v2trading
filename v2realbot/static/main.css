@@ -281,8 +281,15 @@ html {
     width: 100%;
 }
 
+#lowercontainer {
+  display: contents;
+  /* width: 500px; */
+}
 
-
+#indicatorsButtons {
+  display: contents;
+  /* width: 500px; */
+}
 
 pre {
   display: block;
@@ -352,7 +359,7 @@ pre {
   /* color: var(--bs-dark-text-emphasis); */
 }
 
-.switcher {
+/* .switcher {
 	display: flex;
 	align-items: center;
   margin-left: 54px;
@@ -360,9 +367,19 @@ pre {
 	height: 30px;
 	margin-top: 8px;
 	color: #2196F3;
+} */
+
+.switcher {
+  display: flex;
+  /* align-items: center; */
+  /* margin-left: 54px; */
+  /* width: 269px; */
+  margin-top: 5px;
+  margin-bottom: 3px;
+  color: #2196F3;
 }
 
-.switcher-item {
+/* .switcher-item {
 	cursor: pointer;
 	text-decoration: none;
 	display: inline-block;
@@ -374,6 +391,22 @@ pre {
 	border: none;
 	border-radius: 4px;
 	outline: none;
+} */
+
+.switcher-item {
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  padding: 3px 6px;
+  font-size: 14px;
+  /* color: #262b3e; */
+  /* background-color: #818581; */
+  background-color:  #0202022e;;
+  margin-right: 8px;
+  margin-bottom: 6px;
+  border: none;
+  border-radius: 5px;
+  outline: none;
 }
 
 .switcher-item:hover {

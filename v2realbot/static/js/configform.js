@@ -1,3 +1,5 @@
+let editor_json
+
 //JS code for FRONTEND CONFIG FORM
 $(document).ready(function () {
         // API Base URL
@@ -25,22 +27,24 @@ $(document).ready(function () {
                         if (((to_select !== null) && (to_select == item.id)) || ((to_select == null) && (index==0))) {
                             selected = "SELECTED"
                             $('#itemName').val(item.item_name);
-                            $('#jsonTextarea').val(item.json_data);
+                            //$('#jsonTextarea').val(item.json_data);
+                            if (!editor_json) {
+
+                            require(["vs/editor/editor.main"], () => {
+                                editor_json = monaco.editor.create(document.getElementById('json_editor'), {
+                                    value: item.json_data,
+                                    language: 'json',
+                                    theme: 'vs-dark',
+                                    automaticLayout: true
+                                  });
+                                });
+                            }
+                            else
+                            {
+                                editor_json.setValue(item.json_data)
+                            }
+
                             editingItemId = item.id;
-                            // Get the textarea element.
-                            var textarea = $("#jsonTextarea");
-
-                            // // Highlight the JSON formatted string in the textarea.
-                            // hljs.highlightElement(textarea.get(0));
-                            // console.log(textarea.get(0))
-                            // console.log(textarea.get(1))
-
-                            // // Highlight the JSON formatted string whenever the textarea is edited.
-                            // textarea.on("input", function() {
-                            //     hljs.highlightElement(textarea.get(0));
-                            //     //hljs.highlightBlock(textarea.get(0),{ language: 'json' });
-                            // });
-
                         }
                         configList.append(`<option value="${item.id}" ${selected}>${item.item_name}</option>`);
                     });
@@ -54,8 +58,9 @@ $(document).ready(function () {
             localArray.forEach((item, index, array) => {
                 if (item.id == itemId) {
                     $('#itemName').val(item.item_name);
-                    $('#jsonTextarea').val(item.json_data);
+                    //$('#jsonTextarea').val(item.json_data);
                     editingItemId = itemId;
+                    editor_json.setValue(item.json_data)
                 }
             });
         }
@@ -76,7 +81,8 @@ $(document).ready(function () {
         // Save or add a config item
         $('#saveButton').click(function () {
             const itemName = $('#itemName').val();
-            const jsonData = $('#jsonTextarea').val();
+            //const jsonData = $('#jsonTextarea').val();
+            const jsonData = editor_json.getValue()
             var validformat = false
             $('#addButton').attr('disabled', false);
             $('#deleteButton').attr('disabled', false);
@@ -133,7 +139,8 @@ $(document).ready(function () {
         $('#addButton').click(function () {
             $('#configList').val('');
             $('#itemName').val('');
-            $('#jsonTextarea').val('');
+            editor_json.setValue('')
+            //$('#jsonTextarea').val('');
             editingItemId = null;
             $('#addButton').attr('disabled', true);
             $('#deleteButton').attr('disabled', true);
@@ -154,7 +161,8 @@ $(document).ready(function () {
             if (editingItemId == null) {
                 $('#configList').val('');
                 $('#itemName').val('');
-                $('#jsonTextarea').val('');
+                editor_json.setValue('')
+                //$('#jsonTextarea').val('');
             }
             else {
                 var confirmed = window.confirm("Confirm?");

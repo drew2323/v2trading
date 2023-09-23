@@ -129,7 +129,7 @@ $(document).ready(function () {
             // Loop through the selected rows and display an alert with each row's ID
             rows.every(function (rowIdx, tableLoop, rowLoop ) {
                 var data = this.data()
-                    ids_to_del = ids_to_del  + data.id + "<br>"
+                ids_to_del = ids_to_del  + data.id + "<br>"
             });
 
             $('#listofids').html(ids_to_del);
@@ -342,19 +342,21 @@ $("#editModalArchive").on('submit','#editFormArchive', function(event){
     })
 });
 
-function delete_arch_row(id) {
+function delete_arch_rows(ids) {
     $.ajax({
-        url:"/archived_runners/"+id,
+        url:"/archived_runners/",
         beforeSend: function (xhr) {
             xhr.setRequestHeader('X-API-Key',
                 API_KEY); },
         method:"DELETE",
         contentType: "application/json",
         dataType: "json",
+        data: JSON.stringify(ids),
         success:function(data){				
             $('#delFormArchive')[0].reset();
             window.$('#delModalArchive').modal('hide');				
             $('#deletearchive').attr('disabled', false);
+            console.log(data)
             archiveRecords.ajax.reload();
         },
         error: function(xhr, status, error) {
@@ -373,11 +375,13 @@ $("#delModalArchive").on('submit','#delFormArchive', function(event){
     $('#deletearchive').attr('disabled','disabled');
     //rows = archiveRecords.rows('.selected');
     if(rows.data().length > 0 ) {
+        runnerIds = []
         // Loop through the selected rows and display an alert with each row's ID
         rows.every(function (rowIdx, tableLoop, rowLoop ) {
             var data = this.data()
-            delete_arch_row(data.id)
+            runnerIds.push(data.id);
         });
+        delete_arch_rows(runnerIds)
     }
 });
 

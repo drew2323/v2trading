@@ -319,9 +319,9 @@ def _get_all_archived_runners() -> list[RunArchive]:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No data found")
 
 #delete archive runner from header and detail
-@app.delete("/archived_runners/{runner_id}", dependencies=[Depends(api_key_auth)], status_code=status.HTTP_200_OK)
-def _delete_archived_runners_byID(runner_id):
-    res, id = cs.delete_archived_runners_byID(id=runner_id)
+@app.delete("/archived_runners/", dependencies=[Depends(api_key_auth)], status_code=status.HTTP_200_OK)
+def _delete_archived_runners_byIDs(runner_ids: list[UUID]):
+    res, id = cs.delete_archived_runners_byIDs(ids=runner_ids)
     if res == 0: return id
     elif res < 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Error: {res}:{id}")

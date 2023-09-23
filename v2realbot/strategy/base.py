@@ -6,7 +6,7 @@ from v2realbot.utils.utils import AttributeDict, zoneNY, is_open_rush, is_close_
 from v2realbot.utils.tlog import tlog
 from v2realbot.utils.ilog import insert_log, insert_log_multiple_queue
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Order, Account
-from v2realbot.config import BT_DELAYS, get_key, HEARTBEAT_TIMEOUT, QUIET_MODE, LOG_RUNNER_EVENTS, ILOG_SAVE_LEVEL_FROM
+from v2realbot.config import BT_DELAYS, get_key, HEARTBEAT_TIMEOUT, QUIET_MODE, LOG_RUNNER_EVENTS, ILOG_SAVE_LEVEL_FROM,PROFILING_NEXT_ENABLED, PROFILING_OUTPUT_DIR
 import queue
 #from rich import print
 from v2realbot.loader.aggregator import TradeAggregator2Queue, TradeAggregator2List, TradeAggregator
@@ -25,9 +25,10 @@ from threading import Event, current_thread
 import json
 from uuid import UUID
 from rich import print as printnow
-#from pyinstrument import Profiler
+if PROFILING_NEXT_ENABLED:
+    from pyinstrument import Profiler
+    profiler = Profiler()
 
-#profiler = Profiler()
 # obecna Parent strategie podporující queues
 class Strategy:
     def __init__(self, name: str, symbol: str, next: callable, init: callable, account: Account, mode: str = Mode.PAPER, stratvars: AttributeDict = None, open_rush: int = 30, close_rush: int = 30, pe: Event = None, se: Event = None, runner_id: UUID = None, ilog_save: bool = False) -> None:
@@ -328,9 +329,11 @@ class Strategy:
             #self.state.ilog(e="Rush hour - skipping")
         else:
             # Profile the function
-            #profiler.start()
+            if PROFILING_NEXT_ENABLED:
+                profiler.start()
             self.next(item, self.state)
-            #profiler.stop()
+            if PROFILING_NEXT_ENABLED:
+                profiler.stop()
             self.after_iteration(item)
             
     ##run strategy live
@@ -393,10 +396,11 @@ class Strategy:
         tlog(f"FINISHED")
         print(40*"*",self.mode, "STRATEGY ", self.name,"STOPPING",40*"*")
 
-        # now = datetime.now()
-        # results_file = "profiler"+now.strftime("%Y-%m-%d_%H-%M-%S")+".html"
-        # with open(results_file, "w", encoding="utf-8") as f_html:
-        #     f_html.write(profiler.output_html())
+        if PROFILING_NEXT_ENABLED:
+            now = datetime.now()
+            results_file = PROFILING_OUTPUT_DIR + "/"+"profiler"+now.strftime("%Y-%m-%d_%H-%M-%S")+".html"
+            with open(results_file, "w", encoding="utf-8") as f_html:
+                f_html.write(profiler.output_html())
 
         self.stop()
 

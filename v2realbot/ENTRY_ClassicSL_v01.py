@@ -97,47 +97,85 @@ def next(data, state: StrategyState):
                 ret = 0
                 state.ilog(lvl=1,e=f"Neexistuje indikator s nazvem {value} vracime 0" + str(e) + format_exc())
             return ret
-
+        
+    #OPTIMALIZOVANO CHATGPT
     #funkce vytvori podminky (bud pro AND/OR) z pracovniho dict
     def evaluate_directive_conditions(work_dict, cond_type):
+        def rev(kw, condition):
+            if directive.endswith(kw):
+                return not condition
+            else:
+                return condition
+
+        cond = {}
+        cond[cond_type] = {}
+
+        # Create a dictionary to map directives to functions
+        directive_functions = {
+            "above": lambda ind, val: get_source_or_MA(ind)[-1] > value_or_indicator(val),
+            "equals": lambda ind, val: get_source_or_MA(ind)[-1] == value_or_indicator(val),
+            "below": lambda ind, val: get_source_or_MA(ind)[-1] < value_or_indicator(val),
+            "falling": lambda ind, val: isfalling(get_source_or_MA(ind), val),
+            "rising": lambda ind, val: isrising(get_source_or_MA(ind), val),
+            "crossed_down": lambda ind, val: buy_if_crossed_down(ind, value_or_indicator(val)),
+            "crossed_up": lambda ind, val: buy_if_crossed_up(ind, value_or_indicator(val)),
+            "crossed": lambda ind, val: buy_if_crossed_down(ind, value_or_indicator(val)) or buy_if_crossed_up(ind, value_or_indicator(val)),
+            "pivot_a": lambda ind, val: is_pivot(source=get_source_or_MA(ind), leg_number=val, type="A"),
+            "pivot_v": lambda ind, val: is_pivot(source=get_source_or_MA(ind), leg_number=val, type="V"),
+            "still_for": lambda ind, val: is_still(get_source_or_MA(ind), val, 2),
+        }
+
+        for indname, directive, value in work_dict[cond_type]:
+            for keyword, func in directive_functions.items():
+                if directive.endswith(keyword):
+                    cond[cond_type][directive + "_" + indname + "_" + str(value)] = rev("not_" + keyword, func(indname, value))
+
+        return eval_cond_dict(cond)
+
+    #funkce vytvori podminky (bud pro AND/OR) z pracovniho dict
+    def evaluate_directive_conditions_old(work_dict, cond_type):
+
+        #used for nots, reverse condition for not_ keywords
+        def rev(kw, condition):
+            if directive.endswith(kw):
+                return not condition
+            else:
+                return condition
+
         cond = {}
         cond[cond_type] = {}
         for indname, directive, value in work_dict[cond_type]:
             #direktivy zobecnime ve tvaru prefix_ACTION
             # ACTIONS = is_above, is_below, is_falling, is_rising, crossed_up, crossed_down, is_pivot_a, is_pivot_v
-            
+            res = None
             #OBECNE DIREKTIVY - REUSOVATELNE
             if directive.endswith("above"):
-                cond[cond_type][directive+"_"+indname+"_"+str(value)] = get_source_or_MA(indname)[-1] > value_or_indicator(value)
+                #reverse if endswith "not_above"
+                res = rev("not_above", get_source_or_MA(indname)[-1] > value_or_indicator(value))
             elif directive.endswith("equals"):
-                cond[cond_type][directive+"_"+indname+"_"+str(value)] = get_source_or_MA(indname)[-1] == value_or_indicator(value)
+                res = rev("not_equals",get_source_or_MA(indname)[-1] == value_or_indicator(value))
             elif directive.endswith("below"):
-                cond[cond_type][directive+"_"+indname+"_"+str(value)] = get_source_or_MA(indname)[-1] < value_or_indicator(value)
+                res = rev("not_below", get_source_or_MA(indname)[-1] < value_or_indicator(value))
             elif directive.endswith("falling"):
-                if directive.endswith("not_falling"):
-                    cond[cond_type][directive+"_"+indname+"_"+str(value)] = not isfalling(get_source_or_MA(indname),value)
-                else:
-                    cond[cond_type][directive+"_"+indname+"_"+str(value)] = isfalling(get_source_or_MA(indname),value)
+                res = rev("not_falling",isfalling(get_source_or_MA(indname),value))
             elif directive.endswith("rising"):
-                if directive.endswith("not_rising"):
-                    cond[cond_type][directive+"_"+indname+"_"+str(value)] = not isrising(get_source_or_MA(indname),value)
-                else:
-                    cond[cond_type][directive+"_"+indname+"_"+str(value)] = isrising(get_source_or_MA(indname),value)
+                res = rev("not_rising", isrising(get_source_or_MA(indname),value))
             elif directive.endswith("crossed_down"):
-                cond[cond_type][directive+"_"+indname+"_"+str(value)] = buy_if_crossed_down(indname, value_or_indicator(value))
+                res = rev("not_crossed_down", buy_if_crossed_down(indname, value_or_indicator(value)))
             elif directive.endswith("crossed_up"):
-                cond[cond_type][directive+"_"+indname+"_"+str(value)] = buy_if_crossed_up(indname, value_or_indicator(value))
+                res = rev("not_crossed_up", buy_if_crossed_up(indname, value_or_indicator(value)))
             #nefunguje moc dobre
             elif directive.endswith("crossed"):
-                cond[cond_type][directive+"_"+indname+"_"+str(value)] = buy_if_crossed_down(indname, value_or_indicator(value)) or buy_if_crossed_up(indname, value_or_indicator(value))
+                res = rev("not_crossed", buy_if_crossed_down(indname, value_or_indicator(value)) or buy_if_crossed_up(indname, value_or_indicator(value)))
             elif directive.endswith("pivot_a"):
-                cond[cond_type][directive+"_"+indname+"_"+str(value)] = is_pivot(source=get_source_or_MA(indname), leg_number=value, type="A")
+                res = rev("not_pivot_a", is_pivot(source=get_source_or_MA(indname), leg_number=value, type="A"))
             elif directive.endswith("pivot_v"):
-                cond[cond_type][directive+"_"+indname+"_"+str(value)] = is_pivot(source=get_source_or_MA(indname), leg_number=value, type="V")
+                res = rev("not_pivot_v", is_pivot(source=get_source_or_MA(indname), leg_number=value, type="V"))
             elif directive.endswith("still_for"):
                 #for 2 decimals
-                cond[cond_type][directive+"_"+indname+"_"+str(value)] = is_still(get_source_or_MA(indname),value, 2)
-
+                res = rev("not_still_for", is_still(get_source_or_MA(indname),value, 2))
+            if res is not None:
+                cond[cond_type][directive+"_"+indname+"_"+str(value)] = res
             #PRIPADNE DALSI SPECIFICKE ZDE
             # elif directive == "buy_if_necospecifckeho":
             #     pass
@@ -1728,6 +1766,7 @@ def next(data, state: StrategyState):
                 res = state.buy(size=size)
                 if isinstance(res, int) and res < 0:
                     raise Exception(f"error in required operation LONG {res}")
+                #nastaveni SL az do notifikace, kdy je známá
                 #pokud neni nastaveno SL v prescribe, tak nastavuji default dle stratvars
                 if state.vars.activeTrade.stoploss_value is None:
                     sl_defvalue = get_default_sl_value(direction=state.vars.activeTrade.direction)

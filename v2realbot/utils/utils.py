@@ -286,8 +286,37 @@ def send_to_telegram(message):
     except Exception as e:
         print(e)
 
-#datetime to timestamp
+#OPTIMIZED BY BARD
 def json_serial(obj):
+    """JSON serializer for objects not serializable by default json code
+    https://stackoverflow.com/questions/11875770/how-to-overcome-datetime-datetime-not-json-serializable
+    """
+
+    type_map = {
+        datetime: lambda obj: obj.timestamp(),
+        UUID: lambda obj: str(obj),
+        Enum: lambda obj: str(obj),
+        np.int64: lambda obj: int(obj),
+        Order: lambda obj: obj.__dict__,
+        TradeUpdate: lambda obj: obj.__dict__,
+        btOrder: lambda obj: obj.__dict__,
+        btTradeUpdate: lambda obj: obj.__dict__,
+        RunArchive: lambda obj: obj.__dict__,
+        Trade: lambda obj: obj.__dict__,
+        RunArchiveDetail: lambda obj: obj.__dict__,
+        Intervals: lambda obj: obj.__dict__,
+        SLHistory: lambda obj: obj.__dict__,
+    }
+
+    serializer = type_map.get(type(obj))
+    if serializer is not None:
+        return serializer(obj)
+    
+    raise TypeError(str(obj) + "Type %s not serializable" % type(obj))
+
+
+#datetime to timestamp
+def json_serial_old(obj):
     """JSON serializer for objects not serializable by default json code
     https://stackoverflow.com/questions/11875770/how-to-overcome-datetime-datetime-not-json-serializable
     """
@@ -508,19 +537,66 @@ def is_open_hours(dt, business_hours: dict = None):
            and business_hours["from"] <= dt.time() < business_hours["to"]
 
 #vraci zda dane pole je klesajici (bud cele a nebo jen pocet poslednich)
-def isfalling(pole: list, pocet: int = None):
+def isfalling_old(pole: list, pocet: int = None):
     if pocet is None: pocet = len(pole)
     if len(pole)<pocet: return False
     pole = pole[-pocet:]
     res = all(i > j for i, j in zip(pole, pole[1:]))
     return res
 
+#optimized by gpt and same values are considered as one
+def isfalling(pole: list, pocet: int = None):
+    if pocet is None:
+        pocet = len(pole)
+    if len(pole) < pocet:
+        return False
+
+    # Prepare the list - all same consecutive values in the list are considered as one value.
+    new_pole = [pole[0]]
+    for i in range(1, len(pole)):
+        if pole[i] != pole[i - 1]:
+            new_pole.append(pole[i])
+
+    if len(new_pole) < pocet:
+        return False
+    
+    new_pole = new_pole[-pocet:]
+    #print(new_pole)
+
+
+    # Perform the current calculation on this list.
+    res = all(i > j for i, j in zip(new_pole, new_pole[1:]))
+    return res
+
 #vraci zda dane pole je roustouci (bud cele a nebo jen pocet poslednich)
-def isrising(pole: list, pocet: int = None):
+def isrising_old(pole: list, pocet: int = None):
     if pocet is None: pocet = len(pole)
     if len(pole)<pocet: return False
     pole = pole[-pocet:]
     res = all(i < j for i, j in zip(pole, pole[1:]))
+    return res
+
+#optimized by gpt and same values are considered as one
+def isrising(pole: list, pocet: int = None):
+    if pocet is None:
+        pocet = len(pole)
+    if len(pole) < pocet:
+        return False
+
+    # Prepare the list - all same consecutive values in the list are considered as one value.
+    new_pole = [pole[0]]
+    for i in range(1, len(pole)):
+        if pole[i] != pole[i - 1]:
+            new_pole.append(pole[i])
+
+    if len(new_pole) < pocet:
+        return False
+    
+    new_pole = new_pole[-pocet:]
+    #print(new_pole)
+
+    # Perform the current calculation on this list.
+    res = all(i < j for i, j in zip(new_pole, new_pole[1:]))
     return res
 
 def parse_alpaca_timestamp(value: Timestamp):

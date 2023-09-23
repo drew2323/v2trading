@@ -35,7 +35,10 @@ COUNT_API_REQUESTS = False
 STRATVARS_UNCHANGEABLES = ['pendingbuys', 'blockbuy', 'jevylozeno', 'limitka']
 DATA_DIR = user_data_dir("v2realbot")
 #BT DELAYS
-  
+#profiling
+PROFILING_NEXT_ENABLED = False
+PROFILING_OUTPUT_DIR = DATA_DIR
+
 """"
 LATENCY DELAYS for LIVE eastcoast
 .000 trigger - last_trade_time (.4246266)

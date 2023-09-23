@@ -107,11 +107,11 @@ def modify_stratin(si: StrategyInstance, id: UUID):
         return (-1, "add data conf invalid") 
     for i in db.stratins:
         if str(i.id) == str(id):
-            print("removing",i)
+            #print("removing",i)
             db.stratins.remove(i)
-            print("adding",si)
+            #print("adding",si)
             db.stratins.append(si)
-            print(db.stratins)
+            #print(db.stratins)
             db.save()
             return (0, i.id)
     return (-2, "not found")
@@ -824,21 +824,25 @@ def edit_archived_runners(runner_id: UUID, archChange: RunArchiveChange):
 
 #delete runner in archive and archive detail and runner logs
 #predelano do JEDNE TRANSAKCE
-def delete_archived_runners_byID(id: UUID):
+def delete_archived_runners_byIDs(ids: list[UUID]):
     try:
         conn = pool.get_connection()
-        c = conn.cursor()
-        resh = c.execute(f"DELETE from runner_header WHERE runner_id='{str(id)}';")
-        print("header deleted",resh.rowcount)
-        resd = c.execute(f"DELETE from runner_detail WHERE runner_id='{str(id)}';")
-        print("detail deleted",resd.rowcount)
-        resl = c.execute(f"DELETE from runner_logs WHERE runner_id='{str(id)}';")
-        print("log deleted",resl.rowcount)
-        conn.commit()
-        print("commit")
+        out = []
+        for id in ids:
+            c = conn.cursor()
+            print(str(id))
+            resh = c.execute(f"DELETE from runner_header WHERE runner_id='{str(id)}';")
+            print("header deleted",resh.rowcount)
+            resd = c.execute(f"DELETE from runner_detail WHERE runner_id='{str(id)}';")
+            print("detail deleted",resd.rowcount)
+            resl = c.execute(f"DELETE from runner_logs WHERE runner_id='{str(id)}';")
+            print("log deleted",resl.rowcount)
+            out.append(str(id) + ":   " + str(resh.rowcount) + " " + str(resd.rowcount) + " " + str(resl.rowcount))
+            conn.commit()
+            print("commit")
         # if resh.rowcount == 0 or resd.rowcount == 0:
         #     return -1, "not found "+str(resh.rowcount) + " " + str(resd.rowcount) + " " + str(resl.rowcount)
-        return 0, str(resh.rowcount) + " " + str(resd.rowcount) + " " + str(resl.rowcount)
+        return 0, out
         
     except Exception as e:
         conn.rollback()

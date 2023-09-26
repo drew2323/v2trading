@@ -19,6 +19,7 @@ from joblib import dump, load
 # podpora pro BINARY TARGET
 # podpora hyperpamaetru (activ.funkce sigmoid atp.)
 # udelat vsechny config vars do cfg objektu
+# vyuzit distribuovane prostredi - nebo aspon vlastni VM
 # dopracovat identifikatory typu lastday close, todays open atp.
 # random SEARCG a grid search
 # udelat nejaka model metadata (napr, trenovano na (runners+obdobi), nastaveni treningovych dat, počet epoch, hyperparametry, config atribu atp.) - mozna persistovat v db

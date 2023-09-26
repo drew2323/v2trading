@@ -668,6 +668,7 @@ def archive_runner(runner: Runner, strat: StrategyInstance, inter_batch_params: 
         #file pro vyvoj: ouptut_metriky_tradeList.py
         results_metrics = populate_metrics_output_directory(strat, inter_batch_params)
 
+
         runArchive: RunArchive = RunArchive(id = runner.id,
                                             strat_id = runner.strat_id,
                                             name=runner.run_name,
@@ -936,7 +937,7 @@ def get_testlists():
         
     testlists = []
     for row in rows:
-        print(row)
+        #print(row)
         testlist = TestList(id=row[0], name=row[1], dates=json.loads(row[2]))
         testlists.append(testlist)
     

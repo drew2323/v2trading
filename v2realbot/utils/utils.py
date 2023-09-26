@@ -27,8 +27,39 @@ from collections import deque
 
 import numpy as np
 
+def slice_dict_lists(d, last_item, to_tmstp = False):
+  """Slices every list in the dictionary to the last last_item items.
+  
+  Args:
+    d: A dictionary.
+    last_item: The number of items to keep at the end of each list.
+    to_tmstp: For "time" elements change it to timestamp from datetime if required.
+
+  Returns:
+    A new dictionary with the sliced lists.
+  """
+  sliced_d = {}
+  for key in d.keys():
+    if key == "time" and to_tmstp:
+        sliced_d[key] = [datetime.timestamp(t) for t in d[key][-last_item:]]
+    else:
+        sliced_d[key] = d[key][-last_item:]
+  return sliced_d
+
+
+#   keys_set = set(keys)
+#   sliced_d = {}
+#   for key, value in d.items():
+#     if key in keys_set and isinstance(value, list):
+#       if key == "time" and to_tmstp:
+#         sliced_d[key] = [datetime.timestamp(t) for t in value[-last_item:]]
+#       else:      
+#         sliced_d[key] = value[-last_item:]
+#   return sliced_d
+
+#WIP
 def create_new_bars(bars, new_resolution):
-  """Creates new bars dictionary in the new resolution.
+  """WIP - Creates new bars dictionary in the new resolution.
 
   Args:
     bars: A dictionary representing ohlcv bars.

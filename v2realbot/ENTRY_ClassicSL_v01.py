@@ -6,23 +6,31 @@ from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, Orde
 from v2realbot.indicators.indicators import ema, natr, roc
 from v2realbot.indicators.oscillators import rsi
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
-from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, print, safe_get, round2five, is_open_rush, is_close_rush, is_still, is_window_open, eval_cond_dict, crossed_down, crossed_up, crossed, is_pivot, json_serial, pct_diff, create_new_bars
+from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict, zoneNY, price2dec, print, safe_get, round2five, is_open_rush, is_close_rush, is_still, is_window_open, eval_cond_dict, crossed_down, crossed_up, crossed, is_pivot, json_serial, pct_diff, create_new_bars, slice_dict_lists
 from v2realbot.utils.directive_utils import get_conditions_from_configuration
 from v2realbot.common.model import SLHistory
 from datetime import datetime, timedelta
-from v2realbot.config import KW
+from v2realbot.config import KW, DATA_DIR
 from uuid import uuid4
 #import random
 import json
 import numpy as np
 #from icecream import install, ic
-#from rich import print
+from rich import print as printanyway
 from threading import Event
 from msgpack import packb, unpackb
 import asyncio
 import os
 from traceback import format_exc
 from collections import defaultdict
+from joblib import load
+
+#WIP - pripadne presunout do jineho modulu
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import train_test_split
+from keras.models import Sequential, load_model
+from keras.layers import LSTM, Dense
 
 print(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 """"
@@ -135,7 +143,7 @@ def next(data, state: StrategyState):
     #funkce vytvori podminky (bud pro AND/OR) z pracovniho dict
     def evaluate_directive_conditions_old(work_dict, cond_type):
 
-        #used for nots, reverse condition for not_ keywords
+        #used for reversing "not" kw conditions
         def rev(kw, condition):
             if directive.endswith(kw):
                 return not condition
@@ -321,6 +329,10 @@ def next(data, state: StrategyState):
         
         #if MA is required
         MA_length = safe_get(options, "MA_length", None)
+
+        active = safe_get(options, 'active', True)
+        if not active:
+            return
 
         def is_time_to_run():
             # on_confirmed_only = true (def. False)
@@ -523,6 +535,66 @@ def next(data, state: StrategyState):
             elif mode == "pct":
                 val = pct_diff(num1=float(source1_series[-1]),num2=float(source2_series[-1]))
             return 0, val
+
+
+        #model - naloadovana instance modelu
+        #seq - sekvence pro vstup
+        #TODO optimaliziovat, pripadne dat do samostatneho modulu
+        def get_model_prediction(model: Sequential, scalerX: StandardScaler, scalerY: StandardScaler,  features, seq, use_bars):
+            lastNbars = slice_dict_lists(state.bars, seq, True)
+            lastNindicators =  slice_dict_lists(state.indicators, seq, False)
+            indicator_data = np.column_stack([lastNindicators[feature] for feature in features if feature in lastNindicators])
+            if use_bars:
+                bar_data = np.column_stack([lastNbars[feature] for feature in features if feature in lastNbars])
+                combined_live_data = np.column_stack([bar_data, indicator_data])
+            else:
+                combined_live_data = indicator_data
+            combined_live_data = scalerX.transform(combined_live_data)
+            combined_live_data = np.array(combined_live_data)
+            #converts to 3D array 
+            # 1 number of samples in the array.
+            # 2 represents the sequence length.
+            # 3 represents the number of features in the data.
+            combined_live_data = combined_live_data.reshape((1, seq, combined_live_data.shape[1]))
+            #prediction = model.predict(combined_live_data, verbose=0)
+            prediction = model(combined_live_data, training=False)
+
+            # Convert the prediction back to the original scale
+            return float(scalerY.inverse_transform(prediction))
+
+        def model(params):
+            funcName = "model"
+            if params is None:
+                return -2, "params required"
+            name = safe_get(params, "name", None)
+            seq = safe_get(params, "seq", None)
+            use_bars = safe_get(params, "use_bars", True)
+            if seq is not None and len(state.bars["close"])< seq:
+                return 0, 0
+                #return -2, f"too soon - not enough data for seq {seq=}"
+            features = safe_get(params, "features", None)
+            if name is None or features is None:
+                return -2, "name/features required"
+            
+            #zajistime poradi - jako v modelu (tbd presunout do sdileneho objektu s treningem)
+            features.sort()
+            #cas na prvnim miste
+            if "time" in features:
+                features.remove("time")
+                features.insert(0, "time")
+
+            if not name in state.vars.loaded_models:
+                return -2, "model not loaded"
+
+            if not name in state.vars.loaded_scalersX and not name in state.vars.loaded_scalersY:
+                return -2, "scaler X or Y not loaded"
+
+            try:
+                return 0, get_model_prediction(state.vars.loaded_models[name],state.vars.loaded_scalersX[name],state.vars.loaded_scalersY[name],features,seq, use_bars)
+            except Exception as e:
+                printanyway(str(e)+format_exc())
+                return -2, str(e)+format_exc()
+
 
         #indicator allowing to be based on any bar parameter (index, high,open,close,trades,volume, etc.)
         def barparams(params):
@@ -2096,7 +2168,15 @@ def init(state: StrategyState):
                         #pro typ custom inicializujeme promenne
                         state.vars.indicators[indname]["last_run_time"] = None
                         state.vars.indicators[indname]["last_run_index"] = None
-
+                if option == "subtype":
+                    if value == "model":
+                        #load the model
+                        modelname = safe_get(indsettings["cp"], 'name', None)
+                        if modelname is not None:
+                            state.vars.loaded_models[modelname] =  load(DATA_DIR+'/'+ modelname +'.pkl')
+                            state.vars.loaded_scalersX[modelname] = load(DATA_DIR+'/'+ modelname +'scalerX.pkl')
+                            state.vars.loaded_scalersY[modelname] = load(DATA_DIR+'/'+ modelname +'scalerY.pkl')
+                            printanyway(f"model {modelname} and scalers loaded")
 
     #TODO hlavne tedy do INITu dat exit dict, ty jsou evaluovane kazdy tick
     def intialize_directive_conditions():
@@ -2207,7 +2287,10 @@ def init(state: StrategyState):
     state.vars.limitka_price=0
     state.vars.jevylozeno=0
     state.vars.blockbuy = 0
-
+    #models
+    state.vars.loaded_models = {}
+    state.vars.loaded_scalersX = {}
+    state.vars.loaded_scalersY = {}
     #state.cbar_indicators['ivwap'] = []
     state.cbar_indicators['tick_price'] = []
     state.cbar_indicators['tick_volume'] = []

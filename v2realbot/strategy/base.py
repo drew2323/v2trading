@@ -431,6 +431,11 @@ class Strategy:
         if self.rtqueue is not None:
                 self.rtqueue.put("break")
 
+        #get rid of attributes that are links to the models
+        self.state.vars["loaded_models"] = {}
+        self.state.vars["loaded_scalersX"] = {}
+        self.state.vars["loaded_scalersY"] = {}
+
         #zavolame na loaderu remove streamer - mohou byt dalsi bezici strategie, ktery loader vyuzivaji
         #pripadne udelat shared loader a nebo dedicated loader
         #pokud je shared tak volat remove

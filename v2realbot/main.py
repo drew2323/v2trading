@@ -292,6 +292,8 @@ def migrate():
             conn.row_factory = None
             pool.release_connection(conn)  
             open(lock_file, 'w').close()
+
+            return 0
              
         # res, set =cs.migrate_archived_runners()
         # if res == 0:

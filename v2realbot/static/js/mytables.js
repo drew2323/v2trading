@@ -45,7 +45,7 @@ $(document).ready(function () {
 
     //incialize TOML LANGUAGE IN MONACO
     // require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.43.0/min/vs' }});
-    require.config({ paths: { 'vs': '/static/js/libs' }});
+    require.config({ paths: { 'vs': '/static/js/libs/monaco/vs' }});
 
     require(["vs/editor/editor.main"], () => {
 

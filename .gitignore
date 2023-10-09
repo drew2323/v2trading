@@ -39,3 +39,7 @@ v2realbot/static/.DS_Store
 v2realbot/static/js/.DS_Store
 v2realbot/static/js/libs/.DS_Store
 v2realbot/strategyblocks/activetrade/.DS_Store
+v2realbot/__pycache__/config.cpython-310.pyc
+.gitignore
+v2realbot/enums/__pycache__/enums.cpython-310.pyc
+v2realbot/common/__pycache__/model.cpython-310.pyc

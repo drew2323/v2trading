@@ -1,13 +1,10 @@
 import os,sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from v2realbot.enums.enums import Mode, Account
 from v2realbot.config import WEB_API_KEY, DATA_DIR
 from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from datetime import datetime
-#from icecream import install, ic
 import os
 from rich import print
-from threading import current_thread
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import APIKeyHeader
 import uvicorn
@@ -16,7 +13,7 @@ import v2realbot.controller.services as cs
 from v2realbot.utils.ilog import get_log_window
 from v2realbot.common.model import StrategyInstance, RunnerView, RunRequest, Trade, RunArchive, RunArchiveDetail, Bar, RunArchiveChange, TestList, ConfigItem
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status, WebSocketException, Cookie, Query
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from typing import Annotated
@@ -286,20 +283,22 @@ def migrate():
         try:
             conn.row_factory = lambda c, r: json.loads(r[0])
             c = conn.cursor()
-            res = c.execute(f'CREATE TABLE "runner_header" ("runner_id"	varchar(32) NOT NULL,"data"	json NOT NULL, PRIMARY KEY("runner_id"))')
+            statement = f'ALTER TABLE "runner_header" ADD COLUMN "batch_id"	TEXT'
+            res = c.execute(statement)
             print(res)
             print("table created")
             conn.commit()
         finally:
             conn.row_factory = None
             pool.release_connection(conn)  
-             
-        res, set =cs.migrate_archived_runners()
-        if res == 0:
             open(lock_file, 'w').close()
-            return set
-        else:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No data found")
+             
+        # res, set =cs.migrate_archived_runners()
+        # if res == 0:
+        #     open(lock_file, 'w').close()
+        #     return set
+        # else:
+        #     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No data found")
 
 
     else:

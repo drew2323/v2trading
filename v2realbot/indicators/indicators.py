@@ -23,6 +23,13 @@ def natr(data_high, data_low, data_close, period: int = 5):
     natr = ti.natr(data_high, data_low, data_close, period=period)
     return natr
 
+def atr(data_high, data_low, data_close, period: int = 5):
+    data_high = convert_to_numpy(data_high)
+    data_low = convert_to_numpy(data_low)
+    data_close = convert_to_numpy(data_close)
+    atr = ti.atr(data_high, data_low, data_close, period=period)
+    return atr
+
 def ema(data, period: int = 50, use_series=False):
     if check_series(data):
         use_series = True

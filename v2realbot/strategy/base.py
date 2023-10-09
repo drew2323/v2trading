@@ -118,14 +118,25 @@ class Strategy:
             self.state = StrategyState(name=self.name, symbol = self.symbol, stratvars = self.stratvars, interface=self.interface, rectype=self.rectype, runner_id=self.runner_id, ilog_save=self.ilog_save)
 
         elif mode == Mode.BT:
+
             self.dataloader = Trade_Offline_Streamer(start, end, btdata=self.btdata)
             self.bt = Backtester(symbol = self.symbol, order_fill_callback= self.order_updates, btdata=self.btdata, cash=cash, bp_from=start, bp_to=end)
+            
             self.interface = BacktestInterface(symbol=self.symbol, bt=self.bt)
             self.state = StrategyState(name=self.name, symbol = self.symbol, stratvars = self.stratvars, interface=self.interface, rectype=self.rectype, runner_id=self.runner_id, bt=self.bt, ilog_save=self.ilog_save)
             self.order_notifs = None
+            
             ##streamer bude plnit trady do listu trades - nad kterym bude pracovat paper trade
             #zatim takto - pak pripadne do fajlu nebo jinak OPTIMALIZOVAT
             self.dataloader.add_stream(TradeAggregator2List(symbol=self.symbol,btdata=self.btdata,rectype=RecordType.TRADE))
+        elif mode == Mode.PREP:
+            #bt je zde jen pro udrzeni BT casu v logu atp. JInak jej nepouzivame.
+            self.bt = Backtester(symbol = self.symbol, order_fill_callback= self.order_updates, btdata=self.btdata, cash=cash, bp_from=start, bp_to=end)
+            self.interface = None
+            #self.interface = BacktestInterface(symbol=self.symbol, bt=self.bt)
+            self.state = StrategyState(name=self.name, symbol = self.symbol, stratvars = self.stratvars, interface=self.interface, rectype=self.rectype, runner_id=self.runner_id, bt=self.bt, ilog_save=self.ilog_save)
+            self.order_notifs = None        
+        
         else:
             print("unknow mode")
             return -1
@@ -271,7 +282,7 @@ class Strategy:
             self.state.last_trade_time = item['updated']
         elif self.rectype == RecordType.TRADE:
             self.state.last_trade_time = item['t']
-        if self.mode == Mode.BT:
+        if self.mode == Mode.BT or self.mode == Mode.PREP:
             self.bt.time = self.state.last_trade_time + BT_DELAYS.trigger_to_strat
             self.state.time = self.state.last_trade_time + BT_DELAYS.trigger_to_strat
         elif self.mode == Mode.LIVE or self.mode == Mode.PAPER:
@@ -319,7 +330,11 @@ class Strategy:
 
         self.save_item_history(item)
         #nevyhodit ten refresh do TypeLimit? asi ANO
-        self.refresh_positions(item)
+
+        #pro prep nedelame refresh pozic
+        if self.mode != Mode.PREP:
+            self.refresh_positions(item)
+
         #calling plugin (can be overriden to do some additional steps)
         self.before_iteration()
         ted = datetime.fromtimestamp(self.state.time).astimezone(zoneNY)
@@ -331,11 +346,16 @@ class Strategy:
             # Profile the function
             if PROFILING_NEXT_ENABLED:
                 profiler.start()
-            self.next(item, self.state)
+            #presunuti do samostatne funkce, kvuli overridu
+            self.call_next(item)
             if PROFILING_NEXT_ENABLED:
                 profiler.stop()
             self.after_iteration(item)
-            
+
+    #toto si mohu ve strategy classe overridnout a pridat dalsi kroky
+    def call_next(self, item):
+        self.next(item, self.state)
+
     ##run strategy live
     def start(self):
         
@@ -349,12 +369,12 @@ class Strategy:
         if self.mode == Mode.LIVE or self.mode == Mode.PAPER:
             #live notification thread
             self.order_notifs.start()
-        else:
+        elif self.mode == Mode.BT or self.mode == Mode.PREP:
             self.bt.backtest_start = datetime.now()
 
         self.strat_init()
         #print(self.init)
-        self.init(self.state)
+
         
         #main strat loop
         print(self.name, "Waiting for DATA")
@@ -433,8 +453,6 @@ class Strategy:
 
         #get rid of attributes that are links to the models
         self.state.vars["loaded_models"] = {}
-        self.state.vars["loaded_scalersX"] = {}
-        self.state.vars["loaded_scalersY"] = {}
 
         #zavolame na loaderu remove streamer - mohou byt dalsi bezici strategie, ktery loader vyuzivaji
         #pripadne udelat shared loader a nebo dedicated loader
@@ -494,7 +512,7 @@ class Strategy:
 
     # inicializace poplatna typu strategie (např. u LIMITu dotažení existující limitky)
     def strat_init(self):
-        pass
+        self.init(self.state)
 
     def send_rt_updates(self, item):
         ##if real time chart is requested
@@ -699,7 +717,7 @@ class StrategyState:
             self.time = datetime.now().timestamp()
 
         #pri backtestingu logujeme BT casem (muze byt jiny nez self.time - napr. pri notifikacich a naslednych akcích)
-        if self.mode == Mode.BT:
+        if self.mode == Mode.BT or self.mode == Mode.PREP:
             time = self.bt.time
         else:
             time = self.time

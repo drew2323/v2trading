@@ -340,6 +340,7 @@ def get_testlist_byID(record_id: str):
 
 #volano pro batchove spousteni (BT,)
 def run_batch_stratin(id: UUID, runReq: RunRequest):
+    #pozor toto je test interval id (batch id se pak generuje pro kazdy davkovy run tohoto intervalu)
     if runReq.test_batch_id is None:
         return (-1, "batch_id required for batch run")
     
@@ -376,6 +377,7 @@ def batch_run_manager(id: UUID, runReq: RunRequest, testlist: TestList):
     #taky budu mit nejaky konfiguracni RUN MANAGER, tak by krome rizeniho denniho runu
     #mohl podporovat i BATCH RUNy.
     batch_id = str(uuid4())[:8]
+    runReq.batch_id = batch_id
     print("generated batch_ID", batch_id)
 
     print("test batch", testlist)
@@ -490,6 +492,7 @@ def run_stratin(id: UUID, runReq: RunRequest, synchronous: bool = False, inter_b
                 #id runneru je nove id, stratin se dava dalsiho parametru
                 runner = Runner(id = id,
                         strat_id = i.id,
+                        batch_id = runReq.batch_id,
                         run_started = datetime.now(zoneNY),
                         run_pause_ev = pe,
                         run_name = name,
@@ -647,6 +650,9 @@ def archive_runner(runner: Runner, strat: StrategyInstance, inter_batch_params: 
             bp_from = None
             bp_to = None
 
+        #get rid of attributes that are links to the models
+        strat.state.vars["loaded_models"] = {}
+
         settings = dict(resolution=strat.state.timeframe,
                         rectype=strat.state.rectype,
                         configs=dict(
@@ -671,6 +677,7 @@ def archive_runner(runner: Runner, strat: StrategyInstance, inter_batch_params: 
 
         runArchive: RunArchive = RunArchive(id = runner.id,
                                             strat_id = runner.strat_id,
+                                            batch_id = runner.batch_id,
                                             name=runner.run_name,
                                             note=runner.run_note,
                                             symbol=runner.run_symbol,
@@ -787,12 +794,26 @@ def get_archived_runner_header_byID(id: UUID):
     else:
         return 0, res
 
+#vrátí seznam runneru s danym batch_id
+def get_archived_runnerslist_byBatchID(batch_id: str):
+    conn = pool.get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(f"SELECT runner_id FROM runner_header WHERE batch_id='{str(batch_id)}'")
+        runner_list = [row[0] for row in cursor.fetchall()]
+    finally:
+        pool.release_connection(conn)
+    return 0, runner_list
+    
 def insert_archive_header(archeader: RunArchive):
     conn = pool.get_connection()
     try:
         c = conn.cursor()
         json_string = json.dumps(archeader, default=json_serial)
-        statement = f"INSERT INTO runner_header VALUES ('{str(archeader.id)}','{json_string}')"
+        if archeader.batch_id is not None:
+            statement = f"INSERT INTO runner_header (runner_id, batch_id, data)  VALUES ('{str(archeader.id)}','{str(archeader.batch_id)}','{json_string}')"
+        else:
+            statement = f"INSERT INTO runner_header (runner_id, data) VALUES ('{str(archeader.id)}','{json_string}')"
         res = c.execute(statement)
         conn.commit()
     finally:
@@ -912,6 +933,17 @@ def get_archived_runner_details_byID(id: UUID):
         return -2, "not found"
     else:
         return 0, res
+
+def update_archive_detail(id: UUID, archdetail: RunArchiveDetail):
+    conn = pool.get_connection()
+    try:
+        c = conn.cursor()
+        json_string = json.dumps(archdetail, default=json_serial)
+        res = c.execute(f"UPDATE runner_detail SET data = '{json_string}' WHERE runner_id='{str(id)}'")
+        conn.commit()
+    finally:
+        pool.release_connection(conn)
+    return res.rowcount
 
 def insert_archive_detail(archdetail: RunArchiveDetail):
     conn = pool.get_connection()

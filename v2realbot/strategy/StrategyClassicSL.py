@@ -15,7 +15,7 @@ from alpaca.common.exceptions import APIError
 import copy
 from threading import Event
 from uuid import UUID, uuid4
-
+from v2realbot.strategyblocks.indicators.indicators_hub import populate_all_indicators
 
 class StrategyClassicSL(Strategy):
     """
@@ -229,6 +229,18 @@ class StrategyClassicSL(Strategy):
         self.state.buy = self.buy
         self.state.sell = self.sell
 
+        self.init(self.state)
+
+    def call_next(self, item):
+        #MAIN INDICATORS
+        populate_all_indicators(item, self.state)
+        
+        #pro přípravu dat next nevoláme
+        if self.mode == Mode.PREP:
+            return
+        else:
+            self.next(item, self.state)
+
     #overidden methods
     # pouziva se pri vstupu long nebo exitu short
     # osetrit uzavreni s vice nez mam
@@ -279,12 +291,3 @@ class StrategyClassicSL(Strategy):
         #self.state.ilog(e="send MARKET SELL to if", msg="S:"+str(size), ltp=self.state.interface.get_last_price(self.state.symbol))
         self.state.ilog(e="send MARKET SELL to if", msg="S:"+str(size), ltp=self.state.bars['close'][-1])
         return self.state.interface.sell(size=size)
-
-    async def get_limitka_price(self):
-        def_profit = safe_get(self.state.vars, "def_profit") 
-        if def_profit == None: def_profit = self.state.vars.profit
-        cena = float(self.state.avgp)
-        if await self.is_defensive_mode():
-            return price2dec(cena+get_tick(cena,float(def_profit)))
-        else:
-            return price2dec(cena+get_tick(cena,float(self.state.vars.profit)))

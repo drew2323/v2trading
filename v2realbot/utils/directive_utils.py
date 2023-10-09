@@ -19,6 +19,10 @@ def get_conditions_from_configuration(action: str, section: dict):
     
     for indname, condition in section.items():
         #prvnim je vzdy indikator na ktery se direktiva odkazuje, tzn. projedeme vsechny tyto indikatory
+
+        # #pokud je zde neco jineho nez dict, tak ignorujeme
+        if not isinstance(condition, dict):
+            continue
         for directive, value in condition.items():
             if directive.startswith(action):
                 reslist["OR"].append((indname, directive, value))

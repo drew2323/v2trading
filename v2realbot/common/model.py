@@ -1,5 +1,5 @@
-from uuid import UUID, uuid4
-from alpaca.trading.enums import OrderSide, OrderStatus, TradeEvent, OrderClass, OrderType, TimeInForce
+from uuid import UUID
+from alpaca.trading.enums import OrderSide, OrderStatus, TradeEvent,OrderType
 #from utils import AttributeDict
 from rich import print
 from typing import Any, Optional, List, Union
@@ -23,6 +23,7 @@ from alpaca.data.enums import Exchange
 #  user.roles = user_update.roles
 #  return user.id
 #  raise HTTPException(status_code=404, detail=f"Could not find user with id: {id}")
+
 
 # Define a Pydantic model for input data
 class ConfigItem(BaseModel):
@@ -78,7 +79,10 @@ class RunRequest(BaseModel):
     ilog_save: bool = False
     bt_from: datetime = None
     bt_to: datetime = None
+    #id testovaciho intervalu TODO prejmenovat
     test_batch_id: Optional[str] = None
+    #GENERATED ID v ramci runu, vaze vsechny runnery v batchovem behu
+    batch_id: Optional[str] = None
     cash: int = 100000
 
 
@@ -103,6 +107,7 @@ class RunnerView(BaseModel):
 class Runner(BaseModel):
     id: UUID
     strat_id: UUID
+    batch_id: Optional[str] = None
     run_started: Optional[datetime] = None
     run_mode: Mode
     run_account: Account
@@ -190,6 +195,7 @@ class RunArchive(BaseModel):
     id: UUID
     #id of running strategy (stratin/runner)
     strat_id: UUID
+    batch_id: Optional[str] = None
     symbol: str
     name: str
     note: Optional[str] = None

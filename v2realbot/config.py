@@ -4,6 +4,8 @@ from appdirs import user_data_dir
 
 #TODO vybrane dat do config db a managovat pres GUI
 
+OFFLINE_MODE = False
+
 #ilog lvls = 0,1 - 0 debug, 1 info
 ILOG_SAVE_LEVEL_FROM  = 1
 
@@ -118,3 +120,5 @@ class KW:
     reverse: str = "reverse"
     #exitaddsize: str = "exitaddsize"
     slreverseonly: str = "slreverseonly"
+    #klicove slovo pro Indikatory
+    change_val: str = "change_val"

@@ -75,8 +75,8 @@ if res == 0:
 else:
     print("error",res,sada)
 
-bars = sada["bars"]
-indicators = sada["indicators"][0]
+# bars = sada["bars"]
+# indicators = sada["indicators"][0]
 
 # Zakladni nastaveni
 testlist_id = ""
@@ -86,11 +86,11 @@ indicator_features = ['samebarslope', 'fastslope','fsdelta', 'fastslope2', 'fsde
 features = ["time","high","low","volume","open","close", "trades", "vwap","samebarslope", "fastslope","fsdelta", "fastslope2", "fsdelta2"]
 #TODO toto je linearni prediction mod, dodelat podporu BINARY
 #u binary bude target bud hotovy indikator a nebo jej vytvorit on the fly
-target = 'vwap'
+target = 'close'
 #predict how many bars in the future
 target_steps = 5
 name = "model1"
-seq = 10
+seq = 2
 epochs = 500
 
 features.sort()

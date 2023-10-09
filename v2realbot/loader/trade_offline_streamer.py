@@ -2,14 +2,14 @@ from v2realbot.loader.aggregator import TradeAggregator, TradeAggregator2List, T
 from alpaca.trading.requests import GetCalendarRequest
 from alpaca.trading.client import TradingClient
 from alpaca.data.live import StockDataStream
-from v2realbot.config import ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, DATA_DIR
+from v2realbot.config import ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, DATA_DIR, OFFLINE_MODE
 from alpaca.data.enums import DataFeed
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockLatestQuoteRequest, StockBarsRequest, StockTradesRequest
 from threading import Thread, current_thread
 from v2realbot.utils.utils import parse_alpaca_timestamp, ltp, zoneNY, print
 from v2realbot.utils.tlog import tlog
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from threading import Thread
 import asyncio
 from msgpack.ext import Timestamp
@@ -19,7 +19,7 @@ import pickle
 import os
 from rich import print
 import queue
-
+from alpaca.trading.models import Calendar
 """
     Trade offline data streamer, based on Alpaca historical data.
 """
@@ -98,10 +98,16 @@ class Trade_Offline_Streamer(Thread):
         #REFACTOR STARTS HERE
         #print(f"{self.time_from=} {self.time_to=}")
               
-        calendar_request = GetCalendarRequest(start=self.time_from,end=self.time_to)
-        cal_dates = self.clientTrading.get_calendar(calendar_request)
-        #ic(cal_dates)
-        #zatim podpora pouze main session
+        if OFFLINE_MODE:
+            #just one day - same like time_from
+            den = str(self.time_to.date())
+            bt_day = Calendar(date=den,open="9:30",close="16:00")
+            cal_dates = [bt_day]
+        else:
+            calendar_request = GetCalendarRequest(start=self.time_from,end=self.time_to)
+            cal_dates = self.clientTrading.get_calendar(calendar_request)
+            #ic(cal_dates)
+            #zatim podpora pouze main session
 
         #zatim podpora pouze 1 symbolu, predelat na froloop vsech symbolu ze symbpole
         #minimalni jednotka pro CACHE je 1 den - a to jen marketopen to marketclose (extended hours not supported yet)

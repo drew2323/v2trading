@@ -12,7 +12,7 @@ function get_status(id) {
         //window.alert(JSON.stringify(data))
         if (data.strat_id == id) {
             //window.alert("found");
-            if ((data.run_mode) == "backtest") { status_detail = '<span>'+data.run_mode+'</span>'}
+            if (((data.run_mode) == "backtest") || ((data.run_mode) == "prep")) { status_detail = '<span>'+data.run_mode+'</span>'}
             else { status_detail = data.run_mode + " | " + data.run_account}
             if (data.run_paused == null) {
                 status = '<span class="material-symbols-outlined">play_circle</span>'+status_detail
@@ -44,8 +44,9 @@ let editor;
 $(document).ready(function () {
 
     //incialize TOML LANGUAGE IN MONACO
-    require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.43.0/min/vs' }});
-            
+    // require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.43.0/min/vs' }});
+    require.config({ paths: { 'vs': '/static/js/libs' }});
+
     require(["vs/editor/editor.main"], () => {
 
         // Register the TOML language

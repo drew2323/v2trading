@@ -708,6 +708,7 @@ class StrategyState:
         #nova promenna pro externi data do ArchiveDetaili, napr. pro zobrazeni v grafu, je zde např. SL history
         self.extData = {}
         self.mode = None
+        self.wait_for_fill = None
     
     def ilog(self, e: str = None, msg: str = None, lvl: int = 1, **kwargs):
         if lvl < ILOG_SAVE_LEVEL_FROM:

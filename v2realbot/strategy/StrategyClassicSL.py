@@ -73,17 +73,31 @@ class StrategyClassicSL(Strategy):
 
         if data.event == TradeEvent.FILL or data.event == TradeEvent.PARTIAL_FILL:
 
+           #pokud jde o fill pred kterym je partail, muze se stat, ze uz budou vynulovany pozice, toto je pojistka
             #jde o uzavření short pozice - počítáme PROFIT
-            if int(self.state.positions) < 0:
+            if int(self.state.positions) < 0 or (int(self.state.positions) == 0 and self.state.wait_for_fill is not None):
+
+                if data.event == TradeEvent.PARTIAL_FILL and self.state.wait_for_fill is None:
+                    #timto si oznacime, ze po partialu s vlivem na PROFIT musime cekat na FILL a zaroven ukladame prum cenu, kterou potrebujeme na vypocet profitu u fillu
+                    self.state.wait_for_fill = float(self.state.avgp)
+
                 #PROFIT pocitame z TradeUpdate.price a TradeUpdate.qty - aktualne provedene mnozstvi a cena
                 #naklady vypocteme z prumerne ceny, kterou mame v pozicich
                 bought_amount = data.qty * data.price
-                #podle prumerne ceny, kolik stalo toto mnozstvi
-                avg_costs = float(self.state.avgp) * float(data.qty)
+                #podle prumerne vstupni ceny, kolik stalo toto mnozstvi
+                if float(self.state.avgp) > 0:
+                    vstup_cena = float(self.state.avgp)
+                elif float(self.state.avgp) == 0 and self.state.wait_for_fill is not None:
+                    vstup_cena = float(self.state.wait_for_fill)
+                else:
+                    vstup_cena = 0
+
+                avg_costs = vstup_cena * float(data.qty)
+                
                 if avg_costs == 0:
                     self.state.ilog(e="ERR: Nemame naklady na PROFIT, AVGP je nula. Zaznamenano jako 0", msg="naklady=utrzena cena. TBD opravit.")
                     avg_costs = bought_amount
-                
+
                 trade_profit = round((avg_costs-bought_amount),2)
                 self.state.profit += trade_profit
                 self.state.ilog(e=f"BUY notif - SHORT PROFIT:{round(float(trade_profit),3)} celkem:{round(float(self.state.profit),3)}", msg=str(data.event), bought_amount=bought_amount, avg_costs=avg_costs, trade_qty=data.qty, trade_price=data.price, orderid=str(data.order.id))
@@ -93,11 +107,16 @@ class StrategyClassicSL(Strategy):
                     if trade.id == self.state.vars.pending:
                         trade.last_update = datetime.fromtimestamp(self.state.time).astimezone(zoneNY)
                         trade.profit += trade_profit
+                        #pro ulozeni do tradeData scitame vsechen zisk z tohoto tradu (kvuli partialum)
+                        trade_profit = trade.profit
                         trade.profit_sum = self.state.profit
                         signal_name = trade.generated_by
+                        break
 
                 if data.event == TradeEvent.FILL:
-                #zapsat update profitu do tradeList
+                    #mazeme self.state.
+                    self.state.wait_for_fill = None
+                    #zapsat update profitu do tradeList
                     for tradeData in self.state.tradeList:
                         if tradeData.execution_id == data.execution_id:
                             #pridat jako attribut, aby proslo i na LIVE a PAPPER, kde se bere TradeUpdate z Alpaca
@@ -144,15 +163,31 @@ class StrategyClassicSL(Strategy):
     async def orderUpdateSell(self, data: TradeUpdate): 
 
         self.state.ilog(e="Příchozí SELL notif", msg=data.order.status, trade=json.loads(json.dumps(data, default=json_serial)))
+
         #naklady vypocteme z prumerne ceny, kterou mame v pozicich
         if data.event == TradeEvent.FILL or data.event == TradeEvent.PARTIAL_FILL:            
-            #jde o uzavření long pozice - počítáme PROFIT
-            if int(self.state.positions) > 0:
+
+           #pokud jde o fill pred kterym je partail, muze se stat, ze uz budou vynulovany pozice, toto je pojistka
+           #jde o uzavření long pozice - počítáme PROFIT
+            if int(self.state.positions) > 0 or (int(self.state.positions) == 0 and self.state.wait_for_fill is not None):
+
+                if data.event == TradeEvent.PARTIAL_FILL and self.state.wait_for_fill is None:
+                    #timto si oznacime, ze po partialu s vlivem na PROFIT musime cekat na FILL a zaroven ukladame prum cenu, kterou potrebujeme na vypocet profitu u fillu
+                    self.state.wait_for_fill = float(self.state.avgp)
+
                 #PROFIT pocitame z TradeUpdate.price a TradeUpdate.qty - aktualne provedene mnozstvi a cena
                 #naklady vypocteme z prumerne ceny, kterou mame v pozicich
                 sold_amount = data.qty * data.price
+                if float(self.state.avgp) > 0:
+                    vstup_cena = float(self.state.avgp)
+                elif float(self.state.avgp) == 0 and self.state.wait_for_fill is not None:
+                    vstup_cena = float(self.state.wait_for_fill)
+                else:
+                    vstup_cena = 0
+
                 #podle prumerne ceny, kolik stalo toto mnozstvi
-                avg_costs = float(self.state.avgp) * float(data.qty)
+                avg_costs = vstup_cena * float(data.qty)
+ 
                 if avg_costs == 0:
                     self.state.ilog(e="ERR: Nemame naklady na PROFIT, AVGP je nula. Zaznamenano jako 0", msg="naklady=utrzena cena. TBD opravit.")
                     avg_costs = sold_amount
@@ -166,10 +201,15 @@ class StrategyClassicSL(Strategy):
                     if trade.id == self.state.vars.pending:
                         trade.last_update = datetime.fromtimestamp(self.state.time).astimezone(zoneNY)
                         trade.profit += trade_profit
+                        #pro ulozeni do tradeData scitame vsechen zisk z tohoto tradu (kvuli partialum)
+                        trade_profit = trade.profit
                         trade.profit_sum = self.state.profit
                         signal_name = trade.generated_by
+                        break
 
                 if data.event == TradeEvent.FILL:
+                    #mazeme self.state.
+                    self.state.wait_for_fill = None
                     #zapsat update profitu do tradeList
                     for tradeData in self.state.tradeList:
                         if tradeData.execution_id == data.execution_id:

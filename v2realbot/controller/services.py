@@ -24,7 +24,8 @@ import pandas as pd
 from traceback import format_exc
 from datetime import timedelta, time
 from threading import Lock
-from v2realbot.common.db import pool
+from v2realbot.common.db import pool, execute_with_retry
+from sqlite3 import OperationalError
 #from pyinstrument import Profiler
 #adding lock to ensure thread safety of TinyDB (in future will be migrated to proper db)
 lock = Lock()
@@ -624,10 +625,10 @@ def populate_metrics_output_directory(strat: StrategyInstance, inter_batch_param
             res["profit"]["short_cnt"] = short_cnt          
             res["profit"]["long_profit"] = round(long_profit,2)
             res["profit"]["short_profit"] = round(short_profit,2)
-            res["profit"]["long_losses"] = round(long_losses,2)
-            res["profit"]["short_losses"] = round(short_losses,2)
             res["profit"]["long_wins"] = round(long_wins,2)
+            res["profit"]["long_losses"] = round(long_losses,2)
             res["profit"]["short_wins"] = round(short_wins,2)
+            res["profit"]["short_losses"] = round(short_losses,2)
             res["profit"]["max_profit"] = round(max_profit,2)
             res["profit"]["max_profit_time"] = str(max_profit_time)
             #vlozeni celeho listu
@@ -814,7 +815,8 @@ def insert_archive_header(archeader: RunArchive):
             statement = f"INSERT INTO runner_header (runner_id, batch_id, data)  VALUES ('{str(archeader.id)}','{str(archeader.batch_id)}','{json_string}')"
         else:
             statement = f"INSERT INTO runner_header (runner_id, data) VALUES ('{str(archeader.id)}','{json_string}')"
-        res = c.execute(statement)
+            
+        res = execute_with_retry(c,statement)
         conn.commit()
     finally:
         pool.release_connection(conn)
@@ -832,7 +834,7 @@ def edit_archived_runners(runner_id: UUID, archChange: RunArchiveChange):
                 c = conn.cursor()
                 json_string = json.dumps(archOriginal, default=json_serial)
                 statement = f"UPDATE runner_header SET data = '{json_string}' WHERE runner_id='{str(runner_id)}'"
-                res = c.execute(statement)
+                res = execute_with_retry(c,statement)
                 #print(res)
                 conn.commit()
             finally:
@@ -877,7 +879,8 @@ def delete_archive_header_byID(id: UUID):
     conn = pool.get_connection()
     try:
         c = conn.cursor()
-        res = c.execute(f"DELETE from runner_header WHERE runner_id='{str(id)}';")
+        statement=f"DELETE from runner_header WHERE runner_id='{str(id)}';"
+        res = execute_with_retry(c,statement)
         conn.commit()
         print("deleted", res.rowcount)
     finally:
@@ -892,7 +895,8 @@ def delete_archive_detail_byID(id: UUID):
     conn = pool.get_connection()
     try:
         c = conn.cursor()
-        res = c.execute(f"DELETE from runner_detail WHERE runner_id='{str(id)}';")
+        statement=f"DELETE from runner_detail WHERE runner_id='{str(id)}';"
+        res = execute_with_retry(c,statement)
         conn.commit()
         print("deleted", res.rowcount)
     finally:
@@ -939,7 +943,8 @@ def update_archive_detail(id: UUID, archdetail: RunArchiveDetail):
     try:
         c = conn.cursor()
         json_string = json.dumps(archdetail, default=json_serial)
-        res = c.execute(f"UPDATE runner_detail SET data = '{json_string}' WHERE runner_id='{str(id)}'")
+        statement = f"UPDATE runner_detail SET data = '{json_string}' WHERE runner_id='{str(id)}'"
+        res = execute_with_retry(c,statement)
         conn.commit()
     finally:
         pool.release_connection(conn)
@@ -950,7 +955,8 @@ def insert_archive_detail(archdetail: RunArchiveDetail):
     try:
         c = conn.cursor()
         json_string = json.dumps(archdetail, default=json_serial)
-        res = c.execute("INSERT INTO runner_detail VALUES (?,?)",[str(archdetail.id), json_string])
+        statement = f"INSERT INTO runner_detail VALUES ('{str(archdetail.id)}','{json_string}')"
+        res = execute_with_retry(c,statement)
         conn.commit()
     finally:
         pool.release_connection(conn)

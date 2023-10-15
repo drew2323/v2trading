@@ -54,7 +54,7 @@ var indConfig_default = [ {name: "ema", titlevisible: false, embed: true, displa
               {name: "ppo", titlevisible: true, embed: true, display: true, priceScaleId: "middle", lastValueVisible: false},
               {name: "stoch2", titlevisible: true, embed: true, display: true, priceScaleId: "middle", lastValueVisible: false},
               {name: "sec_price", titlevisible: true, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},]
-console.log(JSON.stringify(indConfig_default, null,null, 2))
+//console.log(JSON.stringify(indConfig_default, null,null, 2))
 
 
 function initialize_statusheader() {

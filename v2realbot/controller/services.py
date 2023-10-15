@@ -379,7 +379,7 @@ def run_batch_stratin(id: UUID, runReq: RunRequest):
             end_time = zoneNY.localize(datetime.fromisoformat(intrvl.end))
             cal_list.append(RunDay(start = start_time, end = end_time, note=intrvl.note, id=testlist.id))
 
-        print(f"Getting intervals - RESULT: {cal_list}")
+        print(f"Getting intervals - RESULT ({len(cal_list)}): {cal_list}")
         #sem getting dates
     else:
         #getting dates from calendat
@@ -415,7 +415,7 @@ def run_batch_stratin(id: UUID, runReq: RunRequest):
                     end_time = runReq.bt_to
             cal_list.append(RunDay(start = start_time, end = end_time))
 
-        print(f"Getting interval dates from - to - RESULT: {cal_list}")
+        print(f"Getting interval dates from - to - RESULT ({len(cal_list)}): {cal_list}")
 
 #spousti se vlakno s paralelnim behem a vracime ok
     ridici_vlakno = Thread(target=batch_run_manager, args=(id, runReq, cal_list), name=f"Batch run control thread started.")

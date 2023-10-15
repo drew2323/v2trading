@@ -6,20 +6,23 @@ from alpaca.data.requests import StockTradesRequest, StockBarsRequest
 from alpaca.data.enums import DataFeed
 from alpaca.data.timeframe import TimeFrame
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, OrderSide
-from v2realbot.common.model import StrategyInstance, Runner, RunRequest, RunArchive, RunArchiveDetail, RunArchiveChange, Bar, TradeEvent, TestList, Intervals, ConfigItem
+from v2realbot.common.model import RunDay, StrategyInstance, Runner, RunRequest, RunArchive, RunArchiveDetail, RunArchiveChange, Bar, TradeEvent, TestList, Intervals, ConfigItem
 from v2realbot.utils.utils import AttributeDict, zoneNY, dict_replace_value, Store, parse_toml_string, json_serial, is_open_hours, send_to_telegram
 from v2realbot.utils.ilog import delete_logs
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
 from datetime import datetime
 from threading import Thread, current_thread, Event, enumerate
-from v2realbot.config import STRATVARS_UNCHANGEABLES, ACCOUNT1_LIVE_API_KEY, ACCOUNT1_LIVE_SECRET_KEY, DATA_DIR,BT_FILL_CONS_TRADES_REQUIRED,BT_FILL_LOG_SURROUNDING_TRADES,BT_FILL_CONDITION_BUY_LIMIT,BT_FILL_CONDITION_SELL_LIMIT, GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN
+from v2realbot.config import STRATVARS_UNCHANGEABLES, ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, ACCOUNT1_LIVE_API_KEY, ACCOUNT1_LIVE_SECRET_KEY, DATA_DIR,BT_FILL_CONS_TRADES_REQUIRED,BT_FILL_LOG_SURROUNDING_TRADES,BT_FILL_CONDITION_BUY_LIMIT,BT_FILL_CONDITION_SELL_LIMIT, GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN
 import importlib
+from alpaca.trading.requests import GetCalendarRequest
+from alpaca.trading.client import TradingClient
+#from alpaca.trading.models import Calendar
 from queue import Queue
 from tinydb import TinyDB, Query, where
 from tinydb.operations import set
 import json
 from numpy import ndarray
-#from rich import print
+from rich import print
 import pandas as pd
 from traceback import format_exc
 from datetime import timedelta, time
@@ -339,38 +342,93 @@ def get_testlist_byID(record_id: str):
         return 0, TestList(id=row[0], name=row[1], dates=json.loads(row[2]))
 
 
+##TADY JSEM SKONCIL PROJIT - dodelat nastavni timezone
+#nejspis vse v RunDays by melo byt jiz lokalizovano na zoneNY
+#zaroven nejak vymyslet, aby bt_from/to uz bylo lokalizovano
+#ted jsem dal natvrdo v main rest lokalizaci
+#ale odtrasovat,ze vse funguje (nefunguje)
+
 #volano pro batchove spousteni (BT,)
 def run_batch_stratin(id: UUID, runReq: RunRequest):
-    #pozor toto je test interval id (batch id se pak generuje pro kazdy davkovy run tohoto intervalu)
-    if runReq.test_batch_id is None:
-        return (-1, "batch_id required for batch run")
-    
+    #pozor test_batch_id je test interval id (batch id se pak generuje pro kazdy davkovy run tohoto intervalu)
+    if runReq.test_batch_id is None and (runReq.bt_from is None or runReq.bt_from.date() == runReq.bt_to.date()):
+        return (-1, "test interval or different days required for batch run")
+
     if runReq.mode != Mode.BT:
         return (-1, "batch run only for backtest")
     
-    print("request values:", runReq)
+    #print("request values:", runReq)
 
-    print("getting intervals")
-    testlist: TestList
+    #getting days to run into RunDays format
+    if runReq.test_batch_id is not None:
+        print("getting intervals days")
+        testlist: TestList
 
-    res, testlist = get_testlist_byID(record_id=runReq.test_batch_id)
+        res, testlist = get_testlist_byID(record_id=runReq.test_batch_id)
 
-    if res < 0:
-        return (-1, f"not existing ID of testlists with {runReq.test_batch_id}")
+        if res < 0:
+            return (-1, f"not existing ID of testlists with {runReq.test_batch_id}")
+        
+        print("test interval:", testlist)
+
+        cal_list = []
+        #interval dame do formatu list(RunDays)
+        #TODO do budoucna predelat Interval na RunDays a na zone aware datetime
+        for intrvl in testlist.dates:
+            start_time = zoneNY.localize(datetime.fromisoformat(intrvl.start))
+            end_time = zoneNY.localize(datetime.fromisoformat(intrvl.end))
+            cal_list.append(RunDay(start = start_time, end = end_time, note=intrvl.note, id=testlist.id))
+
+        print(f"Getting intervals - RESULT: {cal_list}")
+        #sem getting dates
+    else:
+        #getting dates from calendat
+        clientTrading = TradingClient(ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, raw_data=False)
+        if runReq.bt_to is None:
+            runReq.bt_to = datetime.now().astimezone(zoneNY)
+        
+        calendar_request = GetCalendarRequest(start=runReq.bt_from,end=runReq.bt_to)
+        cal_dates = clientTrading.get_calendar(calendar_request)
+        #list(Calendar)
+        # Calendar
+        #     date: date
+        #     open: datetime
+        #     close: datetime
+        cal_list = []
+        for day in cal_dates:
+            start_time = zoneNY.localize(day.open)
+            end_time = zoneNY.localize(day.close)
+
+            #u prvni polozky
+            if day == cal_dates[0]:
+                #pokud je cas od od vetsi nez open marketu prvniho dne, pouzijeme tento pozdejis cas
+                if runReq.bt_from > start_time:
+                    start_time = runReq.bt_from
+
+            #u posledni polozky
+            if day == cal_dates[-1]:
+                #cas do, je pred openenem market, nedavame tento den
+                if runReq.bt_to < start_time:
+                    continue
+                #pokud koncovy cas neni do konce marketu, pouzijeme tento drivejsi namisto konce posledniho dne
+                if runReq.bt_to < end_time:
+                    end_time = runReq.bt_to
+            cal_list.append(RunDay(start = start_time, end = end_time))
+
+        print(f"Getting interval dates from - to - RESULT: {cal_list}")
 
 #spousti se vlakno s paralelnim behem a vracime ok
-    ridici_vlakno = Thread(target=batch_run_manager, args=(id, runReq, testlist), name=f"Batch run controll thread started.")
+    ridici_vlakno = Thread(target=batch_run_manager, args=(id, runReq, cal_list), name=f"Batch run control thread started.")
     ridici_vlakno.start()    
     print(enumerate())
 
     return 0, f"Batch run started"
 
-
 #thread, ktery bude ridit paralelni spousteni 
 # bud ceka na dokonceni v runners nebo to bude ridit jinak a bude mit jednoho runnera?
 # nejak vymyslet.
 # logovani zatim jen do print
-def batch_run_manager(id: UUID, runReq: RunRequest, testlist: TestList):
+def batch_run_manager(id: UUID, runReq: RunRequest, rundays: list[RunDay]):
     #zde muzu iterovat nad intervaly
     #cekat az dobehne jeden interval a pak spustit druhy
     #pripadne naplanovat beh - to uvidim
@@ -379,30 +437,21 @@ def batch_run_manager(id: UUID, runReq: RunRequest, testlist: TestList):
     #mohl podporovat i BATCH RUNy.
     batch_id = str(uuid4())[:8]
     runReq.batch_id = batch_id
+    print("Entering BATCH RUN MANAGER")
     print("generated batch_ID", batch_id)
 
-    print("test batch", testlist)
-
-    print("test date", testlist.dates)
-    interval: Intervals
-    cnt_max = len(testlist.dates)
+    cnt_max = len(rundays)
     cnt = 0
     #promenna pro sdileni mezi runy jednotlivych batchů (např. daily profit)
     inter_batch_params = dict(batch_profit=0)
     note_from_run_request = runReq.note
-    for intrvl in testlist.dates:
+    for day in rundays:
         cnt += 1
-        interval = intrvl
-        if interval.note is not None:
-            print("mame zde note")
-        print("Datum od", interval.start)
-        print("Datum do", interval.end)
-        print("starting")
-
-        #předání atributů datetime.fromisoformat
-        runReq.bt_from = datetime.fromisoformat(interval.start)
-        runReq.bt_to = datetime.fromisoformat(interval.end)
-        runReq.note = f"Batch {batch_id} #{cnt}/{cnt_max} {testlist.name} N:{interval.note} {note_from_run_request}"
+        print("Datum od", day.start)
+        print("Datum do", day.end)
+        runReq.bt_from = day.start
+        runReq.bt_to = day.end
+        runReq.note = f"Batch {batch_id} #{cnt}/{cnt_max} {day.name} N:{day.note} {note_from_run_request}"
 
         #protoze jsme v ridicim vlaknu, poustime za sebou jednotlive stratiny v synchronnim modu
         res, id_val = run_stratin(id=id, runReq=runReq, synchronous=True, inter_batch_params=inter_batch_params)
@@ -434,9 +483,9 @@ def run_stratin(id: UUID, runReq: RunRequest, synchronous: bool = False, inter_b
                     return (-1, "stratvars invalid")
                 res, adp = parse_toml_string(i.add_data_conf)
                 if res < 0:
-                    return (-1, "add data conf invalid") 
-                print("jsme uvnitr")
+                    return (-1, "add data conf invalid")
                 id = uuid4()
+                print(f"RUN {id} INITIATED")
                 name = i.name
                 symbol = i.symbol
                 open_rush = i.open_rush
@@ -1114,6 +1163,7 @@ def get_alpaca_history_bars(symbol: str, datetime_object_from: datetime, datetim
         #bars.data[symbol]
         return 0, result
     except Exception as e:
+        print(str(e) + format_exc())
         return -2, str(e)
 
 # change_archived_runner

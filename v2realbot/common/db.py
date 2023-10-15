@@ -2,7 +2,7 @@ from v2realbot.config import DATA_DIR
 import sqlite3
 import queue
 import threading
-from datetime import time
+import time
 
 sqlite_db_file = DATA_DIR + "/v2trading.db"
 # Define the connection pool
@@ -44,6 +44,7 @@ def execute_with_retry(cursor: sqlite3.Cursor, statement: str, retry_interval: i
             return cursor.execute(statement)
         except sqlite3.OperationalError as e:
             if str(e) == "database is locked":
+                print("database retry in 1s." + str(e))
                 time.sleep(retry_interval)
                 continue
             else:

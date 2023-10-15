@@ -408,6 +408,8 @@ qu = Queue()
 #zoneNY = tz.gettz('America/New_York')
 zoneNY = pytz.timezone('US/Eastern')
 
+zonePRG = pytz.timezone('Europe/Amsterdam')
+
 def print(*args, **kwargs):
     if QUIET_MODE:
         pass
@@ -567,8 +569,8 @@ def is_open_hours(dt, business_hours: dict = None):
            and dt.date() not in holidays \
            and business_hours["from"] <= dt.time() < business_hours["to"]
 
-#vraci zda dane pole je klesajici (bud cele a nebo jen pocet poslednich)
-def isfalling_old(pole: list, pocet: int = None):
+#vraci zda dane pole je klesajici (bud cele a nebo jen pocet poslednich) - no same values
+def isfallingc(pole: list, pocet: int = None):
     if pocet is None: pocet = len(pole)
     if len(pole)<pocet: return False
     pole = pole[-pocet:]
@@ -599,8 +601,8 @@ def isfalling(pole: list, pocet: int = None):
     res = all(i > j for i, j in zip(new_pole, new_pole[1:]))
     return res
 
-#vraci zda dane pole je roustouci (bud cele a nebo jen pocet poslednich)
-def isrising_old(pole: list, pocet: int = None):
+#vraci zda dane pole je roustouci (bud cele a nebo jen pocet poslednich) - no same values
+def isrisingc(pole: list, pocet: int = None):
     if pocet is None: pocet = len(pole)
     if len(pole)<pocet: return False
     pole = pole[-pocet:]

@@ -41,6 +41,23 @@ DATA_DIR = user_data_dir("v2realbot")
 PROFILING_NEXT_ENABLED = False
 PROFILING_OUTPUT_DIR = DATA_DIR
 
+#FILL CONFIGURATION CLASS FOR BACKTESTING
+
+#WIP 
+class BT_FILL_CONF:
+    """"
+    Trida pro konfiguraci backtesting fillu pro dany symbol, pokud neexistuje tak fallback na obecny viz vyse-
+
+    MOžná udělat i separátní profil PAPER/LIVE. Nějak vymyslet profily a jejich správa.
+    """
+    def __init__(self, symbol, BT_FILL_CONS_TRADES_REQUIRED, BT_FILL_CONDITION_BUY_LIMIT, BT_FILL_CONDITION_SELL_LIMIT,BT_FILL_PRICE_MARKET_ORDER_PREMIUM):
+        self.symbol = symbol
+        self.BT_FILL_CONS_TRADES_REQUIRED = BT_FILL_CONS_TRADES_REQUIRED
+        self.BT_FILL_CONDITION_BUY_LIMIT=BT_FILL_CONDITION_BUY_LIMIT
+        self.BT_FILL_CONDITION_SELL_LIMIT=BT_FILL_CONDITION_SELL_LIMIT
+        self.BT_FILL_PRICE_MARKET_ORDER_PREMIUM=BT_FILL_PRICE_MARKET_ORDER_PREMIUM
+
+
 """"
 LATENCY DELAYS for LIVE eastcoast
 .000 trigger - last_trade_time (.4246266)

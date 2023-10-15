@@ -24,7 +24,7 @@ from queue import Queue, Empty
 from threading import Thread
 import asyncio
 from v2realbot.common.db import insert_queue, insert_conn, pool
-from v2realbot.utils.utils import json_serial, send_to_telegram
+from v2realbot.utils.utils import json_serial, send_to_telegram, zoneNY, zonePRG
 from uuid import uuid4
 from sqlite3 import OperationalError
 from time import sleep
@@ -226,7 +226,14 @@ def _get_stratin(stratin_id) -> StrategyInstance:
 @app.put("/stratins/{stratin_id}/run", dependencies=[Depends(api_key_auth)], status_code=status.HTTP_200_OK)
 def _run_stratin(stratin_id: UUID, runReq: RunRequest):
     #print(runReq)
-    if runReq.test_batch_id is not None:
+    if runReq.bt_from is not None:
+        runReq.bt_from = zonePRG.localize(runReq.bt_from)
+
+    if runReq.bt_to is not None:
+        runReq.bt_to = zonePRG.localize(runReq.bt_to)  
+    #pokud jedeme nad test intervaly anebo je požadováno více dní - pouštíme jako batch day by day
+    #do budoucna dát na FE jako flag
+    if runReq.test_batch_id is not None or (runReq.bt_from.date() != runReq.bt_to.date()):
         res, id = cs.run_batch_stratin(id=stratin_id, runReq=runReq)
     else:
         res, id = cs.run_stratin(id=stratin_id, runReq=runReq)

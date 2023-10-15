@@ -43,7 +43,7 @@ from v2realbot.common.model import TradeUpdate, Order
 #from rich import print
 import threading
 import asyncio
-from v2realbot.config import BT_DELAYS, DATA_DIR, BT_FILL_CONDITION_BUY_LIMIT, BT_FILL_CONDITION_SELL_LIMIT, BT_FILL_LOG_SURROUNDING_TRADES, BT_FILL_CONS_TRADES_REQUIRED
+from v2realbot.config import BT_DELAYS, DATA_DIR, BT_FILL_CONDITION_BUY_LIMIT, BT_FILL_CONDITION_SELL_LIMIT, BT_FILL_LOG_SURROUNDING_TRADES, BT_FILL_CONS_TRADES_REQUIRED,BT_FILL_PRICE_MARKET_ORDER_PREMIUM
 from v2realbot.utils.utils import AttributeDict, ltp, zoneNY, trunc, count_decimals, print
 from v2realbot.utils.tlog import tlog
 from v2realbot.enums.enums import FillCondition
@@ -311,6 +311,12 @@ class Backtester:
                     #ic(i)
                     fill_time = i[0]
                     fill_price = i[1]
+                    #přičteme MARKET PREMIUM z konfigurace (do budoucna mozna rozdilne pro BUY/SELL a nebo mozna z konfigurace pro dany itutl)
+                    if o.side == OrderSide.BUY:
+                        fill_price = fill_price + BT_FILL_PRICE_MARKET_ORDER_PREMIUM
+                    elif o.side == OrderSide.SELL:
+                        fill_price = fill_price - BT_FILL_PRICE_MARKET_ORDER_PREMIUM
+                    
                     print("FILL ",o.side,"MARKET at", fill_time, datetime.fromtimestamp(fill_time).astimezone(zoneNY), "cena", i[1])
                     break
         else:

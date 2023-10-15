@@ -298,6 +298,8 @@ function prepare_data(archRunner, timeframe_amount, timeframe_unit, archivedRunn
             //$("#statusStratvars").text(JSON.stringify(data.stratvars,null,2))
         },
         error: function(xhr, status, error) {
+            oneMinuteBars = null
+            chart_archived_run(archRunner, archivedRunnerDetail, oneMinuteBars);
             var err = eval("(" + xhr.responseText + ")");
             window.alert(JSON.stringify(xhr));
             console.log(JSON.stringify(xhr));
@@ -357,6 +359,7 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
 
     candlestickSeries = null
 
+    //v pripade, ze neprojde get bars, nastavit na intervals[0]
     switch_to_interval(intervals[1])
     chart.timeScale().fitContent();
 
@@ -963,11 +966,11 @@ function display_log(iterLogList, timestamp) {
 
             highlighted = (parseInt(logLine.time) == parseInt(timestamp)) ? "highlighted" : ""
             logcnt++;
-            row = '<div data-bs-toggle="collapse" class="'+ highlighted + '" onclick="set_timestamp(' + logLine.time + ')" data-bs-target="#rec'+logcnt+'">'+logLine.time + " " + logLine.event + ' - '+ (logLine.message == undefined ? "" : logLine.message) +'</div>'
+            row = '<div data-bs-toggle="collapse" class="'+ highlighted + ' shj-lang-log" onclick="set_timestamp(' + logLine.time + ')" data-bs-target="#rec'+logcnt+'">'+logLine.time + " " + logLine.event + ' - '+ (logLine.message == undefined ? "" : logLine.message) +'</div>'
             str_row = JSON.stringify(logLine.details, null, 2)
             //row_detail = '<div id="rec'+logcnt+'" data-toggle="collapse" data-target="#rec'+logcnt+'"class="collapse pidi"><pre>' + str_row + '</pre></div>'
 
-            row_detail = '<div id="rec'+logcnt+'" class="collapse pidi"><pre>' + str_row + '</pre></div>'
+            row_detail = '<div id="rec'+logcnt+'" class="collapse pidi shj-lang-log"><pre>' + str_row + '</pre></div>'
 
             var lines = document.getElementById('lines')
             var line = document.createElement('div')

@@ -33,18 +33,18 @@ def go_conditions_met(state, data, signalname: str, direction: TradeDirection):
     #dont_buy_above = value nebo hazev indikatoru
 
     #TESTUJEME SPECIFICKY DONT_GO - 
-    #u techto ma smysl pouze OR 
+    #jak OR tak i AND
     cond_dict = state.vars.conditions[KW.dont_go][signalname][smer]
     result, conditions_met = evaluate_directive_conditions(state, cond_dict, "OR")
-    state.ilog(lvl=1,e=f"SPECIFIC PRECOND {smer} {result}", **conditions_met, cond_dict=cond_dict)
+    state.ilog(lvl=1,e=f"SPECIFIC PRECOND =OR= {smer} {result}", **conditions_met, cond_dict=cond_dict)
     if result:
         return False
-    
-    # #OR neprosly testujeme AND
-    # result, conditions_met = evaluate_directive_conditions(cond_dict, "AND")
-    # state.ilog(lvl=0,e=f"EXIT CONDITIONS of activeTrade {smer} =AND= {result}", **conditions_met, cond_dict=cond_dict)
-    # if result:
-    #     return True
+
+    #OR neprosly testujeme AND
+    result, conditions_met = evaluate_directive_conditions(state, cond_dict, "AND")
+    state.ilog(lvl=1,e=f"SPECIFIC PRECOND =AND={smer} {result}", **conditions_met, cond_dict=cond_dict)
+    if result:
+        return False
 
     #tyto timto nahrazeny - dat do konfigurace (dont_short_when, dont_long_when)
     #dont_buy_when['rsi_too_high'] = state.indicators.RSI14[-1] > safe_get(state.vars, "rsi_dont_buy_above",50)
@@ -110,7 +110,7 @@ def common_go_preconditions_check(state, data, signalname: str, options: dict):
     if state.vars.last_exit_index is not None:
         index_to_compare = int(state.vars.last_exit_index)+int(next_signal_offset) 
         if index_to_compare > int(data["index"]):
-            state.ilog(lvl=1,e=f"NEXT SIGNAL OFFSET from EXIT {next_signal_offset} waiting - TOO SOON", currindex=data["index"], index_to_compare=index_to_compare, last_exit_index=state.vars.last_exit_index)
+            state.ilog(lvl=1,e=f"NEXT SIGNAL OFFSET from EXIT {next_signal_offset} waiting - TOO SOON {signalname}", currindex=data["index"], index_to_compare=index_to_compare, last_exit_index=state.vars.last_exit_index)
             return False
 
     # if is_open_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), open_rush) or is_close_rush(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), close_rush):

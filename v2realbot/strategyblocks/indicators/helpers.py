@@ -1,4 +1,4 @@
-from v2realbot.utils.utils import isrising, isfalling,zoneNY, price2dec, print, safe_get, is_still, is_window_open, eval_cond_dict, crossed_down, crossed_up, crossed, is_pivot, json_serial, pct_diff, create_new_bars, slice_dict_lists
+from v2realbot.utils.utils import isrising, isfalling,isfallingc, isrisingc, zoneNY, price2dec, print, safe_get, is_still, is_window_open, eval_cond_dict, crossed_down, crossed_up, crossed, is_pivot, json_serial, pct_diff, create_new_bars, slice_dict_lists
 from v2realbot.strategy.base import StrategyState
 from traceback import format_exc
 
@@ -9,13 +9,16 @@ from traceback import format_exc
 def value_or_indicator(state,value):
     #preklad direktivy podle typu, pokud je int anebo float - je to primo hodnota
     #pokud je str, jde o indikator a dotahujeme posledni hodnotu z nej
-        if isinstance(value, (int, float)):
+        if isinstance(value, (float, int)):
             return value
         elif isinstance(value, str):
             try:
                 #pokud existuje v indikatoru MA bereme MA jinak indikator, pokud neexistuje bereme bar 
                 ret = get_source_or_MA(state, indicator=value)[-1]
-                state.ilog(lvl=0,e=f"Pro porovnani bereme posledni hodnotu {ret} z indikatoru {value}")
+                lvl = 0
+                if ret == 0:
+                    lvl = 1
+                state.ilog(lvl=lvl,e=f"Pro porovnani bereme posledni hodnotu {ret} z indikatoru {value}")
             except Exception as e   :
                 ret = 0
                 state.ilog(lvl=1,e=f"Neexistuje indikator s nazvem {value} vracime 0" + str(e) + format_exc())
@@ -38,6 +41,8 @@ def evaluate_directive_conditions(state, work_dict, cond_type):
         "above": lambda ind, val: get_source_or_MA(state, ind)[-1] > value_or_indicator(state,val),
         "equals": lambda ind, val: get_source_or_MA(state, ind)[-1] == value_or_indicator(state,val),
         "below": lambda ind, val: get_source_or_MA(state, ind)[-1] < value_or_indicator(state,val),
+        "fallingc": lambda ind, val: isfallingc(get_source_or_MA(state, ind), val),
+        "risingc": lambda ind, val: isrisingc(get_source_or_MA(state, ind), val),
         "falling": lambda ind, val: isfalling(get_source_or_MA(state, ind), val),
         "rising": lambda ind, val: isrising(get_source_or_MA(state, ind), val),
         "crossed_down": lambda ind, val: buy_if_crossed_down(state, ind, value_or_indicator(state,val)),

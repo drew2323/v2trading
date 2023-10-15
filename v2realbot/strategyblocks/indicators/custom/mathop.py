@@ -15,13 +15,16 @@ def mathop(state, params):
 
     if source1 is None or source2 is None or operator is None:
         return -2, "required source1 source2 operator"
+    druhy = float(value_or_indicator(state, source2))
     if operator == "+":
-        val = round(float(source1_series[-1] + value_or_indicator(state, source2)),4)
+        val = round(float(source1_series[-1] + druhy),4)
     elif operator == "-":
-        val = round(float(source1_series[-1] - value_or_indicator(state, source2)),4)
+        val = round(float(source1_series[-1] - druhy),4)
+    elif operator == "*":
+        val = round(float(source1_series[-1] * druhy),4)    
     else:
         return -2, "unknow operator"
-    #state.ilog(lvl=0,e=f"INSIDE {funcName} {source1=} {source2=} {val}", **params)
+    state.ilog(lvl=1,e=f"INSIDE {funcName} {source1=} {source2=} {val} {druhy=}", **params)
     return 0, val
 
 

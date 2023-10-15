@@ -45,7 +45,7 @@ def execute_prescribed_trades(state: StrategyState, data):
             res = state.buy(size=size)
             if isinstance(res, int) and res < 0:
                 raise Exception(f"error in required operation LONG {res}")
-            #nastaveni SL az do notifikace, kdy je známá
+            #TODO nastaveni SL az do notifikace, kdy je známá
             #pokud neni nastaveno SL v prescribe, tak nastavuji default dle stratvars
             if state.vars.activeTrade.stoploss_value is None:
                 sl_defvalue = get_default_sl_value(state, direction=state.vars.activeTrade.direction)

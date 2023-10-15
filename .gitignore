@@ -43,3 +43,12 @@ v2realbot/__pycache__/config.cpython-310.pyc
 .gitignore
 v2realbot/enums/__pycache__/enums.cpython-310.pyc
 v2realbot/common/__pycache__/model.cpython-310.pyc
+v2realbot/__pycache__/config.cpython-310.pyc
+v2realbot/backtesting/__pycache__/backtester.cpython-310.pyc
+v2realbot/common/__pycache__/model.cpython-310.pyc
+v2realbot/enums/__pycache__/enums.cpython-310.pyc
+v2realbot/indicators/__pycache__/indicators.cpython-310.pyc
+v2realbot/loader/__pycache__/aggregator.cpython-310.pyc
+v2realbot/loader/__pycache__/trade_offline_streamer.cpython-310.pyc
+v2realbot/loader/__pycache__/trade_ws_streamer.cpython-310.pyc
+v2realbot/strategy/__pycache__/base.cpython-310.pyc

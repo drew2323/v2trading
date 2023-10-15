@@ -1,7 +1,7 @@
 
 from v2realbot.strategy.base import StrategyState
 from v2realbot.strategyblocks.indicators.cbar_price import populate_cbar_tick_price_indicator
-from v2realbot.strategyblocks.indicators.custom.custom_hub import populate_dynamic_custom_indicator
+from v2realbot.strategyblocks.indicators.custom_hub import populate_dynamic_custom_indicator
 from v2realbot.strategyblocks.indicators.slope import populate_dynamic_slope_indicator
 from v2realbot.strategyblocks.indicators.slopeLP import populate_dynamic_slopeLP_indicator
 from v2realbot.strategyblocks.indicators.ema import populate_dynamic_ema_indicator

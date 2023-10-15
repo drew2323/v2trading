@@ -63,27 +63,30 @@ def trail_SL_management(state: StrategyState, data):
             def_SL = get_override_for_active_trade(state=state, directive_name=directive_name, default_value=safe_get(options, directive_name, 0.01))
             directive_name = "SL_trailing_offset_"+str(smer)
             offset = get_override_for_active_trade(state=state, directive_name=directive_name, default_value=safe_get(options, directive_name, 0.01))
+            directive_name = "SL_trailing_step_"+str(smer)
+            step = get_override_for_active_trade(state=state, directive_name=directive_name, default_value=safe_get(options, directive_name, offset))
 
             #pokud je pozadovan trail jen do breakeven a uz prekroceno
             if (direction == TradeDirection.LONG and stop_breakeven and state.vars.activeTrade.stoploss_value >= float(state.avgp)) or (direction == TradeDirection.SHORT and stop_breakeven and state.vars.activeTrade.stoploss_value <= float(state.avgp)):
                 state.ilog(lvl=1,e=f"SL trail STOP at breakeven {str(smer)} SL:{state.vars.activeTrade.stoploss_value} UNCHANGED", stop_breakeven=stop_breakeven)
                 return
             
-            #IDEA: Nyni posouvame SL o offset, mozna ji posunout jen o direktivu step ?
+            #Aktivace SL pokud vystoupa na "offset", a nasledne posunuti o "step"
 
             offset_normalized = normalize_tick(state, data, offset) #to ticks and from options
+            step_normalized = normalize_tick(state, data, step)
             def_SL_normalized = normalize_tick(state, data, def_SL)
             if direction == TradeDirection.LONG:
                 move_SL_threshold = state.vars.activeTrade.stoploss_value + offset_normalized + def_SL_normalized
-                state.ilog(lvl=1,e=f"SL TRAIL EVAL {smer} SL:{round(state.vars.activeTrade.stoploss_value,3)} TRAILGOAL:{move_SL_threshold}", def_SL=def_SL, offset=offset, offset_normalized=offset_normalized, def_SL_normalized=def_SL_normalized)
+                state.ilog(lvl=1,e=f"SL TRAIL EVAL {smer} SL:{round(state.vars.activeTrade.stoploss_value,3)} TRAILGOAL:{move_SL_threshold}", def_SL=def_SL, offset=offset, offset_normalized=offset_normalized, step_normalized=step_normalized, def_SL_normalized=def_SL_normalized)
                 if (move_SL_threshold) < data['close']:
-                    state.vars.activeTrade.stoploss_value += offset_normalized
+                    state.vars.activeTrade.stoploss_value += step_normalized
                     insert_SL_history(state)
-                    state.ilog(lvl=1,e=f"SL TRAIL TH {smer} reached {move_SL_threshold} SL moved to {state.vars.activeTrade.stoploss_value}", offset_normalized=offset_normalized, def_SL_normalized=def_SL_normalized)
+                    state.ilog(lvl=1,e=f"SL TRAIL TH {smer} reached {move_SL_threshold} SL moved to {state.vars.activeTrade.stoploss_value}", offset_normalized=offset_normalized, step_normalized=step_normalized, def_SL_normalized=def_SL_normalized)
             elif direction == TradeDirection.SHORT:
                 move_SL_threshold = state.vars.activeTrade.stoploss_value - offset_normalized - def_SL_normalized
-                state.ilog(lvl=0,e=f"SL TRAIL EVAL {smer} SL:{round(state.vars.activeTrade.stoploss_value,3)} TRAILGOAL:{move_SL_threshold}", def_SL=def_SL, offset=offset, offset_normalized=offset_normalized, def_SL_normalized=def_SL_normalized)
+                state.ilog(lvl=0,e=f"SL TRAIL EVAL {smer} SL:{round(state.vars.activeTrade.stoploss_value,3)} TRAILGOAL:{move_SL_threshold}", def_SL=def_SL, offset=offset, offset_normalized=offset_normalized, step_normalized=step_normalized, def_SL_normalized=def_SL_normalized)
                 if (move_SL_threshold) > data['close']:
-                    state.vars.activeTrade.stoploss_value -= offset_normalized
+                    state.vars.activeTrade.stoploss_value -= step_normalized
                     insert_SL_history(state)
-                    state.ilog(lvl=1,e=f"SL TRAIL GOAL {smer} reached {move_SL_threshold} SL moved to {state.vars.activeTrade.stoploss_value}", offset_normalized=offset_normalized, def_SL_normalized=def_SL_normalized)                            
+                    state.ilog(lvl=1,e=f"SL TRAIL GOAL {smer} reached {move_SL_threshold} SL moved to {state.vars.activeTrade.stoploss_value}", offset_normalized=offset_normalized, step_normalized=step_normalized, def_SL_normalized=def_SL_normalized)                            

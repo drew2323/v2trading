@@ -35,6 +35,32 @@ def basestats(state, params):
         val = np.amax(source_array)
     elif func == "mean":
         val = np.mean(source_array)
+    elif func == "var":
+        data = np.array(source_array)
+        mean_value = np.mean(data)
+        # Calculate the variance of the data
+        val = np.mean((data - mean_value) ** 2)
+    elif func == "angle":
+        delka_pole = len(source_array)
+        if delka_pole < 2:
+            return 0,0
+
+        x = np.arange(delka_pole)
+        y = np.array(source_array)
+
+        # Fit a linear polynomial to the data
+        coeffs = np.polyfit(x, y, 1)
+
+        # Calculate the angle in radians angle_rad
+        val = np.arctan(coeffs[0]) * 1000
+
+        # Convert the angle to degrees angle_deg
+        #angle_deg = np.degrees(angle_rad)
+        
+        # Normalize the degrees between -1 and 1
+        #val = 2 * (angle_deg / 180) - 1
+    elif func =="stdev":
+        val = np.std(source_array)
     else:
         return -2, "wrong function"
 

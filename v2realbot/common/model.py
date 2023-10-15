@@ -24,6 +24,15 @@ from alpaca.data.enums import Exchange
 #  return user.id
 #  raise HTTPException(status_code=404, detail=f"Could not find user with id: {id}")
 
+class RunDay(BaseModel):
+    """
+    Helper object for batch run - carries list of days in format required by run batch manager
+    """
+    start: datetime
+    end: datetime
+    name: Optional[str] = None
+    note: Optional[str] = None
+    id: Optional[str] = None
 
 # Define a Pydantic model for input data
 class ConfigItem(BaseModel):

@@ -593,7 +593,8 @@ def populate_metrics_output_directory(strat: StrategyInstance, inter_batch_param
     WIP
     Spocte zakladni metriky pred ulozenim do archivu
 
-    1) zatim jen max pozice
+    Toto cele predelat nejak systemove v ramci systemoveho reportingu. Tato preliminary cast by mela umoznovat pridavat
+     a ukladat zakladni metriky, ktere me zajimaji ihned po skonceni runu.
     """
 
     tradeList = strat.state.tradeList
@@ -646,11 +647,16 @@ def populate_metrics_output_directory(strat: StrategyInstance, inter_batch_param
         short_wins = 0
         max_profit = 0
         max_profit_time = None
+        max_loss = 0
+        max_loss_time = None
         long_cnt = 0
         short_cnt = 0
 
         if "prescribedTrades" in strat.state.vars:
             for trade in strat.state.vars.prescribedTrades:
+                if trade.profit_sum < max_loss:
+                    max_loss = trade.profit_sum
+                    max_loss_time = trade.last_update
                 if trade.profit_sum > max_profit:
                     max_profit = trade.profit_sum
                     max_profit_time = trade.last_update
@@ -680,6 +686,8 @@ def populate_metrics_output_directory(strat: StrategyInstance, inter_batch_param
             res["profit"]["short_losses"] = round(short_losses,2)
             res["profit"]["max_profit"] = round(max_profit,2)
             res["profit"]["max_profit_time"] = str(max_profit_time)
+            res["profit"]["max_loss"] = round(max_loss,2)
+            res["profit"]["max_loss_time"] = str(max_loss_time)
             #vlozeni celeho listu
             res["prescr_trades"]=json.loads(json.dumps(strat.state.vars.prescribedTrades, default=json_serial))
 

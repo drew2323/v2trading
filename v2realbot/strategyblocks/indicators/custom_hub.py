@@ -5,21 +5,8 @@ from rich import print as printanyway
 from v2realbot.indicators.indicators import ema
 from traceback import format_exc
 import importlib
-
-#TODO TENTO IMPORT VYMYSLET, abych naloadoval package custom a nemusel nic pridat (vymyslet dynamicke volani z cele package ci)
-#from v2realbot.strategyblocks.indicators.custom._upscaled_rsi_wip import upscaledrsi
 import v2realbot.strategyblocks.indicators.custom as ci
-# from v2realbot.strategyblocks.indicators.custom.barparams import barparams
-# from v2realbot.strategyblocks.indicators.custom.basestats import basestats
-# from v2realbot.strategyblocks.indicators.custom.delta import delta
-# from v2realbot.strategyblocks.indicators.custom.divergence import divergence
-# from v2realbot.strategyblocks.indicators.custom.model import model
-# from v2realbot.strategyblocks.indicators.custom.opengap import opengap
-# from v2realbot.strategyblocks.indicators.custom.slope import slope
-# from v2realbot.strategyblocks.indicators.custom.conditional import conditional
-# from v2realbot.strategyblocks.indicators.custom.mathop import mathop
 
-# import v2realbot.strategyblocks.indicators.custom as ci
 
 def populate_dynamic_custom_indicator(data, state: StrategyState, name):
     ind_type = "custom"

@@ -692,6 +692,8 @@ class StrategyState:
         self.bars = AttributeDict(bars)
         self.trades = AttributeDict(trades)
         self.indicators = AttributeDict(time=[])
+        #pro mapping indikatoru pro pouziti v operation statementu
+        self.ind_mapping = {}
         self.cbar_indicators = AttributeDict(time=[])
         #secondary timeframe indicators
         #self.secondary_indicators = AttributeDict(time=[], sec_price=[])

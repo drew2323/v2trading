@@ -226,10 +226,10 @@ def _get_stratin(stratin_id) -> StrategyInstance:
 @app.put("/stratins/{stratin_id}/run", dependencies=[Depends(api_key_auth)], status_code=status.HTTP_200_OK)
 def _run_stratin(stratin_id: UUID, runReq: RunRequest):
     #print(runReq)
-    if runReq.bt_from is not None:
+    if runReq.bt_from is not None and runReq.bt_from.tzinfo is None:
         runReq.bt_from = zonePRG.localize(runReq.bt_from)
 
-    if runReq.bt_to is not None:
+    if runReq.bt_to is not None and runReq.bt_to.tzinfo is None:
         runReq.bt_to = zonePRG.localize(runReq.bt_to)  
     #pokud jedeme nad test intervaly anebo je požadováno více dní - pouštíme jako batch day by day
     #do budoucna dát na FE jako flag
@@ -376,6 +376,7 @@ def _get_archived_runner_log_byID(runner_id: UUID, timestamp_from: float, timest
 #get alpaca history bars
 @app.get("/history_bars/", dependencies=[Depends(api_key_auth)])
 def _get_alpaca_history_bars(symbol: str, datetime_object_from: datetime, datetime_object_to: datetime, timeframe_amount: int, timeframe_unit: TimeFrameUnit) -> list[Bar]:
+    print("Requested dates ",datetime_object_from,datetime_object_to)
     res, set =cs.get_alpaca_history_bars(symbol, datetime_object_from, datetime_object_to, TimeFrame(amount=timeframe_amount,unit=timeframe_unit))
     if res == 0:
         return set

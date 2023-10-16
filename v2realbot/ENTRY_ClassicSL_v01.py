@@ -117,6 +117,12 @@ def init(state: StrategyState):
     initialize_dynamic_indicators(state)
     intialize_directive_conditions(state)
 
+    #intitialize indicator mapping (for use in operation) -  mozna presunout do samostatne funkce prip dat do base kdyz se osvedci
+    local_dict_inds = {key: state.indicators[key] for key in state.indicators.keys() if key != "time"}
+    local_dict_bars = {key: state.bars[key] for key in state.bars.keys() if key != "time"}
+
+    state.ind_mapping = {**local_dict_inds, **local_dict_bars}
+    printanyway("IND MAPPING DONE:", state.ind_mapping)
 
 def main():
     name = os.path.basename(__file__)

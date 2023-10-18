@@ -1,3 +1,5 @@
+let editor_diff_stratin1
+let editor_diff_stratin2
 //on button
 function store_api_key(event) {
     key = document.getElementById("api-key").value;
@@ -40,7 +42,7 @@ function is_stratin_running(id) {
 
 function refresh_stratin_and_callback(row, callback) {
     var request = $.ajax({
-        url: "/stratin/"+row.id,
+        url: "/stratins/"+row.id,
         beforeSend: function (xhr) {
             xhr.setRequestHeader('X-API-Key',
             API_KEY); },
@@ -61,12 +63,11 @@ function refresh_stratin_and_callback(row, callback) {
     // Handling the responses of both requests
     $.when(request).then(function(response) {
         // Both requests have completed successfully
-        var result = response[0];
 
-        console.log("Result from first request:", result);
-        console.log("calling compare")
+        //console.log("Result from request:", result);
+        console.log("calling calbback")
         //call callback function
-        callback(result)
+        callback(response)
 
     }, function(error) {
         // Handle errors from either request here
@@ -377,6 +378,10 @@ $(document).ready(function () {
 
     //button compare stratin
     $('#button_compare').click(function () {
+        if (editor_diff_arch1) {editor_diff_arch1.dispose()}
+        if (editor_diff_stratin1) {editor_diff_stratin1.dispose()}
+        if (editor_diff_arch2) {editor_diff_arch2.dispose()}
+        if (editor_diff_stratin2) {editor_diff_stratin2.dispose()}
         window.$('#diffModal').modal('show');
         rows = stratinRecords.rows('.selected').data();
 
@@ -453,8 +458,8 @@ $(document).ready(function () {
             // rec1.script = rows[0].script;
             // rec1.open_rush = rows[0].open_rush;
             // rec1.close_rush = rows[0].close_rush;
-            rec1.stratvars_conf = TOML.parse(rec1.stratvars_conf);
-            rec1.add_data_conf = TOML.parse(rec1.add_data_conf);
+            //rec1.stratvars_conf = TOML.parse(rec1.stratvars_conf);
+            //rec1.add_data_conf = TOML.parse(rec1.add_data_conf);
             // rec1.note = rows[0].note;
             rec1.history = "";
         //jsonString1 = JSON.stringify(rec1, null, 2);
@@ -468,8 +473,8 @@ $(document).ready(function () {
             // rec2.script = rows[1].script;
             // rec2.open_rush = rows[1].open_rush;
             // rec2.close_rush = rows[1].close_rush;
-            rec2.stratvars_conf = TOML.parse(rec2.stratvars_conf);
-            rec2.add_data_conf = TOML.parse(rec2.add_data_conf);
+            //rec2.stratvars_conf = TOML.parse(rec2.stratvars_conf);
+            //rec2.add_data_conf = TOML.parse(rec2.add_data_conf);
             // rec2.note = rows[1].note;
             rec2.history = "";
             //jsonString2 = JSON.stringify(rec2, null, 2);
@@ -478,14 +483,53 @@ $(document).ready(function () {
             //document.getElementById('first').innerHTML = '<pre>'+JSON.stringify(rec1, null, 2)+'</pre>'
             $('#diff_first').text(rec1.name);
             $('#diff_second').text(rec2.name);
+            $('#diff_first_id').text(rec1.id);
+            $('#diff_second_id').text(rec2.id);
 
-            var delta = compareObjects(rec1, rec2)
-            const htmlMarkup2 = `<pre>{\n${generateHTML(rec2, delta)}}\n</pre>`;
-            document.getElementById('second').innerHTML = htmlMarkup2;
+            //monaco
+            require(["vs/editor/editor.main"], () => {
+                editor_diff_stratin = monaco.editor.createDiffEditor(document.getElementById('diff_content'),
+                    {
+                        language: 'toml',
+                        theme: 'tomlTheme-dark',
+                        originalEditable: false,
+                        automaticLayout: true
+                    }
+                );
+                //console.log("prga",rec1.stratvars_conf)
+                //console.log("druga", rec2.stratvars_conf)
+                editor_diff_stratin1.setModel({
+                    original: monaco.editor.createModel(rec1.stratvars_conf, 'toml'),
+                    modified: monaco.editor.createModel(rec2.stratvars_conf, 'toml'),
+                });
 
-            //var delta1 = compareObjects(rec2, rec1)
-            const htmlMarkup1 = `<pre>{\n${generateHTML(rec1, delta)}}\n</pre>`;
-            document.getElementById('first').innerHTML = htmlMarkup1;
+                editor_diff_stratin1.setModel({
+                    original: monaco.editor.createModel(rec1.add_data_conf, 'toml'),
+                    modified: monaco.editor.createModel(rec2.add_data_conf, 'toml'),
+                });
+                editor_diff_stratin2 = monaco.editor.createDiffEditor(document.getElementById('diff_content'),
+                    {
+                        language: 'toml',
+                        theme: 'tomlTheme-dark',
+                        originalEditable: false,
+                        automaticLayout: true
+                    }
+                );
+                editor_diff_stratin2.setModel({
+                    original: monaco.editor.createModel(record1.add_data_conf, 'toml'),
+                    modified: monaco.editor.createModel(record2.add_data_conf, 'toml'),
+                });
+
+            });
+
+
+            // var delta = compareObjects(rec1, rec2)
+            // const htmlMarkup2 = `<pre>{\n${generateHTML(rec2, delta)}}\n</pre>`;
+            // document.getElementById('second').innerHTML = htmlMarkup2;
+
+            // //var delta1 = compareObjects(rec2, rec1)
+            // const htmlMarkup1 = `<pre>{\n${generateHTML(rec1, delta)}}\n</pre>`;
+            // document.getElementById('first').innerHTML = htmlMarkup1;
 
             event.preventDefault();
             //$('#button_compare').attr('disabled','disabled');
@@ -613,10 +657,10 @@ $(document).ready(function () {
     //edit button
     $('#button_edit').click(function () {
         row = stratinRecords.row('.selected').data();
-        if (row== undefined) {
+        if (row == undefined) {
             return
         }
-
+        console.log(row)
         refresh_stratin_and_callback(row, show_edit_modal)
 
         function show_edit_modal(row) {
@@ -665,17 +709,17 @@ $(document).ready(function () {
 
         function show_stratvars_edit_modal(row) {
 
-        $('#stratvar_id').val(row.id);
-        require(["vs/editor/editor.main"], () => {
-            editor = monaco.editor.create(document.getElementById('stratvars_editor'), {
-                value: row.stratvars_conf,
-                language: 'toml',
-                theme: 'tomlTheme-dark',
-                automaticLayout: true
-              });
-            });
-        window.$('#stratvarsModal').modal('show');
-        //$('#stratvars_editor_val').val(row.stratvars_conf);
+            $('#stratvar_id').val(row.id);
+            require(["vs/editor/editor.main"], () => {
+                editor = monaco.editor.create(document.getElementById('stratvars_editor'), {
+                    value: row.stratvars_conf,
+                    language: 'toml',
+                    theme: 'tomlTheme-dark',
+                    automaticLayout: true
+                });
+                });
+            window.$('#stratvarsModal').modal('show');
+            //$('#stratvars_editor_val').val(row.stratvars_conf);
         }
     }); 
 } );

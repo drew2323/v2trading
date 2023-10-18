@@ -510,7 +510,7 @@
                         </form>
                     </div>
                 </div>
-                <div id="diffModal" class="modal fade" style="--bs-modal-width: 900px;">
+                <div id="diffModal" class="modal fade" style="--bs-modal-width: 1800px;">
                     <div class="modal-dialog">
                         <form method="post" id="diffForm">
                             <div class="modal-content">
@@ -519,7 +519,6 @@
                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
-                                    <div id="diff_content"></div>
                                     <div class="form-group" style="float: left; width: 470px;">
                                         <label id="diff_first" for="first" class="form-label">First</label>
                                         <div id="diff_first_id"></div>	
@@ -529,7 +528,10 @@
                                         <label id="diff_second" for="second" class="form-label">Second</label>
                                         <div id="diff_second_id"></div>	
                                         <div id="second" name="second"></div>		
-                                    </div>			
+                                    </div>	                                    
+                                    <div class="form-group"> 
+                                        <div id="diff_content" style="height:700px;border:1px solid black;"></div>
+                                    </div>		
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>

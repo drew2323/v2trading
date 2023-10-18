@@ -1,4 +1,7 @@
 //ARCHIVE TABLES
+let editor_diff_arch1
+let editor_diff_arch2
+
 
 function refresh_arch_and_callback(row, callback) {
     console.log("entering refresh")
@@ -74,6 +77,10 @@ $(document).ready(function () {
 
     //button compare arch
     $('#button_compare_arch').click(function () {
+        if (editor_diff_arch1) {editor_diff_arch1.dispose()}
+        if (editor_diff_stratin1) {editor_diff_stratin1.dispose()}
+        if (editor_diff_arch2) {editor_diff_arch2.dispose()}
+        if (editor_diff_stratin2) {editor_diff_stratin2.dispose()}
         window.$('#diffModal').modal('show');
         rows = archiveRecords.rows('.selected').data();
 
@@ -162,14 +169,14 @@ $(document).ready(function () {
             console.log(data1.metrics)
 
             try {
-                record1["profit"] = JSON.parse(data1.metrics).profit
+                record1["profit"] = JSON.parse(data1.metrics.profit)
             }
             catch (e) {
                 console.log(e.message)
             }
 
-            record1.stratvars_conf = TOML.parse(record1.stratvars_conf);
-            record1.add_data_conf = TOML.parse(record1.add_data_conf);
+            //record1.stratvars_conf = TOML.parse(record1.stratvars_conf);
+            //record1.add_data_conf = TOML.parse(record1.add_data_conf);
             // record1.note = rows[0].note;
             // record1.history = "";
         //jsonString1 = JSON.stringify(record1, null, 2);
@@ -190,13 +197,13 @@ $(document).ready(function () {
             console.log(data2.metrics)
 
             try {
-                record2["profit"] = JSON.parse(data2.metrics).profit
+                record2["profit"] = JSON.parse(data2.metrics.profit)
             }
             catch (e) {
                 console.log(e.message)
             }
-            record2.stratvars_conf = TOML.parse(record2.stratvars_conf);
-            record2.add_data_conf = TOML.parse(record2.add_data_conf);
+            //record2.stratvars_conf = TOML.parse(record2.stratvars_conf);
+            //record2.add_data_conf = TOML.parse(record2.add_data_conf);
             // record2.note = rows[1].note;
             // record2.history = "";
             //jsonString2 = JSON.stringify(record2, null, 2);
@@ -206,12 +213,42 @@ $(document).ready(function () {
             $('#diff_first_id').text(data1.id);
             $('#diff_second_id').text(data2.id);
 
-            var delta = compareObjects(record1, record2)
-            const htmlMarkup2 = `<pre>{\n${generateHTML(record2, delta)}}\n</pre>`;
-            document.getElementById('second').innerHTML = htmlMarkup2;
+            //monaco
+            require(["vs/editor/editor.main"], () => {
+                editor_diff_arch1 = monaco.editor.createDiffEditor(document.getElementById('diff_content'),
+                    {
+                        language: 'toml',
+                        theme: 'tomlTheme-dark',
+                        originalEditable: false,
+                        automaticLayout: true
+                    }
+                );
+                console.log(record1.stratvars_conf)
+                console.log(record2.stratvars_conf)
+                editor_diff_arch1.setModel({
+                    original: monaco.editor.createModel(record1.stratvars_conf, 'toml'),
+                    modified: monaco.editor.createModel(record2.stratvars_conf, 'toml'),
+                });
+                editor_diff_arch2 = monaco.editor.createDiffEditor(document.getElementById('diff_content'),
+                    {
+                        language: 'toml',
+                        theme: 'tomlTheme-dark',
+                        originalEditable: false,
+                        automaticLayout: true
+                    }
+                );
+                editor_diff_arch2.setModel({
+                    original: monaco.editor.createModel(record1.add_data_conf, 'toml'),
+                    modified: monaco.editor.createModel(record2.add_data_conf, 'toml'),
+                });
+            });
 
-            const htmlMarkup1 = `<pre>{\n${generateHTML(record1, delta)}}\n</pre>`;
-            document.getElementById('first').innerHTML = htmlMarkup1;
+            // var delta = compareObjects(record1, record2)
+            // const htmlMarkup2 = `<pre>{\n${generateHTML(record2, delta)}}\n</pre>`;
+            // document.getElementById('second').innerHTML = htmlMarkup2;
+
+            // const htmlMarkup1 = `<pre>{\n${generateHTML(record1, delta)}}\n</pre>`;
+            // document.getElementById('first').innerHTML = htmlMarkup1;
 
             event.preventDefault();
             //$('#button_compare').attr('disabled','disabled');

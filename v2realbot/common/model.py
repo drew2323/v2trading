@@ -198,6 +198,7 @@ class RunArchiveChange(BaseModel):
     id: UUID
     note: str
 
+#do budoucna pouzit SQLAlchemy
 #Contains archive of running strategies (runner) - master
 class RunArchive(BaseModel):
     #unique id of algorun
@@ -215,6 +216,7 @@ class RunArchive(BaseModel):
     bt_from: Optional[datetime] = None
     bt_to: Optional[datetime] = None
     strat_json: Optional[str] = None
+    ##bude decomiss, misto toho stratvars_toml
     stratvars: Optional[dict] = None
     settings: Optional[dict] = None
     ilog_save: Optional[bool] = False
@@ -222,8 +224,29 @@ class RunArchive(BaseModel):
     trade_count: int = 0
     end_positions: int = 0
     end_positions_avgp: float = 0
-    open_orders: Union[dict, str] = None
+    metrics: Union[dict, str] = None
     stratvars_toml: Optional[str] = None
+
+#For gui view master table
+class RunArchiveView(BaseModel):
+    id: UUID
+    strat_id: UUID
+    batch_id: Optional[str] = None
+    symbol: str
+    name: str
+    note: Optional[str] = None
+    started: datetime
+    stopped: Optional[datetime] = None
+    mode: Mode
+    account: Account
+    bt_from: Optional[datetime] = None
+    bt_to: Optional[datetime] = None
+    ilog_save: Optional[bool] = False
+    profit: float = 0
+    trade_count: int = 0
+    end_positions: int = 0
+    end_positions_avgp: float = 0
+    metrics: Union[dict, str] = None
 
 #trida pro ukladani historie stoplossy do ext_data
 class SLHistory(BaseModel):

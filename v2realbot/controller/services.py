@@ -6,7 +6,7 @@ from alpaca.data.requests import StockTradesRequest, StockBarsRequest
 from alpaca.data.enums import DataFeed
 from alpaca.data.timeframe import TimeFrame
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, OrderSide
-from v2realbot.common.model import RunDay, StrategyInstance, Runner, RunRequest, RunArchive, RunArchiveDetail, RunArchiveChange, Bar, TradeEvent, TestList, Intervals, ConfigItem
+from v2realbot.common.model import RunDay, StrategyInstance, Runner, RunRequest, RunArchive, RunArchiveView, RunArchiveDetail, RunArchiveChange, Bar, TradeEvent, TestList, Intervals, ConfigItem
 from v2realbot.utils.utils import AttributeDict, zoneNY, dict_replace_value, Store, parse_toml_string, json_serial, is_open_hours, send_to_telegram
 from v2realbot.utils.ilog import delete_logs
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
@@ -27,8 +27,8 @@ import pandas as pd
 from traceback import format_exc
 from datetime import timedelta, time
 from threading import Lock
-from v2realbot.common.db import pool, execute_with_retry
-from sqlite3 import OperationalError
+from v2realbot.common.db import pool, execute_with_retry, row_to_runarchive, row_to_runarchiveview
+from sqlite3 import OperationalError, Row
 #from pyinstrument import Profiler
 #adding lock to ensure thread safety of TinyDB (in future will be migrated to proper db)
 lock = Lock()
@@ -680,14 +680,14 @@ def populate_metrics_output_directory(strat: StrategyInstance, inter_batch_param
             res["profit"]["short_cnt"] = short_cnt          
             res["profit"]["long_profit"] = round(long_profit,2)
             res["profit"]["short_profit"] = round(short_profit,2)
-            res["profit"]["long_wins"] = round(long_wins,2)
-            res["profit"]["long_losses"] = round(long_losses,2)
-            res["profit"]["short_wins"] = round(short_wins,2)
-            res["profit"]["short_losses"] = round(short_losses,2)
             res["profit"]["max_profit"] = round(max_profit,2)
             res["profit"]["max_profit_time"] = str(max_profit_time)
             res["profit"]["max_loss"] = round(max_loss,2)
             res["profit"]["max_loss_time"] = str(max_loss_time)
+            res["profit"]["long_wins"] = round(long_wins,2)
+            res["profit"]["long_losses"] = round(long_losses,2)
+            res["profit"]["short_wins"] = round(short_wins,2)
+            res["profit"]["short_losses"] = round(short_losses,2)
             #vlozeni celeho listu
             res["prescr_trades"]=json.loads(json.dumps(strat.state.vars.prescribedTrades, default=json_serial))
 
@@ -747,13 +747,12 @@ def archive_runner(runner: Runner, strat: StrategyInstance, inter_batch_params: 
                                             bt_from=bp_from,
                                             bt_to = bp_to,
                                             strat_json = runner.run_strat_json,
-                                            stratvars = strat.state.vars,
                                             settings = settings,
                                             profit=round(float(strat.state.profit),2),
                                             trade_count=len(strat.state.tradeList),
                                             end_positions=strat.state.positions,
                                             end_positions_avgp=round(float(strat.state.avgp),3),
-                                            open_orders=json.dumps(results_metrics, default=json_serial),
+                                            metrics=results_metrics,
                                             stratvars_toml=runner.run_stratvars_toml
                                             )
         
@@ -825,32 +824,69 @@ def migrate_archived_runners() -> list[RunArchive]:
         print("Exception in migration: " + str(e) + format_exc())
         return -2, str(e) + format_exc()
 
-def get_all_archived_runners():
+
+def get_all_archived_runners() -> list[RunArchiveView]:
     conn = pool.get_connection()
     try:
-        conn.row_factory = lambda c, r: json.loads(r[0])
+        conn.row_factory = Row
         c = conn.cursor()
-        res = c.execute(f"SELECT data FROM runner_header")
+        c.execute(f"SELECT runner_id, strat_id, batch_id, symbol, name, note, started, stopped, mode, account, bt_from, bt_to, ilog_save, profit, trade_count, end_positions, end_positions_avgp, metrics FROM runner_header")
+        rows = c.fetchall()
+        results = []
+        for row in rows:
+            results.append(row_to_runarchiveview(row))
     finally:
         conn.row_factory = None
         pool.release_connection(conn)        
-    return 0, res.fetchall()
+    return 0, results
 
-#vrátí konkrétní
-def get_archived_runner_header_byID(id: UUID):
+#DECOMMS
+# def get_all_archived_runners():
+#     conn = pool.get_connection()
+#     try:
+#         conn.row_factory = lambda c, r: json.loads(r[0])
+#         c = conn.cursor()
+#         res = c.execute(f"SELECT data FROM runner_header")
+#     finally:
+#         conn.row_factory = None
+#         pool.release_connection(conn)        
+#     return 0, res.fetchall()
+
+#vrati cely kompletni zaznam RunArchive
+def get_archived_runner_header_byID(id: UUID) -> RunArchive:
     conn = pool.get_connection()
     try:
-        conn.row_factory = lambda c, r: json.loads(r[0])
+        conn.row_factory = Row
         c = conn.cursor()
-        result = c.execute(f"SELECT data FROM runner_header WHERE runner_id='{str(id)}'")
-        res= result.fetchone()
+        c.execute(f"SELECT * FROM runner_header WHERE runner_id='{str(id)}'")
+        row = c.fetchone()
+
+        if row:
+            return 0, row_to_runarchive(row)
+        else:
+            return -2, "not found"
+
     finally:
         conn.row_factory = None
         pool.release_connection(conn)
-    if res==None:
-        return -2, "not found"
-    else:
-        return 0, res
+    
+
+#DECOMM
+# #vrátí vsechny datakonkrétní 
+# def get_archived_runner_header_byID(id: UUID):
+#     conn = pool.get_connection()
+#     try:
+#         conn.row_factory = lambda c, r: json.loads(r[0])
+#         c = conn.cursor()
+#         result = c.execute(f"SELECT data FROM runner_header WHERE runner_id='{str(id)}'")
+#         res= result.fetchone()
+#     finally:
+#         conn.row_factory = None
+#         pool.release_connection(conn)
+#     if res==None:
+#         return -2, "not found"
+#     else:
+#         return 0, res
 
 #vrátí seznam runneru s danym batch_id
 def get_archived_runnerslist_byBatchID(batch_id: str):
@@ -867,13 +903,18 @@ def insert_archive_header(archeader: RunArchive):
     conn = pool.get_connection()
     try:
         c = conn.cursor()
-        json_string = json.dumps(archeader, default=json_serial)
-        if archeader.batch_id is not None:
-            statement = f"INSERT INTO runner_header (runner_id, batch_id, data)  VALUES ('{str(archeader.id)}','{str(archeader.batch_id)}','{json_string}')"
-        else:
-            statement = f"INSERT INTO runner_header (runner_id, data) VALUES ('{str(archeader.id)}','{json_string}')"
-            
-        res = execute_with_retry(c,statement)
+        #json_string = json.dumps(archeader, default=json_serial)
+
+        res = c.execute("""
+            INSERT INTO runner_header 
+            (runner_id, strat_id, batch_id, symbol, name, note, started, stopped, mode, account, bt_from, bt_to, strat_json, settings, ilog_save, profit, trade_count, end_positions, end_positions_avgp, metrics, stratvars_toml) 
+            VALUES
+            (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (str(archeader.id), str(archeader.strat_id), archeader.batch_id, archeader.symbol, archeader.name, archeader.note, archeader.started, archeader.stopped, archeader.mode, archeader.account, archeader.bt_from, archeader.bt_to, json.dumps(archeader.strat_json), json.dumps(archeader.settings), archeader.ilog_save, archeader.profit, archeader.trade_count, archeader.end_positions, archeader.end_positions_avgp, json.dumps(archeader.metrics, default=json_serial), archeader.stratvars_toml))
+
+        #retry not yet supported for statement format above
+        #res = execute_with_retry(c,statement)
         conn.commit()
     finally:
         pool.release_connection(conn)
@@ -884,14 +925,21 @@ def edit_archived_runners(runner_id: UUID, archChange: RunArchiveChange):
     try:
         res, sada = get_archived_runner_header_byID(id=runner_id)
         if res == 0:
-            archOriginal = RunArchive(**sada)
-            archOriginal.note = archChange.note
+
+            #updatujeme pouze note
             try:
                 conn = pool.get_connection()
                 c = conn.cursor()
-                json_string = json.dumps(archOriginal, default=json_serial)
-                statement = f"UPDATE runner_header SET data = '{json_string}' WHERE runner_id='{str(runner_id)}'"
-                res = execute_with_retry(c,statement)
+
+                res = c.execute('''
+                    UPDATE runner_header 
+                    SET note=?
+                    WHERE runner_id=?
+                    ''',
+                    (archChange.note, str(runner_id)))
+                
+                #retry not yet supported here
+                #res = execute_with_retry(c,statement)
                 #print(res)
                 conn.commit()
             finally:
@@ -901,7 +949,9 @@ def edit_archived_runners(runner_id: UUID, archChange: RunArchiveChange):
          return -1, f"Could not find arch runner {runner_id} {res} {sada}"
 
     except Exception as e:
-        return -2, str(e)
+        errmsg = str(e) + format_exc()
+        print(errmsg)
+        return -2, errmsg
 
 #delete runner in archive and archive detail and runner logs
 #predelano do JEDNE TRANSAKCE

@@ -38,6 +38,44 @@ function is_stratin_running(id) {
     return running
 }
 
+function refresh_stratin_and_callback(row, callback) {
+    var request = $.ajax({
+        url: "/stratin/"+row.id,
+        beforeSend: function (xhr) {
+            xhr.setRequestHeader('X-API-Key',
+            API_KEY); },
+        method:"GET",
+        contentType: "application/json",
+        dataType: "json",
+        success:function(data){   
+            console.log("fetched data ok")                      
+            console.log(JSON.stringify(data,null,2));
+        },
+        error: function(xhr, status, error) {
+            var err = eval("(" + xhr.responseText + ")");
+            window.alert(JSON.stringify(xhr));
+            console.log(JSON.stringify(xhr));
+        }
+    });
+
+    // Handling the responses of both requests
+    $.when(request).then(function(response) {
+        // Both requests have completed successfully
+        var result = response[0];
+
+        console.log("Result from first request:", result);
+        console.log("calling compare")
+        //call callback function
+        callback(result)
+
+    }, function(error) {
+        // Handle errors from either request here
+        // Example:
+        console.error("Error from first request:", error);
+        console.log("requesting id error")
+    });
+}
+
 let editor;
 
 //STRATIN and RUNNERS TABELS
@@ -341,51 +379,117 @@ $(document).ready(function () {
     $('#button_compare').click(function () {
         window.$('#diffModal').modal('show');
         rows = stratinRecords.rows('.selected').data();
-        const rec1 = new Object()
-        rec1.id = rows[0].id;
-        rec1.id2 = parseInt(rows[0].id2);
-        rec1.name = rows[0].name;
-        rec1.symbol = rows[0].symbol;
-        rec1.class_name = rows[0].class_name;
-        rec1.script = rows[0].script;
-        rec1.open_rush = rows[0].open_rush;
-        rec1.close_rush = rows[0].close_rush;
-        rec1.stratvars_conf = TOML.parse(rows[0].stratvars_conf);
-        rec1.add_data_conf = TOML.parse(rows[0].add_data_conf);
-        rec1.note = rows[0].note;
-        rec1.history = "";
-       //jsonString1 = JSON.stringify(rec1, null, 2);
 
-        const rec2 = new Object()
-        rec2.id = rows[1].id;
-        rec2.id2 = parseInt(rows[1].id2);
-        rec2.name = rows[1].name;
-        rec2.symbol = rows[1].symbol;
-        rec2.class_name = rows[1].class_name;
-        rec2.script = rows[1].script;
-        rec2.open_rush = rows[1].open_rush;
-        rec2.close_rush = rows[1].close_rush;
-        rec2.stratvars_conf = TOML.parse(rows[1].stratvars_conf);
-        rec2.add_data_conf = TOML.parse(rows[1].add_data_conf);
-        rec2.note = rows[1].note;
-        rec2.history = "";
-        //jsonString2 = JSON.stringify(rec2, null, 2);
+        id1 = rows[0].id
+        id2 = rows[1].id
+
+        //get up to date data 
+        var request1 = $.ajax({
+            url: "/stratins/"+id1,
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader('X-API-Key',
+                API_KEY); },
+            method:"GET",
+            contentType: "application/json",
+            dataType: "json",
+            success:function(data){   
+                console.log("first request ok")                      
+                console.log(JSON.stringify(data,null,2));
+            },
+            error: function(xhr, status, error) {
+                var err = eval("(" + xhr.responseText + ")");
+                window.alert(JSON.stringify(xhr));
+                console.log(JSON.stringify(xhr));
+                console.log("first request error")
+            }
+          });
+          var request2 = $.ajax({
+              url: "/stratins/"+id2,
+              beforeSend: function (xhr) {
+                  xhr.setRequestHeader('X-API-Key',
+                  API_KEY); },
+              method:"GET",
+              contentType: "application/json",
+              dataType: "json",
+              success:function(data){   
+                  console.log("first request ok")                      
+                  console.log(JSON.stringify(data,null,2));
+              },
+              error: function(xhr, status, error) {
+                  var err = eval("(" + xhr.responseText + ")");
+                  window.alert(JSON.stringify(xhr));
+                  console.log(JSON.stringify(xhr));
+                  console.log("first request error")
+              }
+            });
+  
+          // Handling the responses of both requests
+          $.when(request1, request2).then(function(response1, response2) {
+              // Both requests have completed successfully
+              var result1 = response1[0];
+              var result2 = response2[0];
+              console.log("Result from first request:", result1);
+              console.log("Result from second request:", result2);
+              console.log("calling compare")
+              perform_compare(result1, result2)
+              // Perform your action with the results from both requests
+              // Example:
+  
+          }, function(error1, error2) {
+              // Handle errors from either request here
+              // Example:
+              console.error("Error from first request:", error1);
+              console.error("Error from second request:", error2);
+          });
+
+        function perform_compare(rec1, rec2) {
+
+            // const rec1 = new Object()
+            // rec1.id = rows[0].id;
+            // rec1.id2 = parseInt(rows[0].id2);
+            // rec1.name = rows[0].name;
+            // rec1.symbol = rows[0].symbol;
+            // rec1.class_name = rows[0].class_name;
+            // rec1.script = rows[0].script;
+            // rec1.open_rush = rows[0].open_rush;
+            // rec1.close_rush = rows[0].close_rush;
+            rec1.stratvars_conf = TOML.parse(rec1.stratvars_conf);
+            rec1.add_data_conf = TOML.parse(rec1.add_data_conf);
+            // rec1.note = rows[0].note;
+            rec1.history = "";
+        //jsonString1 = JSON.stringify(rec1, null, 2);
+
+            // const rec2 = new Object()
+            // rec2.id = rows[1].id;
+            // rec2.id2 = parseInt(rows[1].id2);
+            // rec2.name = rows[1].name;
+            // rec2.symbol = rows[1].symbol;
+            // rec2.class_name = rows[1].class_name;
+            // rec2.script = rows[1].script;
+            // rec2.open_rush = rows[1].open_rush;
+            // rec2.close_rush = rows[1].close_rush;
+            rec2.stratvars_conf = TOML.parse(rec2.stratvars_conf);
+            rec2.add_data_conf = TOML.parse(rec2.add_data_conf);
+            // rec2.note = rows[1].note;
+            rec2.history = "";
+            //jsonString2 = JSON.stringify(rec2, null, 2);
 
 
-        //document.getElementById('first').innerHTML = '<pre>'+JSON.stringify(rec1, null, 2)+'</pre>'
-       $('#diff_first').text(rec1.name);
-       $('#diff_second').text(rec2.name);
+            //document.getElementById('first').innerHTML = '<pre>'+JSON.stringify(rec1, null, 2)+'</pre>'
+            $('#diff_first').text(rec1.name);
+            $('#diff_second').text(rec2.name);
 
-       var delta = compareObjects(rec1, rec2)
-       const htmlMarkup2 = `<pre>{\n${generateHTML(rec2, delta)}}\n</pre>`;
-       document.getElementById('second').innerHTML = htmlMarkup2;
+            var delta = compareObjects(rec1, rec2)
+            const htmlMarkup2 = `<pre>{\n${generateHTML(rec2, delta)}}\n</pre>`;
+            document.getElementById('second').innerHTML = htmlMarkup2;
 
-       //var delta1 = compareObjects(rec2, rec1)
-       const htmlMarkup1 = `<pre>{\n${generateHTML(rec1, delta)}}\n</pre>`;
-       document.getElementById('first').innerHTML = htmlMarkup1;
+            //var delta1 = compareObjects(rec2, rec1)
+            const htmlMarkup1 = `<pre>{\n${generateHTML(rec1, delta)}}\n</pre>`;
+            document.getElementById('first').innerHTML = htmlMarkup1;
 
-        event.preventDefault();
-        //$('#button_compare').attr('disabled','disabled');
+            event.preventDefault();
+            //$('#button_compare').attr('disabled','disabled');
+        }
     });
 
     //button connect
@@ -512,22 +616,28 @@ $(document).ready(function () {
         if (row== undefined) {
             return
         }
-        window.$('#recordModal').modal('show');
-        $('#id').val(row.id);
-        $('#id2').val(row.id2);
-        $('#name').val(row.name);
-        $('#symbol').val(row.symbol);
-        $('#class_name').val(row.class_name);				
-        $('#script').val(row.script);
-        $('#open_rush').val(row.open_rush);
-        $('#close_rush').val(row.close_rush);
-        $('#stratvars_conf').val(row.stratvars_conf);
-        $('#add_data_conf').val(row.add_data_conf);
-        $('#note').val(row.note);
-        $('#history').val(row.history);
-        $('.modal-title').html(" Edit Records");
-        $('#action').val('updateRecord');
-        $('#save').val('Save');
+
+        refresh_stratin_and_callback(row, show_edit_modal)
+
+        function show_edit_modal(row) {
+
+            window.$('#recordModal').modal('show');
+            $('#id').val(row.id);
+            $('#id2').val(row.id2);
+            $('#name').val(row.name);
+            $('#symbol').val(row.symbol);
+            $('#class_name').val(row.class_name);				
+            $('#script').val(row.script);
+            $('#open_rush').val(row.open_rush);
+            $('#close_rush').val(row.close_rush);
+            $('#stratvars_conf').val(row.stratvars_conf);
+            $('#add_data_conf').val(row.add_data_conf);
+            $('#note').val(row.note);
+            $('#history').val(row.history);
+            $('.modal-title').html(" Edit Records");
+            $('#action').val('updateRecord');
+            $('#save').val('Save');
+        }
 
     });
     //delete button
@@ -549,6 +659,12 @@ $(document).ready(function () {
         if (row== undefined) {
             return
         }
+
+        //refresh item and then call methods
+        refresh_stratin_and_callback(row, show_stratvars_edit_modal)
+
+        function show_stratvars_edit_modal(row) {
+
         $('#stratvar_id').val(row.id);
         require(["vs/editor/editor.main"], () => {
             editor = monaco.editor.create(document.getElementById('stratvars_editor'), {
@@ -560,6 +676,7 @@ $(document).ready(function () {
             });
         window.$('#stratvarsModal').modal('show');
         //$('#stratvars_editor_val').val(row.stratvars_conf);
+        }
     }); 
 } );
 

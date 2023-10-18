@@ -17,12 +17,17 @@ def statement(state: StrategyState, params):
     if operation is None :
         return -2, "required param missing"
     
+    state.ilog(lvl=1,e=f"BEFORE {funcName} {operation=}", **params)
+    
     #pro zacatek eval
     val = eval(operation, None, state.ind_mapping)
 
+
+    if not np.isfinite(val):
+        val = 0
     #val = ne.evaluate(operation, state.ind_mapping)
 
-    state.ilog(lvl=1,e=f"INSIDE {funcName} {operation=} res:{val}", **params)
+    state.ilog(lvl=1,e=f"AFTER {funcName} {operation=} res:{val}", **params)
     return 0, val
 
 

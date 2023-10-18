@@ -96,6 +96,13 @@ def trima(data: Any, period: int = 50, use_series=False) -> Any:
     trima = ti.trima(data, period)
     return pd.Series(trima) if use_series else trima
 
+def tema(data: Any, period: int = 50, use_series=False) -> Any:
+    if check_series(data):
+        use_series = True
+    data = convert_to_numpy(data)
+    tema = ti.tema(data, period)
+    return pd.Series(tema) if use_series else tema
+
 
 def macd(data: Any, short_period: int = 12, long_period: int = 26, signal_period: int = 9, use_series=False) -> Any:
     if check_series(data):
@@ -106,3 +113,23 @@ def macd(data: Any, short_period: int = 12, long_period: int = 26, signal_period
         df = pd.DataFrame({'macd': macd, 'macd_signal': macd_signal, 'macd_histogram': macd_histogram})
         return df
     return macd, macd_signal, macd_histogram
+
+def ema(data, period: int = 50, use_series=False):
+    if check_series(data):
+        use_series = True
+    data = convert_to_numpy(data)
+    ema = ti.ema(data, period=period)
+    return pd.Series(ema) if use_series else ema
+
+def sma(data, period: int = 50, use_series=False):
+    """
+    Finding the moving average of a dataset
+    Args:
+        data: (list) A list containing the data you want to find the moving average of
+        period: (int) How far each average set should be
+    """
+    if check_series(data):
+        use_series = True
+    data = convert_to_numpy(data)
+    sma = ti.sma(data, period=period)
+    return pd.Series(sma) if use_series else sma

@@ -11,7 +11,7 @@ import uvicorn
 from uuid import UUID
 import v2realbot.controller.services as cs
 from v2realbot.utils.ilog import get_log_window
-from v2realbot.common.model import StrategyInstance, RunnerView, RunRequest, Trade, RunArchive, RunArchiveDetail, Bar, RunArchiveChange, TestList, ConfigItem
+from v2realbot.common.model import StrategyInstance, RunnerView, RunRequest, Trade, RunArchive, RunArchiveView, RunArchiveDetail, Bar, RunArchiveChange, TestList, ConfigItem
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status, WebSocketException, Cookie, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -285,19 +285,105 @@ def migrate():
     if not os.path.exists(lock_file):
 
         #migration code
-        print("migration code done")
-        conn = pool.get_connection()
+        print("migration code STARTED")
         try:
-            conn.row_factory = lambda c, r: json.loads(r[0])
-            c = conn.cursor()
-            statement = f'ALTER TABLE "runner_header" ADD COLUMN "batch_id"	TEXT'
-            res = c.execute(statement)
-            print(res)
-            print("table created")
-            conn.commit()
+            # Helper function to transform a row to a RunArchive object
+            def row_to_object(row: dict) -> RunArchive:
+                return RunArchive(
+                    id=row.get('id'),
+                    strat_id=row.get('strat_id'),
+                    batch_id=row.get('batch_id'),
+                    symbol=row.get('symbol'),
+                    name=row.get('name'),
+                    note=row.get('note'),
+                    started=row.get('started'),
+                    stopped=row.get('stopped'),
+                    mode=row.get('mode'),
+                    account=row.get('account'),
+                    bt_from=row.get('bt_from'),
+                    bt_to=row.get('bt_to'),
+                    strat_json=row.get('strat_json'),
+                    stratvars=row.get('stratvars'),
+                    settings=row.get('settings'),
+                    ilog_save=row.get('ilog_save'),
+                    profit=row.get('profit'),
+                    trade_count=row.get('trade_count'),
+                    end_positions=row.get('end_positions'),
+                    end_positions_avgp=row.get('end_positions_avgp'),
+                    metrics=row.get('open_orders'),
+                    #metrics=json.loads(row.get('metrics')) if row.get('metrics') else None,
+                    stratvars_toml=row.get('stratvars_toml')
+                )
+
+            def get_all_archived_runners():
+                conn = pool.get_connection()
+                try:
+                    conn.row_factory = lambda c, r: json.loads(r[0])
+                    c = conn.cursor()
+                    res = c.execute(f"SELECT data FROM runner_header")
+                finally:
+                    conn.row_factory = None
+                    pool.release_connection(conn)        
+                return 0, res.fetchall()
+
+            set = list[RunArchive]
+
+            def migrate_to_columns(ra: RunArchive):
+                conn = pool.get_connection()
+                try:
+
+                    c = conn.cursor()
+                    # statement = f"""UPDATE runner_header SET
+                    #     strat_id='{str(ra.strat_id)}',
+                    #     batch_id='{ra.batch_id}',
+                    #     symbol='{ra.symbol}',
+                    #     name='{ra.name}',
+                    #     note='{ra.note}',
+                    #     started='{ra.started}',
+                    #     stopped='{ra.stopped}',
+                    #     mode='{ra.mode}',
+                    #     account='{ra.account}',
+                    #     bt_from='{ra.bt_from}',
+                    #     bt_to='{ra.bt_to}',
+                    #     strat_json='ra.strat_json)',
+                    #     settings='{ra.settings}',
+                    #     ilog_save='{ra.ilog_save}',
+                    #     profit='{ra.profit}',
+                    #     trade_count='{ra.trade_count}',
+                    #     end_positions='{ra.end_positions}',
+                    #     end_positions_avgp='{ra.end_positions_avgp}',
+                    #     metrics='{ra.metrics}',
+                    #     stratvars_toml="{ra.stratvars_toml}"
+                    # WHERE runner_id='{str(ra.strat_id)}'
+                    # """
+                    # print(statement)
+
+                    res = c.execute('''
+                        UPDATE runner_header 
+                        SET strat_id=?, batch_id=?, symbol=?, name=?, note=?, started=?, stopped=?, mode=?, account=?, bt_from=?, bt_to=?, strat_json=?, settings=?, ilog_save=?, profit=?, trade_count=?, end_positions=?, end_positions_avgp=?, metrics=?, stratvars_toml=?
+                        WHERE runner_id=?
+                        ''',
+                        (str(ra.strat_id), ra.batch_id, ra.symbol, ra.name, ra.note, ra.started, ra.stopped, ra.mode, ra.account, ra.bt_from, ra.bt_to, json.dumps(ra.strat_json), json.dumps(ra.settings), ra.ilog_save, ra.profit, ra.trade_count, ra.end_positions, ra.end_positions_avgp, json.dumps(ra.metrics), ra.stratvars_toml, str(ra.id)))
+
+                    conn.commit()
+                finally:
+
+                    pool.release_connection(conn)        
+                return 0, res
+
+            res, set = get_all_archived_runners()
+            print(f"fetched {len(set)}")
+            for row in set:
+                ra: RunArchive = row_to_object(row)
+                print(f"item {ra.id}")
+                res, val = migrate_to_columns(ra)
+                print(res,val)
+                print("migrated", ra.id)
+
+
+
+
         finally:
-            conn.row_factory = None
-            pool.release_connection(conn)  
             open(lock_file, 'w').close()
 
             return 0
@@ -317,10 +403,19 @@ def migrate():
 #ARCHIVE RUNNERS SECTION
 # region Archive runners
 
-#get all archived runners header
+#get all archived runners headers - just RunArchiveView
 @app.get("/archived_runners/", dependencies=[Depends(api_key_auth)])
-def _get_all_archived_runners() -> list[RunArchive]:
+def _get_all_archived_runners() -> list[RunArchiveView]:
     res, set =cs.get_all_archived_runners()
+    if res == 0:
+        return set
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No data found")
+
+#get complete header data for specific archivedRunner = RunArchive
+@app.get("/archived_runners/{runner_id}", dependencies=[Depends(api_key_auth)])
+def _get_archived_runner_header_byID(runner_id: UUID) -> RunArchive:
+    res, set =cs.get_archived_runner_header_byID(runner_id)
     if res == 0:
         return set
     else:
@@ -342,7 +437,7 @@ def _edit_archived_runners(archChange: RunArchiveChange, runner_id: UUID):
     elif res == -1:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Error not found: {res}:{runner_id}")
     else:
-        raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error not changed: {res}:{runner_id}")
+        raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error not changed: {res}:{runner_id}:{id}")
     
 #get all archived runners detail
 @app.get("/archived_runners_detail/", dependencies=[Depends(api_key_auth)])

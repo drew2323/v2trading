@@ -1,4 +1,42 @@
 //ARCHIVE TABLES
+
+function refresh_arch_and_callback(row, callback) {
+    console.log("entering refresh")
+    var request = $.ajax({
+        url: "/archived_runners/"+row.id,
+        beforeSend: function (xhr) {
+            xhr.setRequestHeader('X-API-Key',
+            API_KEY); },
+        method:"GET",
+        contentType: "application/json",
+        dataType: "json",
+        success:function(data){   
+            console.log("fetched data ok")                      
+            //console.log(JSON.stringify(data,null,2));
+        },
+        error: function(xhr, status, error) {
+            var err = eval("(" + xhr.responseText + ")");
+            window.alert(JSON.stringify(xhr));
+            console.log(JSON.stringify(xhr));
+        }
+    });
+
+    // Handling the responses of both requests
+    $.when(request).then(function(response) {
+        // Both requests have completed successfully
+        //console.log("Result from  request:", response);
+        console.log("Response received. calling callback")
+        //call callback function
+        callback(response)
+
+    }, function(error) {
+        // Handle errors from either request here
+        // Example:
+        console.error("Error from first request:", error);
+        console.log("requesting id error")
+    });
+}
+
 $(document).ready(function () {
     archiveRecords.ajax.reload();
 
@@ -34,85 +72,150 @@ $(document).ready(function () {
         }
     });
 
-
     //button compare arch
     $('#button_compare_arch').click(function () {
         window.$('#diffModal').modal('show');
         rows = archiveRecords.rows('.selected').data();
-        var record1 = new Object()
-        //console.log(JSON.stringify(rows))
 
-        record1 = JSON.parse(rows[0].strat_json)
-        //record1.json = rows[0].json
-        //record1.id = rows[0].id;
-        // record1.id2 = parseInt(rows[0].id2);
-        //record1.name = rows[0].name;
-        // record1.symbol = rows[0].symbol;
-        // record1.class_name = rows[0].class_name;
-        // record1.script = rows[0].script;
-        // record1.open_rush = rows[0].open_rush;
-        // record1.close_rush = rows[0].close_rush;
-        //console.log(record1.stratvars_conf)
+        id1 = rows[0].id
+        id2 = rows[1].id
 
-        //ELEMENTS TO COMPARE
+        var request1 = $.ajax({
+          url: "/archived_runners/"+id1,
+          beforeSend: function (xhr) {
+              xhr.setRequestHeader('X-API-Key',
+              API_KEY); },
+          method:"GET",
+          contentType: "application/json",
+          dataType: "json",
+          success:function(data){   
+              console.log("first request ok")                      
+              console.log(JSON.stringify(data,null,2));
+          },
+          error: function(xhr, status, error) {
+              var err = eval("(" + xhr.responseText + ")");
+              window.alert(JSON.stringify(xhr));
+              console.log(JSON.stringify(xhr));
+              console.log("first request error")
+          }
+        });
+        var request2 = $.ajax({
+            url: "/archived_runners/"+id2,
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader('X-API-Key',
+                API_KEY); },
+            method:"GET",
+            contentType: "application/json",
+            dataType: "json",
+            success:function(data){   
+                console.log("first request ok")                      
+                console.log(JSON.stringify(data,null,2));
+            },
+            error: function(xhr, status, error) {
+                var err = eval("(" + xhr.responseText + ")");
+                window.alert(JSON.stringify(xhr));
+                console.log(JSON.stringify(xhr));
+                console.log("first request error")
+            }
+          });
 
-        //profit sekce
-        console.log(rows[0].open_orders)
+        // Handling the responses of both requests
+        $.when(request1, request2).then(function(response1, response2) {
+            // Both requests have completed successfully
+            var result1 = response1[0];
+            var result2 = response2[0];
+            console.log("Result from first request:", result1);
+            console.log("Result from second request:", result2);
+            console.log("calling compare")
+            perform_compare(result1, result2)
+            // Perform your action with the results from both requests
+            // Example:
 
-        try {
-            record1["profit"] = JSON.parse(rows[0].open_orders).profit
+        }, function(error1, error2) {
+            // Handle errors from either request here
+            // Example:
+            console.error("Error from first request:", error1);
+            console.error("Error from second request:", error2);
+        });
+
+        //sem vstupuji dva nove natahnute objekty 
+        function perform_compare(data1, data2) {
+
+            var record1 = new Object()
+            //console.log(JSON.stringify(rows))
+
+            record1 = JSON.parse(data1.strat_json)
+            //record1.json = rows[0].json
+            //record1.id = rows[0].id;
+            // record1.id2 = parseInt(rows[0].id2);
+            //record1.name = rows[0].name;
+            // record1.symbol = rows[0].symbol;
+            // record1.class_name = rows[0].class_name;
+            // record1.script = rows[0].script;
+            // record1.open_rush = rows[0].open_rush;
+            // record1.close_rush = rows[0].close_rush;
+            //console.log(record1.stratvars_conf)
+
+            //ELEMENTS TO COMPARE
+
+            //profit sekce
+            console.log(data1.metrics)
+
+            try {
+                record1["profit"] = JSON.parse(data1.metrics).profit
+            }
+            catch (e) {
+                console.log(e.message)
+            }
+
+            record1.stratvars_conf = TOML.parse(record1.stratvars_conf);
+            record1.add_data_conf = TOML.parse(record1.add_data_conf);
+            // record1.note = rows[0].note;
+            // record1.history = "";
+        //jsonString1 = JSON.stringify(record1, null, 2);
+
+            var record2 = new Object()
+            record2 = JSON.parse(data2.strat_json)
+
+            // record2.id = rows[1].id;
+            // record2.id2 = parseInt(rows[1].id2);
+            //record2.name = rows[1].name;
+            // record2.symbol = rows[1].symbol;
+            // record2.class_name = rows[1].class_name;
+            // record2.script = rows[1].script;
+            // record2.open_rush = rows[1].open_rush;
+            // record2.close_rush = rows[1].close_rush;
+    
+            //ELEMENTS TO COMPARE
+            console.log(data2.metrics)
+
+            try {
+                record2["profit"] = JSON.parse(data2.metrics).profit
+            }
+            catch (e) {
+                console.log(e.message)
+            }
+            record2.stratvars_conf = TOML.parse(record2.stratvars_conf);
+            record2.add_data_conf = TOML.parse(record2.add_data_conf);
+            // record2.note = rows[1].note;
+            // record2.history = "";
+            //jsonString2 = JSON.stringify(record2, null, 2);
+
+            $('#diff_first').text(record1.name);
+            $('#diff_second').text(record2.name);
+            $('#diff_first_id').text(data1.id);
+            $('#diff_second_id').text(data2.id);
+
+            var delta = compareObjects(record1, record2)
+            const htmlMarkup2 = `<pre>{\n${generateHTML(record2, delta)}}\n</pre>`;
+            document.getElementById('second').innerHTML = htmlMarkup2;
+
+            const htmlMarkup1 = `<pre>{\n${generateHTML(record1, delta)}}\n</pre>`;
+            document.getElementById('first').innerHTML = htmlMarkup1;
+
+            event.preventDefault();
+            //$('#button_compare').attr('disabled','disabled');
         }
-        catch (e) {
-            console.log(e.message)
-        }
-
-        record1.stratvars_conf = TOML.parse(record1.stratvars_conf);
-        record1.add_data_conf = TOML.parse(record1.add_data_conf);
-        // record1.note = rows[0].note;
-        // record1.history = "";
-       //jsonString1 = JSON.stringify(record1, null, 2);
-
-        var record2 = new Object()
-        record2 = JSON.parse(rows[1].strat_json)
-
-        // record2.id = rows[1].id;
-        // record2.id2 = parseInt(rows[1].id2);
-        //record2.name = rows[1].name;
-        // record2.symbol = rows[1].symbol;
-        // record2.class_name = rows[1].class_name;
-        // record2.script = rows[1].script;
-        // record2.open_rush = rows[1].open_rush;
-        // record2.close_rush = rows[1].close_rush;
-  
-        //ELEMENTS TO COMPARE
-        console.log(rows[1].open_orders)
-
-        try {
-            record2["profit"] = JSON.parse(rows[1].open_orders).profit
-        }
-        catch (e) {
-            console.log(e.message)
-        }
-        record2.stratvars_conf = TOML.parse(record2.stratvars_conf);
-        record2.add_data_conf = TOML.parse(record2.add_data_conf);
-        // record2.note = rows[1].note;
-        // record2.history = "";
-        //jsonString2 = JSON.stringify(record2, null, 2);
-
-        $('#diff_first').text(record1.name);
-        $('#diff_second').text(record2.name);
-        $('#diff_first_id').text(rows[0].id);
-        $('#diff_second_id').text(rows[1].id);
-
-        var delta = compareObjects(record1, record2)
-        const htmlMarkup2 = `<pre>{\n${generateHTML(record2, delta)}}\n</pre>`;
-        document.getElementById('second').innerHTML = htmlMarkup2;
-
-        const htmlMarkup1 = `<pre>{\n${generateHTML(record1, delta)}}\n</pre>`;
-        document.getElementById('first').innerHTML = htmlMarkup1;
-
-        event.preventDefault();
-        //$('#button_compare').attr('disabled','disabled');
     });
 
 
@@ -144,63 +247,73 @@ $(document).ready(function () {
         if (row == undefined) {
             return
         }
-        window.$('#editModalArchive').modal('show');
-        $('#editidarchive').val(row.id);
-        $('#editnote').val(row.note);
+
+        refresh_arch_and_callback(row, display_edit_modal)
+
+        function display_edit_modal(row) {
+            window.$('#editModalArchive').modal('show');
+            $('#editidarchive').val(row.id);
+            $('#editnote').val(row.note);
 
 
-        try {
-            metrics = JSON.parse(row.open_orders)
+            try {
+                metrics = JSON.parse(row.metrics)
+            }
+            catch (e) {
+                metrics = row.metrics
+            }
+            $('#metrics').val(JSON.stringify(metrics,null,2));
+            //$('#metrics').val(TOML.parse(row.metrics));
+            if (row.stratvars_toml) {
+                $('#editstratvars').val(row.stratvars_toml);
+            }
+            else{
+                $('#editstratvars').val(JSON.stringify(row.stratvars,null,2));
+            }
+            
+            
+            $('#editstratjson').val(row.strat_json);
         }
-        catch (e) {
-            metrics = row.open_orders
-        }
-        $('#metrics').val(JSON.stringify(metrics,null,2));
-        //$('#metrics').val(TOML.parse(row.open_orders));
-        if (row.stratvars_toml) {
-            $('#editstratvars').val(row.stratvars_toml);
-        }
-        else{
-            $('#editstratvars').val(JSON.stringify(row.stratvars,null,2));
-        }
-        
-        
-        $('#editstratjson').val(row.strat_json);
     });
 
     //show button
     $('#button_show_arch').click(function () {
+
         row = archiveRecords.row('.selected').data();
         if (row == undefined) {
             return
         }
-        $('#button_show_arch').attr('disabled',true);
-        $.ajax({
-            url:"/archived_runners_detail/"+row.id,
-            beforeSend: function (xhr) {
-                xhr.setRequestHeader('X-API-Key',
-                API_KEY); },
-            method:"GET",
-            contentType: "application/json",
-            dataType: "json",
-            success:function(data){							
-                $('#button_show_arch').attr('disabled',false);
-                $('#chartContainerInner').addClass("show");
-                //$("#lines").html("<pre>"+JSON.stringify(row.stratvars,null,2)+"</pre>")
-                
-                //$('#chartArchive').append(JSON.stringify(data,null,2));
-                console.log(JSON.stringify(data,null,2));
-                //if lower res is required call prepare_data otherwise call chart_archived_run()
-                //get other base resolutions
-                prepare_data(row, 1, "Min", data)
-            },
-            error: function(xhr, status, error) {
-                var err = eval("(" + xhr.responseText + ")");
-                window.alert(JSON.stringify(xhr));
-                //console.log(JSON.stringify(xhr));
-                $('#button_show_arch').attr('disabled',false);
-            }
-        })
+
+        refresh_arch_and_callback(row, get_detail_and_show)
+
+        function get_detail_and_show(row) {
+            $.ajax({
+                url:"/archived_runners_detail/"+row.id,
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader('X-API-Key',
+                    API_KEY); },
+                method:"GET",
+                contentType: "application/json",
+                dataType: "json",
+                success:function(data){							
+                    $('#button_show_arch').attr('disabled',false);
+                    $('#chartContainerInner').addClass("show");
+                    //$("#lines").html("<pre>"+JSON.stringify(row.stratvars,null,2)+"</pre>")
+                    
+                    //$('#chartArchive').append(JSON.stringify(data,null,2));
+                    console.log(JSON.stringify(data,null,2));
+                    //if lower res is required call prepare_data otherwise call chart_archived_run()
+                    //get other base resolutions
+                    prepare_data(row, 1, "Min", data)
+                },
+                error: function(xhr, status, error) {
+                    var err = eval("(" + xhr.responseText + ")");
+                    window.alert(JSON.stringify(xhr));
+                    //console.log(JSON.stringify(xhr));
+                    $('#button_show_arch').attr('disabled',false);
+                }
+            })
+        }
     });
 })
 
@@ -216,93 +329,141 @@ $(document).ready(function () {
         //record1.json = rows[0].json
 
         //TBD mozna zkopirovat jen urcite?
-        record1 = row
-        console.log(record1)
 
-        //smazeneme nepotrebne a pridame potrebne
-        //do budoucna predelat na vytvoreni noveho objektu
-        //nebudeme muset odstanovat pri kazdem pridani noveho atributu v budoucnu
-        delete record1["end_positions"];
-        delete record1["end_positions_avgp"];
-        delete record1["profit"];
-        delete record1["trade_count"];
-        delete record1["stratvars_toml"];
-        delete record1["started"];
-        delete record1["stopped"];
-        delete record1["open_orders"];
-        delete record1["settings"];
-        delete record1["stratvars"];
-
-        record1.note = "RERUN " + record1.note
-
-        if (record1.bt_from == "") {delete record1["bt_from"];}
-        if (record1.bt_to == "") {delete record1["bt_to"];}
-    
-        //mazeme, pouze rerunujeme single
-        record1["test_batch_id"];
-
-        //najdeme ve stratinu radek s danym ID a z tohoto radku a sestavime strat_json
-        var idToFind = record1.strat_id; // Replace with the specific ID you want to find
-
-        var foundRow = stratinRecords.rows().eq(0).filter(function (rowIdx) {
-            return stratinRecords.row(rowIdx).data().id === idToFind;
-        });
-        
-        if (foundRow.length > 0) {
-            // Get the data of the first matching row
-            var stratData = stratinRecords.row(foundRow[0]).data();
-            console.log(stratData);
-        } else {
-            // Handle the case where no matching row is found
-            console.log("No strategy with ID " + idToFind + " found.");
-            window.alert("No strategy with ID " + idToFind + " found.")
-            return
-        }        
-
-        const rec = new Object()
-        rec.id2 = parseInt(stratData.id2);
-        rec.name = stratData.name;
-        rec.symbol = stratData.symbol;
-        rec.class_name = stratData.class_name;
-        rec.script = stratData.script;
-        rec.open_rush = stratData.open_rush;
-        rec.close_rush = stratData.close_rush;
-        rec.stratvars_conf = stratData.stratvars_conf;
-        rec.add_data_conf = stratData.add_data_conf;
-        rec.note = stratData.note;
-        rec.history = "";
-        strat_json = JSON.stringify(rec, null, 2);
-        record1.strat_json = strat_json
-        
-        //zkopirujeme strat_id do id a smazeme strat_id
-        record1.id = record1.strat_id
-        delete record1["strat_id"];
-
-        console.log("record1 pred odeslanim", record1)
-        jsonString = JSON.stringify(record1);
-
-        $.ajax({
-            url:"/stratins/"+record1.id+"/run",
+        //getting required data (detail of the archived runner + stratin to be run)
+        var request1 = $.ajax({
+            url: "/archived_runners/"+row.id,
             beforeSend: function (xhr) {
                 xhr.setRequestHeader('X-API-Key',
-                    API_KEY); },
-            method:"PUT",
+                API_KEY); },
+            method:"GET",
             contentType: "application/json",
-            data: jsonString,
-            success:function(data){							
-                $('#button_runagain_arch').attr('disabled',false);
-                setTimeout(function () {
-                    runnerRecords.ajax.reload();
-                    stratinRecords.ajax.reload();
-                  }, 1500);
+            dataType: "json",
+            success:function(data){   
+                console.log("fetched data ok")                      
+                console.log(JSON.stringify(data,null,2));
             },
             error: function(xhr, status, error) {
                 var err = eval("(" + xhr.responseText + ")");
                 window.alert(JSON.stringify(xhr));
-                //console.log(JSON.stringify(xhr));
-                $('#button_runagain_arch').attr('disabled',false);
+                console.log(JSON.stringify(xhr));
             }
-        })
+          });
+
+          //nalaodovat data pro strategii
+          var request2 = $.ajax({
+            url: "/stratins/"+row.strat_id,
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader('X-API-Key',
+                API_KEY); },
+            method:"GET",
+            contentType: "application/json",
+            dataType: "json",
+            success:function(data){   
+                console.log("fetched data ok")                      
+                console.log(JSON.stringify(data,null,2));
+            },
+            error: function(xhr, status, error) {
+                var err = eval("(" + xhr.responseText + ")");
+                window.alert(JSON.stringify(xhr));
+                console.log(JSON.stringify(xhr));
+            }
+          });
+
+
+        // Handling the responses of both requests
+        $.when(request1, request2).then(function(response1, response2) {
+            // Both requests have completed successfully
+            var result1 = response1[0];
+            var result2 = response2[0];
+
+            console.log("Result from first request:", result1);
+            console.log("Result from second request:", result2);
+
+            console.log("calling compare")
+            rerun_strategy(result1, result2)
+            // Perform your action with the results from both requests
+            // Example:
+
+        }, function(error1, error2) {
+            // Handle errors from either request here
+            // Example:
+            console.error("Error from first request:", error1);
+            console.error("Error from second request:", error2);
+        });
+
+
+        function rerun_strategy(archRunner, stratData) {
+            record1 = archRunner
+            console.log(record1)
+
+            //smazeneme nepotrebne a pridame potrebne
+            //do budoucna predelat na vytvoreni noveho objektu
+            //nebudeme muset odstanovat pri kazdem pridani noveho atributu v budoucnu
+            delete record1["end_positions"];
+            delete record1["end_positions_avgp"];
+            delete record1["profit"];
+            delete record1["trade_count"];
+            delete record1["stratvars_toml"];
+            delete record1["started"];
+            delete record1["stopped"];
+            delete record1["metrics"];
+            delete record1["settings"];
+            delete record1["stratvars"];
+
+            record1.note = "RERUN " + record1.note
+
+            if (record1.bt_from == "") {delete record1["bt_from"];}
+            if (record1.bt_to == "") {delete record1["bt_to"];}
+        
+            //mazeme, pouze rerunujeme single
+            record1["test_batch_id"];
+
+            const rec = new Object()
+            rec.id2 = parseInt(stratData.id2);
+            rec.name = stratData.name;
+            rec.symbol = stratData.symbol;
+            rec.class_name = stratData.class_name;
+            rec.script = stratData.script;
+            rec.open_rush = stratData.open_rush;
+            rec.close_rush = stratData.close_rush;
+            rec.stratvars_conf = stratData.stratvars_conf;
+            rec.add_data_conf = stratData.add_data_conf;
+            rec.note = stratData.note;
+            rec.history = "";
+            strat_json = JSON.stringify(rec, null, 2);
+            record1.strat_json = strat_json
+            
+            //zkopirujeme strat_id do id a smazeme strat_id
+            record1.id = record1.strat_id
+            delete record1["strat_id"];
+
+            console.log("record1 pred odeslanim", record1)
+            jsonString = JSON.stringify(record1);
+
+            $.ajax({
+                url:"/stratins/"+record1.id+"/run",
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader('X-API-Key',
+                        API_KEY); },
+                method:"PUT",
+                contentType: "application/json",
+                data: jsonString,
+                success:function(data){							
+                    $('#button_runagain_arch').attr('disabled',false);
+                    setTimeout(function () {
+                        runnerRecords.ajax.reload();
+                        stratinRecords.ajax.reload();
+                    }, 1500);
+                },
+                error: function(xhr, status, error) {
+                    var err = eval("(" + xhr.responseText + ")");
+                    window.alert(JSON.stringify(xhr));
+                    //console.log(JSON.stringify(xhr));
+                    $('#button_runagain_arch').attr('disabled',false);
+                }
+            })
+        }
 
 })
 
@@ -412,14 +573,11 @@ var archiveRecords =
                     {data: 'bt_from', visible: true},
                     {data: 'bt_to', visible: true},
                     {data: 'ilog_save', visible: true},
-                    {data: 'stratvars', visible: false},
                     {data: 'profit'},
                     {data: 'trade_count', visible: true},
                     {data: 'end_positions', visible: true},
                     {data: 'end_positions_avgp', visible: true},
-                    {data: 'strat_json', visible: false},
-                    {data: 'open_orders', visible: true},
-                    {data: 'stratvars_toml', visible: false},
+                    {data: 'metrics', visible: true},
                 ],
         paging: false,
         processing: false,
@@ -470,7 +628,7 @@ var archiveRecords =
                     },
                 },
                 {
-                    targets: [18],
+                    targets: [16],
                     render: function ( data, type, row ) {
                         try {
                             data = JSON.parse(data)

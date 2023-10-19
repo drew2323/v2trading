@@ -1,4 +1,3 @@
-
 var tradeDetails = new Map();
 var toolTip = null
 var CHART_SHOW_TEXT = get_from_config("CHART_SHOW_TEXT", false)
@@ -943,6 +942,7 @@ function fetch_log_data(timestamp, runner_id) {
 function display_log(iterLogList, timestamp) {
         //console.log("Incoming logline object")
 
+
         var lines = document.getElementById('lines')
         var line = document.createElement('div')
         line.classList.add("line")
@@ -966,11 +966,17 @@ function display_log(iterLogList, timestamp) {
 
             highlighted = (parseInt(logLine.time) == parseInt(timestamp)) ? "highlighted" : ""
             logcnt++;
-            row = '<div data-bs-toggle="collapse" class="'+ highlighted + ' shj-lang-log" onclick="set_timestamp(' + logLine.time + ')" data-bs-target="#rec'+logcnt+'">'+logLine.time + " " + logLine.event + ' - '+ (logLine.message == undefined ? "" : logLine.message) +'</div>'
+            hdr = logLine.time + " " + logLine.event + ' - '+ (logLine.message == undefined ? "" : logLine.message)
+            hdr = Prism.highlight(hdr, Prism.languages.log, 'log');
+
+            row = '<div data-bs-toggle="collapse" class="'+ highlighted + ' shj-lang-log" onclick="set_timestamp(' + logLine.time + ')" data-bs-target="#rec'+logcnt+'">'
+            +hdr + '</div>'
             str_row = JSON.stringify(logLine.details, null, 2)
             //row_detail = '<div id="rec'+logcnt+'" data-toggle="collapse" data-target="#rec'+logcnt+'"class="collapse pidi"><pre>' + str_row + '</pre></div>'
 
-            row_detail = '<div id="rec'+logcnt+'" class="collapse pidi shj-lang-log"><pre>' + str_row + '</pre></div>'
+            const html = Prism.highlight(str_row, Prism.languages.json, 'json');
+            //console.log("tady", html)
+            row_detail = '<div id="rec'+logcnt+'" class="collapse pidi shj-lang-log"><pre><code class="language-log">' + html + '</code></pre></div>'
 
             var lines = document.getElementById('lines')
             var line = document.createElement('div')

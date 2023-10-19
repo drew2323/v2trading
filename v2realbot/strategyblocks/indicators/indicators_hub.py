@@ -45,7 +45,7 @@ def populate_all_indicators(data, state: StrategyState):
     conf_bar = data['confirmed']
     last_update_delta, avg_delta = process_delta()
     
-    state.ilog(lvl=1,e=f"-----{data['index']}-{conf_bar}--delta:{last_update_delta}---AVGdelta:{avg_delta}", data=data)
+    state.ilog(lvl=1,e=f"----- {data['index']}-{conf_bar}--delta:{last_update_delta}---AVGdelta:{avg_delta}", data=data)
 
     #kroky pro CONFIRMED BAR only
     if conf_bar == 1:

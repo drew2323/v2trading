@@ -82,19 +82,34 @@
         <link rel="stylesheet" data-name="vs/editor/editor.main" href="/static/js/libs/monaco/vs/editor/editor.main.css">
         <script src="/static/js/libs/monaco/vs/loader.js"></script>
 
-        <!-- <link rel="stylesheet" href="/static/js/libs/atom-dark.css">
-        <link rel="stylesheet" href="/static/js/libs/speedhighlight/dist/themes/atom-dark.css">
-        <link rel="stylesheet" href="https://unpkg.com/@speed-highlight/core@1.2.4/dist/themes/default.css">
+        <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-dark.min.css" integrity="sha512-Njdz7T/p6Ud1FiTMqH87bzDxaZBsVNebOWmacBjMdgWyeIhUSFU4V52oGwo3sT+ud+lyIE98sS291/zxBfozKw==" crossorigin="anonymous" referrerpolicy="no-referrer" /> -->
+        <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" integrity="sha512-tN7Ec6zAFaVSG3TpNAKtk4DOHNpSwKHxxrsiw4GHKESGPs5njn/0sMCUMl2svV4wo4BK/rCP7juYz+zx+l6oeQ==" crossorigin="anonymous" referrerpolicy="no-referrer" /> -->
+        <link rel="stylesheet" href="/static/js/libs/prism/prism-tomorrow.min.css" />
+
+        <script src="/static/js/libs/prism/prism.js" ></script>
+        <script src="/static/js/libs/prism/prism-log.js"></script>
+        <script src="/static/js/libs/prism/prism-json.js"></script>
+
+        <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/default.min.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
          -->
-         <!-- 
+        <!-- and it's easy to individually load additional languages -->
+        <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/go.min.js"></script> -->
+        
+        <!-- <script>hljs.highlightAll();</script> -->
+
+        <!-- <link rel="stylesheet" href="/static/js/libs/atom-dark.css">
+         <link rel="stylesheet" href="/static/js/libs/speedhighlight/dist/themes/atom-dark.css">
+        <link rel="stylesheet" href="https://unpkg.com/@speed-highlight/core@1.2.4/dist/themes/default.css">
+
         <script type="module">
-          import { highlightAll, highlightText } from '/static/js/libs/speedhighlight/dist/index.js';
+          import { highlightText } from '/static/js/libs/speedhighlight/dist/index.js';
 
         //   import { detectLanguage } from 'https://unpkg.com/@speed-highlight/core/dist/detect.js';
         //   import e from 'https://unpkg.com/@speed-highlight/core@1.2.4/dist/languages/log.js';
         //   loadLanguage('log', e);
-          highlightAll();
-        </script> -->
+        //  highlightAll(); 
+        </script>-->
 
         <!-- <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.41.0/min/vs/editor/editor.main.js"></script>  -->
         <!-- <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.41.0/min/vs/loader.min.js"></script>   -->
@@ -236,6 +251,9 @@
                         <!-- <button id="button_stopall" class="btn btn-outline-success btn-sm">Stop All</button>
                         <button id="button_refresh" class="btn btn-outline-success btn-sm">Refresh</button> -->
                     </div>
+                    <!-- <div>
+                        Toggle column: <a class="toggle-vis" data-column="0">Name</a> - <a class="toggle-vis" data-column="1">Position</a> - <a class="toggle-vis" data-column="2">Office</a> - <a class="toggle-vis" data-column="3">Age</a> - <a class="toggle-vis" data-column="4">Start date</a> - <a class="toggle-vis" data-column="5">Salary</a>
+                    </div> -->
                     <table id="archiveTable" class="table-striped table dataTable" style="width:100%; border-color: #dce1dc;">
                         <thead>
                             <tr>
@@ -510,7 +528,7 @@
                         </form>
                     </div>
                 </div>
-                <div id="diffModal" class="modal fade" style="--bs-modal-width: 1800px;">
+                <div id="diffModal" class="modal fade" style="--bs-modal-width: 1100px;">
                     <div class="modal-dialog">
                         <form method="post" id="diffForm">
                             <div class="modal-content">
@@ -530,7 +548,8 @@
                                         <div id="second" name="second"></div>		
                                     </div>	                                    
                                     <div class="form-group"> 
-                                        <div id="diff_content" style="height:700px;border:1px solid black;"></div>
+                                        <div id="diff_content1" style="height:700px;width: 1082px;border:1px solid black;"></div>
+                                        <div id="diff_content2" style="height:240px;width: 1082px;border:1px solid black;"></div>
                                     </div>		
                                 </div>
                                 <div class="modal-footer">

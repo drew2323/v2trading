@@ -39,7 +39,7 @@ $(document).ready(function () {
                     console.log("jsme tu")
                     indConfig = configData["JS"].indConfig
                     console.log("after")
-                    console.log(JSON.stringify(indConfig, null,null, 2))
+                    //console.log(JSON.stringify(indConfig, null,null, 2))
 
                     console.log("before CHART_SHOW_TEXT",CHART_SHOW_TEXT)
                     var CHART_SHOW_TEXT = configData["JS"].CHART_SHOW_TEXT

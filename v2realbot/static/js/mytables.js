@@ -488,7 +488,7 @@ $(document).ready(function () {
 
             //monaco
             require(["vs/editor/editor.main"], () => {
-                editor_diff_stratin = monaco.editor.createDiffEditor(document.getElementById('diff_content'),
+                editor_diff_stratin1 = monaco.editor.createDiffEditor(document.getElementById('diff_content1'),
                     {
                         language: 'toml',
                         theme: 'tomlTheme-dark',
@@ -503,11 +503,7 @@ $(document).ready(function () {
                     modified: monaco.editor.createModel(rec2.stratvars_conf, 'toml'),
                 });
 
-                editor_diff_stratin1.setModel({
-                    original: monaco.editor.createModel(rec1.add_data_conf, 'toml'),
-                    modified: monaco.editor.createModel(rec2.add_data_conf, 'toml'),
-                });
-                editor_diff_stratin2 = monaco.editor.createDiffEditor(document.getElementById('diff_content'),
+                editor_diff_stratin2 = monaco.editor.createDiffEditor(document.getElementById('diff_content2'),
                     {
                         language: 'toml',
                         theme: 'tomlTheme-dark',
@@ -516,8 +512,8 @@ $(document).ready(function () {
                     }
                 );
                 editor_diff_stratin2.setModel({
-                    original: monaco.editor.createModel(record1.add_data_conf, 'toml'),
-                    modified: monaco.editor.createModel(record2.add_data_conf, 'toml'),
+                    original: monaco.editor.createModel(rec1.add_data_conf, 'toml'),
+                    modified: monaco.editor.createModel(rec2.add_data_conf, 'toml'),
                 });
 
             });

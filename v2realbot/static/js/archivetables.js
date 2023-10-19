@@ -2,7 +2,6 @@
 let editor_diff_arch1
 let editor_diff_arch2
 
-
 function refresh_arch_and_callback(row, callback) {
     console.log("entering refresh")
     var request = $.ajax({
@@ -215,7 +214,7 @@ $(document).ready(function () {
 
             //monaco
             require(["vs/editor/editor.main"], () => {
-                editor_diff_arch1 = monaco.editor.createDiffEditor(document.getElementById('diff_content'),
+                editor_diff_arch1 = monaco.editor.createDiffEditor(document.getElementById('diff_content1'),
                     {
                         language: 'toml',
                         theme: 'tomlTheme-dark',
@@ -229,7 +228,7 @@ $(document).ready(function () {
                     original: monaco.editor.createModel(record1.stratvars_conf, 'toml'),
                     modified: monaco.editor.createModel(record2.stratvars_conf, 'toml'),
                 });
-                editor_diff_arch2 = monaco.editor.createDiffEditor(document.getElementById('diff_content'),
+                editor_diff_arch2 = monaco.editor.createDiffEditor(document.getElementById('diff_content2'),
                     {
                         language: 'toml',
                         theme: 'tomlTheme-dark',
@@ -625,7 +624,7 @@ var archiveRecords =
             },
             },
             {
-                targets: [5,6],
+                targets: [5],
                 render: function ( data, type, row ) {
                     now = new Date(data)
                     if (type == "sort") {
@@ -648,6 +647,29 @@ var archiveRecords =
                 },
                 },
                 {
+                    targets: [6],
+                    render: function ( data, type, row ) {
+                        now = new Date(data)
+                        if (type == "sort") {
+                            return new Date(data).getTime();
+                        }
+                        var date = new Date(data);
+                        tit = date.toLocaleString('cs-CZ', {
+                                timeZone: 'America/New_York',
+                              })
+    
+                        if (isToday(now)) {
+                            //return local time only
+                            return '<div title="'+tit+'" class="token level comment">'+ 'dnes ' + format_date(data,false,true)+'</div>'
+                        }
+                        else
+                        {
+                            //return  local datetime
+                            return '<div title="'+tit+'" class="token level number">'+ format_date(data,false,false)+'</div>'
+                        }
+                    },
+                    },
+                {
                 targets: [9,10],
                 render: function ( data, type, row ) {
                     if (type == "sort") {
@@ -661,9 +683,15 @@ var archiveRecords =
                 {
                     targets: [2],
                     render: function ( data, type, row ) {
-                        return '<div class="tdname" title="'+data+'">'+data+'</div>'
+                        return '<div class="tdname tdnowrap" title="'+data+'">'+data+'</div>'
                     },
                 },
+                // {
+                //     targets: [4],
+                //     render: function ( data, type, row ) {
+                //         return '<div class="tdname tdnowrap" title="'+data+'">'+data+'</div>'
+                //     },
+                // },
                 {
                     targets: [16],
                     render: function ( data, type, row ) {
@@ -673,16 +701,31 @@ var archiveRecords =
                         catch (error) {
 
                         }
-
                         var res = JSON.stringify(data)
-                        const unquoted = res.replace(/"([^"]+)":/g, '$1:')
-                        return '<div class="tdmetrics" title="'+unquoted+'">'+unquoted+'</div>'
+                        var unquoted = res.replace(/"([^"]+)":/g, '$1:')
+
+                        //zobrazujeme jen kratkou summary pokud mame, jinak davame vse, do titlu davame vzdy vse
+                        //console.log(data)
+                        short = null
+                        if ((data.profit) && (data.profit.sum)) {
+                            short = data.profit.sum
+                        }
+                        else {
+                            short = unquoted
+                        }
+                        return '<div class="tdmetrics" title="'+unquoted+'">'+short+'</div>'
                     },
                 },
                 {
                     targets: [4],
                     render: function ( data, type, row ) {
                         return '<div class="tdnote" title="'+data+'">'+data+'</div>'
+                    },
+                },
+                {
+                    targets: [13,14,15],
+                    render: function ( data, type, row ) {
+                        return '<div class="tdsmall">'+data+'</div>'
                     },
                 },
                 {
@@ -739,5 +782,17 @@ var archiveRecords =
         //}
         } );
 
+//WIP buttons to hide datatable columns
+        // document.querySelectorAll('a.toggle-vis').forEach((el) => {
+        //     el.addEventListener('click', function (e) {
+        //         e.preventDefault();
+         
+        //         let columnIdx = e.target.getAttribute('data-column');
+        //         let column = archiveRecords.column(columnIdx);
+         
+        //         // Toggle the visibility
+        //         column.visible(!column.visible());
+        //     });
+        // });
 
         

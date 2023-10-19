@@ -688,6 +688,11 @@ def populate_metrics_output_directory(strat: StrategyInstance, inter_batch_param
             res["profit"]["long_losses"] = round(long_losses,2)
             res["profit"]["short_wins"] = round(short_wins,2)
             res["profit"]["short_losses"] = round(short_losses,2)
+
+            mpt_string = "PT"+str(max_profit_time.hour)+":"+str(max_profit_time.minute) if max_profit_time is not None else "" 
+            mlt_string ="LT"+str(max_loss_time.hour)+":"+str(max_loss_time.minute) if max_loss_time is not None else "" 
+            ##summary pro rychle zobrazeni P333L-222 PT9:30 PL10:30
+            res["profit"]["sum"]="P"+str(int(max_profit))+"L"+str(int(max_loss))+" "+ mpt_string+" " + mlt_string
             #vlozeni celeho listu
             res["prescr_trades"]=json.loads(json.dumps(strat.state.vars.prescribedTrades, default=json_serial))
 

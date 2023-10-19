@@ -94,8 +94,9 @@ tbody, td, tfoot, th, thead, tr {
 .tdmetrics {
   overflow: hidden;
   text-overflow: ellipsis;
-  width: 201px;
+  width: 132px;
   white-space: nowrap;
+  font-size: x-small;
 }
 
 table.dataTable thead th, table.dataTable thead td, table.dataTable tfoot th, table.dataTable tfoot td {
@@ -123,10 +124,15 @@ table.dataTable thead>tr>th.sorting_asc:before, table.dataTable thead>tr>th.sort
 }
 .tdnote {
   width: 188px;
+  font-size: x-small;
+}
+
+.tdsmall {
+  font-size: x-small;
 }
 
 .tdname {
-  width: 140px;
+  width: 100px;
 }
 
 .form-row {
@@ -200,7 +206,7 @@ html {
 }
 
 .table>:not(caption)>*>* {
-  padding: 0.32rem 0.32rem;
+  padding: 0.2rem 0.2rem 0.01rem 0.2rem;
 }
 
 .flex-container {
@@ -266,7 +272,7 @@ html {
     overflow: auto;
     height: 568px;
     flex-direction: column-reverse;
-    margin-left: 28px;
+    margin-left: 14px;
     width: 100%;
   }
 }
@@ -277,7 +283,7 @@ html {
     overflow: auto;
     height: 568px;
     flex-direction: column-reverse;
-    margin-left: 28px;
+    margin-left: 14px;
     width: 130%;
 }
 
@@ -353,9 +359,15 @@ pre {
   padding-right: 30px;
 }
 
-.highlighted {
+/* .highlighted {
   color: var(--bs-emphasis-color);
   background-color: var(--bs-gray-900);
+  /* color: var(--bs-dark-text-emphasis); */
+/* }  */
+
+.highlighted {
+  color: #989393;
+  background-color: #242a31;
   /* color: var(--bs-dark-text-emphasis); */
 }
 

@@ -51,7 +51,7 @@ Hlavní loop:
 
 """
 def next(data, state: StrategyState):
-    print(10*"*","NEXT START",10*"*")
+    ##print(10*"*","NEXT START",10*"*")
     # important vars state.avgp, state.positions, state.vars, data
     
     #indicators moved to call_next in upper class

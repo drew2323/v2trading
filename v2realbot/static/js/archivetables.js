@@ -614,12 +614,14 @@ var archiveRecords =
                     {data: 'end_positions', visible: true},
                     {data: 'end_positions_avgp', visible: true},
                     {data: 'metrics', visible: true},
+                    {data: 'batch_id', visible: true},
                 ],
         paging: false,
         processing: false,
         columnDefs: [{
-            targets: [0,1],
+            targets: [0,1,17],
             render: function ( data, type, row ) {
+                if (!data) return data
                 return '<div class="tdnowrap" title="'+data+'">'+data+'</i>'
             },
             },
@@ -695,11 +697,12 @@ var archiveRecords =
                 {
                     targets: [16],
                     render: function ( data, type, row ) {
+                        //console.log("metrics", data)
                         try {
                             data = JSON.parse(data)
                         }
                         catch (error) {
-
+                            //console.log(error)
                         }
                         var res = JSON.stringify(data)
                         var unquoted = res.replace(/"([^"]+)":/g, '$1:')

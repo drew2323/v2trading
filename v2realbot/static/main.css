@@ -11,7 +11,8 @@
   color-scheme: dark;
   --bs-body-color: #787b86;
   --bs-body-color-rgb: 173,181,189;
-  --bs-body-bg: #2a2e39;
+  /* --bs-body-bg: #2a2e39; */
+  --bs-body-bg: #121722;
   --bs-body-bg-rgb: 33,37,41;
   --bs-emphasis-color: #adb5bd;
   --bs-emphasis-color-rgb: 255,255,255;
@@ -225,7 +226,7 @@ html {
     flex-basis: auto;
     align-self: auto;
     order: 0;
-    margin-inline-start: 50px;
+    margin-inline-start: 23px;
     padding-bottom: 10px;
   }
 
@@ -236,7 +237,7 @@ html {
 .legend {
     position: absolute;
     color: #050505;
-    left: 115px;
+    left: 100px;
     top: 195px;
     z-index: 1;
     font-size: 12px;
@@ -254,19 +255,12 @@ html {
   display: flex;
 }
 
-#msgContainer {
-  display: inline-block;
-  /* overflow: auto; */
-  height: 596px;
-  /* width: 32%; */
-}
-
 .clearbutton {
   margin-left: 29px;
 }
 
 /* na male obrazovce je log pod grafem, zobrazujeme tedy prvni logy nahore */
-@media (max-width : 1680px) {
+@media (max-width : 2000px) {
   .msgContainerInner {
     display: flex;
     overflow: auto;
@@ -275,16 +269,29 @@ html {
     margin-left: 14px;
     width: 100%;
   }
+  #msgContainer {
+    display: inline-block;
+    /* overflow: auto; */
+    height: 600px;
+    width: 40%;
+  }
 }
 
-@media (min-width: 1681px) {}
- .msgContainerInner {
-    display: flex;
-    overflow: auto;
-    height: 568px;
-    flex-direction: column-reverse;
-    margin-left: 14px;
-    width: 130%;
+@media (min-width: 2001px) {
+  .msgContainerInner {
+      display: flex;
+      overflow: auto;
+      height: 568px;
+      flex-direction: column-reverse;
+      margin-left: 14px;
+      width: 130%;
+  }
+  #msgContainer {
+    display: inline-block;
+    /* overflow: auto; */
+    height: 600px;
+    width: max-content;
+  }
 }
 
 #lowercontainer {
@@ -405,20 +412,37 @@ pre {
 	outline: none;
 } */
 
-.switcher-item {
+/* .switcher-item {
   cursor: pointer;
   text-decoration: none;
   display: inline-block;
   padding: 3px 6px;
   font-size: 14px;
-  /* color: #262b3e; */
-  /* background-color: #818581; */
   background-color:  #0202022e;;
   margin-right: 8px;
   margin-bottom: 6px;
   border: none;
   border-radius: 5px;
   outline: none;
+} */
+
+.switcher-item {
+  /* cursor: pointer; */
+  text-decoration: double;
+  display: inline-block;
+  padding: 1px 6px;
+  font-size: 14px;
+  /* color: #262b3e; */
+  /* background-color: #818581; */
+  background-color: #0202022e;
+  margin-right: 8px;
+  margin-bottom: 6px;
+  /* border: 1px; */
+  border-radius: 4px;
+  outline: solid 1px;
+  outline-color: #323232;
+  /* outline-width: 1px; */
+  border-style: none;
 }
 
 .switcher-item:hover {

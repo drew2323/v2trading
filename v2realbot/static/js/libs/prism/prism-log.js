@@ -24,7 +24,7 @@ Prism.languages.log = {
 
 	'level': [
 		{
-			pattern: /\b(?:ALERT|CRIT|CRITICAL|EMERG|EMERGENCY|ERR|ERROR|FAILURE|FATAL|SEVERE|-----)\b/,
+			pattern: /\b(?:ALERT|CRIT|CRITICAL|EMERG|EMERGENCY|ERR|ERROR|FAILURE|FATAL|SEVERE|CONF|-----)\b/,
 			alias: ['error', 'important']
 		},
 		{
@@ -36,7 +36,7 @@ Prism.languages.log = {
 			alias: ['info', 'keyword']
 		},
 		{
-			pattern: /\b(?:DBG|DEBUG|FINE|REVERSE|ADD|EXITADD|SIGNAL)\b/,
+			pattern: /\b(?:DBG|DEBUG|FINE|REVERSE|ADD|EXITADD|SIGNAL|PRECOND)\b/,
 			alias: ['debug', 'keyword']
 		},
 		{

@@ -48,7 +48,8 @@ from joblib import load
 #9. jiny pristup by byl ucit model na konkretnich  chunkach, ktere chci aby mi identifikoval. Např. určité úseky. Vymyslet. Buď nyni jako test intervaly, ale v budoucnu to treba jen nejak oznacit a poslat k nauceni. Pripadne pak udelat nejaky vycuc.
 #10. mozna správným výběrem targetu, můžu taky naučit jen určité věci. Specializace. Stačí když se jednou dvakrát denně aktivuje.
 # 11. udelat si go IN model, ktery pomuze strategii generovat vstup - staci jen aby mel trochu lepsi edge nez conditiony, o zbytek se postara logika strategie
-# 12. model pro neagregované nebo jen filtroné či velmi lehce agregované trady?
+# 12. model pro neagregované nebo jen filtroné či velmi lehce agregované trady? - tickprice
+# 13. jako featury pouzit Fourierovo transformaci, na sekundovem baru nebo tickprice
 
 #DULEZITE
 # soustredit se v modelech na predikci nasledujici hodnoty, ideálně nějaký vektor ukazující směr (např. 0 - 1, kde nula nebude růst, 1 - bude růst strmě)

@@ -61,6 +61,7 @@ function initialize_statusheader() {
     
     var rows = 2;
     var columns = 4;
+    console.log("initialiting statusheader")
     console.log(JSON.stringify(statusBarConfig))
 
     // Create the grid table
@@ -262,7 +263,8 @@ function initialize_chart() {
         layout: {
             background: {
                 type: 'solid',
-                color: '#2a2e39',
+                // color: '#2a2e39',
+                color: '#151824'
             },
             textColor: '#d1d4dc',
         },

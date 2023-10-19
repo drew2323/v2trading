@@ -969,14 +969,14 @@ function display_log(iterLogList, timestamp) {
             hdr = logLine.time + " " + logLine.event + ' - '+ (logLine.message == undefined ? "" : logLine.message)
             hdr = Prism.highlight(hdr, Prism.languages.log, 'log');
 
-            row = '<div data-bs-toggle="collapse" class="'+ highlighted + ' shj-lang-log" onclick="set_timestamp(' + logLine.time + ')" data-bs-target="#rec'+logcnt+'">'
+            row = '<div data-bs-toggle="collapse" class="'+ highlighted + '" onclick="set_timestamp(' + logLine.time + ')" data-bs-target="#rec'+logcnt+'">'
             +hdr + '</div>'
             str_row = JSON.stringify(logLine.details, null, 2)
             //row_detail = '<div id="rec'+logcnt+'" data-toggle="collapse" data-target="#rec'+logcnt+'"class="collapse pidi"><pre>' + str_row + '</pre></div>'
 
             const html = Prism.highlight(str_row, Prism.languages.json, 'json');
             //console.log("tady", html)
-            row_detail = '<div id="rec'+logcnt+'" class="collapse pidi shj-lang-log"><pre><code class="language-log">' + html + '</code></pre></div>'
+            row_detail = '<div id="rec'+logcnt+'" class="collapse pidi"><pre><code class="language-log">' + html + '</code></pre></div>'
 
             var lines = document.getElementById('lines')
             var line = document.createElement('div')

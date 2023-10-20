@@ -6,6 +6,7 @@ from uuid import UUID
 class TradeStatus(str, Enum):
     READY = "ready"
     ACTIVATED = "activated"
+    CLOSED = "closed"
     #FINISHED = "finished"
 
 class TradeDirection(str, Enum):
@@ -28,4 +29,6 @@ class Trade(BaseModel):
     stoploss_value: Optional[float] = None
     profit: Optional[float] = 0
     profit_sum: Optional[float] = 0
+    rel_profit: Optional[float] = 0
+    rel_profit_cum: Optional[float] = 0
     

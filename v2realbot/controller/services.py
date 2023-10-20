@@ -7,7 +7,7 @@ from alpaca.data.enums import DataFeed
 from alpaca.data.timeframe import TimeFrame
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, OrderSide
 from v2realbot.common.model import RunDay, StrategyInstance, Runner, RunRequest, RunArchive, RunArchiveView, RunArchiveDetail, RunArchiveChange, Bar, TradeEvent, TestList, Intervals, ConfigItem
-from v2realbot.utils.utils import AttributeDict, zoneNY, dict_replace_value, Store, parse_toml_string, json_serial, is_open_hours, send_to_telegram
+from v2realbot.utils.utils import AttributeDict, zoneNY, zonePRG, dict_replace_value, Store, parse_toml_string, json_serial, is_open_hours, send_to_telegram
 from v2realbot.utils.ilog import delete_logs
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
 from datetime import datetime
@@ -21,6 +21,7 @@ from queue import Queue
 from tinydb import TinyDB, Query, where
 from tinydb.operations import set
 import json
+import numpy as np
 from numpy import ndarray
 from rich import print
 import pandas as pd
@@ -374,9 +375,10 @@ def run_batch_stratin(id: UUID, runReq: RunRequest):
         cal_list = []
         #interval dame do formatu list(RunDays)
         #TODO do budoucna predelat Interval na RunDays a na zone aware datetime
+        #zatim testlisty dávám v cz casu
         for intrvl in testlist.dates:
-            start_time = zoneNY.localize(datetime.fromisoformat(intrvl.start))
-            end_time = zoneNY.localize(datetime.fromisoformat(intrvl.end))
+            start_time = zonePRG.localize(datetime.fromisoformat(intrvl.start))
+            end_time = zonePRG.localize(datetime.fromisoformat(intrvl.end))
             cal_list.append(RunDay(start = start_time, end = end_time, note=intrvl.note, id=testlist.id))
 
         print(f"Getting intervals - RESULT ({len(cal_list)}): {cal_list}")
@@ -443,7 +445,7 @@ def batch_run_manager(id: UUID, runReq: RunRequest, rundays: list[RunDay]):
     cnt_max = len(rundays)
     cnt = 0
     #promenna pro sdileni mezi runy jednotlivych batchů (např. daily profit)
-    inter_batch_params = dict(batch_profit=0)
+    inter_batch_params = dict(batch_profit=0, batch_rel_profit=0)
     note_from_run_request = runReq.note
     for day in rundays:
         cnt += 1
@@ -636,6 +638,12 @@ def populate_metrics_output_directory(strat: StrategyInstance, inter_batch_param
     #naplneni batch sum profitu
     if inter_batch_params is not None:
         res["profit"]["batch_sum_profit"] = inter_batch_params["batch_profit"]
+        res["profit"]["batch_sum_rel_profit"] = inter_batch_params["batch_rel_profit"]
+
+    #rel_profit rozepsane zisky
+    res["profit"]["rel_profits"] = strat.state.rel_profit_cum
+    #rel_profit zprumerovane
+    res["profit"]["rel_profit_cum"] = float(np.mean(strat.state.rel_profit_cum)) if len(strat.state.rel_profit_cum) > 0 else 0
 
     #metrikz z prescribedTrades, pokud existuji
     try:
@@ -691,8 +699,10 @@ def populate_metrics_output_directory(strat: StrategyInstance, inter_batch_param
 
             mpt_string = "PT"+str(max_profit_time.hour)+":"+str(max_profit_time.minute) if max_profit_time is not None else "" 
             mlt_string ="LT"+str(max_loss_time.hour)+":"+str(max_loss_time.minute) if max_loss_time is not None else "" 
+            rp_string = "RP" + str(float(np.mean(strat.state.rel_profit_cum))) if len(strat.state.rel_profit_cum) >0 else "noRP"
+
             ##summary pro rychle zobrazeni P333L-222 PT9:30 PL10:30
-            res["profit"]["sum"]="P"+str(int(max_profit))+"L"+str(int(max_loss))+" "+ mpt_string+" " + mlt_string
+            res["profit"]["sum"]="P"+str(int(max_profit))+"L"+str(int(max_loss))+" "+ mpt_string+" " + mlt_string + rp_string + " "+str(strat.state.rel_profit_cum)
             #vlozeni celeho listu
             res["prescr_trades"]=json.loads(json.dumps(strat.state.vars.prescribedTrades, default=json_serial))
 
@@ -729,6 +739,8 @@ def archive_runner(runner: Runner, strat: StrategyInstance, inter_batch_params: 
         #add profit of this batch iteration to batch_sum_profit
         if inter_batch_params is not None:
             inter_batch_params["batch_profit"] += round(float(strat.state.profit),2)
+            inter_batch_params["batch_rel_profit"] += float(np.mean(strat.state.rel_profit_cum)) if len(strat.state.rel_profit_cum) > 0 else 0
+
         
         #WIP
         #populate result metrics dictionary (max drawdown etc.)

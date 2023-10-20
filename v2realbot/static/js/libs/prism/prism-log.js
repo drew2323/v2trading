@@ -28,7 +28,7 @@ Prism.languages.log = {
 			alias: ['error', 'important']
 		},
 		{
-			pattern: /\b(?:WARN|WARNING|WRN|ENTRY|LP|SL)\b/,
+			pattern: /\b(?:WARN|WARNING|WRN|ENTRY|LP|SL|PROFIT|profit|profit_rel)\b/,
 			alias: ['warning', 'important']
 		},
 		{

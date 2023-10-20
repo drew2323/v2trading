@@ -79,7 +79,7 @@ def row_to_runarchiveview(row: dict) -> RunArchiveView:
         trade_count=int(row['trade_count']),
         end_positions=int(row['end_positions']),
         end_positions_avgp=float(row['end_positions_avgp']),
-        metrics=json.loads(row['metrics']),
+        metrics=json.loads(row['metrics']) if row['metrics'] else None
     )
 
 #prevede dict radku zpatky na objekt vcetme retypizace

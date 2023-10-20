@@ -710,7 +710,7 @@ var archiveRecords =
                         //zobrazujeme jen kratkou summary pokud mame, jinak davame vse, do titlu davame vzdy vse
                         //console.log(data)
                         short = null
-                        if ((data.profit) && (data.profit.sum)) {
+                        if ((data) && (data.profit) && (data.profit.sum)) {
                             short = data.profit.sum
                         }
                         else {

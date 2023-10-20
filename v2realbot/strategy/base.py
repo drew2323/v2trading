@@ -705,7 +705,10 @@ class StrategyState:
         self.sell_l = self.interface.sell_l
         self.cancel_pending_buys = None
         self.iter_log_list = []
+        #celkovy profit (prejmennovat na profit_cum)
         self.profit = 0
+        #celkovy relativni profit (obsahuje pole relativnich zisku, z jeho meanu se spocita celkovy rel_profit_cu,)
+        self.rel_profit_cum = []
         self.tradeList = []
         #nova promenna pro externi data do ArchiveDetaili, napr. pro zobrazeni v grafu, je zde např. SL history
         self.extData = {}

@@ -12,7 +12,7 @@ from datetime import datetime
 #from rich import print
 from random import randrange
 from alpaca.common.exceptions import APIError
-import copy
+import numpy as np
 from threading import Event
 from uuid import UUID, uuid4
 from v2realbot.strategyblocks.indicators.indicators_hub import populate_all_indicators
@@ -100,7 +100,19 @@ class StrategyClassicSL(Strategy):
 
                 trade_profit = round((avg_costs-bought_amount),2)
                 self.state.profit += trade_profit
-                self.state.ilog(e=f"BUY notif - SHORT PROFIT:{round(float(trade_profit),3)} celkem:{round(float(self.state.profit),3)}", msg=str(data.event), bought_amount=bought_amount, avg_costs=avg_costs, trade_qty=data.qty, trade_price=data.price, orderid=str(data.order.id))
+
+                rel_profit = 0
+                #spoctene celkovy relativni profit za trade v procentech ((trade_profit/vstup_naklady)*100)
+                if vstup_cena != 0 and int(data.order.qty) != 0:
+                    rel_profit = (trade_profit / (vstup_cena * float(data.order.qty))) * 100
+
+                #pokud jde o finalni FILL - pridame do pole tento celkovy relativnich profit (ze ktereho se pocita kumulativni relativni profit)
+                rel_profit_cum_calculated = 0
+                if data.event == TradeEvent.FILL:
+                    self.state.rel_profit_cum.append(rel_profit)
+                    rel_profit_cum_calculated = np.mean(self.state.rel_profit_cum)
+
+                self.state.ilog(e=f"BUY notif - SHORT PROFIT:{round(float(trade_profit),3)} celkem:{round(float(self.state.profit),3)} rel:{float(rel_profit)} rel_cum:{round(rel_profit_cum_calculated,7)}", msg=str(data.event), rel_profit_cum=str(self.state.rel_profit_cum), bought_amount=bought_amount, avg_costs=avg_costs, trade_qty=data.qty, trade_price=data.price, orderid=str(data.order.id))
 
                 #zapsat profit do prescr.trades
                 for trade in self.state.vars.prescribedTrades:
@@ -110,7 +122,11 @@ class StrategyClassicSL(Strategy):
                         #pro ulozeni do tradeData scitame vsechen zisk z tohoto tradu (kvuli partialum)
                         trade_profit = trade.profit
                         trade.profit_sum = self.state.profit
+                        trade.rel_profit = rel_profit
+                        trade.rel_profit_cum = rel_profit_cum_calculated
                         signal_name = trade.generated_by
+                        if data.event == TradeEvent.FILL:
+                            trade.status == TradeStatus.CLOSED
                         break
 
                 if data.event == TradeEvent.FILL:
@@ -124,6 +140,8 @@ class StrategyClassicSL(Strategy):
                             setattr(tradeData, "profit_sum", self.state.profit)
                             setattr(tradeData, "signal_name", signal_name)
                             #self.state.ilog(f"updatnut tradeList o profit", tradeData=json.loads(json.dumps(tradeData, default=json_serial)))
+                            setattr(tradeData, "rel_profit", rel_profit)
+                            setattr(tradeData, "rel_profit_cum", rel_profit_cum_calculated)
 
                 #test na maximalni profit/loss, pokud vypiname pak uz nedelame pripdany reverzal
                 if await self.stop_when_max_profit_loss() is False:
@@ -142,7 +160,7 @@ class StrategyClassicSL(Strategy):
                     if trade.id == self.state.vars.pending:
                         signal_name = trade.generated_by
 
-                #zapsat update profitu do tradeList
+                #zapsat do tradeList
                 for tradeData in self.state.tradeList:
                     if tradeData.execution_id == data.execution_id:
                         setattr(tradeData, "signal_name", signal_name)
@@ -194,7 +212,19 @@ class StrategyClassicSL(Strategy):
                 
                 trade_profit = round((sold_amount - avg_costs),2)
                 self.state.profit += trade_profit
-                self.state.ilog(e=f"SELL notif - PROFIT:{round(float(trade_profit),3)} celkem:{round(float(self.state.profit),3)}", msg=str(data.event), sold_amount=sold_amount, avg_costs=avg_costs, trade_qty=data.qty, trade_price=data.price, orderid=str(data.order.id))
+
+                rel_profit = 0
+                #spoctene celkovy relativni profit za trade v procentech ((trade_profit/vstup_naklady)*100)
+                if vstup_cena != 0 and data.order.qty != 0:
+                    rel_profit = (trade_profit / (vstup_cena * float(data.order.qty))) * 100
+
+                rel_profit_cum_calculated = 0
+                #pokud jde o finalni FILL - pridame do pole relativnich profit (ze ktereho se pocita kumulativni relativni profit)
+                if data.event == TradeEvent.FILL:
+                    self.state.rel_profit_cum.append(rel_profit)
+                    rel_profit_cum_calculated = np.mean(self.state.rel_profit_cum)
+
+                self.state.ilog(e=f"SELL notif - PROFIT:{round(float(trade_profit),3)} celkem:{round(float(self.state.profit),3)} rel:{float(rel_profit)} rel_cum:{round(rel_profit_cum_calculated,7)}", msg=str(data.event), rel_profit_cum = str(self.state.rel_profit_cum), sold_amount=sold_amount, avg_costs=avg_costs, trade_qty=data.qty, trade_price=data.price, orderid=str(data.order.id))
 
                 #zapsat profit do prescr.trades
                 for trade in self.state.vars.prescribedTrades:
@@ -204,7 +234,11 @@ class StrategyClassicSL(Strategy):
                         #pro ulozeni do tradeData scitame vsechen zisk z tohoto tradu (kvuli partialum)
                         trade_profit = trade.profit
                         trade.profit_sum = self.state.profit
+                        trade.rel_profit = rel_profit
+                        trade.rel_profit_cum = rel_profit_cum_calculated
                         signal_name = trade.generated_by
+                        if data.event == TradeEvent.FILL:
+                            trade.status == TradeStatus.CLOSED
                         break
 
                 if data.event == TradeEvent.FILL:
@@ -218,6 +252,9 @@ class StrategyClassicSL(Strategy):
                             setattr(tradeData, "profit_sum", self.state.profit)
                             setattr(tradeData, "signal_name", signal_name)
                             #self.state.ilog(f"updatnut tradeList o profi {str(tradeData)}")
+                            setattr(tradeData, "rel_profit", rel_profit)
+                            setattr(tradeData, "rel_profit_cum", rel_profit_cum_calculated)
+                            #sem nejspis update skutecne vstupni ceny (celk.mnozstvi(order.qty) a avg_costs), to same i druhy smer
 
                 if await self.stop_when_max_profit_loss() is False:
 

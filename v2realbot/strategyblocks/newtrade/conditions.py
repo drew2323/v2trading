@@ -97,7 +97,7 @@ def common_go_preconditions_check(state, data, signalname: str, options: dict):
     window_close = safe_get(options, "window_close",safe_get(state.vars, "window_close",390))
 
     if is_window_open(datetime.fromtimestamp(data['updated']).astimezone(zoneNY), window_open, window_close) is False:
-        state.ilog(lvl=1,e=f"SIGNAL {signalname} - WINDOW CLOSED", msg=f"{window_open=} {window_close=} ")
+        state.ilog(lvl=1,e=f"SIGNAL {signalname} - WINDOW CLOSED", msg=f"{window_open=} {window_close=} ", time=str(datetime.fromtimestamp(data['updated']).astimezone(zoneNY)))
         return False           
 
     min_bar_index = safe_get(options, "min_bar_index",safe_get(state.vars, "min_bar_index",0))

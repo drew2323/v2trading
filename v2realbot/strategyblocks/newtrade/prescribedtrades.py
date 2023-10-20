@@ -6,6 +6,7 @@ from datetime import datetime
 import json
 from v2realbot.strategyblocks.activetrade.helpers import insert_SL_history, get_default_sl_value, normalize_tick
 
+#TODO nad prescribed trades postavit vstupni funkce
 def execute_prescribed_trades(state: StrategyState, data):
     ##evaluate prescribed trade, prvni eligible presuneme do activeTrade, zmenime stav and vytvorime objednavky
     

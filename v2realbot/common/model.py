@@ -191,6 +191,8 @@ class TradeUpdate(BaseModel):
     pos_avg_price: Optional[float]
     profit: Optional[float]
     profit_sum: Optional[float]
+    rel_profit: Optional[float]
+    rel_profit_cum: Optional[float]
     signal_name: Optional[str]
 
 

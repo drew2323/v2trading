@@ -1,9 +1,11 @@
 //ARCHIVE TABLES
 let editor_diff_arch1
 let editor_diff_arch2
+var archData = null
+var addedInds = {}
 
 function refresh_arch_and_callback(row, callback) {
-    console.log("entering refresh")
+    //console.log("entering refresh")
     var request = $.ajax({
         url: "/archived_runners/"+row.id,
         beforeSend: function (xhr) {
@@ -13,7 +15,7 @@ function refresh_arch_and_callback(row, callback) {
         contentType: "application/json",
         dataType: "json",
         success:function(data){   
-            console.log("fetched data ok")                      
+            //console.log("fetched data ok")                      
             //console.log(JSON.stringify(data,null,2));
         },
         error: function(xhr, status, error) {
@@ -27,7 +29,7 @@ function refresh_arch_and_callback(row, callback) {
     $.when(request).then(function(response) {
         // Both requests have completed successfully
         //console.log("Result from  request:", response);
-        console.log("Response received. calling callback")
+        //console.log("Response received. calling callback")
         //call callback function
         callback(response)
 
@@ -95,8 +97,8 @@ $(document).ready(function () {
           contentType: "application/json",
           dataType: "json",
           success:function(data){   
-              console.log("first request ok")                      
-              console.log(JSON.stringify(data,null,2));
+              //console.log("first request ok")                      
+              //console.log(JSON.stringify(data,null,2));
           },
           error: function(xhr, status, error) {
               var err = eval("(" + xhr.responseText + ")");
@@ -114,8 +116,8 @@ $(document).ready(function () {
             contentType: "application/json",
             dataType: "json",
             success:function(data){   
-                console.log("first request ok")                      
-                console.log(JSON.stringify(data,null,2));
+                //console.log("first request ok")                      
+                //console.log(JSON.stringify(data,null,2));
             },
             error: function(xhr, status, error) {
                 var err = eval("(" + xhr.responseText + ")");
@@ -130,9 +132,9 @@ $(document).ready(function () {
             // Both requests have completed successfully
             var result1 = response1[0];
             var result2 = response2[0];
-            console.log("Result from first request:", result1);
-            console.log("Result from second request:", result2);
-            console.log("calling compare")
+            //console.log("Result from first request:", result1);
+            //console.log("Result from second request:", result2);
+            //console.log("calling compare")
             perform_compare(result1, result2)
             // Perform your action with the results from both requests
             // Example:
@@ -165,7 +167,7 @@ $(document).ready(function () {
             //ELEMENTS TO COMPARE
 
             //profit sekce
-            console.log(data1.metrics)
+            //console.log(data1.metrics)
 
             try {
                 record1["profit"] = JSON.parse(data1.metrics.profit)
@@ -193,7 +195,7 @@ $(document).ready(function () {
             // record2.close_rush = rows[1].close_rush;
     
             //ELEMENTS TO COMPARE
-            console.log(data2.metrics)
+            //console.log(data2.metrics)
 
             try {
                 record2["profit"] = JSON.parse(data2.metrics.profit)
@@ -312,6 +314,129 @@ $(document).ready(function () {
         }
     });
 
+//Kod pro add indicator -dat do arch chart souboru
+
+    //modal - delete indicator button
+    $('#deleteIndicatorButton').click(function () {
+        window.$('#indicatorModal').modal('hide');
+        indname = $('#indicatorName').val()
+        //updatneme globalni promennou obsahujici vsechny arch data
+        //TBD nebude fungovat az budu mit vic chartů otevřených - předělat
+        if (archData.indicators[0][indname]) {
+            delete archData.indicators[0][indname]
+            delete addedInds[indname]
+            //get active resolution
+            const element = document.querySelector('.switcher-active-item');
+            resolution = element.textContent
+            //console.log("aktivni rozliseni", resolution)
+            switch_to_interval(resolution, archData)
+        }
+    });
+
+
+    var myModalEl = document.getElementById('indicatorModal')
+    myModalEl.addEventListener('hidden.bs.modal', function (event) {
+        close_addind_modal()
+    })
+
+    function close_addind_modal() {
+        index = $('#indicatorId').val()
+        const elem = document.getElementById("IND"+index);
+        if  (elem) {
+            elem.classList.replace('switcher-item-highlighted', 'switcher-item');
+        }
+        //vracime pripadny schovany del button
+        $('#deleteIndicatorButton').show();
+        window.$('#indicatorModal').modal('hide');
+    }
+
+    //HLAVNI SAVE akce INDICATOR MODAL - ulozi nebo vytvori novy
+    $('#saveIndicatorButton').click(function () {
+        indName = $('#indicatorName').val()
+        if (!indName) {
+            alert("name musi byt vyplneno")
+            return
+        }
+        
+        index = $('#indicatorId').val()
+        var elem = document.getElementById("IND"+index);
+        if (elem) {
+            //pokud existuje - pak jde bud o edit nebo duplicate - podle jmena
+
+            //jmeno je updatnute, jde o duplicate - vytvarime novy index
+            if (elem.textContent !== $('#indicatorName').val()) {
+                //alert("duplikujeme")
+                index_ind++
+                index = index_ind
+            }
+        }
+        //pokud neexistuje, pak jde o novy index - pouzijeme tento
+
+        runner_id = $("#statusArchId").text()
+        if (!runner_id) {
+            alert("no arch runner selected")
+            return
+        }
+        // row = archiveRecords.row('.selected').data();
+        // if (row == undefined) {
+
+        // }
+
+        store_activated_buttons_state()
+        //pridame jeste tu aktualni, aby se zobrazila jako aktivni
+        activatedButtons.push(indName);
+
+        
+        //console.log(activatedButtons)
+    
+        obj = new Object()
+        obj.runner_id = runner_id
+        obj.toml = ind_editor.getValue()
+        jsonString = JSON.stringify(obj);
+        //console.log("pred odeslanim",jsonString)
+        //cal rest api
+        $.ajax({
+            url:"/archived_runners/"+runner_id+"/previewindicator",
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader('X-API-Key',
+                    API_KEY); },
+            method:"PUT",
+            contentType: "application/json",
+            data: jsonString,
+            success:function(data){
+                //kod pro update/vytvoreni je zde stejny - updatujeme jen zdrojove dictionary
+                window.$('#indicatorModal').modal('hide');
+                //console.log(data)
+                //indName = $('#indicatorName').val()
+                //updatneme/vytvorime klic v globalni promennou obsahujici vsechny arch data
+                //TBD nebude fungovat az budu mit vic chartů otevřených - předělat
+                archData.indicators[0][indName] = data
+                
+                //glob promenna obsahujici aktualne pridane indikatory a jejich konfigurace
+                addedInds[indName] = obj.toml
+                //get active resolution
+                const element = document.querySelector('.switcher-active-item');
+                resolution = element.textContent
+                //console.log("aktivni rozliseni", resolution)
+                switch_to_interval(resolution, archData)
+            },
+            error: function(xhr, status, error) {
+                var err = eval("(" + xhr.responseText + ")");
+                window.alert(JSON.stringify(xhr));
+                //console.log(JSON.stringify(xhr));
+                //$('#button_runagain_arch').attr('disabled',false);
+            }
+        })
+        // #indicatorId
+        // #indicatorName
+        // #indicatorTOML
+
+
+        //$('#editidarchive').val(row.id);
+        //$('#editnote').val(row.note);
+});
+
+
     //show button
     $('#button_show_arch').click(function () {
 
@@ -337,7 +462,7 @@ $(document).ready(function () {
                     //$("#lines").html("<pre>"+JSON.stringify(row.stratvars,null,2)+"</pre>")
                     
                     //$('#chartArchive').append(JSON.stringify(data,null,2));
-                    console.log(JSON.stringify(data,null,2));
+                    //console.log(JSON.stringify(data,null,2));
                     //if lower res is required call prepare_data otherwise call chart_archived_run()
                     //get other base resolutions
                     prepare_data(row, 1, "Min", data)
@@ -376,8 +501,8 @@ $(document).ready(function () {
             contentType: "application/json",
             dataType: "json",
             success:function(data){   
-                console.log("fetched data ok")                      
-                console.log(JSON.stringify(data,null,2));
+                //console.log("fetched data ok")                      
+                //console.log(JSON.stringify(data,null,2));
             },
             error: function(xhr, status, error) {
                 var err = eval("(" + xhr.responseText + ")");
@@ -396,8 +521,8 @@ $(document).ready(function () {
             contentType: "application/json",
             dataType: "json",
             success:function(data){   
-                console.log("fetched data ok")                      
-                console.log(JSON.stringify(data,null,2));
+                //console.log("fetched data ok")                      
+                //console.log(JSON.stringify(data,null,2));
             },
             error: function(xhr, status, error) {
                 var err = eval("(" + xhr.responseText + ")");
@@ -413,10 +538,10 @@ $(document).ready(function () {
             var result1 = response1[0];
             var result2 = response2[0];
 
-            console.log("Result from first request:", result1);
-            console.log("Result from second request:", result2);
+            //console.log("Result from first request:", result1);
+            //console.log("Result from second request:", result2);
 
-            console.log("calling compare")
+            //console.log("calling compare")
             rerun_strategy(result1, result2)
             // Perform your action with the results from both requests
             // Example:
@@ -431,7 +556,7 @@ $(document).ready(function () {
 
         function rerun_strategy(archRunner, stratData) {
             record1 = archRunner
-            console.log(record1)
+            //console.log(record1)
 
             //smazeneme nepotrebne a pridame potrebne
             //do budoucna predelat na vytvoreni noveho objektu
@@ -474,7 +599,7 @@ $(document).ready(function () {
             record1.id = record1.strat_id
             delete record1["strat_id"];
 
-            console.log("record1 pred odeslanim", record1)
+            //console.log("record1 pred odeslanim", record1)
             jsonString = JSON.stringify(record1);
 
             $.ajax({
@@ -514,7 +639,7 @@ $("#editModalArchive").on('submit','#editFormArchive', function(event){
     row["id"] = trow.id
     row["note"] = note
     jsonString = JSON.stringify(row);
-    console.log("pred odeslanim json string", jsonString)
+    //console.log("pred odeslanim json string", jsonString)
     $.ajax({
         url:"/archived_runners/"+trow.id,
         beforeSend: function (xhr) {
@@ -553,7 +678,7 @@ function delete_arch_rows(ids) {
             $('#delFormArchive')[0].reset();
             window.$('#delModalArchive').modal('hide');				
             $('#deletearchive').attr('disabled', false);
-            console.log(data)
+            //console.log(data)
             archiveRecords.ajax.reload();
         },
         error: function(xhr, status, error) {

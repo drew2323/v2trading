@@ -11,7 +11,7 @@ import uvicorn
 from uuid import UUID
 import v2realbot.controller.services as cs
 from v2realbot.utils.ilog import get_log_window
-from v2realbot.common.model import StrategyInstance, RunnerView, RunRequest, Trade, RunArchive, RunArchiveView, RunArchiveDetail, Bar, RunArchiveChange, TestList, ConfigItem
+from v2realbot.common.model import StrategyInstance, RunnerView, RunRequest, Trade, RunArchive, RunArchiveView, RunArchiveDetail, Bar, RunArchiveChange, TestList, ConfigItem, TomlInput
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status, WebSocketException, Cookie, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -428,6 +428,19 @@ def _delete_archived_runners_byIDs(runner_ids: list[UUID]):
     if res == 0: return id
     elif res < 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Error: {res}:{id}")
+
+#WIP - TOM indicator preview from frontend
+#return indicator value for archived runner
+@app.put("/archived_runners/{runner_id}/previewindicator", dependencies=[Depends(api_key_auth)], status_code=status.HTTP_200_OK)
+def _preview_indicator_byTOML(runner_id: UUID, toml: TomlInput) -> list[float]:
+    #mozna pak pridat name
+    res, vals = cs.preview_indicator_byTOML(id=runner_id, toml=toml.toml)
+    if res == 0: return vals
+    elif res == -1:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Error: {res}:{vals}")
+    else:
+        raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error not changed: {res}:{runner_id}:{vals}")
+
 
 #edit archived runner ("note",..)
 @app.patch("/archived_runners/{runner_id}", dependencies=[Depends(api_key_auth)])

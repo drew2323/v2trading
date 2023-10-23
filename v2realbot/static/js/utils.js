@@ -13,14 +13,16 @@ var candlestickSeries = null
 var volumeSeries = null
 var vwapSeries = null
 var statusBarConfig = JSON.parse(localStorage.getItem("statusBarConfig"));
-
+var activatedButtons = []
 if (statusBarConfig == null) {
   statusBarConfig = {}
 }
 
+var index_ind = 0
+
 
 const sorter = (a, b) => a.time > b.time ? 1 : -1;
-
+var ind_editor = null
 var indConfig = null
 settings = {}
 settings
@@ -56,6 +58,13 @@ var indConfig_default = [ {name: "ema", titlevisible: false, embed: true, displa
               {name: "sec_price", titlevisible: true, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},]
 //console.log(JSON.stringify(indConfig_default, null,null, 2))
 
+function store_activated_buttons_state() {
+    activatedButtons = []
+    //ulozime si stav aktivovaných buttonků před změnou - mozna do sluzby
+    $('#indicatorsButtons .switcher-active-item').each(function() {
+      activatedButtons.push($(this).text());
+      });
+}
 
 function initialize_statusheader() {
     
@@ -132,8 +141,10 @@ function initialize_statusheader() {
 
 }
 
-
+//pokud neni v configuraci vracime default
 function get_ind_config(indName) {
+
+    def = {name: "ema", titlevisible: false, embed: true, display: true, priceScaleId: "middle", lastValueVisible: false}
 
     if (indConfig == null) {
       indConfig = get_from_config("indConfig", indConfig_default)
@@ -144,7 +155,7 @@ function get_ind_config(indName) {
         {
             return indConfig[i]
         }
-    return null
+    return def
 }
 
 function toggle_vertical_line(time) {
@@ -328,25 +339,183 @@ function remove_indicator_buttons() {
   elem1.remove()
 }
 
+//pomocna funkce pro vytvoreni buttonu indiaktoru
+function create_indicator_button(item, index, def) {
+      // //div pro kazdy button
+      // var buttonContainer = document.createElement('div');
+      // buttonContainer.classList.add('button-container');
+  
+      var itemEl = document.createElement('button');
+      itemEl.innerText = item.name;
+          itemEl.id = "IND"+index;
+          itemEl.title = item.cnf
+          itemEl.style.color = item.series.options().color;
+          //pokud jde o pridanou on the fly - vybarvime jinak
+          if (item.added) {
+            itemEl.style.outline = "solid 1px"
+          }
+      itemEl.classList.add('switcher-item');
+      if (def) {
+      itemEl.classList.add('switcher-active-item');
+      }
+  
+      // //jeste vytvorime pod tim overlay a nad to az dame linky
+      // // Create the overlay element.
+      // const overlay = document.createElement("div");
+      // overlay.id = "OVR"+index;
+      // overlay.classList.add("overlayLayer");
+      // overlay.classList.add("hidden");
+  
+      // // Create the action buttons.
+      // const actionShow = document.createElement("div");
+      // actionShow.id = "actionShow";
+      // actionShow.textContent = "Show";
+  
+      itemEl.addEventListener('click', function() {
+        onItemClickedToggle(index);
+      });
+  
+      // const actionEdit = document.createElement("div");
+      // actionEdit.id = "actionEdit";
+      // actionEdit.textContent = "Edit";
+  
+      itemEl.addEventListener('contextmenu', function(e) {
+        //edit modal zatim nemame
+        onItemClickedEdit(e, index);
+      });
+  
+      // // Append the action buttons to the overlay.
+      // overlay.appendChild(actionShow);
+      // overlay.appendChild(actionEdit);
+  
+      // // Add a hover listener to the button.
+      // itemEl.addEventListener("mouseover", toggleOverlay(index));
+      // itemEl.addEventListener("mouseout", toggleOverlay(index));
+  
+      // buttonContainer.appendChild(itemEl)
+      // buttonContainer.appendChild(overlay)
+      return itemEl
+}
+
+//pomocne funkce
+function onResetClicked() {
+  indList.forEach(function (item, index) {
+    vis = true;
+    const elem = document.getElementById("IND"+index);
+    if (elem.classList.contains("switcher-active-item")) {
+        vis = false;
+    }      
+    elem.classList.toggle("switcher-active-item");
+    if (indList[index].series) {
+    indList[index].series.applyOptions({
+        visible: vis });
+    }
+  })
+}
+
+
+function generateIndicators(e) {
+  alert("stratvars generated to clipboard from selected indicators")
+}
+
+//editace indikatoru, vcetne vytvoreni noveho
+function onItemClickedEdit(e, index) {
+  if (ind_editor) {
+    ind_editor.dispose()
+  }
+  title = `#[stratvars.indicators.name]
+  `
+  const elem = document.getElementById("IND"+index);
+  //console.log("element",elem)
+  //jde o update
+  if (elem) {
+    elem.classList.replace('switcher-item', 'switcher-item-highlighted');
+    $('#indicatorName').val(elem.textContent)
+    $('#indicatorNameTitle').text(elem.textContent)
+    title = elem.title
+  }
+  //jde o novy zaznam - davame pryc delete
+  else {
+    $('#deleteIndicatorButton').hide();
+  }
+  e.preventDefault()
+  //$('#stratvar_id').val(row.id);
+  $('#indicatorId').val(index)
+
+  require(["vs/editor/editor.main"], () => {
+      ind_editor = monaco.editor.create(document.getElementById('indicatorTOML_editor'), {
+          value: title,
+          language: 'toml',
+          theme: 'tomlTheme-dark',
+          automaticLayout: true
+      });
+      });
+  window.$('#indicatorModal').modal('show');
+}
+
+//togle profit line
+function profitLineToggle() {
+  vis = true;
+  const elem = document.getElementById("profitLine");
+  if (elem.classList.contains("switcher-active-item")) {
+      vis = false;
+  }      
+  elem.classList.toggle("switcher-active-item");
+  //v ifu kvuli workaroundu
+  if (profitLine) {
+    profitLine.applyOptions({
+      visible: vis });
+  }
+}
+
+
+//toggle indiktoru
+function onItemClickedToggle(index) {
+      vis = true;
+      const elem = document.getElementById("IND"+index);
+      if (elem.classList.contains("switcher-active-item")) {
+          vis = false;
+      }      
+      elem.classList.toggle("switcher-active-item");
+      //v ifu kvuli workaroundu
+      if (indList[index].series) {
+      indList[index].series.applyOptions({
+          visible: vis });
+      }
+      //zatim takto workaround, pak vymyslet systemove pro vsechny tickbased indikatory
+      if (indList[index].name == "tick_price") {
+        if (!vis && indList[index].series) {
+          chart.removeSeries(indList[index].series)
+          chart.timeScale().fitContent();
+          indList[index].series = null
+        }
+      }
+
+}
+
+//funkce pro vytvoreni buttonku indikatoru
 function populate_indicator_buttons(def) {
+
+  //vytvoreni outer button divu
 	var buttonElement = document.createElement('div');
   buttonElement.id = "indicatorsButtons"
 	buttonElement.classList.add('switcher');
 
+    //iterace nad indikatory a vytvareni buttonků
     indList.forEach(function (item, index) {
-		var itemEl = document.createElement('button');
-		itemEl.innerText = item.name;
-        itemEl.id = "IND"+index;
-        itemEl.title = item.cnf
-        itemEl.style.color = item.series.options().color;
-		itemEl.classList.add('switcher-item');
-    if (def) {
-		itemEl.classList.add('switcher-active-item');
+    index_ind = index
+    active = false
+
+    //console.log("activatedButtons", activatedButtons)
+    //console.log("obsahuje item.name", activatedButtons.includes(item.name), item.name)
+    //pokud existuje v aktivnich pak
+    if ((activatedButtons) && (activatedButtons.includes(item.name))) {
+      active = true
     }
-		itemEl.addEventListener('click', function() {
-			onItemClicked1(index);
-		});
-		buttonElement.appendChild(itemEl);
+    //vytvoreni buttonku
+    itemEl = create_indicator_button(item, index, def||active);
+    //prirazeni do divu
+    buttonElement.appendChild(itemEl); ;
 	});
 
   //create toggle all button
@@ -361,51 +530,47 @@ function populate_indicator_buttons(def) {
   });
   buttonElement.appendChild(itemEl);
 
-	function onResetClicked() {
-    indList.forEach(function (item, index) {
-      vis = true;
-      const elem = document.getElementById("IND"+index);
-      if (elem.classList.contains("switcher-active-item")) {
-          vis = false;
-      }      
-      elem.classList.toggle("switcher-active-item");
-      if (indList[index].series) {
-      indList[index].series.applyOptions({
-          visible: vis });
-      }
-    })
-  }
+  //button pro toggle profitu
+  var itemEl = document.createElement('button');
+  itemEl.innerText = "prof"
+  itemEl.classList.add('switcher-item');
+  itemEl.style.color = "#99912b"
+  itemEl.id = "profitLine"
+  itemEl.addEventListener('click', function(e) {
+    profitLineToggle();
+  });
+  buttonElement.appendChild(itemEl);
 
-	function onItemClicked1(index) {
-        vis = true;
-        const elem = document.getElementById("IND"+index);
-        if (elem.classList.contains("switcher-active-item")) {
-            vis = false;
-        }      
-        elem.classList.toggle("switcher-active-item");
-        //v ifu kvuli workaroundu
-        if (indList[index].series) {
-        indList[index].series.applyOptions({
-            visible: vis });
-        }
-        //zatim takto workaround, pak vymyslet systemove pro vsechny tickbased indikatory
-        if (indList[index].name == "tick_price") {
-          if (!vis && indList[index].series) {
-            chart.removeSeries(indList[index].series)
-            chart.timeScale().fitContent();
-            indList[index].series = null
-          }
-        }
+  //create plus button to create new button
+  var itemEl = document.createElement('button');
+  itemEl.innerText = "+"
+  itemEl.classList.add('switcher-item');
+  //na tomto je navesena jquery pro otevreni modalu
+  itemEl.id = "button_addindicator"
+  itemEl.addEventListener('click', function(e) {
+    index_ind++
+    onItemClickedEdit(e, index_ind);
+  });
+  buttonElement.appendChild(itemEl);
 
+   //save indicator buttons - will generate indicators to stratvars
+   var itemEl = document.createElement('button');
+   itemEl.innerText = "generate"
+   itemEl.classList.add('switcher-item');
+   //na tomto je navesena jquery pro otevreni modalu
+   itemEl.id = "save_indicators"
+   itemEl.addEventListener('click', function(e) {
+     index_ind++
+     generateIndicators(e);
+   });
+   buttonElement.appendChild(itemEl);
 
-
-	}
-    return buttonElement;
+  return buttonElement;
 }
 
 
 //range switch pro chart https://jsfiddle.net/TradingView/qrb9a850/
-function createSimpleSwitcher(items, activeItem, activeItemChangedCallback) {
+function createSimpleSwitcher(items, activeItem, activeItemChangedCallback, data) {
 	var switcherElement = document.createElement('div');
 	switcherElement.classList.add('switcher');
 
@@ -432,7 +597,7 @@ function createSimpleSwitcher(items, activeItem, activeItemChangedCallback) {
 
 		activeItem = item;
 
-		activeItemChangedCallback(item);
+		activeItemChangedCallback(item, data);
 	}
 
 	return switcherElement;
@@ -485,6 +650,7 @@ function format_date(datum, markettime = false, timeonly = false) {
 }
 
 function clear_status_header() {
+    $("#statusArchId").text("")
     $("#statusRegime").text("")
     $("#statusName").text("")
     $("#statusMode").text("")

@@ -23,6 +23,7 @@ function populate_rt_status_header(runnerId) {
         success:function(data){
             //console.log(JSON.stringify(data))
             //add status on chart
+            $("#statusArchId").text(data.id)
             $("#statusRegime").text("REALTIME: "+data.id)
             $("#statusName").text(data.run_name)
             $("#statusMode").text(data.run_mode)

@@ -50,8 +50,8 @@ function refresh_stratin_and_callback(row, callback) {
         contentType: "application/json",
         dataType: "json",
         success:function(data){   
-            console.log("fetched data ok")                      
-            console.log(JSON.stringify(data,null,2));
+            //console.log("fetched data ok")                      
+            //console.log(JSON.stringify(data,null,2));
         },
         error: function(xhr, status, error) {
             var err = eval("(" + xhr.responseText + ")");
@@ -65,7 +65,7 @@ function refresh_stratin_and_callback(row, callback) {
         // Both requests have completed successfully
 
         //console.log("Result from request:", result);
-        console.log("calling calbback")
+        //console.log("calling calbback")
         //call callback function
         callback(response)
 
@@ -236,19 +236,19 @@ $(document).ready(function () {
                 filterList[i] = filterList[i].trim();
             }
 
-            console.log("filter list")
-            console.log(filterList)
-            console.log(minsize)
+            //console.log("filter list")
+            //console.log(filterList)
+            //console.log(minsize)
             var row = ""
             //zakrouhleno na milisekundy
             var puvodni = parseFloat(parseInt(parseFloat($('#trade-timestamp').val())*1000))/1000
-            console.log(puvodni)
+            //console.log(puvodni)
             $('#trades-data-table').html(row);
             data.forEach((tradeLine) => {
                 //console.log(JSON.stringify(tradeLine))
                 date = new Date(tradeLine.timestamp)
                 timestamp = date.getTime()/1000
-                console.log(timestamp)
+                //console.log(timestamp)
 
                 //trade contains filtered condition or size<minsize
                 bg = (findCommonElements3(filterList, tradeLine.conditions) || (parseInt(tradeLine.size) < minsize) ? 'style="background-color: #411e1e;"' : '')
@@ -398,8 +398,8 @@ $(document).ready(function () {
             contentType: "application/json",
             dataType: "json",
             success:function(data){   
-                console.log("first request ok")                      
-                console.log(JSON.stringify(data,null,2));
+                //("first request ok")                      
+                //console.log(JSON.stringify(data,null,2));
             },
             error: function(xhr, status, error) {
                 var err = eval("(" + xhr.responseText + ")");
@@ -417,8 +417,8 @@ $(document).ready(function () {
               contentType: "application/json",
               dataType: "json",
               success:function(data){   
-                  console.log("first request ok")                      
-                  console.log(JSON.stringify(data,null,2));
+                  //console.log("first request ok")                      
+                  //console.log(JSON.stringify(data,null,2));
               },
               error: function(xhr, status, error) {
                   var err = eval("(" + xhr.responseText + ")");
@@ -433,9 +433,9 @@ $(document).ready(function () {
               // Both requests have completed successfully
               var result1 = response1[0];
               var result2 = response2[0];
-              console.log("Result from first request:", result1);
-              console.log("Result from second request:", result2);
-              console.log("calling compare")
+            //   console.log("Result from first request:", result1);
+            //   console.log("Result from second request:", result2);
+            //   console.log("calling compare")
               perform_compare(result1, result2)
               // Perform your action with the results from both requests
               // Example:

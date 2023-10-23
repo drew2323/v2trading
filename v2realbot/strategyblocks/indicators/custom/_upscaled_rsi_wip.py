@@ -25,6 +25,8 @@ def upscaledrsi(state, params):
 
     #pokud potrebuju jen close nebo open muzu pouzit toto
     # vezme to N-th element z pole
+
+    #TODO resample any series
     def resample_close_prices(bars, new_resolution):
         # Check that the new resolution is a multiple of the old resolution.
         if new_resolution % bars['resolution'][-1] != 0:

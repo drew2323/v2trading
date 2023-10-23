@@ -267,6 +267,8 @@ class RunArchiveDetail(BaseModel):
     trades: List[TradeUpdate]
     ext_data: Optional[dict]
 
+class TomlInput(BaseModel):
+    toml: str
 # class Trade(BaseModel):
 #     order: Order
 #     value: float

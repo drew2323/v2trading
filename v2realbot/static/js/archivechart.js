@@ -1,7 +1,9 @@
 var tradeDetails = new Map();
 var toolTip = null
 var CHART_SHOW_TEXT = get_from_config("CHART_SHOW_TEXT", false)
-
+// const myLibrary = _export;
+// const TOML = window['j-toml']
+//console.log("TOML je", window)
 console.log("CHART_SHOW_TEXT archchart", CHART_SHOW_TEXT)
 // var vwapSeries = null
 // var volumeSeries = null
@@ -33,7 +35,7 @@ function transform_data(data) {
     if ((data.ext_data !== null) && (data.ext_data.sl_history)) {
         data.ext_data.sl_history.forEach((histRecord, index, array) => {
             
-            console.log("plnime")
+            //console.log("plnime")
 
             //nova sada
             if (prev_id !== histRecord.id) {
@@ -69,7 +71,7 @@ function transform_data(data) {
             sline_markers["position"] = "inBar" 
             sline_markers["color"] = "#f5aa42"
             //sline_markers["shape"] = "circle"
-            console.log("SHOW_SL_DIGITS",SHOW_SL_DIGITS)
+            //console.log("SHOW_SL_DIGITS",SHOW_SL_DIGITS)
             sline_markers["text"] = SHOW_SL_DIGITS ? histRecord.sl_val.toFixed(3) : ""
             sl_line_markers_sada.push(sline_markers)
 
@@ -245,7 +247,7 @@ function transform_data(data) {
     transformed["markers_line"] = markers_line
     transformed["sl_line"] = sl_line
     transformed["sl_line_markers"] = sl_line_markers
-    console.log("naplnene", sl_line, sl_line_markers)
+    //console.log("naplnene", sl_line, sl_line_markers)
     //console_log(JSON.stringify(transformed["sl_line"],null,2))
     //console_log(JSON.stringify(transformed["sl_line_markers"],null,2))
     //get additional indicators
@@ -306,31 +308,546 @@ function prepare_data(archRunner, timeframe_amount, timeframe_unit, archivedRunn
     })  
 }
 
+//pomocna sluzba pro naplneni indListu a charting indikatoru
+function chart_indicators(data, visible, offset) {
+    //console.log("indikatory", JSON.stringify(data.indicators,null,2))
+    //podobne v livewebsokcets.js - dat do jedne funkce
+    if (data.hasOwnProperty("indicators")) { 
+        // console.log("jsme uvnitr indikatoru")
+
+        //vraci se pole indicatoru, kazdy se svoji casovou osou (time) - nyni standard indikatory a cbar indikatory
+        var indicatorList = data.indicators
+
+        //ze stratvars daneho runnera si dotahneme nastaveni indikatoru - pro zobrazeni v tooltipu
+
+        //TOML parse
+        //console.log("PUVODNI", data.archRecord.stratvars_toml)
+        var stratvars_toml = TOML.parse(data.archRecord.stratvars_toml)
+        
+
+        //console.log("ZPETNE STRINGIFIED", TOML.stringify(TOML.parse(data.archRecord.stratvars_toml), {newline: '\n'}))
+        //indicatory
+        //console.log("indicatory TOML", stratvars_toml.stratvars.indicators)
+
+        indicatorList.forEach((indicators, index, array) => {
+
+            //var indicators = data.indicators
+            //if there are indicators it means there must be at least two keys (time which is always present)
+            if (Object.keys(indicators).length > 1) {
+                for (const [key, value] of Object.entries(indicators)) {
+                    if (key !== "time") {
+                            //get cnf of indicator to display in the button tooltip
+                            var cnf = null
+                            //pokud je v nastaveni scale, pouzijeme tu
+                            var scale = null
+                            try {
+                                if (addedInds[key]) {
+                                  cnf = addedInds[key]
+                                  scale = TOML.parse(cnf).scale
+                                }
+                                else
+                                {
+                                cnf = "#[stratvars.indicators."+key+"]"+TOML.stringify(stratvars_toml.stratvars.indicators[key], {newline: '\n'})
+                                scale = stratvars_toml.stratvars.indicators[key].scale
+                                //cnf = TOML.stringify(stratvars_toml.stratvars.indicators[key], {newline: '\n'})
+                                //a = TOML.parse(cnf)
+                                //console.log("PARSED again",a)
+                                }
+                            }
+                            catch (e) {
+                                //nic
+                            }
+
+                            //initialize indicator and store reference to array
+                            var obj = {name: key, series: null, cnf:cnf, added: ((addedInds[key])?1:null)}
+    
+                            //start
+                            //console.log(key)
+                            //get configuation of indicator to display
+                            conf = get_ind_config(key)
+
+                            //pokud neni v configuraci - zobrazujeme defaultne
+
+                            //INIT INDICATOR BASED on CONFIGURATION
+
+                            //DO BUDOUCNA zde udelat sorter a pripadny handling duplicit jako
+                            //funkci do ktere muzu zavolat vse co pujde jako data do chartu
+
+                            //MOVE TO UTILS ro reuse??
+                            //if (conf && conf.display) {
+                            if (conf && conf.embed) {
+
+                                //tranform data do správného formátru
+                                items = []
+                                //var last = null
+                                var last_time = 0
+                                var time = 0
+
+                                //tento algoritmus z duplicit dela posloupnosti a srovna i pripadne nekonzistence
+                                //napr z .911 .911 .912 udela .911 .912 .913
+                                value.forEach((element, index, array) => {
+                                    item = {}
+                                    //debug
+                                    //TOTO odstranit po identifikovani chyby
+                                    //if (indicators.time[index] !== undefined) {
+                                        //{console.log("problem",key,last)}
+                                    time = indicators.time[index]
+
+                                    //pokud je nastaveny offset (zobrazujeme pouze bod vzdaleny N sekund od posledniho)
+                                    //vynechavame prvni iteraci, aby se nam naplnil last_time
+                                    if (offset && last_time !==0) {
+                                        if (last_time + offset > time) {
+                                            return;
+                                        }
+                                    }
+
+
+                                    if (last_time>=time) {
+                                        console.log(key, "problem v case - zarovnano",time, last_time, element)
+                                        
+                                        indicators.time[index] = indicators.time[index-1] + 0.000001
+                                    }
+                                    item["time"] = indicators.time[index]
+                                    item["value"] = element
+
+                                    last_time = indicators.time[index]
+
+                                    if ((element == null) || (indicators.time[index] == null)) {
+                                    console.log("probelem u indikatoru",key, "nekonzistence", element, indicators.time[index]) 
+                                    }
+
+                                    //console.log("objekt indicatoru",item)
+                                    items.push(item)
+                                        //debug
+                                    //last = item
+                                    // }
+                                    // else
+                                    // {
+                                    //     console.log("chybejici cas", key)
+                                    // }
+                                });
+
+                                //SERADIT PRO JISTOTU
+                                //items.sort(sorter)
+
+                                //FIND DUPLICITIES
+                                // last_time = 0
+                                // items.forEach((element, index, array) => {
+                                //     if (last_time >= element.time) {
+                                //         console.log("je duplicita/nekonzistence v ", element.time, element.value)
+                                //     }
+                                //     last_time = element.time
+                                // })
+                                
+
+                                if (conf.embed)  {
+
+                                    if (conf.histogram) {
+
+                                        obj.series = chart.addHistogramSeries({
+                                            title: (conf.titlevisible?key:""),
+                                            color: colors.shift(),
+                                            priceFormat: {type: 'volume'},
+                                            priceScaleId: (scale)?scale:conf.priceScaleId,
+                                            lastValueVisible: conf.lastValueVisible,
+                                            visible: conf.display});
+                                        
+                                        obj.series.priceScale().applyOptions({
+                                            // set the positioning of the volume series
+                                            scaleMargins: {
+                                                top: 0.7, // highest point of the series will be 70% away from the top
+                                                bottom: 0,
+                                            },
+                                        });
+
+                                    }
+                                    else {
+                                        var barva = colors.shift()
+                                        obj.series = chart.addLineSeries({
+                                            color: barva,
+                                            priceScaleId: (scale)?scale:conf.priceScaleId,
+                                            title: (conf.titlevisible?key:""),
+                                            lineWidth: 1,
+                                            visible: conf.display
+                                        });   
+
+                                        // //existuje statinds se stejnym klicem - bereme z nej minimum slope
+                                        // a = data.statinds[key]
+                                        // console.log("pro klic" + key + ":"+a, JSON.stringify(a,null,2))
+                                        // console.log(data.statinds[key].minimum_slope)
+                                        // console.log(JSON.stringify(data.statinds,null,2))
+                                        //console.log((key in data.statinds), data.statinds, key)
+                                        if (key in data.statinds) {
+                                            //natvrdo nakreslime lajnu pro min angle
+                                            //TODO predelat na configuracne
+                                            const minSlopeLineOptopns = {
+                                                price: data.statinds[key].minimum_slope,
+                                                color: barva,
+                                                lineWidth: 1,
+                                                lineStyle: 2, // LineStyle.Dotted
+                                                axisLabelVisible: true,
+                                                title: "min",
+                                            };
+                                
+                                            const minSlopeLine = obj.series.createPriceLine(minSlopeLineOptopns);
+
+                                            const maxSlopeLineOptopns = {
+                                                price: data.statinds[key].maximum_slope,
+                                                color: barva,
+                                                lineWidth: 1,
+                                                lineStyle: 2, // LineStyle.Dotted
+                                                axisLabelVisible: true,
+                                                title: "max",
+                                            };
+                                
+                                            const maxSlopeLine = obj.series.createPriceLine(maxSlopeLineOptopns);
+
+
+
+                                        }
+                                }
+
+
+                                }
+                                //INDICATOR on new pane
+                                else { console.log("not implemented")}
+
+
+                            //console.log("v chartovani",activatedButtons)
+                            //pokud existuje v aktivnich pak zobrazujeme jako aktivni
+                            if ((activatedButtons) && (activatedButtons.includes(obj.name))) {
+                                //console.log("true",active?active:conf.display)
+                                active = true
+                            }
+                            else {active = false}      
+                            //add options
+                            obj.series.applyOptions({
+                                visible: active?active:visible,
+                                lastValueVisible: false,
+                                priceLineVisible: false,
+                            });
+
+                            //DEBUG
+                            // if (key == 'tick_price') {
+                            //     console.log("problem tu",JSON.stringify(items))
+                            // }
+                            //add data
+                            obj.series.setData(items)
+
+                            // add to indList array - pole zobrazovanych indikatoru    
+                            indList.push(obj);   
+                        }
+                    }
+                }
+            }
+        })
+    }
+    //vwap a volume zatim jen v detailnim zobrazeni
+    if (!offset) {
+        //display vwap and volume
+        initialize_vwap()
+        vwapSeries.setData(data.transformed_data["vwap"])
+
+        initialize_volume()
+        volumeSeries.setData(data.transformed_data["volume"])
+        console.log("volume") 
+    }       
+}
+
+//pomocna
+function remove_indicators() {
+    //reset COLORS
+    colors = reset_colors.slice()
+
+    //remove CUSTOMS indicators if exists
+    indList.forEach((element, index, array) => {
+        if (element.series) {
+            //console.log(element.series, "tady series")
+            chart.removeSeries(element.series);
+        }
+    }
+    );
+    indList = [];
+    //remove BASIC indicators
+    if (vwapSeries) {
+        chart.removeSeries(vwapSeries)
+        vwapSeries = null;
+    }
+    if (volumeSeries) {
+        chart.removeSeries(volumeSeries)
+        volumeSeries = null;
+    }
+}
+
+//switch to interval pomocna funkce
+function switch_to_interval(interval, data) {
+    if (!data) {
+        window.alert("no data switch to interval")
+    }
+
+    //prip prpenuti prepisujeme candlestick a markery
+    if (candlestickSeries) {
+        last_range = chart.timeScale().getVisibleRange()
+        chart.removeSeries(candlestickSeries);
+        candlestickSeries = null
+    }
+    else {
+        last_range = null
+    }
+
+    intitialize_candles()
+    candlestickSeries.setData(data.AllCandleSeriesesData.get(interval));
+
+    var containerlower = document.getElementById('lowercontainer');
+    remove_indicators();
+    btnElement = document.getElementById("indicatorsButtons")
+    if (btnElement) {
+        containerlower.removeChild(btnElement);
+    }
+
+    if (interval == data.native_resolution) {
+        //indicators are in native resolution only
+        chart_indicators(data, false);
+        var indbuttonElement = populate_indicator_buttons(false);   
+    }
+    else {
+        //na nepuvodnim grafu zobrazit jako offset a zobrazit jako neviditelne 
+        chart_indicators(data,false,30)
+        //buttonky jako vypnute
+        var indbuttonElement = populate_indicator_buttons(false);
+    }
+    containerlower.append(indbuttonElement);
+
+
+
+    display_buy_markers(data);
+    //TADY JSEM SKONCIL - toto  nize predelat na hide button pro display bar markers
+    // btnElement = document.getElementById("pricelineButtons")
+    // var indbuttonElement = populate_indicator_buttons(false);
+    // if (btnElement) {
+    //     container1.removeChild(btnElement);
+    // }
+    //container1.append(indbuttonElement);   
+
+    if (last_range) {
+        chart.timeScale().setVisibleRange(last_range);
+    }
+}
+
+//displays (redraws) buy markers
+function display_buy_markers(data) {
+
+    transformed_data = data.transformed_data
+    // if (profitLine) {
+    //     console.log(profitLine)
+    //     chart.removeSeries(profitLine)
+    //     console.log("nd")
+    // }
+
+    if (avgBuyLine) {
+        chart.removeSeries(avgBuyLine)
+    }
+
+    if (markersLine) {
+        chart.removeSeries(markersLine)
+    }
+
+    if (slLine) {
+        slLine.forEach((series, index, array) => {
+            chart.removeSeries(series)
+        })
+        slLine=[]
+
+    }
+    // if (slLine) {
+    //     chart.removeSeries(slLine)
+    // }      
+
+    //console.log("avgp_buy_line",JSON.stringify(transformed_data["avgp_buy_line"],null,2))
+    //console.log("avgp_markers",JSON.stringify(transformed_data["avgp_markers"],null,2))
+
+    //if (transformed_data["sl_line"].length > 0) {
+    //console.log(JSON.stringify(transformed_data["sl_line"]), null,2)
+    //xx - ted bude slLine pole
+    transformed_data["sl_line"].forEach((slRecord, index, array) => {
+
+        console.log("uvnitr")
+        slLine_temp = chart.addLineSeries({
+            //    title: "avgpbuyline",
+                color: '#e4c76d',
+            //    color: 'transparent',
+                lineWidth: 1,
+                lastValueVisible: false
+            });
+
+            slLine_temp.applyOptions({
+            lastValueVisible: false,
+            priceLineVisible: false,
+        });
+
+        slLine_temp.setData(slRecord);
+        slLine_temp.setMarkers(transformed_data["sl_line_markers"][index]);
+        slLine.push(slLine_temp)
+
+        //xx
+    })
+
+    //}
+
+    if (transformed_data["sum_profit_line"].length > 0) {
+        profitLine = chart.addLineSeries({
+            //    title: "avgpbuyline", e8c76d
+                color: '#99912b',
+            //    color: 'transparent',
+                lineWidth: 1,
+                lastValueVisible: false
+            });
+
+            profitLine.applyOptions({
+            lastValueVisible: false,
+            priceLineVisible: false,
+            priceScaleId: "own",
+            visible: false
+        });
+
+
+        profitLine.setData(transformed_data["sum_profit_line"]);
+        //profitLine.setMarkers(transformed_data["sum_profit_line_markers"]);
+    }
+
+
+    if (transformed_data["avgp_buy_line"].length > 0) {
+        avgBuyLine = chart.addLineSeries({
+            //    title: "avgpbuyline",
+                color: '#e8c76d',
+            //    color: 'transparent',
+                lineWidth: 1,
+                lastValueVisible: false
+            });
+
+        avgBuyLine.applyOptions({
+            lastValueVisible: false,
+            priceLineVisible: false,
+        });
+
+
+        avgBuyLine.setData(transformed_data["avgp_buy_line"]);
+        avgBuyLine.setMarkers(transformed_data["avgp_markers"]);
+    }
+
+    markersLine = chart.addLineSeries({
+        //  title: "avgpbuyline",
+        //  color: '#d6d1c3',
+            color: 'transparent',
+            lineWidth: 1,
+            lastValueVisible: false
+        });
+
+    //console.log("markers_line",JSON.stringify(transformed_data["markers_line"],null,2))
+    //console.log("markers",JSON.stringify(transformed_data["markers"],null,2))
+
+    markersLine.setData(transformed_data["markers_line"]);
+    markersLine.setMarkers(transformed_data["markers"])
+
+    const container1 = document.getElementById('chart');
+
+    //chart.subscribeCrosshairMove(param => {
+    chart.subscribeCrosshairMove(param => {
+        //LEGEND SECTIOIN
+        firstRow.style.color = 'white';
+        update_chart_legend(param);
+
+        //TOOLTIP SECTION
+        //$('#trade-timestamp').val(param.time)
+        if (
+            param.point === undefined ||
+            !param.time ||
+            param.point.x < 0 ||
+            param.point.x > container1.clientWidth ||
+            param.point.y < 0 ||
+            param.point.y > container1.clientHeight
+        ) {
+            toolTip.style.display = 'none';
+        } else {
+            //vyber serie s jakou chci pracovat - muzu i dynamicky
+            //je to mapa https://tradingview.github.io/lightweight-charts/docs/api/interfaces/MouseEventParams
+
+            //key = series (key.seriestype vraci Line/Candlestick atp.)  https://tradingview.github.io/lightweight-charts/docs/api/interfaces/SeriesOptionsMap
+
+            toolTip.style.display = 'none';
+            toolTip.innerHTML = "";
+            var data = param.seriesData.get(markersLine);
+            var data2 = param.seriesData.get(avgBuyLine);
+            var profitdata = param.seriesData.get(profitLine);
+            if ((data !== undefined) || (data2 !== undefined)) {
+            //param.seriesData.forEach((value, key) => {
+                //console.log("key",key)
+                //console.log("value",value)
+            
+                //data = value
+                //DOCASNE VYPNUTO
+                toolTip.style.display = 'block';
+                
+                //console.log(JSON.safeStringify(key))
+                // if (toolTip.innerHTML == "") {
+                //     toolTip.innerHTML = `<div>${param.time}</div>`
+                // }
+                buy_price = 0
+                //u sell markeru nemame avgBuyLine
+                if (data2 !== undefined) {
+                    buy_price = parseFloat(data2.value).toFixed(3)
+                }
+
+                toolTip.innerHTML += `<div>POS:${tradeDetails.get(param.time).position_qty}/${buy_price}</div><div>T:${tradeDetails.get(param.time).order.qty}/${data.value}</div>`;
+                if (profitdata !== undefined) {
+                    toolTip.innerHTML += `<div>P:${parseFloat(profitdata.value).toFixed(1)}</div>`
+                }
+                    //inspirace
+                // toolTip.innerHTML = `<div style="color: ${'#2962FF'}">Apple Inc.</div><div style="font-size: 24px; margin: 4px 0px; color: ${'black'}">
+                // ${Math.round(100 * price) / 100}
+                // </div><div style="color: ${'black'}">
+                // ${dateStr}
+                // </div>`;
+
+
+                // Position tooltip according to mouse cursor position
+                toolTip.style.left = param.point.x+120 + 'px';
+                toolTip.style.top = param.point.y + 'px';
+            }
+                //});
+        }
+    });
+}
+
 //render chart of archived runs
 function chart_archived_run(archRecord, data, oneMinuteBars) {
     cleanup_chart()
 
     var transformed_data = transform_data(data)
 
+    data["transformed_data"] = transformed_data
     data["archRecord"] = archRecord
 
     //initialize resolutions
-    var native_resolution = data.bars.resolution[0]+"s"
+    data["native_resolution"] = data.bars.resolution[0]+"s"
     //console.log("native", native_resolution)
  
     //available intervals zatim jen 1m
-    var intervals = [native_resolution, '1m'];
+    var intervals = [data.native_resolution, '1m'];
     nativeData  = transformed_data["bars"]
     //get one minute data
     //tbd prepare volume
     //console.log("oneMinuteData",oneMinuteBars)
 
-    var AllCandleSeriesesData = new Map([
-        [native_resolution, nativeData ],
+    data["AllCandleSeriesesData"] = new Map([
+        [data.native_resolution, nativeData ],
         ["1m", oneMinuteBars ],
       ]);
 
-   var switcherElement = createSimpleSwitcher(intervals, intervals[1], switch_to_interval);
+    //dame si data do globalni, abychom je mohli pouzivat jinde (trochu prasarna, predelat pak)
+    archData = data
+
+   var switcherElement = createSimpleSwitcher(intervals, intervals[1], switch_to_interval, data);
 
     //define tooltip
     const container1 = document.getElementById('chart');
@@ -359,482 +876,8 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
     candlestickSeries = null
 
     //v pripade, ze neprojde get bars, nastavit na intervals[0]
-    switch_to_interval(intervals[1])
+    switch_to_interval(intervals[1], data)
     chart.timeScale().fitContent();
-
-    function switch_to_interval(interval) {
-        //prip prpenuti prepisujeme candlestick a markery
-        if (candlestickSeries) {
-            last_range = chart.timeScale().getVisibleRange()
-            chart.removeSeries(candlestickSeries);
-            candlestickSeries = null
-        }
-        else {
-            last_range = null
-        }
-
-        intitialize_candles()
-        candlestickSeries.setData(AllCandleSeriesesData.get(interval));
-
-        remove_indicators();
-        btnElement = document.getElementById("indicatorsButtons")
-        if (btnElement) {
-            containerlower.removeChild(btnElement);
-        }
-
-        if (interval == native_resolution) {
-            //indicators are in native resolution only
-            display_indicators(data, false);
-            var indbuttonElement = populate_indicator_buttons(false);   
-        }
-        else {
-            //na nepuvodnim grafu zobrazit jako offset a zobrazit jako neviditelne 
-            display_indicators(data,false,30)
-            //buttonky jako vypnute
-            var indbuttonElement = populate_indicator_buttons(false);
-        }
-        containerlower.append(indbuttonElement);   
-
-
-        display_buy_markers();
-        //TADY JSEM SKONCIL - toto  nize predelat na hide button pro display bar markers
-        // btnElement = document.getElementById("pricelineButtons")
-        // var indbuttonElement = populate_indicator_buttons(false);
-        // if (btnElement) {
-        //     container1.removeChild(btnElement);
-        // }
-        //container1.append(indbuttonElement);   
-
-        if (last_range) {
-            chart.timeScale().setVisibleRange(last_range);
-        }
-    }
-
-    //TBD
-    //pro kazdy identifikator zobrazime button na vypnuti zapnuti
-    //vybereme barvu pro kazdy identifikator
-    //zjistime typ idenitfikatoru - zatim right vs left
-    // input: data, offset(zobrazovat pouze hodnoty kazdych N sekund, visible)
-    function display_indicators(data, visible, offset) {
-        //console.log("indikatory", JSON.stringify(data.indicators,null,2))
-        //podobne v livewebsokcets.js - dat do jedne funkce
-        if (data.hasOwnProperty("indicators")) { 
-            // console.log("jsme uvnitr indikatoru")
-
-            //vraci se pole indicatoru, kazdy se svoji casovou osou (time) - nyni standard indikatory a cbar indikatory
-            var indicatorList = data.indicators
-
-            //ze stratvars daneho runnera si dotahneme nastaveni indikatoru - pro zobrazeni v tooltipu
-            var stratvars_toml = TOML.parse(data.archRecord.stratvars_toml)
-            //console.log(stratvars_toml.stratvars.indicators)
-
-            indicatorList.forEach((indicators, index, array) => {
-
-                //var indicators = data.indicators
-                //if there are indicators it means there must be at least two keys (time which is always present)
-                if (Object.keys(indicators).length > 1) {
-                    for (const [key, value] of Object.entries(indicators)) {
-                        if (key !== "time") {
-                                //get cnf of indicator to display in the button tooltip
-                                var cnf = null
-                                try {
-                                    cnf = JSON.stringify(stratvars_toml.stratvars.indicators[key], null, 2)
-                                }
-                                catch (e) {
-                                    //nic
-                                }
-
-                                //initialize indicator and store reference to array
-                                var obj = {name: key, series: null, cnf:cnf}
-        
-                                //start
-                                //console.log(key)
-                                //get configuation of indicator to display
-                                conf = get_ind_config(key)
-
-                                //INIT INDICATOR BASED on CONFIGURATION
-
-                                //DO BUDOUCNA zde udelat sorter a pripadny handling duplicit jako
-                                //funkci do ktere muzu zavolat vse co pujde jako data do chartu
-
-                                //MOVE TO UTILS ro reuse??
-                                //if (conf && conf.display) {
-                                if (conf && conf.embed) {
-
-                                    //tranform data do správného formátru
-                                    items = []
-                                    //var last = null
-                                    var last_time = 0
-                                    var time = 0
-
-                                    //tento algoritmus z duplicit dela posloupnosti a srovna i pripadne nekonzistence
-                                    //napr z .911 .911 .912 udela .911 .912 .913
-                                    value.forEach((element, index, array) => {
-                                        item = {}
-                                        //debug
-                                        //TOTO odstranit po identifikovani chyby
-                                        //if (indicators.time[index] !== undefined) {
-                                            //{console.log("problem",key,last)}
-                                        time = indicators.time[index]
-
-                                        //pokud je nastaveny offset (zobrazujeme pouze bod vzdaleny N sekund od posledniho)
-                                        //vynechavame prvni iteraci, aby se nam naplnil last_time
-                                        if (offset && last_time !==0) {
-                                            if (last_time + offset > time) {
-                                                return;
-                                            }
-                                        }
-
-
-                                        if (last_time>=time) {
-                                            console.log(key, "problem v case - zarovnano",time, last_time, element)
-                                            
-                                            indicators.time[index] = indicators.time[index-1] + 0.000001
-                                        }
-                                        item["time"] = indicators.time[index]
-                                        item["value"] = element
-
-                                        last_time = indicators.time[index]
-
-                                        if ((element == null) || (indicators.time[index] == null)) {
-                                        console.log("probelem u indikatoru",key, "nekonzistence", element, indicators.time[index]) 
-                                        }
-
-                                        //console.log("objekt indicatoru",item)
-                                        items.push(item)
-                                            //debug
-                                        //last = item
-                                        // }
-                                        // else
-                                        // {
-                                        //     console.log("chybejici cas", key)
-                                        // }
-                                    });
-
-                                    //SERADIT PRO JISTOTU
-                                    //items.sort(sorter)
-
-                                    //FIND DUPLICITIES
-                                    // last_time = 0
-                                    // items.forEach((element, index, array) => {
-                                    //     if (last_time >= element.time) {
-                                    //         console.log("je duplicita/nekonzistence v ", element.time, element.value)
-                                    //     }
-                                    //     last_time = element.time
-                                    // })
-                                    
-
-                                    if (conf.embed)  {
-
-                                        if (conf.histogram) {
-
-                                            obj.series = chart.addHistogramSeries({
-                                                title: (conf.titlevisible?conf.name:""),
-                                                color: colors.shift(),
-                                                priceFormat: {type: 'volume'},
-                                                priceScaleId: conf.priceScaleId,
-                                                lastValueVisible: conf.lastValueVisible,
-                                                priceScaleId: conf.priceScaleId,
-                                                visible: conf.display});
-                                            
-                                            obj.series.priceScale().applyOptions({
-                                                // set the positioning of the volume series
-                                                scaleMargins: {
-                                                    top: 0.7, // highest point of the series will be 70% away from the top
-                                                    bottom: 0,
-                                                },
-                                            });
-
-                                        }
-                                        else {
-                                            var barva = colors.shift()
-                                            obj.series = chart.addLineSeries({
-                                                color: barva,
-                                                priceScaleId: conf.priceScaleId,
-                                                title: (conf.titlevisible?conf.name:""),
-                                                lineWidth: 1,
-                                                visible: conf.display
-                                            });   
-
-                                            // //existuje statinds se stejnym klicem - bereme z nej minimum slope
-                                            // a = data.statinds[key]
-                                            // console.log("pro klic" + key + ":"+a, JSON.stringify(a,null,2))
-                                            // console.log(data.statinds[key].minimum_slope)
-                                            // console.log(JSON.stringify(data.statinds,null,2))
-                                            //console.log((key in data.statinds), data.statinds, key)
-                                            if (key in data.statinds) {
-                                                //natvrdo nakreslime lajnu pro min angle
-                                                //TODO predelat na configuracne
-                                                const minSlopeLineOptopns = {
-                                                    price: data.statinds[key].minimum_slope,
-                                                    color: barva,
-                                                    lineWidth: 1,
-                                                    lineStyle: 2, // LineStyle.Dotted
-                                                    axisLabelVisible: true,
-                                                    title: "min",
-                                                };
-                                    
-                                                const minSlopeLine = obj.series.createPriceLine(minSlopeLineOptopns);
-
-                                                const maxSlopeLineOptopns = {
-                                                    price: data.statinds[key].maximum_slope,
-                                                    color: barva,
-                                                    lineWidth: 1,
-                                                    lineStyle: 2, // LineStyle.Dotted
-                                                    axisLabelVisible: true,
-                                                    title: "max",
-                                                };
-                                    
-                                                const maxSlopeLine = obj.series.createPriceLine(maxSlopeLineOptopns);
-
-
-
-                                            }
-                                    }
-
-
-                                    }
-                                    //INDICATOR on new pane
-                                    else { console.log("not implemented")}
-                                
-                                //add options
-                                obj.series.applyOptions({
-                                    visible: visible,
-                                    lastValueVisible: false,
-                                    priceLineVisible: false,
-                                });
-
-                                //DEBUG
-                                // if (key == 'tick_price') {
-                                //     console.log("problem tu",JSON.stringify(items))
-                                // }
-                                //add data
-                                obj.series.setData(items)
-
-                                // add to indList array - pole zobrazovanych indikatoru    
-                                indList.push(obj);   
-                            }
-                        }
-                    }
-                }
-            })
-        }
-        //vwap a volume zatim jen v detailnim zobrazeni
-        if (!offset) {
-            //display vwap and volume
-            initialize_vwap()
-            vwapSeries.setData(transformed_data["vwap"])
-
-            initialize_volume()
-            volumeSeries.setData(transformed_data["volume"])
-            console.log("volume") 
-        }       
-    }
-
-    function remove_indicators() {
-        //reset COLORS
-        colors = reset_colors.slice()
-
-        //remove CUSTOMS indicators if exists
-        indList.forEach((element, index, array) => {
-            if (element.series) {
-                //console.log(element.series, "tady series")
-                chart.removeSeries(element.series);
-            }
-        }
-        );
-        indList = [];
-        //remove BASIC indicators
-        if (vwapSeries) {
-            chart.removeSeries(vwapSeries)
-            vwapSeries = null;
-        }
-        if (volumeSeries) {
-            chart.removeSeries(volumeSeries)
-            volumeSeries = null;
-        }
-    }
-
-    //displays (redraws) buy markers
-    function display_buy_markers() {
-
-        // if (profitLine) {
-        //     console.log(profitLine)
-        //     chart.removeSeries(profitLine)
-        //     console.log("nd")
-        // }
-
-        if (avgBuyLine) {
-            chart.removeSeries(avgBuyLine)
-        }
-
-        if (markersLine) {
-            chart.removeSeries(markersLine)
-        }
-
-        if (slLine) {
-            slLine.forEach((series, index, array) => {
-                chart.removeSeries(series)
-            })
-            slLine=[]
-
-        }
-        // if (slLine) {
-        //     chart.removeSeries(slLine)
-        // }      
-
-        //console.log("avgp_buy_line",JSON.stringify(transformed_data["avgp_buy_line"],null,2))
-        //console.log("avgp_markers",JSON.stringify(transformed_data["avgp_markers"],null,2))
-
-        //if (transformed_data["sl_line"].length > 0) {
-        //console.log(JSON.stringify(transformed_data["sl_line"]), null,2)
-        //xx - ted bude slLine pole
-        transformed_data["sl_line"].forEach((slRecord, index, array) => {
-
-            console.log("uvnitr")
-            slLine_temp = chart.addLineSeries({
-                //    title: "avgpbuyline",
-                    color: '#e4c76d',
-                //    color: 'transparent',
-                    lineWidth: 1,
-                    lastValueVisible: false
-                });
-
-                slLine_temp.applyOptions({
-                lastValueVisible: false,
-                priceLineVisible: false,
-            });
-
-            slLine_temp.setData(slRecord);
-            slLine_temp.setMarkers(transformed_data["sl_line_markers"][index]);
-            slLine.push(slLine_temp)
-
-            //xx
-        })
-
-        //}
-
-        if (transformed_data["sum_profit_line"].length > 0) {
-            profitLine = chart.addLineSeries({
-                //    title: "avgpbuyline",
-                    color: '#e8c76d',
-                //    color: 'transparent',
-                    lineWidth: 1,
-                    lastValueVisible: false
-                });
-
-                profitLine.applyOptions({
-                lastValueVisible: false,
-                priceLineVisible: false,
-                priceScaleId: "own"
-            });
-
-
-            profitLine.setData(transformed_data["sum_profit_line"]);
-            //profitLine.setMarkers(transformed_data["sum_profit_line_markers"]);
-        }
-
-
-        if (transformed_data["avgp_buy_line"].length > 0) {
-            avgBuyLine = chart.addLineSeries({
-                //    title: "avgpbuyline",
-                    color: '#e8c76d',
-                //    color: 'transparent',
-                    lineWidth: 1,
-                    lastValueVisible: false
-                });
-
-            avgBuyLine.applyOptions({
-                lastValueVisible: false,
-                priceLineVisible: false,
-            });
-
-
-            avgBuyLine.setData(transformed_data["avgp_buy_line"]);
-            avgBuyLine.setMarkers(transformed_data["avgp_markers"]);
-        }
-
-        markersLine = chart.addLineSeries({
-            //  title: "avgpbuyline",
-            //  color: '#d6d1c3',
-                color: 'transparent',
-                lineWidth: 1,
-                lastValueVisible: false
-            });
-
-        //console.log("markers_line",JSON.stringify(transformed_data["markers_line"],null,2))
-        //console.log("markers",JSON.stringify(transformed_data["markers"],null,2))
-    
-       markersLine.setData(transformed_data["markers_line"]);
-       markersLine.setMarkers(transformed_data["markers"])
-
-        //chart.subscribeCrosshairMove(param => {
-            chart.subscribeCrosshairMove(param => {
-                //LEGEND SECTIOIN
-                firstRow.style.color = 'white';
-                update_chart_legend(param);
-
-                //TOOLTIP SECTION
-                //$('#trade-timestamp').val(param.time)
-                if (
-                    param.point === undefined ||
-                    !param.time ||
-                    param.point.x < 0 ||
-                    param.point.x > container1.clientWidth ||
-                    param.point.y < 0 ||
-                    param.point.y > container1.clientHeight
-                ) {
-                    toolTip.style.display = 'none';
-                } else {
-                    //vyber serie s jakou chci pracovat - muzu i dynamicky
-                    //je to mapa https://tradingview.github.io/lightweight-charts/docs/api/interfaces/MouseEventParams
-        
-                    //key = series (key.seriestype vraci Line/Candlestick atp.)  https://tradingview.github.io/lightweight-charts/docs/api/interfaces/SeriesOptionsMap
-        
-                    toolTip.style.display = 'none';
-                    toolTip.innerHTML = "";
-                    var data = param.seriesData.get(markersLine);
-                    var data2 = param.seriesData.get(avgBuyLine);
-                    var profitdata = param.seriesData.get(profitLine);
-                    if ((data !== undefined) || (data2 !== undefined)) {
-                    //param.seriesData.forEach((value, key) => {
-                        //console.log("key",key)
-                        //console.log("value",value)
-                    
-                        //data = value
-                        //DOCASNE VYPNUTO
-                        toolTip.style.display = 'block';
-                        
-                        //console.log(JSON.safeStringify(key))
-                        // if (toolTip.innerHTML == "") {
-                        //     toolTip.innerHTML = `<div>${param.time}</div>`
-                        // }
-                        buy_price = 0
-                        //u sell markeru nemame avgBuyLine
-                        if (data2 !== undefined) {
-                            buy_price = parseFloat(data2.value).toFixed(3)
-                        }
-
-                        toolTip.innerHTML += `<div>POS:${tradeDetails.get(param.time).position_qty}/${buy_price}</div><div>T:${tradeDetails.get(param.time).order.qty}/${data.value}</div>`;
-                        if (profitdata !== undefined) {
-                            toolTip.innerHTML += `<div>P:${parseFloat(profitdata.value).toFixed(1)}</div>`
-                        }
-                            //inspirace
-                        // toolTip.innerHTML = `<div style="color: ${'#2962FF'}">Apple Inc.</div><div style="font-size: 24px; margin: 4px 0px; color: ${'black'}">
-                        // ${Math.round(100 * price) / 100}
-                        // </div><div style="color: ${'black'}">
-                        // ${dateStr}
-                        // </div>`;
-        
-        
-                        // Position tooltip according to mouse cursor position
-                        toolTip.style.left = param.point.x+120 + 'px';
-                        toolTip.style.top = param.point.y + 'px';
-                    }
-                        //});
-                }
-            });
-    }
 
     chart.subscribeClick(param => {
         $('#trade-timestamp').val(param.time)
@@ -899,6 +942,7 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
 
 
     //add status
+    $("#statusArchId").text(archRecord.id)
     $("#statusRegime").text("PAST RUN: "+archRecord.id)
     $("#statusName").text(archRecord.name)
     $("#statusMode").text(archRecord.mode)

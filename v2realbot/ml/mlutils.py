@@ -1,5 +1,5 @@
 import numpy as np
-from v2realbot.controller.services import get_archived_runner_details_byID
+import v2realbot.controller.services as cs
 from joblib import load
 from v2realbot.config import DATA_DIR
 
@@ -43,7 +43,7 @@ def merge_dicts(dict_list):
     # return merged_dict
 
 def load_runner(runner_id):
-    res, sada = get_archived_runner_details_byID(runner_id)
+    res, sada = cs.get_archived_runner_details_byID(runner_id)
     if res == 0:
         print("ok")
     else:

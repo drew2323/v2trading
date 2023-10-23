@@ -10,7 +10,7 @@ from collections import defaultdict
 from v2realbot.strategyblocks.indicators.helpers import value_or_indicator
 
 
-#IMPLEMENTS different types of moving averages
+#IMPLEMENTS different types of moving averages in package v2realbot.indicators.moving_averages
 def ma(state, params):
     funcName = "ma"
     type = safe_get(params, "type", "ema")

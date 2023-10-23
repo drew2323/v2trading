@@ -104,13 +104,13 @@ class StrategyClassicSL(Strategy):
                 rel_profit = 0
                 #spoctene celkovy relativni profit za trade v procentech ((trade_profit/vstup_naklady)*100)
                 if vstup_cena != 0 and int(data.order.qty) != 0:
-                    rel_profit = (trade_profit / (vstup_cena * float(data.order.qty))) * 100
+                    rel_profit = round((trade_profit / (vstup_cena * float(data.order.qty))) * 100,5)
 
                 #pokud jde o finalni FILL - pridame do pole tento celkovy relativnich profit (ze ktereho se pocita kumulativni relativni profit)
                 rel_profit_cum_calculated = 0
                 if data.event == TradeEvent.FILL:
                     self.state.rel_profit_cum.append(rel_profit)
-                    rel_profit_cum_calculated = np.mean(self.state.rel_profit_cum)
+                    rel_profit_cum_calculated = round(np.mean(self.state.rel_profit_cum),5)
 
                 self.state.ilog(e=f"BUY notif - SHORT PROFIT:{round(float(trade_profit),3)} celkem:{round(float(self.state.profit),3)} rel:{float(rel_profit)} rel_cum:{round(rel_profit_cum_calculated,7)}", msg=str(data.event), rel_profit_cum=str(self.state.rel_profit_cum), bought_amount=bought_amount, avg_costs=avg_costs, trade_qty=data.qty, trade_price=data.price, orderid=str(data.order.id))
 
@@ -216,13 +216,13 @@ class StrategyClassicSL(Strategy):
                 rel_profit = 0
                 #spoctene celkovy relativni profit za trade v procentech ((trade_profit/vstup_naklady)*100)
                 if vstup_cena != 0 and data.order.qty != 0:
-                    rel_profit = (trade_profit / (vstup_cena * float(data.order.qty))) * 100
+                    rel_profit = round((trade_profit / (vstup_cena * float(data.order.qty))) * 100,5)
 
                 rel_profit_cum_calculated = 0
                 #pokud jde o finalni FILL - pridame do pole relativnich profit (ze ktereho se pocita kumulativni relativni profit)
                 if data.event == TradeEvent.FILL:
                     self.state.rel_profit_cum.append(rel_profit)
-                    rel_profit_cum_calculated = np.mean(self.state.rel_profit_cum)
+                    rel_profit_cum_calculated = round(np.mean(self.state.rel_profit_cum),5)
 
                 self.state.ilog(e=f"SELL notif - PROFIT:{round(float(trade_profit),3)} celkem:{round(float(self.state.profit),3)} rel:{float(rel_profit)} rel_cum:{round(rel_profit_cum_calculated,7)}", msg=str(data.event), rel_profit_cum = str(self.state.rel_profit_cum), sold_amount=sold_amount, avg_costs=avg_costs, trade_qty=data.qty, trade_price=data.price, orderid=str(data.order.id))
 

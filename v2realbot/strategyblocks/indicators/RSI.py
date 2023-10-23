@@ -3,6 +3,8 @@ from v2realbot.strategy.base import StrategyState
 from v2realbot.indicators.indicators import ema, natr, roc
 from v2realbot.indicators.oscillators import rsi
 from traceback import format_exc
+from v2realbot.strategyblocks.indicators.helpers import get_source_series
+
 #RSI INDICATOR
 # type = RSI, source = [close, vwap, hlcc4], rsi_length = [14], MA_length = int (optional), on_confirmed_only = [true, false]
 # pokud existuje MA, vytvarime i stejnojnojmenny MAcko
@@ -19,16 +21,14 @@ def populate_dynamic_RSI_indicator(data, state: StrategyState, name):
     
     #poustet kazdy tick nebo jenom na confirmed baru (on_confirmed_only = true)
     on_confirmed_only = safe_get(options, 'on_confirmed_only', False)
-    req_source = safe_get(options, 'source', 'vwap')
-    if req_source not in ["close", "vwap","hlcc4"]:
-        state.ilog(lvl=1,e=f"Unknown source error {req_source} for {name}")
-        return
-    rsi_length = int(safe_get(options, "RSI_length",14))
+    req_source = safe_get(options, 'source', 'vwap')    
+    rsi_length = int(safe_get(options, "length",14))
     rsi_MA_length = safe_get(options, "MA_length", None)
 
     if on_confirmed_only is False or (on_confirmed_only is True and data['confirmed']==1):
         try:
-            source = state.bars[req_source]
+            #source = state.bars[req_source]
+            source = get_source_series(state, req_source)
             #cekame na dostatek dat
             if len(source) > rsi_length:
                 rsi_res = rsi(source, rsi_length)

@@ -7,6 +7,7 @@ from traceback import format_exc
 from v2realbot.ml.ml import ModelML
 import numpy as np
 from collections import defaultdict
+from scipy.stats import linregress
 
 #vstupem je bud indicator nebo bar parametr
 #na tomto vstupu dokaze provest zakladni statisticke funkce pro subpole X hodnot zpatky
@@ -61,6 +62,26 @@ def basestats(state, params):
         #val = 2 * (angle_deg / 180) - 1
     elif func =="stdev":
         val = np.std(source_array)
+    #linregres slope
+    elif func == "slope":
+        if len(source_array) < 4:
+            return -2, "less than 4 elmnts"
+        try:
+            np.seterr(all="raise")
+            val, _, _, _, _ = linregress(np.arange(len(source_array)), source_array)
+            val = round(val, 4)
+        except FloatingPointError:
+            return -2, "FloatingPointError"
+    #zatim takto, dokud nebudou podporovany indikatory s vice vystupnimi
+    elif func == "intercept":
+        if len(source_array) < 4:
+            return -2, "less than 4 elmnts"
+        try:
+            np.seterr(all="raise")
+            _, val, _, _, _ = linregress(np.arange(len(source_array)), source_array)
+            val = round(val, 4)
+        except FloatingPointError:
+            return -2, "FloatingPointError"
     else:
         return -2, "wrong function"
 

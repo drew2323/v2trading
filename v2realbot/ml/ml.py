@@ -7,7 +7,7 @@ import v2realbot.ml.mlutils as mu
 from v2realbot.utils.utils import slice_dict_lists
 import numpy as np
 from copy import deepcopy
-from v2realbot.controller.services import get_archived_runnerslist_byBatchID
+import v2realbot.controller.services as cs
 #Basic classes for machine learning
 #drzi model a jeho zakladni nastaveni
 
@@ -138,10 +138,10 @@ class ModelML:
             print("loading runners for ",str(runner_id_list))
         elif batch_id is not None:
             print("Loading runners for train_batch_id:", batch_id)
-            res, runner_ids = get_archived_runnerslist_byBatchID(batch_id)
+            res, runner_ids = cs.get_archived_runnerslist_byBatchID(batch_id)
         elif self.train_batch_id is not None:
             print("Loading runners for TRAINING BATCH self.train_batch_id:", self.train_batch_id)
-            res, runner_ids = get_archived_runnerslist_byBatchID(self.train_batch_id)
+            res, runner_ids = cs.get_archived_runnerslist_byBatchID(self.train_batch_id)
         #pripadne bereme z listu runneru
         else:
             runner_ids = self.train_runner_ids

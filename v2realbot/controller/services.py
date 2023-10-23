@@ -5,9 +5,10 @@ from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockTradesRequest, StockBarsRequest
 from alpaca.data.enums import DataFeed
 from alpaca.data.timeframe import TimeFrame
+from v2realbot.strategy.base import StrategyState
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, OrderSide
 from v2realbot.common.model import RunDay, StrategyInstance, Runner, RunRequest, RunArchive, RunArchiveView, RunArchiveDetail, RunArchiveChange, Bar, TradeEvent, TestList, Intervals, ConfigItem
-from v2realbot.utils.utils import AttributeDict, zoneNY, zonePRG, dict_replace_value, Store, parse_toml_string, json_serial, is_open_hours, send_to_telegram
+from v2realbot.utils.utils import AttributeDict, zoneNY, zonePRG, safe_get, dict_replace_value, Store, parse_toml_string, json_serial, is_open_hours, send_to_telegram
 from v2realbot.utils.ilog import delete_logs
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
 from datetime import datetime
@@ -30,6 +31,9 @@ from datetime import timedelta, time
 from threading import Lock
 from v2realbot.common.db import pool, execute_with_retry, row_to_runarchive, row_to_runarchiveview
 from sqlite3 import OperationalError, Row
+import v2realbot.strategyblocks.indicators.custom as ci
+from v2realbot.interfaces.backtest_interface import BacktestInterface
+
 #from pyinstrument import Profiler
 #adding lock to ensure thread safety of TinyDB (in future will be migrated to proper db)
 lock = Lock()
@@ -1106,6 +1110,103 @@ def get_testlists():
     return 0, testlists    
 
 # endregion
+
+#WIP - possibility to add TOML indicator
+# open issues: hodnoty dalsich indikatoru
+def preview_indicator_byTOML(id: UUID, toml: str):
+    try:
+        res, toml_parsed = parse_toml_string(toml)
+        if res < 0:
+            return (-2, "toml invalid")
+        
+        print("parsed toml", toml_parsed)
+
+        subtype = safe_get(toml_parsed, 'subtype', False)
+        if subtype is None:
+            return (-2, "subtype invalid")
+
+        custom_params = safe_get(toml_parsed, "cp", None)
+        print("custom params",custom_params)
+
+        #dotahne runner details
+        res, val = get_archived_runner_details_byID(id)
+        if res < 0:
+            return (-2, "no archived runner {id}")
+
+        # class RunArchiveDetail(BaseModel):
+        #     id: UUID
+        #     name: str
+        #     bars: dict
+        #     #trades: Optional[dict]
+        #     indicators: List[dict]
+        #     statinds: dict
+        #     trades: List[TradeUpdate]
+        #     ext_data: Optional[dict]
+
+        #TODO - conditional udelat podminku
+        # if value == "conditional":
+        #     conditions = state.vars.indicators[indname]["cp"]["conditions"]
+        #     for condname,condsettings in conditions.items():
+        #         state.vars.indicators[indname]["cp"]["conditions"][condname]["cond_dict"] = get_conditions_from_configuration(action=KW.change_val+"_if", section=condsettings)
+        #         printanyway(f'creating workdict for {condname} value {state.vars.indicators[indname]["cp"]["conditions"][condname]["cond_dict"]}')
+        
+        #TODO - podporit  i jine nez custom?
+
+
+        detail = RunArchiveDetail(**val)
+        #print("toto jsme si dotahnuli", detail.bars)
+
+        #new dicts
+        new_bars = {key: [] for key in detail.bars.keys()}
+        new_bars = AttributeDict(**new_bars)
+        new_inds = {key: [] for key in detail.indicators[0].keys()}
+        new_inds = AttributeDict(**new_inds)
+        interface = BacktestInterface(symbol="X", bt=None)
+
+        state = StrategyState(name="XX", symbol = "X", stratvars = toml, interface=interface)
+
+        state.bars = new_bars
+        state.indicators = new_inds
+
+        new_inds["new"] = []
+        print("delka",len(detail.bars["close"]))
+
+        #intitialize indicator mapping - in order to use eval in expression
+        local_dict_inds = {key: state.indicators[key] for key in state.indicators.keys() if key != "time"}
+        local_dict_bars = {key: state.bars[key] for key in state.bars.keys() if key != "time"}
+
+        state.ind_mapping = {**local_dict_inds, **local_dict_bars}
+        print("IND MAPPING DONE:", state.ind_mapping)
+
+                    
+        print("subtype")   
+        function = "ci."+subtype+"."+subtype
+        print("funkce", function)
+        custom_function = eval(function)
+        #iterujeme nad bary a on the fly pridavame novou hodnotu do vsech indikatoru a nakonec nad tim spustime indikator
+        #tak muzeme v toml pouzit i hodnoty ostatnich indikatoru
+        for i in range(len(detail.bars["close"])):
+            for key in detail.bars:
+                state.bars[key].append(detail.bars[key][i])
+            for key in detail.indicators[0]:
+                state.indicators[key].append(detail.indicators[0][key][i])
+
+            new_inds["new"].append(0)
+            try:
+                res_code, new_val = custom_function(state, custom_params)
+                if res_code == 0:
+                    new_inds["new"][-1]=new_val
+            except Exception as e:
+                print(str(e) + format_exc())
+
+        print("Done", f"delka {len(new_inds['new'])}", new_inds["new"])
+
+        return 0, new_inds["new"]
+
+    except Exception as e:
+        print(str(e) + format_exc())
+        return -2, str(e)
+
 
 # region CONFIG db services
 #TODO vytvorit modul pro dotahovani z pythonu (get_from_config(var_name, def_value) {)- stejne jako v js 

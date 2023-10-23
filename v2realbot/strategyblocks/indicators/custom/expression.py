@@ -2,17 +2,17 @@ from v2realbot.utils.utils import isrising, isfalling,zoneNY, price2dec, print, 
 from v2realbot.strategy.base import StrategyState
 import numpy as np
 
-#allows executing a statement - pozor neni sanitized a zatim se spousti i v globalni scopu
+#allows executing a expression - pozor neni sanitized a zatim se spousti i v globalni scopu
 #v pripade jineho nez soukromeho uziti zabezpecit
 
 #do budoucna prozkoumat NUMEXPR - ten omezuje jen na operatory a univerzalni funkce
 #eval nyni umi i user-defined function, string operation and control statements
 
 #teroeticky se dá pouzit i SYMPY - kde se daji vytvorit jednotlive symboly s urcitou funkcni
-def statement(state: StrategyState, params):
-    funcName = "statement"
+def expression(state: StrategyState, params):
+    funcName = "expression"
     #indicator name
-    operation = safe_get(params, "statement", None)
+    operation = safe_get(params, "expression", None)
 
     if operation is None :
         return -2, "required param missing"
@@ -20,7 +20,7 @@ def statement(state: StrategyState, params):
     state.ilog(lvl=1,e=f"BEFORE {funcName} {operation=}", **params)
     
     #pro zacatek eval
-    val = eval(operation, None, state.ind_mapping)
+    val = eval(operation, {'state': state}, state.ind_mapping)
 
 
     if not np.isfinite(val):

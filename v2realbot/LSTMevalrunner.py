@@ -86,7 +86,7 @@ if save_new_ind:
 
     sada["indicators"][0]["pred_added"] = ind_pred
 
-    req = update_archive_detail(runner_id, sada)
+    req, res = update_archive_detail(runner_id, sada)
     print(f"indicator pred_added was ADDED to {runner_id}")
 
 

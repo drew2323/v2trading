@@ -2,7 +2,6 @@
 let editor_diff_arch1
 let editor_diff_arch2
 var archData = null
-var addedInds = {}
 
 function refresh_arch_and_callback(row, callback) {
     //console.log("entering refresh")
@@ -313,129 +312,6 @@ $(document).ready(function () {
             $('#editstratjson').val(row.strat_json);
         }
     });
-
-//Kod pro add indicator -dat do arch chart souboru
-
-    //modal - delete indicator button
-    $('#deleteIndicatorButton').click(function () {
-        window.$('#indicatorModal').modal('hide');
-        indname = $('#indicatorName').val()
-        //updatneme globalni promennou obsahujici vsechny arch data
-        //TBD nebude fungovat az budu mit vic chartů otevřených - předělat
-        if (archData.indicators[0][indname]) {
-            delete archData.indicators[0][indname]
-            delete addedInds[indname]
-            //get active resolution
-            const element = document.querySelector('.switcher-active-item');
-            resolution = element.textContent
-            //console.log("aktivni rozliseni", resolution)
-            switch_to_interval(resolution, archData)
-        }
-    });
-
-
-    var myModalEl = document.getElementById('indicatorModal')
-    myModalEl.addEventListener('hidden.bs.modal', function (event) {
-        close_addind_modal()
-    })
-
-    function close_addind_modal() {
-        index = $('#indicatorId').val()
-        const elem = document.getElementById("IND"+index);
-        if  (elem) {
-            elem.classList.replace('switcher-item-highlighted', 'switcher-item');
-        }
-        //vracime pripadny schovany del button
-        $('#deleteIndicatorButton').show();
-        window.$('#indicatorModal').modal('hide');
-    }
-
-    //HLAVNI SAVE akce INDICATOR MODAL - ulozi nebo vytvori novy
-    $('#saveIndicatorButton').click(function () {
-        indName = $('#indicatorName').val()
-        if (!indName) {
-            alert("name musi byt vyplneno")
-            return
-        }
-        
-        index = $('#indicatorId').val()
-        var elem = document.getElementById("IND"+index);
-        if (elem) {
-            //pokud existuje - pak jde bud o edit nebo duplicate - podle jmena
-
-            //jmeno je updatnute, jde o duplicate - vytvarime novy index
-            if (elem.textContent !== $('#indicatorName').val()) {
-                //alert("duplikujeme")
-                index_ind++
-                index = index_ind
-            }
-        }
-        //pokud neexistuje, pak jde o novy index - pouzijeme tento
-
-        runner_id = $("#statusArchId").text()
-        if (!runner_id) {
-            alert("no arch runner selected")
-            return
-        }
-        // row = archiveRecords.row('.selected').data();
-        // if (row == undefined) {
-
-        // }
-
-        store_activated_buttons_state()
-        //pridame jeste tu aktualni, aby se zobrazila jako aktivni
-        activatedButtons.push(indName);
-
-        
-        //console.log(activatedButtons)
-    
-        obj = new Object()
-        obj.runner_id = runner_id
-        obj.toml = ind_editor.getValue()
-        jsonString = JSON.stringify(obj);
-        //console.log("pred odeslanim",jsonString)
-        //cal rest api
-        $.ajax({
-            url:"/archived_runners/"+runner_id+"/previewindicator",
-            beforeSend: function (xhr) {
-                xhr.setRequestHeader('X-API-Key',
-                    API_KEY); },
-            method:"PUT",
-            contentType: "application/json",
-            data: jsonString,
-            success:function(data){
-                //kod pro update/vytvoreni je zde stejny - updatujeme jen zdrojove dictionary
-                window.$('#indicatorModal').modal('hide');
-                //console.log(data)
-                //indName = $('#indicatorName').val()
-                //updatneme/vytvorime klic v globalni promennou obsahujici vsechny arch data
-                //TBD nebude fungovat az budu mit vic chartů otevřených - předělat
-                archData.indicators[0][indName] = data
-                
-                //glob promenna obsahujici aktualne pridane indikatory a jejich konfigurace
-                addedInds[indName] = obj.toml
-                //get active resolution
-                const element = document.querySelector('.switcher-active-item');
-                resolution = element.textContent
-                //console.log("aktivni rozliseni", resolution)
-                switch_to_interval(resolution, archData)
-            },
-            error: function(xhr, status, error) {
-                var err = eval("(" + xhr.responseText + ")");
-                window.alert(JSON.stringify(xhr));
-                //console.log(JSON.stringify(xhr));
-                //$('#button_runagain_arch').attr('disabled',false);
-            }
-        })
-        // #indicatorId
-        // #indicatorName
-        // #indicatorTOML
-
-
-        //$('#editidarchive').val(row.id);
-        //$('#editnote').val(row.note);
-});
-
 
     //show button
     $('#button_show_arch').click(function () {

@@ -7,7 +7,7 @@ from alpaca.data.enums import DataFeed
 from alpaca.data.timeframe import TimeFrame
 from v2realbot.strategy.base import StrategyState
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, OrderSide
-from v2realbot.common.model import RunDay, StrategyInstance, Runner, RunRequest, RunArchive, RunArchiveView, RunArchiveDetail, RunArchiveChange, Bar, TradeEvent, TestList, Intervals, ConfigItem
+from v2realbot.common.model import RunDay, StrategyInstance, Runner, RunRequest, RunArchive, RunArchiveView, RunArchiveDetail, RunArchiveChange, Bar, TradeEvent, TestList, Intervals, ConfigItem, InstantIndicator
 from v2realbot.utils.utils import AttributeDict, zoneNY, zonePRG, safe_get, dict_replace_value, Store, parse_toml_string, json_serial, is_open_hours, send_to_telegram
 from v2realbot.utils.ilog import delete_logs
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
@@ -32,6 +32,8 @@ from threading import Lock
 from v2realbot.common.db import pool, execute_with_retry, row_to_runarchive, row_to_runarchiveview
 from sqlite3 import OperationalError, Row
 import v2realbot.strategyblocks.indicators.custom as ci
+from v2realbot.strategyblocks.inits.init_indicators import initialize_dynamic_indicators
+from v2realbot.strategyblocks.indicators.indicators_hub import populate_dynamic_indicators
 from v2realbot.interfaces.backtest_interface import BacktestInterface
 
 #from pyinstrument import Profiler
@@ -1071,12 +1073,15 @@ def update_archive_detail(id: UUID, archdetail: RunArchiveDetail):
     try:
         c = conn.cursor()
         json_string = json.dumps(archdetail, default=json_serial)
-        statement = f"UPDATE runner_detail SET data = '{json_string}' WHERE runner_id='{str(id)}'"
-        res = execute_with_retry(c,statement)
+        statement = "UPDATE runner_detail SET data = ? WHERE runner_id = ?"
+        params = (json_string, str(id))
+        ##statement = f"UPDATE runner_detail SET data = '{json_string}' WHERE runner_id='{str(id)}'"
+        ##print(statement)
+        res = execute_with_retry(cursor=c,statement=statement,params=params)
         conn.commit()
     finally:
         pool.release_connection(conn)
-    return res.rowcount
+    return 0, res.rowcount
 
 def insert_archive_detail(archdetail: RunArchiveDetail):
     conn = pool.get_connection()
@@ -1111,15 +1116,40 @@ def get_testlists():
 
 # endregion
 
-#WIP - possibility to add TOML indicator
-# open issues: hodnoty dalsich indikatoru
-def preview_indicator_byTOML(id: UUID, toml: str):
+#WIP - instant indicators
+def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator):
     try:
-        res, toml_parsed = parse_toml_string(toml)
+        if indicator.name is None:
+            return (-2, "name is required")
+        
+        #print("na zacatku", indicator.toml)
+
+        tomlino = indicator.toml
+        jmeno = indicator.name
+        #print("tomlino",tomlino)
+        #print("jmeno",jmeno)
+
+        # indicator = AttributeDict(**indicator.__dict__)
+
+
+        # print(indicator)
+        # def format_toml_string(toml_string):
+        #     return f"'''{toml_string.strip()}'''"
+        # print("before",indicator['toml'])
+        # indicator['toml'] = format_toml_string(indicator['toml'])
+        # print(indicator['toml'])
+
+        # print("jmeno", str(indicator.name))
+        # row = f"[stratvars]\n[stratvars.indicators.{str(indicator.name)}]\n"
+        # print(row, end='')
+        # row = "[stratvars]\n[stratvars.indicators.{indicator.name}]\n"
+        # print(row.format(indicator=indicator))
+        # print(row)
+        res, toml_parsed = parse_toml_string(tomlino)
         if res < 0:
             return (-2, "toml invalid")
         
-        print("parsed toml", toml_parsed)
+        #print("parsed toml", toml_parsed)
 
         subtype = safe_get(toml_parsed, 'subtype', False)
         if subtype is None:
@@ -1132,16 +1162,6 @@ def preview_indicator_byTOML(id: UUID, toml: str):
         res, val = get_archived_runner_details_byID(id)
         if res < 0:
             return (-2, "no archived runner {id}")
-
-        # class RunArchiveDetail(BaseModel):
-        #     id: UUID
-        #     name: str
-        #     bars: dict
-        #     #trades: Optional[dict]
-        #     indicators: List[dict]
-        #     statinds: dict
-        #     trades: List[TradeUpdate]
-        #     ext_data: Optional[dict]
 
         #TODO - conditional udelat podminku
         # if value == "conditional":
@@ -1156,57 +1176,140 @@ def preview_indicator_byTOML(id: UUID, toml: str):
         detail = RunArchiveDetail(**val)
         #print("toto jsme si dotahnuli", detail.bars)
 
+        #pokud tento indikator jiz je v detailu, tak ho odmazeme
+        if indicator.name in detail.indicators[0]:
+            del detail.indicators[0][indicator.name]
+
+
         #new dicts
         new_bars = {key: [] for key in detail.bars.keys()}
         new_bars = AttributeDict(**new_bars)
+        new_data = {key: None for key in detail.bars.keys()}
+        new_data= AttributeDict(**new_data)
         new_inds = {key: [] for key in detail.indicators[0].keys()}
         new_inds = AttributeDict(**new_inds)
         interface = BacktestInterface(symbol="X", bt=None)
 
-        state = StrategyState(name="XX", symbol = "X", stratvars = toml, interface=interface)
+        ##dame nastaveni indikatoru do tvaru, ktery stratvars ocekava (pro dynmaicke inicializace)
+        stratvars = AttributeDict(indicators=AttributeDict(**{jmeno:toml_parsed}))
+        print("stratvars", stratvars)
+
+        state = StrategyState(name="XX", symbol = "X", stratvars = AttributeDict(**stratvars), interface=interface)
+
+        #inicializujeme novy indikator v cilovem dict a stavovem inds.
+        new_inds[indicator.name] = []
+        new_inds[indicator.name] = []
 
         state.bars = new_bars
         state.indicators = new_inds
 
-        new_inds["new"] = []
         print("delka",len(detail.bars["close"]))
 
         #intitialize indicator mapping - in order to use eval in expression
         local_dict_inds = {key: state.indicators[key] for key in state.indicators.keys() if key != "time"}
         local_dict_bars = {key: state.bars[key] for key in state.bars.keys() if key != "time"}
-
         state.ind_mapping = {**local_dict_inds, **local_dict_bars}
         print("IND MAPPING DONE:", state.ind_mapping)
 
+        ##intialize dynamic indicators
+        initialize_dynamic_indicators(state)
                     
-        print("subtype")   
-        function = "ci."+subtype+"."+subtype
-        print("funkce", function)
-        custom_function = eval(function)
+
+        # print("subtype")   
+        # function = "ci."+subtype+"."+subtype
+        # print("funkce", function)
+        # custom_function = eval(function)
+        
         #iterujeme nad bary a on the fly pridavame novou hodnotu do vsech indikatoru a nakonec nad tim spustime indikator
         #tak muzeme v toml pouzit i hodnoty ostatnich indikatoru
         for i in range(len(detail.bars["close"])):
             for key in detail.bars:
                 state.bars[key].append(detail.bars[key][i])
+                #naplnime i data aktualne
+                new_data[key] = state.bars[key][-1]
             for key in detail.indicators[0]:
                 state.indicators[key].append(detail.indicators[0][key][i])
 
-            new_inds["new"].append(0)
+            new_inds[indicator.name].append(0)
+
             try:
-                res_code, new_val = custom_function(state, custom_params)
-                if res_code == 0:
-                    new_inds["new"][-1]=new_val
+                populate_dynamic_indicators(new_data, state)
+                # res_code, new_val = custom_function(state, custom_params)
+                # if res_code == 0:
+                #     new_inds[indicator.name][-1]=new_val
             except Exception as e:
                 print(str(e) + format_exc())
 
-        print("Done", f"delka {len(new_inds['new'])}", new_inds["new"])
 
-        return 0, new_inds["new"]
+        print("Done - static", f"delka {len(state.indicators[indicator.name])}", state.indicators[indicator.name])
+        #print("Done", f"delka {len(new_inds[indicator.name])}", new_inds[indicator.name])
+        
+        new_inds[indicator.name] = state.indicators[indicator.name]
+        
+        #ukládáme do ArchRunneru
+        detail.indicators[0][indicator.name] = new_inds[indicator.name]
+
+        #do ext dat ukladame jmeno indikatoru (podle toho oznacuje jako zmenene)
+
+        #inicializace ext_data a instantindicator pokud neexistuje
+        if hasattr(detail, "ext_data"):
+            if "instantindicators" not in detail.ext_data:
+                detail.ext_data["instantindicators"] = []
+        else:
+            setattr(detail, "ext_data", dict(instantindicators=[]))
+        
+        #pokud tam je tak odebereme
+        for ind in detail.ext_data["instantindicators"]:
+            if ind["name"] == indicator.name:
+                detail.ext_data["instantindicators"].remove(ind)
+                print("removed old from EXT_DATA")
+
+        #a pridame aktualni
+        detail.ext_data["instantindicators"].append(indicator)
+        print("added to EXT_DATA")
+        #updatneme ArchRunner
+        res, val = update_archive_detail(id, detail)
+        if res == 0:
+            print(f"arch runner {id} updated")
+
+        return 0, new_inds[indicator.name]
 
     except Exception as e:
         print(str(e) + format_exc())
         return -2, str(e)
 
+def delete_indicator_byName(id: UUID, indicator: InstantIndicator):
+    try:
+        #dotahne runner details
+        res, val = get_archived_runner_details_byID(id)
+        if res < 0:
+            return (-2, "no archived runner {id}")
+
+        detail = RunArchiveDetail(**val)
+        #print("toto jsme si dotahnuli", detail.bars)
+
+        #pokud tento indikator je v detailu
+        if indicator.name in detail.indicators[0]:
+            del detail.indicators[0][indicator.name]
+            print("values removed from indicators")
+
+        #do ext dat ukladame jmeno indikatoru (podle toho oznacuje jako zmenene)
+        if hasattr(detail, "ext_data") and "instantindicators" in detail.ext_data:
+                for ind in detail.ext_data["instantindicators"]:
+                    if ind["name"] == indicator.name:
+                        detail.ext_data["instantindicators"].remove(ind)
+                        print("removed from EXT_DATA")
+
+        #updatneme ArchRunner
+        res, val = update_archive_detail(id, detail)
+        if res == 0:
+            print("Archive udpated")
+
+        return 0, val
+
+    except Exception as e:
+        print(str(e) + format_exc())
+        return -2, str(e)
 
 # region CONFIG db services
 #TODO vytvorit modul pro dotahovani z pythonu (get_from_config(var_name, def_value) {)- stejne jako v js 

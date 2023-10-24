@@ -13,7 +13,6 @@ var candlestickSeries = null
 var volumeSeries = null
 var vwapSeries = null
 var statusBarConfig = JSON.parse(localStorage.getItem("statusBarConfig"));
-var activatedButtons = []
 if (statusBarConfig == null) {
   statusBarConfig = {}
 }
@@ -57,14 +56,6 @@ var indConfig_default = [ {name: "ema", titlevisible: false, embed: true, displa
               {name: "stoch2", titlevisible: true, embed: true, display: true, priceScaleId: "middle", lastValueVisible: false},
               {name: "sec_price", titlevisible: true, embed: true, display: true, priceScaleId: "right", lastValueVisible: false},]
 //console.log(JSON.stringify(indConfig_default, null,null, 2))
-
-function store_activated_buttons_state() {
-    activatedButtons = []
-    //ulozime si stav aktivovaných buttonků před změnou - mozna do sluzby
-    $('#indicatorsButtons .switcher-active-item').each(function() {
-      activatedButtons.push($(this).text());
-      });
-}
 
 function initialize_statusheader() {
     
@@ -351,7 +342,7 @@ function create_indicator_button(item, index, def) {
           itemEl.title = item.cnf
           itemEl.style.color = item.series.options().color;
           //pokud jde o pridanou on the fly - vybarvime jinak
-          if (item.added) {
+          if (item.instant) {
             itemEl.style.outline = "solid 1px"
           }
       itemEl.classList.add('switcher-item');
@@ -411,11 +402,35 @@ function onResetClicked() {
         visible: vis });
     }
   })
+  store_activated_buttons_state();
 }
 
 
 function generateIndicators(e) {
-  alert("stratvars generated to clipboard from selected indicators")
+  store_activated_buttons_state();
+
+  ind_tom = ""
+  indList.forEach(function (item, index) {
+    if (activatedButtons.includes(item.name)) {
+      console.log(item)
+      ind_tom += "\n[stratvars.indicators."+item.name+"]\n" + item.cnf
+    }
+  });
+
+  if (ind_editor) {
+    ind_editor.dispose()
+  }
+  require(["vs/editor/editor.main"], () => {
+    ind_editor = monaco.editor.create(document.getElementById('indicatorTOML_editor'), {
+        value: ind_tom,
+        language: 'toml',
+        theme: 'tomlTheme-dark',
+        automaticLayout: true
+    });
+    });
+  $('#deleteIndicatorButton').hide();
+  $('#saveIndicatorButton').hide();
+  window.$('#indicatorModal').modal('show');
 }
 
 //editace indikatoru, vcetne vytvoreni noveho
@@ -509,6 +524,7 @@ function populate_indicator_buttons(def) {
     //console.log("activatedButtons", activatedButtons)
     //console.log("obsahuje item.name", activatedButtons.includes(item.name), item.name)
     //pokud existuje v aktivnich pak
+    //console.log("vytvarime button",item.name,activatedButtons)
     if ((activatedButtons) && (activatedButtons.includes(item.name))) {
       active = true
     }

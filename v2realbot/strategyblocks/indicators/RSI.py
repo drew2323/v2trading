@@ -24,13 +24,19 @@ def populate_dynamic_RSI_indicator(data, state: StrategyState, name):
     req_source = safe_get(options, 'source', 'vwap')    
     rsi_length = int(safe_get(options, "length",14))
     rsi_MA_length = safe_get(options, "MA_length", None)
+    start = safe_get(options, "start","linear") #linear/sharp
+
 
     if on_confirmed_only is False or (on_confirmed_only is True and data['confirmed']==1):
         try:
             #source = state.bars[req_source]
             source = get_source_series(state, req_source)
             #cekame na dostatek dat
-            if len(source) > rsi_length:
+            delka = len(source) 
+            if delka > rsi_length or start == "linear":
+                if delka <= rsi_length and start == "linear":
+                    rsi_length = delka
+
                 rsi_res = rsi(source, rsi_length)
                 rsi_value = round(rsi_res[-1],4)
                 state.indicators[name][-1]=rsi_value

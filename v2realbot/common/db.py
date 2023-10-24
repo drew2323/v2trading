@@ -31,7 +31,7 @@ class ConnectionPool:
         return connection
 
 
-def execute_with_retry(cursor: sqlite3.Cursor, statement: str, retry_interval: int = 1) -> sqlite3.Cursor:
+def execute_with_retry(cursor: sqlite3.Cursor, statement: str, params = None, retry_interval: int = 1) -> sqlite3.Cursor:
     """get connection from pool and execute SQL statement with retry logic if required.
 
     Args:
@@ -44,7 +44,10 @@ def execute_with_retry(cursor: sqlite3.Cursor, statement: str, retry_interval: i
     """
     while True:
         try:
-            return cursor.execute(statement)
+            if params is None:
+                return cursor.execute(statement)
+            else:
+                return cursor.execute(statement, params)
         except sqlite3.OperationalError as e:
             if str(e) == "database is locked":
                 print("database retry in 1s." + str(e))

@@ -266,10 +266,10 @@ class RunArchiveDetail(BaseModel):
     statinds: dict
     trades: List[TradeUpdate]
     ext_data: Optional[dict]
+    
 
-class TomlInput(BaseModel):
+class InstantIndicator(BaseModel):
+    name: str
     toml: str
-# class Trade(BaseModel):
-#     order: Order
-#     value: float
+
 

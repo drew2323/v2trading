@@ -11,7 +11,7 @@ import uvicorn
 from uuid import UUID
 import v2realbot.controller.services as cs
 from v2realbot.utils.ilog import get_log_window
-from v2realbot.common.model import StrategyInstance, RunnerView, RunRequest, Trade, RunArchive, RunArchiveView, RunArchiveDetail, Bar, RunArchiveChange, TestList, ConfigItem, TomlInput
+from v2realbot.common.model import StrategyInstance, RunnerView, RunRequest, Trade, RunArchive, RunArchiveView, RunArchiveDetail, Bar, RunArchiveChange, TestList, ConfigItem, InstantIndicator
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status, WebSocketException, Cookie, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -432,14 +432,26 @@ def _delete_archived_runners_byIDs(runner_ids: list[UUID]):
 #WIP - TOM indicator preview from frontend
 #return indicator value for archived runner
 @app.put("/archived_runners/{runner_id}/previewindicator", dependencies=[Depends(api_key_auth)], status_code=status.HTTP_200_OK)
-def _preview_indicator_byTOML(runner_id: UUID, toml: TomlInput) -> list[float]:
+def _preview_indicator_byTOML(runner_id: UUID, indicator: InstantIndicator) -> list[float]:
     #mozna pak pridat name
-    res, vals = cs.preview_indicator_byTOML(id=runner_id, toml=toml.toml)
+    res, vals = cs.preview_indicator_byTOML(id=runner_id, indicator=indicator)
     if res == 0: return vals
     elif res == -1:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Error: {res}:{vals}")
     else:
         raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error not changed: {res}:{runner_id}:{vals}")
+
+#delete instant indicator from detail
+@app.delete("/archived_runners/{runner_id}/previewindicator", dependencies=[Depends(api_key_auth)], status_code=status.HTTP_200_OK)
+def _delete_indicator_byName(runner_id: UUID, indicator: InstantIndicator):
+    #mozna pak pridat name
+    res, vals = cs.delete_indicator_byName(id=runner_id, indicator=indicator)
+    if res == 0: return vals
+    elif res == -1:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Error: {res}:{vals}")
+    else:
+        raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error not changed: {res}:{runner_id}:{vals}")
+
 
 
 #edit archived runner ("note",..)

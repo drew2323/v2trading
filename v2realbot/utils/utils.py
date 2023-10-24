@@ -9,7 +9,7 @@ import decimal
 from v2realbot.enums.enums import RecordType, Mode, StartBarAlign
 import pickle
 import os
-from v2realbot.common.model import StrategyInstance, Runner, RunArchive, RunArchiveDetail, Intervals, SLHistory
+from v2realbot.common.model import StrategyInstance, Runner, RunArchive, RunArchiveDetail, Intervals, SLHistory, InstantIndicator
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
 from typing import List
 import tomli
@@ -337,6 +337,7 @@ def json_serial(obj):
         RunArchiveDetail: lambda obj: obj.__dict__,
         Intervals: lambda obj: obj.__dict__,
         SLHistory: lambda obj: obj.__dict__,
+        InstantIndicator: lambda obj: obj.__dict__,
     }
 
     serializer = type_map.get(type(obj))
@@ -354,29 +355,9 @@ def json_serial_old(obj):
 
     if isinstance(obj, (datetime, date)):
         return obj.timestamp()
-    if isinstance(obj, UUID):
+    if isinstance(obj, UUID) or isinstance(obj, Enum) or isinstance(obj, np.int64):
         return str(obj)
-    if isinstance(obj, Enum):
-        return str(obj)
-    if isinstance(obj, np.int64):
-        return int(obj)
-    if type(obj) is Order:
-        return obj.__dict__
-    if type(obj) is TradeUpdate:
-        return obj.__dict__
-    if type(obj) is btOrder:
-        return obj.__dict__
-    if type(obj) is btTradeUpdate:
-        return obj.__dict__
-    if type(obj) is RunArchive:
-        return obj.__dict__
-    if type(obj) is Trade:
-        return obj.__dict__
-    if type(obj) is RunArchiveDetail:
-        return obj.__dict__
-    if type(obj) is Intervals:
-        return obj.__dict__
-    if type(obj) is SLHistory:
+    if type(obj) in [Order, TradeUpdate, btOrder, btTradeUpdate, RunArchive, Trade, RunArchiveDetail, Intervals, SLHistory, InstantIndicator]:
         return obj.__dict__
     
     raise TypeError (str(obj)+"Type %s not serializable" % type(obj))

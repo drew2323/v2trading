@@ -16,6 +16,7 @@ def ma(state, params):
     type = safe_get(params, "type", "ema")
     source = safe_get(params, "source", None)
     lookback = safe_get(params, "lookback",14)
+    start = safe_get(params, "start","linear") #linear/sharp
 
     #lookback muze byt odkaz na indikator, pak berem jeho hodnotu
     lookback = int(value_or_indicator(state, lookback))
@@ -23,8 +24,11 @@ def ma(state, params):
     source_series = get_source_series(state, source)
 
     #pokud je mene elementu, pracujeme s tim co je
-    if len(source_series) > lookback:
-        source_series = source_series[-lookback:] 
+    akt_pocet = len(source_series)
+    if akt_pocet < lookback and start == "linear":
+        lookback = akt_pocet
+
+    #source_series = source_series[-lookback:]
 
     type = "mi."+type
     ma_function = eval(type)

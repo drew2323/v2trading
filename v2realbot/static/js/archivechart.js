@@ -340,26 +340,45 @@ function chart_indicators(data, visible, offset) {
                             var cnf = null
                             //pokud je v nastaveni scale, pouzijeme tu
                             var scale = null
-                            try {
-                                if (addedInds[key]) {
-                                  cnf = addedInds[key]
-                                  scale = TOML.parse(cnf).scale
-                                }
-                                else
-                                {
-                                cnf = "#[stratvars.indicators."+key+"]"+TOML.stringify(stratvars_toml.stratvars.indicators[key], {newline: '\n'})
-                                scale = stratvars_toml.stratvars.indicators[key].scale
-                                //cnf = TOML.stringify(stratvars_toml.stratvars.indicators[key], {newline: '\n'})
-                                //a = TOML.parse(cnf)
-                                //console.log("PARSED again",a)
+                            var instant = null
+                            //console.log(key)
+                            //zkusime zda nejde o instantni indikator z arch runneru
+                            if ((data.ext_data !== null) && (data.ext_data.instantindicators)) {
+                                let instantIndicator = data.ext_data.instantindicators.find(indicator => indicator.name == key);
+                                //console.log("nalezen", key)
+                                if (instantIndicator) {
+                                    cnf = instantIndicator.toml
+                                    scale = TOML.parse(cnf).scale
+                                    instant = 1
                                 }
                             }
-                            catch (e) {
-                                //nic
-                            }
+                            //pokud nenalezeno, pak bereme standard
+                            //pozor ted nebereme z addedInds
+                            if (!cnf) {
+                                if (stratvars_toml.stratvars.indicators[key]) {
+                                    cnf = "#[stratvars.indicators."+key+"]"+TOML.stringify(stratvars_toml.stratvars.indicators[key], {newline: '\n'})
+                                    scale = stratvars_toml.stratvars.indicators[key].scale
+                                    }
+                                }
+                            //     //kontriolujeme v addedInds
+                            //     if (addedInds[key]) {
+                            //         cnf = addedInds[key]
+                            //         scale = TOML.parse(cnf).scale
+                            //         instant = 1
+                            //       }
+                            //       //a az potom bereme normos
+                            //       else
+                            //       {
+                            //       cnf = "#[stratvars.indicators."+key+"]"+TOML.stringify(stratvars_toml.stratvars.indicators[key], {newline: '\n'})
+                            //       scale = stratvars_toml.stratvars.indicators[key].scale
+                            //       //cnf = TOML.stringify(stratvars_toml.stratvars.indicators[key], {newline: '\n'})
+                            //       //a = TOML.parse(cnf)
+                            //       //console.log("PARSED again",a)
+                            //       }
+                            // } 
 
                             //initialize indicator and store reference to array
-                            var obj = {name: key, series: null, cnf:cnf, added: ((addedInds[key])?1:null)}
+                            var obj = {name: key, series: null, cnf:cnf, instant: instant}
     
                             //start
                             //console.log(key)
@@ -580,7 +599,9 @@ function remove_indicators() {
 }
 
 //switch to interval pomocna funkce
-function switch_to_interval(interval, data) {
+function switch_to_interval(interval, data, extra) {
+    store_activated_buttons_state(extra);
+
     if (!data) {
         window.alert("no data switch to interval")
     }
@@ -671,7 +692,7 @@ function display_buy_markers(data) {
     //xx - ted bude slLine pole
     transformed_data["sl_line"].forEach((slRecord, index, array) => {
 
-        console.log("uvnitr")
+        //console.log("uvnitr")
         slLine_temp = chart.addLineSeries({
             //    title: "avgpbuyline",
                 color: '#e4c76d',

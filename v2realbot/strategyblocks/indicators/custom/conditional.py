@@ -54,5 +54,6 @@ def conditional(state, params):
 
         return 0, 0
     except Exception as e:
+        printanyway(str(e)+format_exc())
         return -2, str(e)+format_exc()        
 

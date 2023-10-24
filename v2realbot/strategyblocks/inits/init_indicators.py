@@ -20,6 +20,7 @@ from traceback import format_exc
 
 def initialize_dynamic_indicators(state):
     #pro vsechny indikatory, ktere maji ve svych stratvars TYPE inicializujeme
+    ##ßprintanyway(state.vars, state)
     dict_copy = state.vars.indicators.copy()
     for indname, indsettings in dict_copy.items():
         for option,value in list(indsettings.items()):

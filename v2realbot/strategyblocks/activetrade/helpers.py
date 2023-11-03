@@ -9,6 +9,7 @@ from v2realbot.common.model import SLHistory
 from v2realbot.config import KW
 from uuid import uuid4
 from datetime import datetime
+from v2realbot.strategyblocks.indicators.helpers import value_or_indicator
 #import random
 import json
 import numpy as np

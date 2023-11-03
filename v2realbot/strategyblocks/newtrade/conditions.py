@@ -9,6 +9,7 @@ from v2realbot.common.model import SLHistory
 from v2realbot.config import KW
 from uuid import uuid4
 from datetime import datetime
+from v2realbot.strategyblocks.indicators.helpers import value_or_indicator
 #import random
 import json
 import numpy as np
@@ -106,6 +107,8 @@ def common_go_preconditions_check(state, data, signalname: str, options: dict):
         return False
 
     next_signal_offset = safe_get(options, "next_signal_offset_from_last_exit",safe_get(state.vars, "next_signal_offset_from_last_exit",0))
+    #muze byt i indikator
+    next_signal_offset = int(value_or_indicator(state, next_signal_offset))
 
     if state.vars.last_exit_index is not None:
         index_to_compare = int(state.vars.last_exit_index)+int(next_signal_offset) 

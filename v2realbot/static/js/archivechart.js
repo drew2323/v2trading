@@ -109,6 +109,43 @@ function transform_data(data) {
     transformed["bars"] = bars
     transformed["vwap"] = vwap
     transformed["volume"] = volume
+    var bars = []
+    var volume = []
+    var vwap = []
+
+
+    if ((data.ext_data !== null) && (data.ext_data.dailyBars)) {
+        data.ext_data.dailyBars.time.forEach((element, index, array) => {
+            sbars = {};
+            svolume = {};
+            svwap = {};
+
+            sbars["time"] = element;
+            sbars["close"] = data.ext_data.dailyBars.close[index]
+            sbars["open"] = data.ext_data.dailyBars.open[index]
+            sbars["high"] = data.ext_data.dailyBars.high[index]
+            sbars["low"] = data.ext_data.dailyBars.low[index]
+
+
+            svwap["time"] = element
+            svwap["value"] = data.ext_data.dailyBars.vwap[index]
+
+            svolume["time"] = element
+            svolume["value"] = data.ext_data.dailyBars.volume[index]
+
+            bars.push(sbars)
+            vwap.push(svwap)
+            volume.push(svolume)
+        }); 
+        transformed["dailyBars"] = {}
+        transformed["dailyBars"]["bars"] = bars
+        transformed["dailyBars"]["vwap"] = vwap
+        transformed["dailyBars"]["volume"] = volume
+        var bars = []
+        var volume = []
+        var vwap = []
+    }
+
 
     //get markers - avgp line for all buys
     var avgp_buy_line = []
@@ -561,6 +598,20 @@ function chart_indicators(data, visible, offset) {
             }
         })
     }
+
+    indList.sort((a, b) => {
+        const nameA = a.name.toUpperCase(); // ignore upper and lowercase
+        const nameB = b.name.toUpperCase(); // ignore upper and lowercase
+        if (nameA < nameB) {
+            return -1;
+        }
+        if (nameA > nameB) {
+            return 1;
+        }
+        // names must be equal
+        return 0;
+
+    });
     //vwap a volume zatim jen v detailnim zobrazeni
     if (!offset) {
         //display vwap and volume
@@ -854,15 +905,26 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
     //console.log("native", native_resolution)
  
     //available intervals zatim jen 1m
-    var intervals = [data.native_resolution, '1m'];
+    var intervals = [data.native_resolution, '1m', '1d'];
+    
+    var dailyData = null
+    if (transformed_data["dailyBars"]) {
+        dailyData = transformed_data["dailyBars"]["bars"]
+    }
+    //zkusime daily data dat do minuty
+    //console.log("daily", dailyData)
+
     nativeData  = transformed_data["bars"]
+    //console.log("native")
+
     //get one minute data
     //tbd prepare volume
     //console.log("oneMinuteData",oneMinuteBars)
 
     data["AllCandleSeriesesData"] = new Map([
         [data.native_resolution, nativeData ],
-        ["1m", oneMinuteBars ],
+        ["1m", dailyData?dailyData.concat(oneMinuteBars):oneMinuteBars],
+        ["1d", dailyData ],
       ]);
 
     //dame si data do globalni, abychom je mohli pouzivat jinde (trochu prasarna, predelat pak)
@@ -970,8 +1032,7 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
     $("#statusAccount").text(archRecord.account)
     $("#statusIlog").text("Logged:" + archRecord.ilog_save)
     $("#statusStratvars").text(((archRecord.strat_json)?archRecord.strat_json:archRecord.stratvars),null,2)
-    $("#statusSettings").text(JSON.stringify(archRecord.metrics,null,2) + " " + JSON.stringify(archRecord.settings,null,2))
-    
+    $("#statusSettings").text(JSON.stringify(archRecord.metrics,null,2) + " " + JSON.stringify(archRecord.settings,null,2)+ JSON.stringify(data.ext_data,null,2))
     //TBD other dynamically created indicators
 
 }

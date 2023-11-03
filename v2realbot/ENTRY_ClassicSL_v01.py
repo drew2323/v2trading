@@ -4,12 +4,13 @@ from v2realbot.strategy.base import StrategyState
 from v2realbot.strategy.StrategyOrderLimitVykladaciNormalizedMYSELL import StrategyOrderLimitVykladaciNormalizedMYSELL
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account
 from v2realbot.utils.utils import zoneNY, print
-from datetime import datetime
+from v2realbot.utils.historicals import get_historical_bars
+from datetime import datetime, timedelta
 from rich import print as printanyway
 from threading import Event
 import os
 from traceback import format_exc
-
+from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from v2realbot.strategyblocks.newtrade.prescribedtrades import execute_prescribed_trades
 from v2realbot.strategyblocks.newtrade.signals import signal_search
 from v2realbot.strategyblocks.activetrade.activetrade_hub import manage_active_trade
@@ -123,6 +124,30 @@ def init(state: StrategyState):
 
     state.ind_mapping = {**local_dict_inds, **local_dict_bars}
     printanyway("IND MAPPING DONE:", state.ind_mapping)
+
+    #30 DAYS historicall data fill - pridat do base pokud se osvedci
+    # -1 je vždy včerejšek v tomto případě
+    #diky tomu mají indikátory data 30 dní zpět (tzn. můžu počítat last day close, atp)
+    #do budoucna systematizovat přístup k historickým dat
+    # např. historicals.days state.historical.bars["days"]atp.
+    #nyní jednoucelne state.dailyBars
+
+    #LIVE a PAPER - bereme time now
+    #BT - bereme time bt_start
+    if state.mode in (Mode.LIVE, Mode.PAPER):
+        time_to = datetime.now(tz=zoneNY)
+    else:
+        time_to = state.bt.bp_from
+
+
+    #TBD pridat i hour data - pro pocitani RSI na hodine
+    #get 30 days (time_from musí být alespoň -2 aby to bralo i vcerejsek)
+    time_from = time_to - timedelta(days=40)
+    time_to = time_to - timedelta(days=1)
+    state.dailyBars = get_historical_bars(state.symbol, time_from, time_to, TimeFrame.Day)
+    #printanyway("daily bars FILLED", state.dailyBars)
+    #zatim ukladame do extData - pro instant indicatory a gui
+    state.extData["dailyBars"] = state.dailyBars
 
 def main():
     name = os.path.basename(__file__)

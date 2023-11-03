@@ -290,7 +290,7 @@ html {
     display: inline-block;
     /* overflow: auto; */
     height: 600px;
-    width: max-content;
+    width: 750px;
   }
 }
 
@@ -364,6 +364,7 @@ pre {
 
 .headerItem {
   padding-right: 30px;
+  color: #33c1aa;
 }
 
 /* .highlighted {

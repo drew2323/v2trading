@@ -4,22 +4,23 @@ import v2realbot.indicators.moving_averages as mi
 from v2realbot.strategyblocks.indicators.helpers import get_source_series
 from rich import print as printanyway
 from traceback import format_exc
-from v2realbot.ml.ml import ModelML
 import numpy as np
 from collections import defaultdict
 from v2realbot.strategyblocks.indicators.helpers import value_or_indicator
+# from talib import BBANDS, MACD, RSI, MA_Type
 
 
 #IMPLEMENTS different types of moving averages in package v2realbot.indicators.moving_averages
-def ma(state, params):
+def ma(state, params, name):
     funcName = "ma"
     type = safe_get(params, "type", "ema")
     source = safe_get(params, "source", None)
     lookback = safe_get(params, "lookback",14)
     start = safe_get(params, "start","linear") #linear/sharp
-
+    defval = safe_get(params, "defval",0)
     #lookback muze byt odkaz na indikator, pak berem jeho hodnotu
     lookback = int(value_or_indicator(state, lookback))
+    defval = int(value_or_indicator(state, defval))
 
     source_series = get_source_series(state, source)
 
@@ -34,7 +35,14 @@ def ma(state, params):
     ma_function = eval(type)
 
     ma_value = ma_function(source_series, lookback)
-    val = round(ma_value[-1],4)
 
-    state.ilog(lvl=1,e=f"INSIDE {funcName} {val} {type=} {source=} {lookback=}", **params)
+    if not np.isfinite(ma_value[-1]):
+        val = defval
+    else:
+        val = round(ma_value[-1],4)
+
+    if val == 0:
+        val = defval
+
+    state.ilog(lvl=1,e=f"INSIDE {name}:{funcName} {val} {type=} {source=} {lookback=}", **params)
     return 0, val

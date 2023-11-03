@@ -71,11 +71,22 @@ def get_source_or_MA(state, indicator):
         except KeyError:
             return state.bars[indicator]
 
-def get_source_series(state, source):
-    try:
-        return state.bars[source]
-    except KeyError:
-        return state.indicators[source]
+def get_source_series(state: StrategyState, source: str):
+    """
+    Podporujeme krome klice v bar a indikatoru a dalsi doplnujici, oddelene _ napr. dailyBars_close
+    vezme serii static.dailyBars[close]
+    """
+
+    split_index = source.find("|")
+    if split_index == -1:
+        try:
+            return state.bars[source]
+        except KeyError:
+            return state.indicators[source]
+    else:
+        dict_name = source[:split_index]
+        key = source[split_index + 1:]
+        return getattr(state, dict_name)[key]
 
 #TYTO NEJSPIS DAT do util
 #vrati true pokud dany indikator prekrocil threshold dolu

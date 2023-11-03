@@ -197,6 +197,23 @@ $(document).ready(function () {
     });
 
 
+    //button filter selected  strat
+    $('#button_filter_strat').click(function () {
+        if ($('#button_filter_strat').hasClass('active')) {
+            $('#button_filter_strat').removeClass('active');
+            archiveRecords.columns().search("").draw();
+            console.log("draw")
+        }
+        else {
+            row = stratinRecords.row('.selected').data();
+            if (row) {
+                $('#button_filter_strat').addClass('active');
+                archiveRecords.column(1).search(row.id).draw();
+                console.log("filteredon",row.id)
+            }
+        }
+    });
+
    //button get historical trades
    $('#bt-trade').click(function () {
     event.preventDefault();

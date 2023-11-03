@@ -59,6 +59,7 @@ def zlema(data: Any, period: int = 50, use_series=False) -> Any:
     return pd.Series(zlema) if use_series else zlema
 
 
+
 def sma(data: Any, period: int = 50, use_series=False) -> Any:
     """
     Finding the moving average of a dataset
@@ -80,8 +81,14 @@ def hma(data: Any, period: int = 50, use_series=False) -> Any:
     hma = ti.hma(data, period)
     return pd.Series(hma) if use_series else hma
 
+def linreg(data: Any, period: int = 50, use_series=False) -> Any:
+    if check_series(data):
+        use_series = True
+    data = convert_to_numpy(data)
+    linreg = ti.linreg(data, period)
+    return pd.Series(linreg) if use_series else linreg
 
-def kaufman_adaptive_ma(data: Any, period: int = 50, use_series=False) -> Any:
+def kama(data: Any, period: int = 50, use_series=False) -> Any:
     if check_series(data):
         use_series = True
     data = convert_to_numpy(data)

@@ -43,6 +43,19 @@ function refresh_arch_and_callback(row, callback) {
 $(document).ready(function () {
     archiveRecords.ajax.reload();
 
+    
+    //button select page
+    $('#button_selpage').click(function () {
+        if ($('#button_selpage').hasClass('active')) {
+            $('#button_selpage').removeClass('active');
+            archiveRecords.rows().deselect();
+          }
+          else {
+            $('#button_selpage').addClass('active');
+            archiveRecords.rows( { page: 'current' } ).select();
+          }
+    });
+
     //button clear log
     $('#button_clearlog').click(function () {
 		$('#lines').empty();
@@ -454,7 +467,8 @@ $(document).ready(function () {
             if (record1.bt_to == "") {delete record1["bt_to"];}
         
             //mazeme, pouze rerunujeme single
-            record1["test_batch_id"];
+            delete record1["test_batch_id"];
+            delete record1["batch_id"];
 
             const rec = new Object()
             rec.id2 = parseInt(stratData.id2);

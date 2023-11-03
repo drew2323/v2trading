@@ -152,18 +152,19 @@ def is_pivot(source: list, leg_number: int, type: str = "A"):
     right_leg = source[-leg_number:]
     
     if type == "A":
-        if isrising(left_leg) and isfalling(right_leg):
+        if isrisingc(left_leg) and isfallingc(right_leg):
             return True
         else:
             return False
     elif type == "V":
-        if isfalling(left_leg) and isrising(right_leg):
+        if isfallingc(left_leg) and isrisingc(right_leg):
             return True
         else:
             return False
     else:
         print("Unknown type")
         return False
+    
 
 def crossed_up(threshold, list):
     """check if threshold has crossed up last thresholdue in list"""
@@ -324,6 +325,7 @@ def json_serial(obj):
     """
 
     type_map = {
+        pd.Timestamp: lambda obj: obj.timestamp(),
         datetime: lambda obj: obj.timestamp(),
         UUID: lambda obj: str(obj),
         Enum: lambda obj: str(obj),

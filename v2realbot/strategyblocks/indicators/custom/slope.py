@@ -4,12 +4,11 @@ from v2realbot.indicators.indicators import ema, natr, roc
 from v2realbot.strategyblocks.indicators.helpers import get_source_series
 from rich import print as printanyway
 from traceback import format_exc
-from v2realbot.ml.ml import ModelML
 import numpy as np
 from collections import defaultdict
 
 #rate of change - last value of source indicator vs lookback value of lookback_priceline indicator
-def slope(state, params):
+def slope(state, params, name):
     funcName = "slope"
     source = safe_get(params, "source", None)
     source_series = get_source_series(state, source) 
@@ -31,5 +30,5 @@ def slope(state, params):
     slope = ((currval - lookbackprice)/abs(lookbackprice))*100
     #slope = round(slope, 4)
 
-    state.ilog(lvl=1,e=f"INSIDE {funcName} {slope} {source=} {lookback=}", currval_source=currval, lookbackprice=lookbackprice, lookbacktime=lookbacktime, **params)
+    state.ilog(lvl=1,e=f"INSIDE {name}:{funcName} {slope} {source=} {lookback=}", currval_source=currval, lookbackprice=lookbackprice, lookbacktime=lookbacktime, **params)
     return 0, slope

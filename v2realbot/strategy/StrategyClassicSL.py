@@ -25,23 +25,45 @@ class StrategyClassicSL(Strategy):
         super().__init__(name, symbol, next, init, account, mode, stratvars, open_rush, close_rush, pe, se, runner_id, ilog_save)
 
     #zkontroluje zda aktualni profit/loss - nedosahnul limit a pokud ano tak vypne strategii
+
+    ##TODO zestručnit a dát pryč opakovací kód
     async def stop_when_max_profit_loss(self):
         self.state.ilog(e="CHECK MAX PROFIT")
         max_sum_profit_to_quit = safe_get(self.state.vars, "max_sum_profit_to_quit", None)
         max_sum_loss_to_quit = safe_get(self.state.vars, "max_sum_loss_to_quit", None)
 
+        max_sum_profit_to_quit_rel = safe_get(self.state.vars, "max_sum_profit_to_quit_rel", None)
+        max_sum_loss_to_quit_rel = safe_get(self.state.vars, "max_sum_loss_to_quit_rel", None)
+
+        if max_sum_profit_to_quit_rel is not None:
+            rel_profit  = round(float(np.mean(self.state.rel_profit_cum)),5)
+            if rel_profit >= float(max_sum_profit_to_quit_rel):
+                self.state.ilog(e=f"QUITTING MAX SUM REL PROFIT REACHED {max_sum_profit_to_quit_rel=} {self.state.profit=} {rel_profit=}")
+                self.state.vars.pending = "max_sum_profit_to_quit_rel"
+                send_to_telegram(f"QUITTING MAX SUM REL PROFIT REACHED {max_sum_profit_to_quit_rel=} {self.state.profit=} {rel_profit=}")
+                self.se.set()
+                return True
+        if max_sum_loss_to_quit_rel is not None:
+            rel_profit  = round(float(np.mean(self.state.rel_profit_cum)),5)
+            if rel_profit < 0 and rel_profit <= float(max_sum_loss_to_quit_rel):
+                self.state.ilog(e=f"QUITTING MAX SUM REL LOSS REACHED {max_sum_loss_to_quit_rel=} {self.state.profit=} {rel_profit=}")
+                self.state.vars.pending = "max_sum_loss_to_quit_rel"
+                send_to_telegram(f"QUITTING MAX SUM REL LOSS REACHED {max_sum_loss_to_quit_rel=} {self.state.profit=} {rel_profit=}")
+                self.se.set()
+                return True
+
         if max_sum_profit_to_quit is not None:
             if float(self.state.profit) >= float(max_sum_profit_to_quit):
-                self.state.ilog(e=f"QUITTING MAX SUM PROFIT REACHED {max_sum_profit_to_quit=} {self.state.profit=}")
+                self.state.ilog(e=f"QUITTING MAX SUM ABS PROFIT REACHED {max_sum_profit_to_quit=} {self.state.profit=} {rel_profit=}")
                 self.state.vars.pending = "max_sum_profit_to_quit"
-                send_to_telegram(f"QUITTING MAX SUM PROFIT REACHED {max_sum_profit_to_quit=} {self.state.profit=}")
+                send_to_telegram(f"QUITTING MAX SUM ABS PROFIT REACHED {max_sum_profit_to_quit=} {self.state.profit=} {rel_profit=}")
                 self.se.set()
                 return True
         if max_sum_loss_to_quit is not None:
             if float(self.state.profit) < 0 and float(self.state.profit) <= float(max_sum_loss_to_quit):
-                self.state.ilog(e=f"QUITTING MAX SUM LOSS REACHED {max_sum_loss_to_quit=} {self.state.profit=}")
+                self.state.ilog(e=f"QUITTING MAX SUM ABS LOSS REACHED {max_sum_loss_to_quit=} {self.state.profit=} {rel_profit=}")
                 self.state.vars.pending = "max_sum_loss_to_quit"
-                send_to_telegram(f"QUITTING MAX SUM LOSS REACHED {max_sum_loss_to_quit=} {self.state.profit=}")
+                send_to_telegram(f"QUITTING MAX SUM ABS LOSS REACHED {max_sum_loss_to_quit=} {self.state.profit=} {rel_profit=}")
                 self.se.set()
                 return True
 
@@ -167,6 +189,10 @@ class StrategyClassicSL(Strategy):
 
                 self.state.ilog(e="BUY: Jde o LONG nakuú nepocitame profit zatim")
 
+                if data.event == TradeEvent.FILL:
+                    #zapisujeme last entry price
+                    self.state.last_entry_price["long"] = data.price
+
             #ic("vstupujeme do orderupdatebuy")
             print(data)
             #dostavame zde i celkové akutální množství - ukládáme
@@ -278,6 +304,10 @@ class StrategyClassicSL(Strategy):
                         setattr(tradeData, "signal_name", signal_name)
 
                 self.state.ilog(e="SELL: Jde o SHORT nepocitame profit zatim")
+
+                if data.event == TradeEvent.FILL:
+                    #zapisujeme last entry price
+                    self.state.last_entry_price["short"] = data.price
 
             #update pozic, v trade update je i pocet zbylych pozic
             old_avgp = self.state.avgp

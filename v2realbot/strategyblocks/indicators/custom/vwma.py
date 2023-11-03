@@ -5,13 +5,12 @@ from v2realbot.indicators.moving_averages import vwma as ext_vwma
 from v2realbot.strategyblocks.indicators.helpers import get_source_series
 from rich import print as printanyway
 from traceback import format_exc
-from v2realbot.ml.ml import ModelML
 import numpy as np
 from collections import defaultdict
 from v2realbot.strategyblocks.indicators.helpers import value_or_indicator
 
 # Volume(or reference_source) Weighted moving Average
-def vwma(state, params):
+def vwma(state, params, name):
     funcName = "vwma"
     source = safe_get(params, "source", None)
     ref_source = safe_get(params, "ref_source", "volume")
@@ -34,5 +33,5 @@ def vwma(state, params):
     vwma_value = ext_vwma(source_series, ref_source_series, lookback)
     val = round(vwma_value[-1],4)
 
-    state.ilog(lvl=1,e=f"INSIDE {funcName} {val} {source=} {ref_source=} {lookback=}", **params)
+    state.ilog(lvl=1,e=f"INSIDE {name}:{funcName} {val} {source=} {ref_source=} {lookback=}", **params)
     return 0, val

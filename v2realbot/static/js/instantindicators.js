@@ -28,7 +28,8 @@ $(document).ready(function () {
 
         obj = new Object()
         obj.runner_id = runner_id
-        obj.toml = TOML.parse(ind_editor.getValue())
+        // obj.toml = TOML.parse(ind_editor.getValue())
+        obj.toml = ""
         obj.name = indname
         jsonString = JSON.stringify(obj);
         //console.log("pred odeslanim",jsonString)

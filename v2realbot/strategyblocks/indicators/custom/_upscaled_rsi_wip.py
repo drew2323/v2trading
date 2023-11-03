@@ -4,7 +4,6 @@ from v2realbot.indicators.indicators import ema, natr, roc
 from v2realbot.strategyblocks.indicators.helpers import get_source_series
 from rich import print as printanyway
 from traceback import format_exc
-from v2realbot.ml.ml import ModelML
 import numpy as np
 from collections import defaultdict
 

@@ -3,7 +3,7 @@ from v2realbot.strategy.base import StrategyState
 from v2realbot.indicators.indicators import ema, natr, roc
 from v2realbot.indicators.oscillators import rsi
 from traceback import format_exc
-from v2realbot.strategyblocks.indicators.helpers import get_source_series
+from v2realbot.strategyblocks.indicators.helpers import get_source_series, value_or_indicator
 
 #RSI INDICATOR
 # type = RSI, source = [close, vwap, hlcc4], rsi_length = [14], MA_length = int (optional), on_confirmed_only = [true, false]
@@ -22,10 +22,11 @@ def populate_dynamic_RSI_indicator(data, state: StrategyState, name):
     #poustet kazdy tick nebo jenom na confirmed baru (on_confirmed_only = true)
     on_confirmed_only = safe_get(options, 'on_confirmed_only', False)
     req_source = safe_get(options, 'source', 'vwap')    
-    rsi_length = int(safe_get(options, "length",14))
+    rsi_length = safe_get(options, "length",14)
     rsi_MA_length = safe_get(options, "MA_length", None)
     start = safe_get(options, "start","linear") #linear/sharp
 
+    rsi_length = int(value_or_indicator(state, rsi_length))
 
     if on_confirmed_only is False or (on_confirmed_only is True and data['confirmed']==1):
         try:

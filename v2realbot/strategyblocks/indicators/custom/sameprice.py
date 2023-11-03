@@ -4,14 +4,13 @@ from v2realbot.indicators.indicators import ema, natr, roc
 from v2realbot.strategyblocks.indicators.helpers import get_source_series
 from rich import print as printanyway
 from traceback import format_exc
-from v2realbot.ml.ml import ModelML
 import numpy as np
 from collections import defaultdict
 import bisect
 
 #strength, absolute change of parameter between current value and lookback value (n-past)
 #used for example to measure unusual peaks
-def sameprice(state, params):
+def sameprice(state, params, name):
     funcName = "sameprice"
     typ = safe_get(params, "type", None)
 
@@ -40,13 +39,13 @@ def sameprice(state, params):
 
     #jde o daily high
     if pozice_prvniho_vetsiho == -1:
-        state.ilog(lvl=1,e=f"INSIDE {funcName} {typ} {pozice_prvniho_vetsiho=} vracime 1")
+        state.ilog(lvl=1,e=f"INSIDE {name}:{funcName} {typ} {pozice_prvniho_vetsiho=} vracime 1")
         return 0, celkova_delka
     
     delka_k_predchozmu = celkova_delka - pozice_prvniho_vetsiho
     normalizovano = delka_k_predchozmu/celkova_delka
 
-    state.ilog(lvl=1,e=f"INSIDE {funcName} {typ} {pozice_prvniho_vetsiho=} {celkova_delka=} {delka_k_predchozmu=} {normalizovano=}", pozice_prvniho_vetsiho=pozice_prvniho_vetsiho, celkova_delka=celkova_delka, delka_k_predchozmu=delka_k_predchozmu, **params)   
+    state.ilog(lvl=1,e=f"INSIDE {name}:{funcName} {typ} {pozice_prvniho_vetsiho=} {celkova_delka=} {delka_k_predchozmu=} {normalizovano=}", pozice_prvniho_vetsiho=pozice_prvniho_vetsiho, celkova_delka=celkova_delka, delka_k_predchozmu=delka_k_predchozmu, **params)   
 
     return 0, delka_k_predchozmu
 

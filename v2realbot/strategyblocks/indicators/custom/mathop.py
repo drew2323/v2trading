@@ -3,7 +3,8 @@ from v2realbot.strategy.base import StrategyState
 from v2realbot.strategyblocks.indicators.helpers import get_source_series, value_or_indicator
 
 #allows basic mathematical operators to one or more indicators (add two indicator, add value to a indicator etc.)
-def mathop(state, params):
+#REPLACED by EXPRESSION
+def mathop(state, params, name):
     funcName = "mathop"
     #indicator name
     source1 = safe_get(params, "source1", None)
@@ -24,7 +25,7 @@ def mathop(state, params):
         val = round(float(source1_series[-1] * druhy),4)    
     else:
         return -2, "unknow operator"
-    state.ilog(lvl=1,e=f"INSIDE {funcName} {source1=} {source2=} {val} {druhy=}", **params)
+    state.ilog(lvl=1,e=f"INSIDE {name}:{funcName} {source1=} {source2=} {val} {druhy=}", **params)
     return 0, val
 
 

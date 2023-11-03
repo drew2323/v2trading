@@ -133,7 +133,7 @@ def populate_dynamic_custom_indicator(data, state: StrategyState, name):
     
             subtype = "ci."+subtype+"."+subtype
             custom_function = eval(subtype)
-            res_code, new_val = custom_function(state, custom_params)
+            res_code, new_val = custom_function(state, custom_params, name)
             if res_code == 0:
                 state.indicators[name][-1-save_to_past]=new_val
                 state.ilog(lvl=1,e=f"IND {name} {subtype} VAL FROM FUNCTION: {new_val}", lastruntime=state.vars.indicators[name]["last_run_time"], lastrunindex=state.vars.indicators[name]["last_run_index"], save_to_past=save_to_past)
@@ -159,7 +159,7 @@ def populate_dynamic_custom_indicator(data, state: StrategyState, name):
     else:
         state.ilog(lvl=0,e=f"IND {name} {subtype} COND NOT READY: {msg}")
 
-        #not time to run
+        #not time to run - copy last value
         if len(state.indicators[name]) >= 2:
             state.indicators[name][-1]=state.indicators[name][-2]
 

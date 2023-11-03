@@ -9,6 +9,7 @@ from rich import print as printanyway
 from threading import Event
 import os
 from traceback import format_exc
+from v2realbot.strategyblocks.activetrade.close.eod_exit import eod_exit_activated
 from v2realbot.strategyblocks.activetrade.close.conditions import dontexit_protection_met, exit_conditions_met
 from v2realbot.strategyblocks.activetrade.helpers import get_max_profit_price, get_profit_target_price, get_override_for_active_trade, keyword_conditions_met
 
@@ -26,12 +27,8 @@ def eval_close_position(state: StrategyState, data):
             #get TARGET PRICE pro dany smer a signal
             goal_price = get_profit_target_price(state, data, TradeDirection.SHORT)
             max_price = get_max_profit_price(state, data, TradeDirection.SHORT)
-            state.ilog(lvl=1,e=f"Goal price {str(TradeDirection.SHORT)} {goal_price} max price {max_price}")
-
-
-            #EOD EXIT - TBD
-            #FORCED EXIT PRI KONCI DNE
-
+            state.ilog(lvl=1,e=f"Goal price {str(TradeDirection.SHORT)} {goal_price} max price {max_price}")                
+            
             #SL - execution
             if curr_price > state.vars.activeTrade.stoploss_value:
 
@@ -46,6 +43,7 @@ def eval_close_position(state: StrategyState, data):
                     followup_action = None
                 close_position(state=state, data=data, direction=TradeDirection.SHORT, reason="SL REACHED", followup=followup_action)
                 return
+                
             
             #REVERSE BASED ON REVERSE CONDITIONS
             if keyword_conditions_met(state, data, direction=TradeDirection.SHORT, keyword=KW.reverse):
@@ -82,6 +80,12 @@ def eval_close_position(state: StrategyState, data):
                 if max_price_signal or dontexit_protection_met(state=state, data=data,direction=TradeDirection.SHORT) is False:
                     close_position(state=state, data=data, direction=TradeDirection.SHORT, reason=f"PROFIT or MAXPROFIT REACHED {max_price_signal=}")
                     return
+
+            #FORCED EXIT PRI KONCI DNE
+            if eod_exit_activated(state, data, TradeDirection.SHORT):
+                    close_position(state=state, data=data, direction=TradeDirection.SHORT, reason="EOD EXIT ACTIVATED")
+                    return           
+               
         #mame long
         elif int(state.positions) > 0:
 
@@ -145,3 +149,8 @@ def eval_close_position(state: StrategyState, data):
                 if max_price_signal or dontexit_protection_met(state, data, direction=TradeDirection.LONG) is False:
                     close_position(state=state, data=data, direction=TradeDirection.LONG, reason=f"PROFIT or MAXPROFIT REACHED {max_price_signal=}")
                     return
+
+            #FORCED EXIT PRI KONCI DNE
+            if eod_exit_activated(state, data, TradeDirection.LONG):
+                    close_position(state=state, data=data, direction=TradeDirection.LONG, reason="EOD EXIT ACTIVATED")
+                    return      

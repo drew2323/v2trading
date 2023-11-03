@@ -277,18 +277,20 @@ def is_runner_running(id: UUID):
 
 def save_history(id: UUID, st: object, runner: Runner, reason: str = None):
     
-    #zkousime precist profit z objektu
-    try:
-        profit = st.state.profit
-        trade_count = len(st.state.tradeList)
-    except Exception as e:
-        profit = str(e)
+    # #zkousime precist profit z objektu
+    # try:
+    #     profit = st.state.profit
+    #     trade_count = len(st.state.tradeList)
+    # except Exception as e:
+    #     profit = str(e)
     
-    for i in db.stratins:
-        if str(i.id) == str(id):
-            i.history += "START:"+str(runner.run_started)+"STOP:"+str(runner.run_stopped)+"ACC:"+runner.run_account.value+"M:"+runner.run_mode.value+"PROFIT:"+str(round(profit,2))+ "TradeCNT:"+str(trade_count) + "REASON:" + str(reason)
-            #i.history += str(runner.__dict__)+"<BR>"
-            db.save()
+    #zapisujeme pouze reason - pouzito jen pri exceptione
+    if reason is not None:
+        for i in db.stratins:
+            if str(i.id) == str(id):
+                i.history += "\nREASON:" + str(reason)
+                #i.history += str(runner.__dict__)+"<BR>"
+                db.save()
  
 #Capsule to run the thread in. Needed in order to update db after strat ends for any reason#
 def capsule(target: object, db: object, inter_batch_params: dict = None):
@@ -302,7 +304,7 @@ def capsule(target: object, db: object, inter_batch_params: dict = None):
         target.start()
 
         print("Strategy instance stopped. Update runners")
-        reason = "SHUTDOWN OK"
+        reason = None
     except Exception as e:
         reason = "SHUTDOWN Exception:" + str(e) + format_exc()
         #raise RuntimeError('Exception v runneru POZOR') from e
@@ -324,7 +326,7 @@ def capsule(target: object, db: object, inter_batch_params: dict = None):
                 i.run_instance = None
                 i.run_pause_ev = None
                 i.run_stop_ev = None
-                #ukladame radek do historie (pozdeji refactor)
+                #ukladame jen pro zapis exception reasonu
                 save_history(id=i.strat_id, st=target, runner=i, reason=reason)
                 #store in archive header and archive detail
                 archive_runner(runner=i, strat=target, inter_batch_params=inter_batch_params)
@@ -453,8 +455,14 @@ def batch_run_manager(id: UUID, runReq: RunRequest, rundays: list[RunDay]):
     #promenna pro sdileni mezi runy jednotlivych batchů (např. daily profit)
     inter_batch_params = dict(batch_profit=0, batch_rel_profit=0)
     note_from_run_request = runReq.note
+    first = None
+    last = None
     for day in rundays:
         cnt += 1
+        if cnt == 1:
+            first = day.start
+        elif cnt == cnt_max:
+            last = day.end
         print("Datum od", day.start)
         print("Datum do", day.end)
         runReq.bt_from = day.start
@@ -468,6 +476,21 @@ def batch_run_manager(id: UUID, runReq: RunRequest, rundays: list[RunDay]):
             break
 
     print("Batch manager FINISHED")
+    ##TBD sem zapsat do hlavicky batchů! abych měl náhled - od,do,profit, metrics
+    batch_abs_profit = 0
+    batch_rel_profit = 0
+    try:
+        #print(inter_batch_params)
+        batch_abs_profit = inter_batch_params["batch_profit"]
+        batch_rel_profit = inter_batch_params["batch_rel_profit"]
+    except Exception as e:
+        print("inter batch params problem", inter_batch_params, str(e)+format_exc())
+
+    for i in db.stratins:
+        if str(i.id) == str(id):
+            i.history += "\nBatch: "+str(batch_id)+" "+str(first)+" "+str(last)+" P:"+str(int(batch_abs_profit))+ "R:"+str(round(batch_rel_profit,4))
+            #i.history += str(runner.__dict__)+"<BR>"
+            db.save()
 
 
 #stratin run
@@ -643,13 +666,14 @@ def populate_metrics_output_directory(strat: StrategyInstance, inter_batch_param
 
     #naplneni batch sum profitu
     if inter_batch_params is not None:
-        res["profit"]["batch_sum_profit"] = inter_batch_params["batch_profit"]
+        res["profit"]["batch_sum_profit"] = int(inter_batch_params["batch_profit"])
         res["profit"]["batch_sum_rel_profit"] = inter_batch_params["batch_rel_profit"]
 
-    #rel_profit rozepsane zisky
-    res["profit"]["rel_profits"] = strat.state.rel_profit_cum
     #rel_profit zprumerovane
-    res["profit"]["rel_profit_cum"] = float(np.mean(strat.state.rel_profit_cum)) if len(strat.state.rel_profit_cum) > 0 else 0
+    res["profit"]["daily_rel_profit_avg"] = float(np.mean(strat.state.rel_profit_cum)) if len(strat.state.rel_profit_cum) > 0 else 0
+    #rel_profit rozepsane zisky
+    res["profit"]["daily_rel_profit_list"] = strat.state.rel_profit_cum
+
 
     #metrikz z prescribedTrades, pokud existuji
     try:
@@ -1117,10 +1141,10 @@ def get_testlists():
 # endregion
 
 #WIP - instant indicators
-def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator):
+def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator, save: bool = True):
     try:
         if indicator.name is None:
-            return (-2, "name is required")
+            return (-2, ["name is required"])
         
         #print("na zacatku", indicator.toml)
 
@@ -1163,16 +1187,6 @@ def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator):
         if res < 0:
             return (-2, "no archived runner {id}")
 
-        #TODO - conditional udelat podminku
-        # if value == "conditional":
-        #     conditions = state.vars.indicators[indname]["cp"]["conditions"]
-        #     for condname,condsettings in conditions.items():
-        #         state.vars.indicators[indname]["cp"]["conditions"][condname]["cond_dict"] = get_conditions_from_configuration(action=KW.change_val+"_if", section=condsettings)
-        #         printanyway(f'creating workdict for {condname} value {state.vars.indicators[indname]["cp"]["conditions"][condname]["cond_dict"]}')
-        
-        #TODO - podporit  i jine nez custom?
-
-
         detail = RunArchiveDetail(**val)
         #print("toto jsme si dotahnuli", detail.bars)
 
@@ -1192,7 +1206,7 @@ def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator):
 
         ##dame nastaveni indikatoru do tvaru, ktery stratvars ocekava (pro dynmaicke inicializace)
         stratvars = AttributeDict(indicators=AttributeDict(**{jmeno:toml_parsed}))
-        print("stratvars", stratvars)
+        #print("stratvars", stratvars)
 
         state = StrategyState(name="XX", symbol = "X", stratvars = AttributeDict(**stratvars), interface=interface)
 
@@ -1203,6 +1217,10 @@ def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator):
         state.bars = new_bars
         state.indicators = new_inds
 
+        #pridavame dailyBars z extData
+        if hasattr(detail, "ext_data") and "dailyBars" in detail.ext_data:
+            state.dailyBars = detail.ext_data["dailyBars"]
+            #print("daiyl bars added to state.dailyBars", state.dailyBars)
         print("delka",len(detail.bars["close"]))
 
         #intitialize indicator mapping - in order to use eval in expression
@@ -1230,7 +1248,8 @@ def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator):
             for key in detail.indicators[0]:
                 state.indicators[key].append(detail.indicators[0][key][i])
 
-            new_inds[indicator.name].append(0)
+            #inicializujeme 0 v novém indikatoru
+            state.indicators[indicator.name].append(0)
 
             try:
                 populate_dynamic_indicators(new_data, state)
@@ -1241,9 +1260,8 @@ def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator):
                 print(str(e) + format_exc())
 
 
-        print("Done - static", f"delka {len(state.indicators[indicator.name])}", state.indicators[indicator.name])
-        #print("Done", f"delka {len(new_inds[indicator.name])}", new_inds[indicator.name])
-        
+        #print("Done", state.indicators[indicator.name])
+       
         new_inds[indicator.name] = state.indicators[indicator.name]
         
         #ukládáme do ArchRunneru

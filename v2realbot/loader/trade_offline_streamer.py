@@ -1,4 +1,5 @@
 from v2realbot.loader.aggregator import TradeAggregator, TradeAggregator2List, TradeAggregator2Queue
+#from v2realbot.loader.cacher import get_cached_agg_data
 from alpaca.trading.requests import GetCalendarRequest
 from alpaca.trading.client import TradingClient
 from alpaca.data.live import StockDataStream
@@ -132,6 +133,21 @@ class Trade_Offline_Streamer(Thread):
                 print("time_to je pred zacatkem marketu. Vynechavame tento den.")
                 continue
 
+            
+            #check if we have aggregated data in cache
+            
+            #agg dat found, load it from file
+            #and call cacher
+            #trade daily file
+
+            #vstupuje pole agregatoru, open, close daneho dne
+            #cached_aggregated_data = get_cached_agg_data(self.to_run[symbpole[0]], day.open, day.close)
+
+            # if cached_aggregated_data is not None:
+            #     #poslu agregovana data do ingest cache aggregatorů pro přeposlání do jednotlivých kanálů
+
+    
+            #trade daily file
             daily_file = str(symbpole[0]) + '-' + str(int(day.open.timestamp())) + '-' + str(int(day.close.timestamp())) + '.cache'
             print(daily_file)
             file_path = DATA_DIR + "/"+daily_file

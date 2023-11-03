@@ -369,6 +369,11 @@ class TradeAggregator2Queue(TradeAggregator):
         self.queue = queue
         self.symbol = symbol
 
+    #accepts loaded queue and sents it to given output
+    async def ingest_cached(self, cached_queue):
+        for element in cached_queue:
+            self.queue.put(element)
+
     async def ingest_trade(self, data):
             #print("ingest ve threadu:",current_thread().name)
             res = await super().ingest_trade(data, self.symbol)
@@ -399,6 +404,11 @@ class TradeAggregator2List(TradeAggregator):
         # self.debugfile = DATA_DIR + "/BACprices.txt"
         # if os.path.exists(self.debugfile):
         #     os.remove(self.debugfile)
+
+    #accepts loaded queue and sents it to given output
+    async def ingest_cached(self, cached_queue):
+        for element in cached_queue:
+            self.btdata.append((element['t'],element['p']))
 
     async def ingest_trade(self, data):
             #print("ted vstoupil do tradeagg2list ingestu")

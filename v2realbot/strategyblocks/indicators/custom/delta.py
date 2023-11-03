@@ -4,13 +4,12 @@ from v2realbot.indicators.indicators import ema, natr, roc
 from v2realbot.strategyblocks.indicators.helpers import get_source_series
 from rich import print as printanyway
 from traceback import format_exc
-from v2realbot.ml.ml import ModelML
 import numpy as np
 from collections import defaultdict
 
 #strength, absolute change of parameter between current value and lookback value (n-past)
 #used for example to measure unusual peaks
-def delta(state, params):
+def delta(state, params, name):
     funcName = "delta"
     source = safe_get(params, "source", None)
     lookback = safe_get(params, "lookback",1)
@@ -20,5 +19,5 @@ def delta(state, params):
     currval = source_series[-1]
     delta = currval - lookbackval
 
-    state.ilog(lvl=1,e=f"INSIDE {funcName} {delta} {source=} {lookback=}", currval=currval, lookbackval=lookbackval, **params)
+    state.ilog(lvl=1,e=f"INSIDE {name}:{funcName} {delta} {source=} {lookback=}", currval=currval, lookbackval=lookbackval, **params)
     return 0, delta

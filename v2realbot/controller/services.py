@@ -492,7 +492,6 @@ def batch_run_manager(id: UUID, runReq: RunRequest, rundays: list[RunDay]):
             #i.history += str(runner.__dict__)+"<BR>"
             db.save()
 
-
 #stratin run
 def run_stratin(id: UUID, runReq: RunRequest, synchronous: bool = False, inter_batch_params: dict = None):
     if runReq.mode == Mode.BT:
@@ -756,7 +755,7 @@ def archive_runner(runner: Runner, strat: StrategyInstance, inter_batch_params: 
         #get rid of attributes that are links to the models
         strat.state.vars["loaded_models"] = {}
 
-        settings = dict(resolution=strat.state.timeframe,
+        settings = dict(resolution=strat.state.resolution,
                         rectype=strat.state.rectype,
                         configs=dict(
                             GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN=GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN,

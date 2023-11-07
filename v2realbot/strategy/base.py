@@ -16,6 +16,7 @@ from v2realbot.loader.trade_ws_streamer import Trade_WS_Streamer
 from v2realbot.interfaces.general_interface import GeneralInterface
 from v2realbot.interfaces.backtest_interface import BacktestInterface
 from v2realbot.interfaces.live_interface import LiveInterface
+import v2realbot.common.PrescribedTradeModel as ptm
 from alpaca.trading.enums import OrderSide
 from v2realbot.backtesting.backtester import Backtester
 #from alpaca.trading.models import TradeUpdate
@@ -26,6 +27,7 @@ import json
 from uuid import UUID
 from rich import print as printnow
 from collections import defaultdict
+import v2realbot.strategyblocks.activetrade.sl.optimsl as optimsl
 
 if PROFILING_NEXT_ENABLED:
     from pyinstrument import Profiler
@@ -81,7 +83,7 @@ class Strategy:
     def add_data(self,
             symbol: str,
             rectype: RecordType = RecordType.BAR,
-            timeframe: int = 5,
+            resolution: int = 5,
             minsize: int = 100,
             update_ltp: bool = False,
             align: StartBarAlign = StartBarAlign.ROUND,
@@ -93,8 +95,8 @@ class Strategy:
         ##stejne tak podporit i ruzne resolutions, zatim take natvrdo prvni
         self.rectype = rectype
         self.state.rectype = rectype
-        self.state.timeframe = timeframe
-        stream = TradeAggregator2Queue(symbol=symbol,queue=self.q1,rectype=rectype,timeframe=timeframe,update_ltp=update_ltp,align=align,mintick = mintick, exthours=exthours, minsize=minsize)
+        self.state.resolution = resolution
+        stream = TradeAggregator2Queue(symbol=symbol,queue=self.q1,rectype=rectype,resolution=resolution,update_ltp=update_ltp,align=align,mintick = mintick, exthours=exthours, minsize=minsize)
         self._streams.append(stream)
         self.dataloader.add_stream(stream)
 
@@ -168,7 +170,7 @@ class Strategy:
             #implementovat az podle skutecnych pozadavku
             #self.state.indicators['time'].append(datetime.fromtimestamp(self.state.last_trade_time))
             #self.append_trade(self.state.trades,item)
-        elif self.rectype == RecordType.CBAR:
+        elif self.rectype in (RecordType.CBAR, RecordType.CBARVOLUME):
             if self.nextnew:
                 #standardni identifikatory - populace hist zaznamu pouze v novem baru (dale se deji jen udpaty)
                 for key in self.state.indicators:
@@ -216,14 +218,14 @@ class Strategy:
 
                     #pokud jsou nastaveny secondary - zatím skrz stratvars - pripadne do do API
                     #zatim jedno, predelat pak na list
-                    # if safe_get(self.state.vars, "secondary_timeframe",None):
+                    # if safe_get(self.state.vars, "secondary_resolution",None):
                     #     self.process_secondary_indicators(item)
 
 
     # #tady jsem skoncil
     # def process_secondary_indicators(self, item):
     #     #toto je voláno každý potvrzený CBAR
-    #     resolution = int(safe_get(self.state.vars, "secondary_timeframe",10))
+    #     resolution = int(safe_get(self.state.vars, "secondary_resolution",10))
     #     if int(item['resolution']) >= int(resolution) or int(resolution) % int(item['resolution']) != 0:
     #         self.state.ilog(e=f"Secondary res {resolution} must be higher than main resolution {item['resolution']} a jejim delitelem")
 
@@ -273,14 +275,14 @@ class Strategy:
             a,p = self.interface.pos()
             if a != -1:
                 self.state.avgp, self.state.positions = a,p
-        elif self.rectype == RecordType.CBAR and item['confirmed'] == 1:
+        elif self.rectype in (RecordType.CBAR, RecordType.CBARVOLUME) and item['confirmed'] == 1:
             a,p = self.interface.pos()
             if a != -1:
                 self.state.avgp, self.state.positions = a,p
 
     """update state.last_trade_time a time of iteration"""
     def update_times(self, item):
-        if self.rectype == RecordType.BAR or self.rectype == RecordType.CBAR:
+        if self.rectype == RecordType.BAR or self.rectype in (RecordType.CBAR, RecordType.CBARVOLUME):
             self.state.last_trade_time = item['updated']
         elif self.rectype == RecordType.TRADE:
             self.state.last_trade_time = item['t']
@@ -522,7 +524,7 @@ class Strategy:
         if self.rtqueue is not None:
             rt_out = dict()
 
-            if self.rectype == RecordType.BAR or self.rectype == RecordType.CBAR:
+            if self.rectype == RecordType.BAR or self.rectype in (RecordType.CBAR, RecordType.CBARVOLUME):
                 rt_out["bars"] = item
             else:
                 rt_out["trades"] = item
@@ -665,10 +667,12 @@ class StrategyState:
         #time of last trade processed
         self.last_trade_time = 0
         self.last_entry_price=dict(long=0,short=999)
-        self.timeframe = None
+        self.resolution = None
         self.runner_id = runner_id
         self.bt = bt
         self.ilog_save = ilog_save
+        self.sl_optimizer_short = optimsl.SLOptimizer(ptm.TradeDirection.SHORT)
+        self.sl_optimizer_long = optimsl.SLOptimizer(ptm.TradeDirection.LONG)
 
         bars = {'high': [], 
                                 'low': [],
@@ -698,7 +702,7 @@ class StrategyState:
         #pro mapping indikatoru pro pouziti v operation expressionu
         self.ind_mapping = {}
         self.cbar_indicators = AttributeDict(time=[])
-        #secondary timeframe indicators
+        #secondary resolution indicators
         #self.secondary_indicators = AttributeDict(time=[], sec_price=[])
         self.statinds = AttributeDict()
         #these methods can be overrided by StrategyType (to add or alter its functionality)

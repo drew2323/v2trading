@@ -1,5 +1,3 @@
-from v2realbot.strategy.base import StrategyState
-from v2realbot.strategy.StrategyOrderLimitVykladaciNormalizedMYSELL import StrategyOrderLimitVykladaciNormalizedMYSELL
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, Followup
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus
 from v2realbot.utils.utils import isrising, isfalling,zoneNY, price2dec, print, safe_get, is_still, is_window_open, eval_cond_dict, crossed_down, crossed_up, crossed, is_pivot, json_serial, pct_diff, create_new_bars, slice_dict_lists
@@ -161,12 +159,25 @@ def get_profit_target_price(state, data, direction: TradeDirection):
     directive_name = 'profit_'+str(smer)
     def_profit = get_override_for_active_trade(state, directive_name=directive_name, default_value=def_profit_both_directions)
 
-    normalized_def_profit = normalize_tick(state, data, float(def_profit))
+    #mame v direktivve ticky
+    if isinstance(def_profit, (float, int)):
+        normalized_def_profit = normalize_tick(state, data, float(def_profit))
 
-    state.ilog(lvl=0,e=f"PROFIT {def_profit=} {normalized_def_profit=}")
+        state.ilog(lvl=0,e=f"PROFIT {def_profit=} {normalized_def_profit=}")
 
-    return price2dec(float(state.avgp)+normalized_def_profit,3) if int(state.positions) > 0 else price2dec(float(state.avgp)-normalized_def_profit,3)
-    
+        base_price = state.avgp if state.avgp != 0 else data["close"]
+
+        to_return = price2dec(float(base_price)+normalized_def_profit,3) if direction == TradeDirection.LONG else price2dec(float(base_price)-normalized_def_profit,3)
+    #mame v direktive indikator
+    elif isinstance(def_profit, str):
+        to_return = float(value_or_indicator(state, def_profit))
+
+        if direction == TradeDirection.LONG and to_return < data['close'] or direction == TradeDirection.SHORT and to_return > data['close']:
+            state.ilog(lvl=1,e=f"SPATNA HODOTA DOTAZENEHO PROFITU z ind {def_profit} {to_return=} {smer} {data['close']}")
+            raise Exception(f"SPATNA HODOTA DOTAZENEHO PROFITU z ind{def_profit} {to_return=} {smer} {data['close']}")
+        state.ilog(lvl=1,e=f"DOTAZENY PROFIT z indikatoru {def_profit} {to_return=}")
+    return to_return
+
 def get_max_profit_price(state, data, direction: TradeDirection):
     if direction == TradeDirection.LONG:
         smer = "long"

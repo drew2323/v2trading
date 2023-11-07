@@ -43,3 +43,27 @@ def close_position(state, data, direction: TradeDirection, reason: str, followup
     state.vars.last_exit_index = data["index"]    
     if followup is not None:
         state.vars.requested_followup = followup
+
+#close only partial position - no followup here, size multiplier must be between 0 and 1
+def close_position_partial(state, data, direction: TradeDirection, reason: str, size: float):
+    if size <= 0 or size >=1:
+        raise Exception(f"size must be betweem 0 and 1")
+    size_abs = abs(int(int(state.positions)*size))
+    state.ilog(lvl=1,e=f"CLOSING TRADE PART: {size_abs} {size} {reason} {str(direction)}", curr_price=data["close"], trade=state.vars.activeTrade)
+    if direction == TradeDirection.SHORT:
+        res = state.buy(size=size_abs)
+        if isinstance(res, int) and res < 0:
+            raise Exception(f"error in required operation STOPLOSS PARTIAL BUY {reason} {res}")
+
+    elif direction == TradeDirection.LONG:
+        res = state.sell(size=size_abs)
+        if isinstance(res, int) and res < 0:
+            raise Exception(f"error in required operation STOPLOSS PARTIAL SELL {res}")
+    else:
+        raise Exception(f"unknow TradeDirection in close_position")
+    
+    #pri uzavreni tradu zapisujeme SL history - lepsi zorbazeni v grafu
+    insert_SL_history(state)
+    state.vars.pending = state.vars.activeTrade.id
+    #state.vars.activeTrade = None   
+    #state.vars.last_exit_index = data["index"]    

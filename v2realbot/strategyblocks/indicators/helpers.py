@@ -1,5 +1,5 @@
 from v2realbot.utils.utils import isrising, isfalling,isfallingc, isrisingc, zoneNY, price2dec, print, safe_get, is_still, is_window_open, eval_cond_dict, crossed_down, crossed_up, crossed, is_pivot, json_serial, pct_diff, create_new_bars, slice_dict_lists
-from v2realbot.strategy.base import StrategyState
+#from v2realbot.strategy.base import StrategyState
 from traceback import format_exc
 
 #ZATIM tyto zkopirovany SEM DO HELPERS
@@ -71,7 +71,7 @@ def get_source_or_MA(state, indicator):
         except KeyError:
             return state.bars[indicator]
 
-def get_source_series(state: StrategyState, source: str):
+def get_source_series(state, source: str):
     """
     Podporujeme krome klice v bar a indikatoru a dalsi doplnujici, oddelene _ napr. dailyBars_close
     vezme serii static.dailyBars[close]

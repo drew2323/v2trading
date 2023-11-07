@@ -1,4 +1,4 @@
-from v2realbot.strategyblocks.activetrade.close.close_position import close_position
+from v2realbot.strategyblocks.activetrade.close.close_position import close_position, close_position_partial
 from v2realbot.strategy.base import StrategyState
 from v2realbot.enums.enums import  Followup
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus
@@ -12,6 +12,7 @@ from traceback import format_exc
 from v2realbot.strategyblocks.activetrade.close.eod_exit import eod_exit_activated
 from v2realbot.strategyblocks.activetrade.close.conditions import dontexit_protection_met, exit_conditions_met
 from v2realbot.strategyblocks.activetrade.helpers import get_max_profit_price, get_profit_target_price, get_override_for_active_trade, keyword_conditions_met
+from v2realbot.strategyblocks.activetrade.sl.optimsl import SLOptimizer
 
 def eval_close_position(state: StrategyState, data):
     curr_price = float(data['close'])
@@ -25,11 +26,26 @@ def eval_close_position(state: StrategyState, data):
         #mame short pozice - (IDEA: rozlisovat na zaklade aktivniho tradu - umozni mi spoustet i pri soucasne long pozicemi)
         if int(state.positions) < 0:
             #get TARGET PRICE pro dany smer a signal
-            goal_price = get_profit_target_price(state, data, TradeDirection.SHORT)
+
+            #pokud existujeme bereme z nastaveni tradu a nebo z defaultu
+            if state.vars.activeTrade.goal_price is not None:
+                 goal_price = state.vars.activeTrade.goal_price
+            else:
+                goal_price = get_profit_target_price(state, data, TradeDirection.SHORT)
+
             max_price = get_max_profit_price(state, data, TradeDirection.SHORT)
-            state.ilog(lvl=1,e=f"Goal price {str(TradeDirection.SHORT)} {goal_price} max price {max_price}")                
+            state.ilog(lvl=1,e=f"Def Goal price {str(TradeDirection.SHORT)} {goal_price} max price {max_price}")                
             
-            #SL - execution
+            #SL OPTIMALIZATION - PARTIAL EXIT
+            level_met, exit_adjustment = state.sl_optimizer_short.eval_position(state, data)
+            if level_met is not None and exit_adjustment is not None:
+                position = state.positions * exit_adjustment
+                state.ilog(lvl=1,e=f"SL OPTIMIZATION ENGAGED {str(TradeDirection.SHORT)} {position=} {level_met=} {exit_adjustment}", initial_levels=str(state.sl_optimizer_short.get_initial_abs_levels(state)), rem_levels=str(state.sl_optimizer_short.get_remaining_abs_levels(state)), exit_levels=str(state.sl_optimizer_short.exit_levels), exit_sizes=str(state.sl_optimizer_short.exit_sizes))
+                printanyway(f"SL OPTIMIZATION ENGAGED {str(TradeDirection.SHORT)} {position=} {level_met=} {exit_adjustment}")
+                close_position_partial(state=state, data=data, direction=TradeDirection.SHORT, reason=F"SL OPT LEVEL {level_met} REACHED", size=exit_adjustment)
+                return
+            
+            #FULL SL reached - execution
             if curr_price > state.vars.activeTrade.stoploss_value:
 
                 directive_name = 'reverse_for_SL_exit_short'
@@ -90,13 +106,25 @@ def eval_close_position(state: StrategyState, data):
         elif int(state.positions) > 0:
 
             #get TARGET PRICE pro dany smer a signal
-            goal_price = get_profit_target_price(state, data, TradeDirection.LONG)
+            #pokud existujeme bereme z nastaveni tradu a nebo z defaultu
+            if state.vars.activeTrade.goal_price is not None:
+                 goal_price = state.vars.activeTrade.goal_price
+            else:
+                goal_price = get_profit_target_price(state, data, TradeDirection.LONG)
+        
             max_price = get_max_profit_price(state, data, TradeDirection.LONG)
             state.ilog(lvl=1,e=f"Goal price {str(TradeDirection.LONG)} {goal_price} max price {max_price}")
 
-            #EOD EXIT - TBD
+            #SL OPTIMALIZATION - PARTIAL EXIT
+            level_met, exit_adjustment = state.sl_optimizer_long.eval_position(state, data)
+            if level_met is not None and exit_adjustment is not None:
+                position = state.positions * exit_adjustment
+                state.ilog(lvl=1,e=f"SL OPTIMIZATION ENGAGED {str(TradeDirection.LONG)} {position=} {level_met=} {exit_adjustment}", initial_levels=str(state.sl_optimizer_long.get_initial_abs_levels(state)), rem_levels=str(state.sl_optimizer_long.get_remaining_abs_levels(state)), exit_levels=str(state.sl_optimizer_long.exit_levels), exit_sizes=str(state.sl_optimizer_long.exit_sizes))
+                printanyway(f"SL OPTIMIZATION ENGAGED {str(TradeDirection.LONG)} {position=} {level_met=} {exit_adjustment}")
+                close_position_partial(state=state, data=data, direction=TradeDirection.LONG, reason=f"SL OPT LEVEL {level_met} REACHED", size=exit_adjustment)
+                return
 
-            #SL - execution
+            #SL FULL execution
             if curr_price < state.vars.activeTrade.stoploss_value:
                 directive_name = 'reverse_for_SL_exit_long'
                 reverse_for_SL_exit = get_override_for_active_trade(state, directive_name=directive_name, default_value=safe_get(state.vars, directive_name, "no"))

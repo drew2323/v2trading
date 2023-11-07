@@ -582,6 +582,21 @@ function toggleWide() {
 }
 
 //togle profit line
+function toggleVolume() {
+  vis = true;
+  const elem = document.getElementById("volToggle");
+  if (elem.classList.contains("switcher-active-item")) {
+      vis = false;
+  }      
+  elem.classList.toggle("switcher-active-item");
+  //v ifu kvuli workaroundu
+  if (volumeSeries) {
+    volumeSeries.applyOptions({
+      visible: vis });
+  }
+}
+
+//togle profit line
 function mrkLineToggle() {
   vis = true;
   const elem = document.getElementById("mrkLine");
@@ -613,15 +628,19 @@ function onItemClickedToggle(index) {
       elem.classList.toggle("switcher-active-item");
       //v ifu kvuli workaroundu
       if (indList[index].series) {
-      indList[index].series.applyOptions({
-          visible: vis });
+        //console.log(indList[index].name, indList[index].series)
+        indList[index].series.applyOptions({
+            visible: vis });
       }
       //zatim takto workaround, pak vymyslet systemove pro vsechny tickbased indikatory
-      if (indList[index].name == "tick_price") {
+      tickIndicatorList = ["tick_price", "tick_volume"]
+      if (tickIndicatorList.includes(indList[index].name)) {
         if (!vis && indList[index].series) {
+          //console.log("pred", indList[index].name, indList[index].series)
           chart.removeSeries(indList[index].series)
           chart.timeScale().fitContent();
           indList[index].series = null
+          //console.log("po", indList[index].name, indList[index].series)
         }
       }
 
@@ -684,6 +703,18 @@ function populate_indicator_buttons(def) {
     itemEl.id = "goWide"
     itemEl.addEventListener('click', function(e) {
       toggleWide();
+    });
+    buttonElement.appendChild(itemEl);
+
+    //button pro toggle fullscreenu
+    var itemEl = document.createElement('button');
+    itemEl.innerText = "vol"
+    itemEl.classList.add('switcher-item');
+    itemEl.classList.add('switcher-active-item');
+    itemEl.style.color = "#99912b"
+    itemEl.id = "volToggle"
+    itemEl.addEventListener('click', function(e) {
+      toggleVolume();
     });
     buttonElement.appendChild(itemEl);
 

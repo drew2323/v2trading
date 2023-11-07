@@ -1163,7 +1163,7 @@ def main():
                cash=100000)
 
     #na sekundovem baru nezaokrouhlovat MAcko
-    s.add_data(symbol="BAC",rectype=RecordType.BAR,timeframe=2,minsize=100,update_ltp=True,align=StartBarAlign.ROUND,mintick=0, exthours=False)
+    s.add_data(symbol="BAC",rectype=RecordType.BAR,resolution=2,minsize=100,update_ltp=True,align=StartBarAlign.ROUND,mintick=0, exthours=False)
     #s.add_data(symbol="C",rectype=RecordType.BAR,timeframe=1,filters=None,update_ltp=True,align=StartBarAlign.ROUND,mintick=0)
 
     s.start()

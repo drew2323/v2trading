@@ -16,6 +16,7 @@ import numpy as np
 from threading import Event
 from uuid import UUID, uuid4
 from v2realbot.strategyblocks.indicators.indicators_hub import populate_all_indicators
+from v2realbot.strategyblocks.activetrade.helpers import get_profit_target_price
 
 class StrategyClassicSL(Strategy):
     """
@@ -68,7 +69,6 @@ class StrategyClassicSL(Strategy):
                 return True
 
         return False
-
 
     async def add_followup(self, direction: TradeDirection, size: int, signal_name: str):
         trade_to_add = Trade(
@@ -130,7 +130,10 @@ class StrategyClassicSL(Strategy):
 
                 #pokud jde o finalni FILL - pridame do pole tento celkovy relativnich profit (ze ktereho se pocita kumulativni relativni profit)
                 rel_profit_cum_calculated = 0
+
                 if data.event == TradeEvent.FILL:
+                    #TODO pokud mame partial exit, tak se spravne vypocita relativni profit, ale
+                    #  je jen na mensi mnozszvi take z nej delat cum_calculate je blbost - OPRAVIT
                     self.state.rel_profit_cum.append(rel_profit)
                     rel_profit_cum_calculated = round(np.mean(self.state.rel_profit_cum),5)
 
@@ -192,6 +195,11 @@ class StrategyClassicSL(Strategy):
                 if data.event == TradeEvent.FILL:
                     #zapisujeme last entry price
                     self.state.last_entry_price["long"] = data.price
+
+                    #pokud neni nastaveno goal_price tak vyplnujeme defaultem
+                    if self.state.vars.activeTrade.goal_price is None:
+                        dat = dict(close=data.price)
+                        self.state.vars.activeTrade.goal_price = get_profit_target_price(self.state, dat, TradeDirection.LONG)
 
             #ic("vstupujeme do orderupdatebuy")
             print(data)
@@ -308,6 +316,13 @@ class StrategyClassicSL(Strategy):
                 if data.event == TradeEvent.FILL:
                     #zapisujeme last entry price
                     self.state.last_entry_price["short"] = data.price
+                    #pokud neni nastaveno goal_price tak vyplnujeme defaultem
+                    if self.state.vars.activeTrade.goal_price is None:
+                        dat = dict(close=data.price)
+                        self.state.vars.activeTrade.goal_price = get_profit_target_price(self.state, dat, TradeDirection.SHORT)
+                    #sem v budoucnu dat i update SL
+                    #if self.state.vars.activeTrade.stoploss_value is None:
+
 
             #update pozic, v trade update je i pocet zbylych pozic
             old_avgp = self.state.avgp

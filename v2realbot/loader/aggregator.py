@@ -11,12 +11,12 @@ import threading
 from copy import deepcopy
 from msgpack import unpackb
 import os
-from v2realbot.config import DATA_DIR, GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN
+from v2realbot.config import DATA_DIR, GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN, AGG_EXCLUDED_TRADES
 
 class TradeAggregator:  
     def __init__(self,
                  rectype: RecordType = RecordType.BAR,
-                 timeframe: int = 5,
+                 resolution: int = 5,
                  minsize: int = 100,
                  update_ltp: bool = False,
                  align: StartBarAlign = StartBarAlign.ROUND,
@@ -27,22 +27,22 @@ class TradeAggregator:
 
         Create trade agregator. Instance accepts trades one by one and process them and returns output type
             Trade - return trade one by one (no change)
-            Bar - return finished bar in given timeframe
+            Bar - return finished bar in given resolution
             CBar - returns continuous bar, finished bar is marked by confirmed status
         Args:
-            timeframe (number): Resolution of bar in seconds
+            resolution (number): Resolution of bar in seconds
             update_ltp (bool): Whether to update global variable with price (usually only one instance does that)
-            align: Defines alignement of first bar. ROUND - according to timeframe( 5,10,15 - for 5s timeframe), RANDOM - according to timestamp of first trade
+            align: Defines alignement of first bar. ROUND - according to resolution( 5,10,15 - for 5s resolution), RANDOM - according to timestamp of first trade
             mintick: Applies for CBAR. Minimální mezera po potvrzeni baru a aktualizaci dalsiho nepotvrzeneho (např. pro 15s, muzeme chtit prvni tick po 5s). po teto dobe realtime.
         """
         self.rectype: RecordType = rectype
-        self.timeframe = timeframe
+        self.resolution = resolution
         self.minsize = minsize
         self.update_ltp = update_ltp
         self.exthours = exthours
 
-        if mintick >= timeframe:
-            print("Mintick musi byt mensi nez timeframe")
+        if mintick >= resolution:
+            print("Mintick musi byt mensi nez resolution")
             raise Exception
 
         self.mintick = mintick
@@ -51,7 +51,10 @@ class TradeAggregator:
         self.lasttimestamp = 0
         #inicalizace pro prvni agregaci
         self.newBar = dict(high=0, low=999999, volume = 0, trades = 0, confirmed = 0, vwap = 0, close=0, index = 1, updated = 0)
+        self.openedVolumeBar = None
+        self.lastConfirmedTime = 0
         self.bar_start = 0
+        self.curr_bar_volume = None
         self.align = align
         self.tm: datetime = None
         self.firstpass = True
@@ -87,7 +90,7 @@ class TradeAggregator:
         ## přidán W - average price trade, U - Extended hours - sold out of sequence, Z - Sold(Out of sequence)
         try:
             for i in data['c']:
-                if i in ('C','O','4','B','7','V','P','W','U','Z'): return []
+                if i in AGG_EXCLUDED_TRADES: return []
         except KeyError:
             pass
 
@@ -151,8 +154,8 @@ class TradeAggregator:
         # if self.lasttimestamp ==0 and self.align:
         #     if self.firstpass:
         #         self.tm = datetime.fromtimestamp(data['t'])
-        #         self.tm += timedelta(seconds=self.timeframe)
-        #         self.tm = self.tm - timedelta(seconds=self.tm.second % self.timeframe,microseconds=self.tm.microsecond)
+        #         self.tm += timedelta(seconds=self.resolution)
+        #         self.tm = self.tm - timedelta(seconds=self.tm.second % self.resolution,microseconds=self.tm.microsecond)
         #         self.firstpass = False
         #     print("trade: ",datetime.fromtimestamp(data['t']))
         #     print("required",self.tm)
@@ -160,10 +163,17 @@ class TradeAggregator:
         #         return
         #     else: pass
 
+        if self.rectype in (RecordType.BAR, RecordType.CBAR):
+            return await self.calculate_time_bar(data, symbol)
+        
+        if self.rectype == RecordType.CBARVOLUME:
+            return await self.calculate_volume_bar(data, symbol)
+
+    async def calculate_time_bar(self, data, symbol):
         #print("barstart",datetime.fromtimestamp(self.bar_start))
         #print("oriznute data z tradu", datetime.fromtimestamp(int(data['t'])))
-        #print("timeframe",self.timeframe)
-        if  int(data['t']) - self.bar_start < self.timeframe:
+        #print("resolution",self.resolution)
+        if  int(data['t']) - self.bar_start < self.resolution:
             issamebar = True
         else:
             issamebar = False
@@ -202,10 +212,10 @@ class TradeAggregator:
                     #MUSIME VRATIT ZPET - ten upraveny cas způsobuje spatne plneni v BT, kdyz tento bar triggeruje nakup
                     # if self.align:
                     #     t = datetime.fromtimestamp(data['t'])
-                    #     t = t - timedelta(seconds=t.second % self.timeframe,microseconds=t.microsecond)
+                    #     t = t - timedelta(seconds=t.second % self.resolution,microseconds=t.microsecond)
                     # #nebo pouzijeme datum tradu zaokrouhlene na vteriny (RANDOM)
                     # else:
-                    #     #ulozime si jeho timestamp (odtum pocitame timeframe)
+                    #     #ulozime si jeho timestamp (odtum pocitame resolution)
                     #     t = datetime.fromtimestamp(int(data['t']))
 
                     # #self.newBar['updated'] = float(data['t']) - 0.001
@@ -276,18 +286,18 @@ class TradeAggregator:
             #zarovname time prvniho baru podle timeframu kam patří (např. 5, 10, 15 ...) (ROUND)
             if self.align == StartBarAlign.ROUND and self.bar_start == 0:
                 t = datetime.fromtimestamp(data['t'])
-                t = t - timedelta(seconds=t.second % self.timeframe,microseconds=t.microsecond)
+                t = t - timedelta(seconds=t.second % self.resolution,microseconds=t.microsecond)
                 self.bar_start = datetime.timestamp(t)
             #nebo pouzijeme datum tradu zaokrouhlene na vteriny (RANDOM)
             else:
-                #ulozime si jeho timestamp (odtum pocitame timeframe)
+                #ulozime si jeho timestamp (odtum pocitame resolution)
                 t = datetime.fromtimestamp(int(data['t']))
                 #timestamp
                 self.bar_start = int(data['t'])
             
 
             self.newBar['time'] = t 
-            self.newBar['resolution'] = self.timeframe
+            self.newBar['resolution'] = self.resolution
             self.newBar['confirmed'] = 0
 
 
@@ -358,14 +368,178 @@ class TradeAggregator:
         else:
             return []
 
+    async def calculate_volume_bar(self, data, symbol):
+        """"
+        Agreguje VOLUME BARS -
+        hlavni promenne 
+        - self.openedVolumeBar (dict) = stavová obsahují aktivní nepotvrzený bar
+        - confirmedBars (list) = nestavová obsahuje confirmnute bary, které budou na konci funkceflushnuty
+        """""
+        #volume_bucket = 10000 #daily MA volume z emackova na 30 deleno 50ti - dat do configu
+        volume_bucket = self.resolution
+        #potvrzene pripravene k vraceni
+        confirmedBars = []
+        #potvrdi existujici a nastavi k vraceni
+        def confirm_existing():
+            self.openedVolumeBar['confirmed'] = 1
+            self.openedVolumeBar['vwap'] = self.vwaphelper / self.openedVolumeBar['volume']
+            self.vwaphelper = 0
+
+            #ulozime zacatek potvrzeneho baru
+            self.lastBarConfirmed = self.openedVolumeBar['time']
+
+            self.openedVolumeBar['updated'] = data['t']
+            confirmedBars.append(deepcopy(self.openedVolumeBar))
+            self.openedVolumeBar = None
+            #TBD po každém potvrzení zvýšíme čas o nanosekundu (pro zobrazení v gui)
+            #data['t'] = data['t'] + 0.000001
+            
+        #init unconfirmed - velikost bucketu kontrolovana predtim
+        def initialize_unconfirmed(size):
+                #inicializuji pro nový bar
+                self.vwaphelper += (data['p'] * size)
+                self.barindex +=1
+                self.openedVolumeBar =  {
+                    "close": data['p'],
+                    "high": data['p'],
+                    "low": data['p'],
+                    "open": data['p'],
+                    "volume": size,
+                    "trades": 1,
+                    "hlcc4": data['p'],
+                    "confirmed": 0,
+                    "time": datetime.fromtimestamp(data['t']),
+                    "updated": data['t'],
+                    "vwap": data['p'],
+                    "index": self.barindex,
+                    "resolution":volume_bucket
+                    }
+
+        def update_unconfirmed(size):
+            #spočteme vwap - potřebujeme předchozí hodnoty 
+            self.vwaphelper += (data['p'] * size)
+            self.openedVolumeBar['updated'] = data['t']
+            self.openedVolumeBar['close'] = data['p']
+            self.openedVolumeBar['high'] = max(self.openedVolumeBar['high'],data['p'])
+            self.openedVolumeBar['low'] = min(self.openedVolumeBar['low'],data['p'])
+            self.openedVolumeBar['volume'] = self.openedVolumeBar['volume'] + size
+            self.openedVolumeBar['trades'] = self.openedVolumeBar['trades'] + 1
+            self.openedVolumeBar['vwap'] = self.vwaphelper / self.openedVolumeBar['volume']
+            #pohrat si s timto round
+            self.openedVolumeBar['hlcc4'] = round((self.openedVolumeBar['high']+self.openedVolumeBar['low']+self.openedVolumeBar['close']+self.openedVolumeBar['close'])/4,3)
+
+        #init new - confirmed
+        def initialize_confirmed(size):
+                #ulozime zacatek potvrzeneho baru
+                self.lastBarConfirmed = datetime.fromtimestamp(data['t'])
+                self.barindex +=1
+                confirmedBars.append({
+                    "close": data['p'],
+                    "high": data['p'],
+                    "low": data['p'],
+                    "open": data['p'],
+                    "volume": size,
+                    "trades": 1,
+                    "hlcc4":data['p'],
+                    "confirmed": 1,
+                    "time": datetime.fromtimestamp(data['t']),
+                    "updated": data['t'],
+                    "vwap": data['p'],
+                    "index": self.barindex,
+                    "resolution":volume_bucket
+                    })
+      
+        #existuje stávající bar a vejdeme se do nej
+        if self.openedVolumeBar is not None and int(data['s']) + self.openedVolumeBar['volume'] < volume_bucket:
+            #vejdeme se do stávajícího baru (tzn. neprekracujeme bucket)
+            update_unconfirmed(int(data['s']))
+            #updatujeme stávající nepotvrzeny bar
+        #nevejdem se do nej nebo neexistuje predchozi bar
+        else:
+            #1)existuje predchozi bar - doplnime zbytkem do valikosti bucketu a nastavime confirmed
+            if self.openedVolumeBar is not None:
+                
+                #doplnime je zbytkem
+                bucket_left = volume_bucket - self.openedVolumeBar['volume']
+                # - update and confirm bar
+                update_unconfirmed(bucket_left)
+                confirm_existing()
+                
+                #zbytek mnozství jde do dalsiho zpracovani
+                data['s'] = int(data['s']) - bucket_left
+                #nastavime cas o nanosekundu vyssi
+                data['t'] = data['t'] + 0.000001
+
+            #2 vytvarime novy bar (bary) a vejdeme se do nej
+            if int(data['s']) < volume_bucket:
+                #vytvarime novy nepotvrzeny bar
+                initialize_unconfirmed(int(data['s']))
+            #nevejdeme se do nej - pak vytvarime 1 až N dalsich baru (posledni nepotvrzený)           
+            else:
+            # >>> for i in range(0, 550, 500):
+            # ...     print(i)
+            # ... 
+            # 0
+            # 500
+
+                #vytvarime plne potvrzene buckety (kolik se jich plne vejde)
+                for size in range(0, int(data['s']), volume_bucket):
+                    initialize_confirmed(volume_bucket)
+                    #nastavime cas o nanosekundu vyssi
+                    data['t'] = data['t'] + 0.000001
+                    #create complete full bucket with same prices and size
+                    #naplnit do return pole
+                
+                #pokud je zbytek vytvorime z nej nepotvrzeny bar
+                zbytek = int(data['s']) % volume_bucket
+                
+                #ze zbytku vytvorime nepotvrzeny bar
+                if zbytek > 0:
+                    initialize_unconfirmed(zbytek)
+                    #create new open bar with size zbytek s otevrenym
+
+        #je cena stejna od predchoziho tradu? pro nepotvrzeny cbar vracime jen pri zmene ceny  
+        if self.last_price == data['p']:
+            self.diff_price = False
+        else:
+            self.diff_price = True    
+        self.last_price = data['p'] 
+
+        if float(data['t']) - float(self.lasttimestamp) < GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN:
+            self.trades_too_close = True
+        else:
+            self.trades_too_close = False
+
+        #uložíme do předchozí hodnoty (poznáme tak open a close)
+        self.lasttimestamp = data['t']
+        self.iterace += 1
+        # print(self.iterace, data)
+
+        #pokud mame confirm bary, tak FLUSHNEME confirm a i případný open (zrejme se pak nejaky vytvoril)
+        if len(confirmedBars) > 0:
+            return_set = confirmedBars + ([self.openedVolumeBar] if self.openedVolumeBar is not None else [])
+            confirmedBars = []
+            return return_set
+
+        #nemame confirm, FLUSHUJEME CBARVOLUME open - neresime zmenu ceny, ale neposilame kulomet (pokud nam nevytvari conf. bar)
+        if self.openedVolumeBar is not None and self.rectype == RecordType.CBARVOLUME:
+            
+             #zkousime pustit i stejnou cenu(potrebujeme kvuli MYSELLU), ale blokoval kulomet,tzn. trady mensi nez GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN (1ms)
+            #if self.diff_price is True:
+            if self.trades_too_close is False:
+                return [self.openedVolumeBar]
+            else:
+                return []
+        else:
+            return []
 
 class TradeAggregator2Queue(TradeAggregator):
     """
     Child of TradeAggregator - sends items to given queue
     In the future others will be added - TradeAggToTxT etc.
     """
-    def __init__(self, symbol: str, queue: Queue, rectype: RecordType = RecordType.BAR, timeframe: int = 5, minsize: int = 100, update_ltp: bool = False, align: StartBarAlign = StartBarAlign.ROUND, mintick: int = 0, exthours: bool = False):
-        super().__init__(rectype=rectype, timeframe=timeframe, minsize=minsize, update_ltp=update_ltp, align=align, mintick=mintick, exthours=exthours)
+    def __init__(self, symbol: str, queue: Queue, rectype: RecordType = RecordType.BAR, resolution: int = 5, minsize: int = 100, update_ltp: bool = False, align: StartBarAlign = StartBarAlign.ROUND, mintick: int = 0, exthours: bool = False):
+        super().__init__(rectype=rectype, resolution=resolution, minsize=minsize, update_ltp=update_ltp, align=align, mintick=mintick, exthours=exthours)
         self.queue = queue
         self.symbol = symbol
 
@@ -397,8 +571,8 @@ class TradeAggregator2List(TradeAggregator):
     """"
     stores records to the list
     """
-    def __init__(self, symbol: str, btdata: list, rectype: RecordType = RecordType.BAR, timeframe: int = 5, minsize: int = 100, update_ltp: bool = False, align: StartBarAlign = StartBarAlign.ROUND, mintick: int = 0, exthours: bool = False):
-        super().__init__(rectype=rectype, timeframe=timeframe, minsize=minsize, update_ltp=update_ltp, align=align, mintick=mintick, exthours=exthours)
+    def __init__(self, symbol: str, btdata: list, rectype: RecordType = RecordType.BAR, resolution: int = 5, minsize: int = 100, update_ltp: bool = False, align: StartBarAlign = StartBarAlign.ROUND, mintick: int = 0, exthours: bool = False):
+        super().__init__(rectype=rectype, resolution=resolution, minsize=minsize, update_ltp=update_ltp, align=align, mintick=mintick, exthours=exthours)
         self.btdata = btdata
         self.symbol = symbol
         # self.debugfile = DATA_DIR + "/BACprices.txt"

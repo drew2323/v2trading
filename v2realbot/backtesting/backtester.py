@@ -804,7 +804,7 @@ class Backtester:
         textik3 = html.Div('''
             Stratvars:'''+ str(state.vars))
         textik35 = html.Div('''
-            Resolution:'''+ str(state.timeframe) + "s  rectype:" + str(state.rectype))
+            Resolution:'''+ str(state.resolution) + "s  rectype:" + str(state.rectype))
         textik4 = html.Div('''
             Started at:''' + self.backtest_start.strftime("%d/%m/%Y, %H:%M:%S") + " Duration:"+str(self.backtest_end-self.backtest_start))
         textik5 = html.Div('''

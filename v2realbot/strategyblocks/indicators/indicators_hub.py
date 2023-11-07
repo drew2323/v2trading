@@ -55,20 +55,16 @@ def populate_all_indicators(data, state: StrategyState):
     #TODO tento lof patri spis do nextu classic SL - je poplatny typu stratefie
     #TODO na toto se podivam, nejak moc zajasonovani a zpatky -
     #PERF PROBLEM
-    state.ilog(lvl=1,e="ENTRY", msg=f"LP:{lp} P:{state.positions}/{round(float(state.avgp),3)} SL:{state.vars.activeTrade.stoploss_value if state.vars.activeTrade is not None else None} profit:{round(float(state.profit),2)} profit_rel:{round(np.mean(state.rel_profit_cum),6) if len(state.rel_profit_cum)>0 else 0} Trades:{len(state.tradeList)} pend:{state.vars.pending}", rel_profit_cum=str(state.rel_profit_cum), activeTrade=json.loads(json.dumps(state.vars.activeTrade, default=json_serial)), prescribedTrades=json.loads(json.dumps(state.vars.prescribedTrades, default=json_serial)), pending=str(state.vars.pending))
+    state.ilog(lvl=1,e="ENTRY", msg=f"LP:{lp} P:{state.positions}/{round(float(state.avgp),3)} SL:{state.vars.activeTrade.stoploss_value if state.vars.activeTrade is not None else None} GP:{state.vars.activeTrade.goal_price if state.vars.activeTrade is not None else None} profit:{round(float(state.profit),2)} profit_rel:{round(np.mean(state.rel_profit_cum),6) if len(state.rel_profit_cum)>0 else 0} Trades:{len(state.tradeList)} pend:{state.vars.pending}", rel_profit_cum=str(state.rel_profit_cum), activeTrade=json.loads(json.dumps(state.vars.activeTrade, default=json_serial)), prescribedTrades=json.loads(json.dumps(state.vars.prescribedTrades, default=json_serial)), pending=str(state.vars.pending))
     
     #kroky pro CONFIRMED BAR only
     if conf_bar == 1:
-        #logika pouze pro potvrzeny bar
-        state.ilog(lvl=0,e="BAR potvrzeny")
-
-        #pri potvrzem CBARu nulujeme counter volume pro tick based indicator
-        state.vars.last_tick_volume = 0
-        state.vars.next_new = 1
-    #kroky pro CONTINOUS TICKS only
+        pass
     else:
-        #CBAR INDICATOR pro tick price a deltu VOLUME
-        populate_cbar_tick_price_indicator(data, state)
+        pass
+
+    populate_cbar_tick_price_indicator(data, state)
+
         #TBD nize predelat na typizovane RSI (a to jak na urovni CBAR tak confirmed)
         #populate_cbar_rsi_indicator()
 

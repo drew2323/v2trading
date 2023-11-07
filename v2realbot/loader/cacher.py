@@ -32,7 +32,7 @@ class Cacher:
     def __init__(self,
                  
                  rectype: RecordType = RecordType.BAR,
-                 timeframe: int = 5,
+                 resolution: int = 5,
                  minsize: int = 100,
                  update_ltp: bool = False,
                  align: StartBarAlign = StartBarAlign.ROUND,

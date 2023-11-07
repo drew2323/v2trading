@@ -4,6 +4,10 @@ from appdirs import user_data_dir
 
 #TODO vybrane dat do config db a managovat pres GUI
 
+#AGGREGATOR filter trades
+#NOTE pridana F - Inter Market Sweep Order - obcas vytvarela spajky
+AGG_EXCLUDED_TRADES = ['C','O','4','B','7','V','P','W','U','Z','F']
+
 OFFLINE_MODE = False
 
 #ilog lvls = 0,1 - 0 debug, 1 info

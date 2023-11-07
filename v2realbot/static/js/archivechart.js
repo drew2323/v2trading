@@ -84,22 +84,37 @@ function transform_data(data) {
             });
         }
 
+
+    //pomocne
+    var last_time = 0
+    var time = 0
+
     data.bars.time.forEach((element, index, array) => {
         sbars = {};
         svolume = {};
         svwap = {};
 
-        sbars["time"] = element;
+        //tento algoritmus z duplicit dela posloupnosti a srovna i pripadne nekonzistence
+        //napr z .911 .911 .912 udela .911 .912 .913
+        //TODO - možná dat do backendu agregatoru
+        if (last_time>=element) {
+            console.log("bars", "problem v case - zarovnano",time, last_time, element)
+            
+            data.bars.time[index] = data.bars.time[index-1] + 0.000001
+        }
+
+        last_time = data.bars.time[index]
+        sbars["time"] = data.bars.time[index];
         sbars["close"] = data.bars.close[index]
         sbars["open"] = data.bars.open[index]
         sbars["high"] = data.bars.high[index]
         sbars["low"] = data.bars.low[index]
 
 
-        svwap["time"] = element
+        svwap["time"] = data.bars.time[index];
         svwap["value"] = data.bars.vwap[index]
 
-        svolume["time"] = element
+        svolume["time"] = data.bars.time[index];
         svolume["value"] = data.bars.volume[index]
 
         bars.push(sbars)
@@ -107,6 +122,7 @@ function transform_data(data) {
         volume.push(svolume)
     }); 
     transformed["bars"] = bars
+    //console.log(bars)
     transformed["vwap"] = vwap
     transformed["volume"] = volume
     var bars = []
@@ -585,7 +601,7 @@ function chart_indicators(data, visible, offset) {
 
                             //DEBUG
                             // if (key == 'tick_price') {
-                            //     console.log("problem tu",JSON.stringify(items))
+                            //     console.log("problem tu",JSON.stringify(items,null,2))
                             // }
                             //add data
                             obj.series.setData(items)

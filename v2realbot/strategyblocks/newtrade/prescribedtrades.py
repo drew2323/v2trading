@@ -4,7 +4,8 @@ from v2realbot.utils.utils import zoneNY, json_serial
 from datetime import datetime
 #import random
 import json
-from v2realbot.strategyblocks.activetrade.helpers import insert_SL_history, get_default_sl_value, normalize_tick
+from v2realbot.strategyblocks.activetrade.helpers import insert_SL_history, get_default_sl_value, normalize_tick, get_profit_target_price
+from v2realbot.strategyblocks.indicators.helpers import value_or_indicator
 
 #TODO nad prescribed trades postavit vstupni funkce
 def execute_prescribed_trades(state: StrategyState, data):
@@ -46,15 +47,28 @@ def execute_prescribed_trades(state: StrategyState, data):
             res = state.buy(size=size)
             if isinstance(res, int) and res < 0:
                 raise Exception(f"error in required operation LONG {res}")
+
+            #defaultni goal price pripadne nastavujeme az v notifikaci
+
             #TODO nastaveni SL az do notifikace, kdy je známá
             #pokud neni nastaveno SL v prescribe, tak nastavuji default dle stratvars
             if state.vars.activeTrade.stoploss_value is None:
                 sl_defvalue = get_default_sl_value(state, direction=state.vars.activeTrade.direction)
-                #normalizuji dle aktualni ceny 
-                sl_defvalue_normalized = normalize_tick(state, data,sl_defvalue)
-                state.vars.activeTrade.stoploss_value = float(data['close']) - sl_defvalue_normalized
+
+                if isinstance(sl_defvalue, (float, int)):
+                    #normalizuji dle aktualni ceny 
+                    sl_defvalue_normalized = normalize_tick(state, data,sl_defvalue)
+                    state.vars.activeTrade.stoploss_value = float(data['close']) - sl_defvalue_normalized
+                    state.ilog(lvl=1,e=f"Nastaveno SL na {sl_defvalue}, priced normalized: {sl_defvalue_normalized} price: {state.vars.activeTrade.stoploss_value }")
+                elif isinstance(sl_defvalue, str):
+                    #from indicator
+                    ind = sl_defvalue_abs
+                    sl_defvalue_abs = float(value_or_indicator(state, sl_defvalue))
+                    if sl_defvalue_abs >= float(data['close']):
+                        raise Exception(f"error in stoploss {sl_defvalue_abs} >= curr price")
+                    state.vars.activeTrade.stoploss_value = sl_defvalue_abs
+                    state.ilog(lvl=1,e=f"Nastaveno SL na {sl_defvalue_abs} dle indikatoru {ind}")
                 insert_SL_history(state)
-                state.ilog(lvl=1,e=f"Nastaveno SL na {sl_defvalue}, priced normalized: {sl_defvalue_normalized} price: {state.vars.activeTrade.stoploss_value }")
             state.vars.pending = state.vars.activeTrade.id
         elif state.vars.activeTrade.direction == TradeDirection.SHORT:
             state.ilog(lvl=1,e="odesilame SHORT ORDER",trade=json.loads(json.dumps(state.vars.activeTrade, default=json_serial)))
@@ -65,14 +79,26 @@ def execute_prescribed_trades(state: StrategyState, data):
             res = state.sell(size=size)
             if isinstance(res, int) and res < 0:
                 raise Exception(f"error in required operation SHORT {res}")
+            #defaultní goalprice nastavujeme az v notifikaci
+
             #pokud neni nastaveno SL v prescribe, tak nastavuji default dle stratvars
             if state.vars.activeTrade.stoploss_value is None:
                 sl_defvalue = get_default_sl_value(state, direction=state.vars.activeTrade.direction)
-                #normalizuji dle aktualni ceny 
-                sl_defvalue_normalized = normalize_tick(state, data, sl_defvalue)
-                state.vars.activeTrade.stoploss_value = float(data['close']) + sl_defvalue_normalized
+
+                if isinstance(sl_defvalue, (float, int)):
+                    #normalizuji dle aktualni ceny 
+                    sl_defvalue_normalized = normalize_tick(state, data,sl_defvalue)
+                    state.vars.activeTrade.stoploss_value = float(data['close']) + sl_defvalue_normalized
+                    state.ilog(lvl=1,e=f"Nastaveno SL na {sl_defvalue}, priced normalized: {sl_defvalue_normalized} price: {state.vars.activeTrade.stoploss_value }")
+                elif isinstance(sl_defvalue, str):
+                    #from indicator
+                    ind = sl_defvalue_abs
+                    sl_defvalue_abs = float(value_or_indicator(state, sl_defvalue))
+                    if sl_defvalue_abs <= float(data['close']):
+                        raise Exception(f"error in stoploss {sl_defvalue_abs} <= curr price")
+                    state.vars.activeTrade.stoploss_value = sl_defvalue_abs
+                    state.ilog(lvl=1,e=f"Nastaveno SL na {sl_defvalue_abs} dle indikatoru {ind}")
                 insert_SL_history(state)
-                state.ilog(lvl=1,e=f"Nastaveno SL na {sl_defvalue}, priced normalized: {sl_defvalue_normalized} price: {state.vars.activeTrade.stoploss_value }")
             state.vars.pending = state.vars.activeTrade.id
         else:
             state.ilog(lvl=1,e="unknow direction")

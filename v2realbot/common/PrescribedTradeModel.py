@@ -17,9 +17,13 @@ class TradeStoplossType(str, Enum):
     FIXED = "fixed"
     TRAILING = "trailing"
 
+#Predpis obchodu vygenerovany signalem, je to zastresujici jednotka
+#ke kteremu jsou pak navazany jednotlivy FILLy (reprezentovany model.TradeUpdate) - napr. castecne exity atp.
 class Trade(BaseModel):
     id: UUID
     last_update: datetime
+    entry_time: Optional[datetime] = None
+    exit_time: Optional[datetime] = None
     status: TradeStatus
     generated_by: Optional[str] = None
     direction: TradeDirection

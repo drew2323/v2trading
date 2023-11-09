@@ -65,6 +65,7 @@ class Strategy:
         self.ilog_save = ilog_save
         self.secondary_res_start_time = dict()
         self.secondary_res_start_index = dict()
+        self.last_index = -1
 
         #TODO predelat na dynamické queues
         self.q1 = queue.Queue()
@@ -156,9 +157,11 @@ class Strategy:
     #tzn. v NEXT dealame u indikatoru vzdy pouze UPDATE
 
     def save_item_history(self,item):
+        """"
+        Logika obsahujici ukladani baru a indikatoru(standardnich a cbar) do historie a inicializace novych zaznamu
+        """
         if self.rectype == RecordType.BAR:
             #jako cas indikatorů pridavame cas baru a inicialni hodnoty vsech indikatoru
-            
             for key in self.state.indicators:
                 if key == 'time':
                     self.state.indicators['time'].append(item['updated'])
@@ -170,7 +173,7 @@ class Strategy:
             #implementovat az podle skutecnych pozadavku
             #self.state.indicators['time'].append(datetime.fromtimestamp(self.state.last_trade_time))
             #self.append_trade(self.state.trades,item)
-        elif self.rectype in (RecordType.CBAR, RecordType.CBARVOLUME):
+        elif self.rectype in (RecordType.CBAR):
             if self.nextnew:
                 #standardni identifikatory - populace hist zaznamu pouze v novem baru (dale se deji jen udpaty)
                 for key in self.state.indicators:
@@ -220,7 +223,40 @@ class Strategy:
                     #zatim jedno, predelat pak na list
                     # if safe_get(self.state.vars, "secondary_resolution",None):
                     #     self.process_secondary_indicators(item)
+        elif self.rectype in (RecordType.CBARVOLUME, RecordType.CBARRENKO):
 
+            #u cbarvolume muze prijit i samostatny confirm nesouci data, tzn. chytame se na INDEX (tzn. jestli prisel udpate nebo novy)
+            #NEW
+            if item['index'] != self.last_index:
+                #standardni identifikatory - populace hist zaznamu pouze v novem baru (dale se deji jen udpaty)
+                for key in self.state.indicators:
+                    if key == 'time':
+                        self.state.indicators['time'].append(item['time'])
+                    else:
+                        self.state.indicators[key].append(0)
+
+                #populujeme i novy bar v historii
+                self.append_bar(self.state.bars,item)
+            #UPDATE
+            else:
+                #bary updatujeme, pridavame jen prvni
+                self.replace_prev_bar(self.state.bars,item)
+
+                #UPD
+                #tady mozna u standardnich(barovych) identifikatoru updatnout cas na "updated" - aby nebyl
+                #stale zarovnan s casem baru
+                for key in self.state.indicators:
+                    if key == 'time':
+                        self.state.indicators['time'][-1] = item['updated']
+
+            #cbar indikatory populace v kazde iteraci
+            for key in self.state.cbar_indicators:
+                if key == 'time':
+                    self.state.cbar_indicators['time'].append(item['updated'])
+                else:
+                    self.state.cbar_indicators[key].append(0)
+
+            self.last_index = item['index']
 
     # #tady jsem skoncil
     # def process_secondary_indicators(self, item):
@@ -275,14 +311,14 @@ class Strategy:
             a,p = self.interface.pos()
             if a != -1:
                 self.state.avgp, self.state.positions = a,p
-        elif self.rectype in (RecordType.CBAR, RecordType.CBARVOLUME) and item['confirmed'] == 1:
+        elif self.rectype in (RecordType.CBAR, RecordType.CBARVOLUME, RecordType.CBARRENKO) and item['confirmed'] == 1:
             a,p = self.interface.pos()
             if a != -1:
                 self.state.avgp, self.state.positions = a,p
 
     """update state.last_trade_time a time of iteration"""
     def update_times(self, item):
-        if self.rectype == RecordType.BAR or self.rectype in (RecordType.CBAR, RecordType.CBARVOLUME):
+        if self.rectype == RecordType.BAR or self.rectype in (RecordType.CBAR, RecordType.CBARVOLUME, RecordType.CBARRENKO):
             self.state.last_trade_time = item['updated']
         elif self.rectype == RecordType.TRADE:
             self.state.last_trade_time = item['t']
@@ -524,7 +560,7 @@ class Strategy:
         if self.rtqueue is not None:
             rt_out = dict()
 
-            if self.rectype == RecordType.BAR or self.rectype in (RecordType.CBAR, RecordType.CBARVOLUME):
+            if self.rectype == RecordType.BAR or self.rectype in (RecordType.CBAR, RecordType.CBARVOLUME, RecordType.CBARRENKO):
                 rt_out["bars"] = item
             else:
                 rt_out["trades"] = item

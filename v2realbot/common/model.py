@@ -178,6 +178,7 @@ class Order(BaseModel):
     side: OrderSide
     limit_price: Optional[float]
 
+#entita pro kazdy kompletni FILL, je navazana na prescribed_trade 
 class TradeUpdate(BaseModel):
     event: Union[TradeEvent, str]
     execution_id: Optional[UUID]
@@ -194,6 +195,7 @@ class TradeUpdate(BaseModel):
     rel_profit: Optional[float]
     rel_profit_cum: Optional[float]
     signal_name: Optional[str]
+    prescribed_trade_id: Optional[str]
 
 
 class RunArchiveChange(BaseModel):

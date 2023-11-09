@@ -62,10 +62,10 @@ def execute_prescribed_trades(state: StrategyState, data):
                     state.ilog(lvl=1,e=f"Nastaveno SL na {sl_defvalue}, priced normalized: {sl_defvalue_normalized} price: {state.vars.activeTrade.stoploss_value }")
                 elif isinstance(sl_defvalue, str):
                     #from indicator
-                    ind = sl_defvalue_abs
+                    ind = sl_defvalue
                     sl_defvalue_abs = float(value_or_indicator(state, sl_defvalue))
                     if sl_defvalue_abs >= float(data['close']):
-                        raise Exception(f"error in stoploss {sl_defvalue_abs} >= curr price")
+                        raise Exception(f"error in stoploss {ind} {sl_defvalue_abs} >= curr price")
                     state.vars.activeTrade.stoploss_value = sl_defvalue_abs
                     state.ilog(lvl=1,e=f"Nastaveno SL na {sl_defvalue_abs} dle indikatoru {ind}")
                 insert_SL_history(state)
@@ -92,10 +92,10 @@ def execute_prescribed_trades(state: StrategyState, data):
                     state.ilog(lvl=1,e=f"Nastaveno SL na {sl_defvalue}, priced normalized: {sl_defvalue_normalized} price: {state.vars.activeTrade.stoploss_value }")
                 elif isinstance(sl_defvalue, str):
                     #from indicator
-                    ind = sl_defvalue_abs
+                    ind = sl_defvalue
                     sl_defvalue_abs = float(value_or_indicator(state, sl_defvalue))
                     if sl_defvalue_abs <= float(data['close']):
-                        raise Exception(f"error in stoploss {sl_defvalue_abs} <= curr price")
+                        raise Exception(f"error in stoploss {ind} {sl_defvalue_abs} <= curr price")
                     state.vars.activeTrade.stoploss_value = sl_defvalue_abs
                     state.ilog(lvl=1,e=f"Nastaveno SL na {sl_defvalue_abs} dle indikatoru {ind}")
                 insert_SL_history(state)

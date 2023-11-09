@@ -51,16 +51,21 @@ class TradeAggregator:
         self.lasttimestamp = 0
         #inicalizace pro prvni agregaci
         self.newBar = dict(high=0, low=999999, volume = 0, trades = 0, confirmed = 0, vwap = 0, close=0, index = 1, updated = 0)
-        self.openedVolumeBar = None
+        self.openedBar = None
         self.lastConfirmedTime = 0
         self.bar_start = 0
         self.curr_bar_volume = None
+        self.current_bar_open = None
+
         self.align = align
         self.tm: datetime = None
         self.firstpass = True
         self.vwaphelper = 0
         self.returnBar = {}
         self.lastBarConfirmed = False
+        self.lastConfirmedBar = None
+        self.lasthigh = None
+        self.lastlow = None
         #min trade size
         self.minsize = minsize
     
@@ -168,6 +173,9 @@ class TradeAggregator:
         
         if self.rectype == RecordType.CBARVOLUME:
             return await self.calculate_volume_bar(data, symbol)
+        
+        if self.rectype == RecordType.CBARRENKO:
+            return await self.calculate_renko_bar(data, symbol)
 
     async def calculate_time_bar(self, data, symbol):
         #print("barstart",datetime.fromtimestamp(self.bar_start))
@@ -372,7 +380,7 @@ class TradeAggregator:
         """"
         Agreguje VOLUME BARS -
         hlavni promenne 
-        - self.openedVolumeBar (dict) = stavová obsahují aktivní nepotvrzený bar
+        - self.openedBar (dict) = stavová obsahují aktivní nepotvrzený bar
         - confirmedBars (list) = nestavová obsahuje confirmnute bary, které budou na konci funkceflushnuty
         """""
         #volume_bucket = 10000 #daily MA volume z emackova na 30 deleno 50ti - dat do configu
@@ -381,16 +389,16 @@ class TradeAggregator:
         confirmedBars = []
         #potvrdi existujici a nastavi k vraceni
         def confirm_existing():
-            self.openedVolumeBar['confirmed'] = 1
-            self.openedVolumeBar['vwap'] = self.vwaphelper / self.openedVolumeBar['volume']
+            self.openedBar['confirmed'] = 1
+            self.openedBar['vwap'] = self.vwaphelper / self.openedBar['volume']
             self.vwaphelper = 0
 
             #ulozime zacatek potvrzeneho baru
-            self.lastBarConfirmed = self.openedVolumeBar['time']
+            #self.lastBarConfirmed = self.openedBar['time']
 
-            self.openedVolumeBar['updated'] = data['t']
-            confirmedBars.append(deepcopy(self.openedVolumeBar))
-            self.openedVolumeBar = None
+            self.openedBar['updated'] = data['t']
+            confirmedBars.append(deepcopy(self.openedBar))
+            self.openedBar = None
             #TBD po každém potvrzení zvýšíme čas o nanosekundu (pro zobrazení v gui)
             #data['t'] = data['t'] + 0.000001
             
@@ -399,7 +407,7 @@ class TradeAggregator:
                 #inicializuji pro nový bar
                 self.vwaphelper += (data['p'] * size)
                 self.barindex +=1
-                self.openedVolumeBar =  {
+                self.openedBar =  {
                     "close": data['p'],
                     "high": data['p'],
                     "low": data['p'],
@@ -418,20 +426,20 @@ class TradeAggregator:
         def update_unconfirmed(size):
             #spočteme vwap - potřebujeme předchozí hodnoty 
             self.vwaphelper += (data['p'] * size)
-            self.openedVolumeBar['updated'] = data['t']
-            self.openedVolumeBar['close'] = data['p']
-            self.openedVolumeBar['high'] = max(self.openedVolumeBar['high'],data['p'])
-            self.openedVolumeBar['low'] = min(self.openedVolumeBar['low'],data['p'])
-            self.openedVolumeBar['volume'] = self.openedVolumeBar['volume'] + size
-            self.openedVolumeBar['trades'] = self.openedVolumeBar['trades'] + 1
-            self.openedVolumeBar['vwap'] = self.vwaphelper / self.openedVolumeBar['volume']
+            self.openedBar['updated'] = data['t']
+            self.openedBar['close'] = data['p']
+            self.openedBar['high'] = max(self.openedBar['high'],data['p'])
+            self.openedBar['low'] = min(self.openedBar['low'],data['p'])
+            self.openedBar['volume'] = self.openedBar['volume'] + size
+            self.openedBar['trades'] = self.openedBar['trades'] + 1
+            self.openedBar['vwap'] = self.vwaphelper / self.openedBar['volume']
             #pohrat si s timto round
-            self.openedVolumeBar['hlcc4'] = round((self.openedVolumeBar['high']+self.openedVolumeBar['low']+self.openedVolumeBar['close']+self.openedVolumeBar['close'])/4,3)
+            self.openedBar['hlcc4'] = round((self.openedBar['high']+self.openedBar['low']+self.openedBar['close']+self.openedBar['close'])/4,3)
 
         #init new - confirmed
         def initialize_confirmed(size):
                 #ulozime zacatek potvrzeneho baru
-                self.lastBarConfirmed = datetime.fromtimestamp(data['t'])
+                #self.lastBarConfirmed = datetime.fromtimestamp(data['t'])
                 self.barindex +=1
                 confirmedBars.append({
                     "close": data['p'],
@@ -450,17 +458,17 @@ class TradeAggregator:
                     })
       
         #existuje stávající bar a vejdeme se do nej
-        if self.openedVolumeBar is not None and int(data['s']) + self.openedVolumeBar['volume'] < volume_bucket:
+        if self.openedBar is not None and int(data['s']) + self.openedBar['volume'] < volume_bucket:
             #vejdeme se do stávajícího baru (tzn. neprekracujeme bucket)
             update_unconfirmed(int(data['s']))
             #updatujeme stávající nepotvrzeny bar
         #nevejdem se do nej nebo neexistuje predchozi bar
         else:
             #1)existuje predchozi bar - doplnime zbytkem do valikosti bucketu a nastavime confirmed
-            if self.openedVolumeBar is not None:
+            if self.openedBar is not None:
                 
                 #doplnime je zbytkem
-                bucket_left = volume_bucket - self.openedVolumeBar['volume']
+                bucket_left = volume_bucket - self.openedBar['volume']
                 # - update and confirm bar
                 update_unconfirmed(bucket_left)
                 confirm_existing()
@@ -468,7 +476,7 @@ class TradeAggregator:
                 #zbytek mnozství jde do dalsiho zpracovani
                 data['s'] = int(data['s']) - bucket_left
                 #nastavime cas o nanosekundu vyssi
-                data['t'] = data['t'] + 0.000001
+                data['t'] = round((data['t']) + 0.000001,6)
 
             #2 vytvarime novy bar (bary) a vejdeme se do nej
             if int(data['s']) < volume_bucket:
@@ -483,10 +491,10 @@ class TradeAggregator:
             # 500
 
                 #vytvarime plne potvrzene buckety (kolik se jich plne vejde)
-                for size in range(0, int(data['s']), volume_bucket):
+                for size in range(volume_bucket, int(data['s']), volume_bucket):
                     initialize_confirmed(volume_bucket)
                     #nastavime cas o nanosekundu vyssi
-                    data['t'] = data['t'] + 0.000001
+                    data['t'] = round((data['t']) + 0.000001,6)
                     #create complete full bucket with same prices and size
                     #naplnit do return pole
                 
@@ -517,17 +525,170 @@ class TradeAggregator:
 
         #pokud mame confirm bary, tak FLUSHNEME confirm a i případný open (zrejme se pak nejaky vytvoril)
         if len(confirmedBars) > 0:
-            return_set = confirmedBars + ([self.openedVolumeBar] if self.openedVolumeBar is not None else [])
+            return_set = confirmedBars + ([self.openedBar] if self.openedBar is not None else [])
             confirmedBars = []
             return return_set
 
         #nemame confirm, FLUSHUJEME CBARVOLUME open - neresime zmenu ceny, ale neposilame kulomet (pokud nam nevytvari conf. bar)
-        if self.openedVolumeBar is not None and self.rectype == RecordType.CBARVOLUME:
+        if self.openedBar is not None and self.rectype == RecordType.CBARVOLUME:
             
              #zkousime pustit i stejnou cenu(potrebujeme kvuli MYSELLU), ale blokoval kulomet,tzn. trady mensi nez GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN (1ms)
             #if self.diff_price is True:
             if self.trades_too_close is False:
-                return [self.openedVolumeBar]
+                return [self.openedBar]
+            else:
+                return []
+        else:
+            return []
+
+    async def calculate_renko_bar(self, data, symbol):
+        """"
+        Agreguje RENKO BARS - dle brick size
+        hlavni promenne 
+        - self.openedBar (dict) = stavová obsahují aktivní nepotvrzený bar
+        - confirmedBars (list) = nestavová obsahuje confirmnute bary, které budou na konci funkceflushnuty
+        
+        Omezeni: vzhledek tomu, že strategie v CBARu potřebuje realný průběh tick by tick a skutečné Renko bary znamenají
+        vyřazování určitých průběhů cenu, tak je realizováno Renko bary s high and low a následným updatem open ceny před confirmací.
+        
+        open a close bude tedy v potvrzeném baru správně, high-low bude ukazovat na celkový pohyb cen v rámci baru.
+         
+        Ve strategii je třeba počítat s tím, že open v nepotvrzeném baru není finální.
+        """""
+
+        #pocet ticku např. 10ticků, případně pak na procenta
+        brick_size = self.resolution
+        #potvrzene pripravene k vraceni
+        confirmedBars = []
+        #potvrdi existujici a nastavi k vraceni
+        def confirm_existing():
+            self.openedBar['confirmed'] = 1
+            self.openedBar['vwap'] = self.vwaphelper / self.openedBar['volume']
+            self.vwaphelper = 0
+
+            self.openedBar['updated'] = data['t']
+            obar_copy = deepcopy(self.openedBar)
+            confirmedBars.append(obar_copy)
+            self.lastConfirmedBar = obar_copy
+            self.openedBar = None
+            #TBD po každém potvrzení zvýšíme čas o nanosekundu (pro zobrazení v gui)
+            #data['t'] = data['t'] + 0.000001
+            
+        #init unconfirmed - velikost bucketu kontrolovana predtim
+        def initialize_unconfirmed():
+                #inicializuji pro nový bar
+                self.vwaphelper += (data['p'] * int(data['s']))
+                self.barindex +=1
+                self.openedBar =  {
+                    "close": data['p'],
+                    "high": data['p'],
+                    "low": data['p'],
+                    "open": data['p'],
+                    "volume": int(data['s']),
+                    "trades": 1,
+                    "hlcc4": data['p'],
+                    "confirmed": 0,
+                    "time": datetime.fromtimestamp(data['t']),
+                    "updated": data['t'],
+                    "vwap": data['p'],
+                    "index": self.barindex,
+                    "resolution":self.resolution
+                    }
+
+        def update_unconfirmed(open = None):
+
+            if open is not None:
+                self.openedBar['open'] = open
+            #spočteme vwap - potřebujeme předchozí hodnoty 
+            self.vwaphelper += (data['p'] * int(data['s']))
+            self.openedBar['updated'] = data['t']
+            self.openedBar['close'] = data['p']
+            self.openedBar['high'] = max(self.openedBar['high'],data['p'])
+            self.openedBar['low'] = min(self.openedBar['low'],data['p'])
+            self.openedBar['volume'] = self.openedBar['volume'] + int(data['s'])
+            self.openedBar['trades'] = self.openedBar['trades'] + 1
+            self.openedBar['vwap'] = self.vwaphelper / self.openedBar['volume']
+            #pohrat si s timto round
+            self.openedBar['hlcc4'] = round((self.openedBar['high']+self.openedBar['low']+self.openedBar['close']+self.openedBar['close'])/4,3)
+
+        #init new - confirmed
+        def initialize_confirmed(size):
+                self.barindex +=1
+                cf_bar = {
+                    "close": data['p'],
+                    "high": data['p'],
+                    "low": data['p'],
+                    "open": data['p'],
+                    "volume": size,
+                    "trades": 1,
+                    "hlcc4":data['p'],
+                    "confirmed": 1,
+                    "time": datetime.fromtimestamp(data['t']),
+                    "updated": data['t'],
+                    "vwap": data['p'],
+                    "index": self.barindex,
+                    "resolution":self.resolution
+                    }
+                self.lastConfirmedBar = cf_bar
+                confirmedBars.append(cf_bar)
+
+        #nastaveni top a low boundary comparatorů bud podle h/l predchoziho potvrzeneho baru
+        if self.lastConfirmedBar is not None:
+            top_boundary = max(self.lastConfirmedBar["open"], self.lastConfirmedBar["close"])
+            low_boundary = min(self.lastConfirmedBar["open"], self.lastConfirmedBar["close"])
+        #nebo openu, pokud mame jen nepotvrzeny
+        elif self.openedBar is not None:
+            top_boundary = self.openedBar["open"]
+            low_boundary = self.openedBar["open"]
+
+        if self.openedBar is None:
+            initialize_unconfirmed()
+        #pct variant: brick_size = self.brick_percentage * self.open_price / 100.0
+        elif data['p'] >= top_boundary + brick_size:  # Check if the price has moved by the brick size
+            #confirm nese novou cenu, muzou tam byt skryte trady se stejnou cenou nebo kulomet o ktere bychom prisli
+            #jinymi slovy prekonací tick renkobaru patří do starého baru
+            #novy bar je vytvoren az dalsim tickem, snad to nebude vadit
+
+            #updatujeme open, kam patri
+            update_unconfirmed(open=top_boundary)
+            confirm_existing()
+        elif data['p'] <= low_boundary - brick_size:
+            update_unconfirmed(open=low_boundary)
+            confirm_existing()            
+        else:
+            #update stávající
+            update_unconfirmed()
+   
+        #je cena stejna od predchoziho tradu? pro nepotvrzeny cbar vracime jen pri zmene ceny  
+        if self.last_price == data['p']:
+            self.diff_price = False
+        else:
+            self.diff_price = True    
+        self.last_price = data['p'] 
+
+        if float(data['t']) - float(self.lasttimestamp) < GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN:
+            self.trades_too_close = True
+        else:
+            self.trades_too_close = False
+
+        #uložíme do předchozí hodnoty (poznáme tak open a close)
+        self.lasttimestamp = data['t']
+        self.iterace += 1
+        # print(self.iterace, data)
+
+        #pokud mame confirm bary, tak FLUSHNEME confirm a i případný open (zrejme se pak nejaky vytvoril)
+        if len(confirmedBars) > 0:
+            return_set = confirmedBars + ([self.openedBar] if self.openedBar is not None else [])
+            confirmedBars = []
+            return return_set
+
+        #nemame confirm, FLUSHUJEME CBARVOLUME open - neresime zmenu ceny, ale neposilame kulomet (pokud nam nevytvari conf. bar)
+        if self.openedBar is not None and self.rectype == RecordType.CBARRENKO:
+            
+             #zkousime pustit i stejnou cenu(potrebujeme kvuli MYSELLU), ale blokoval kulomet,tzn. trady mensi nez GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN (1ms)
+            #if self.diff_price is True:
+            if self.trades_too_close is False:
+                return [self.openedBar]
             else:
                 return []
         else:

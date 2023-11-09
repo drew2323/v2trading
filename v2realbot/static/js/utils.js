@@ -672,6 +672,12 @@ function populate_indicator_buttons(def) {
     buttonElement.appendChild(itemEl); ;
 	});
 
+
+	var funcButtonElement = document.createElement('div');
+  funcButtonElement.id = "funcIndicatorsButtons"
+	funcButtonElement.classList.add('funcButtons');
+
+
   //create toggle all button
   var itemEl = document.createElement('button');
   itemEl.innerText = "all"
@@ -682,7 +688,7 @@ function populate_indicator_buttons(def) {
   itemEl.addEventListener('click', function() {
     onResetClicked();
   });
-  buttonElement.appendChild(itemEl);
+  funcButtonElement.appendChild(itemEl);
 
   //button pro toggle profitu
   var itemEl = document.createElement('button');
@@ -693,7 +699,7 @@ function populate_indicator_buttons(def) {
   itemEl.addEventListener('click', function(e) {
     profitLineToggle();
   });
-  buttonElement.appendChild(itemEl);
+  funcButtonElement.appendChild(itemEl);
 
     //button pro toggle fullscreenu
     var itemEl = document.createElement('button');
@@ -704,7 +710,7 @@ function populate_indicator_buttons(def) {
     itemEl.addEventListener('click', function(e) {
       toggleWide();
     });
-    buttonElement.appendChild(itemEl);
+    funcButtonElement.appendChild(itemEl);
 
     //button pro toggle fullscreenu
     var itemEl = document.createElement('button');
@@ -716,7 +722,7 @@ function populate_indicator_buttons(def) {
     itemEl.addEventListener('click', function(e) {
       toggleVolume();
     });
-    buttonElement.appendChild(itemEl);
+    funcButtonElement.appendChild(itemEl);
 
   // //button pro toggle markeru nakupu/prodeju
   var itemEl = document.createElement('button');
@@ -745,7 +751,7 @@ function populate_indicator_buttons(def) {
     mrkLineToggle();
   });
 
-  buttonElement.appendChild(itemEl);
+  funcButtonElement.appendChild(itemEl);
 
   //create plus button to create new button
   var itemEl = document.createElement('button');
@@ -757,7 +763,7 @@ function populate_indicator_buttons(def) {
     index_ind++
     onItemClickedEdit(e, index_ind);
   });
-  buttonElement.appendChild(itemEl);
+  funcButtonElement.appendChild(itemEl);
 
    //save indicator buttons - will generate indicators to stratvars
    var itemEl = document.createElement('button');
@@ -769,7 +775,9 @@ function populate_indicator_buttons(def) {
      index_ind++
      generateIndicators(e);
    });
-   buttonElement.appendChild(itemEl);
+   funcButtonElement.appendChild(itemEl);
+
+   buttonElement.appendChild(funcButtonElement)
 
   return buttonElement;
 }

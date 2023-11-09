@@ -150,8 +150,11 @@ class StrategyClassicSL(Strategy):
                         trade.rel_profit = rel_profit
                         trade.rel_profit_cum = rel_profit_cum_calculated
                         signal_name = trade.generated_by
-                        if data.event == TradeEvent.FILL:
-                            trade.status == TradeStatus.CLOSED
+
+                        #Pokud FILL uzaviral celou pozici - uzavreme prescribed trade
+                        if data.event == TradeEvent.FILL and data.position_qty == 0:
+                            trade.status = TradeStatus.CLOSED
+                            trade.exit_time = datetime.fromtimestamp(self.state.time).astimezone(zoneNY)
                         break
 
                 if data.event == TradeEvent.FILL:
@@ -164,6 +167,7 @@ class StrategyClassicSL(Strategy):
                             setattr(tradeData, "profit", trade_profit)
                             setattr(tradeData, "profit_sum", self.state.profit)
                             setattr(tradeData, "signal_name", signal_name)
+                            setattr(tradeData, "prescribed_trade_id", self.state.vars.pending)
                             #self.state.ilog(f"updatnut tradeList o profit", tradeData=json.loads(json.dumps(tradeData, default=json_serial)))
                             setattr(tradeData, "rel_profit", rel_profit)
                             setattr(tradeData, "rel_profit_cum", rel_profit_cum_calculated)
@@ -184,11 +188,15 @@ class StrategyClassicSL(Strategy):
                 for trade in self.state.vars.prescribedTrades:
                     if trade.id == self.state.vars.pending:
                         signal_name = trade.generated_by
+                        #zapiseme entry_time (jen pokud to neni partial add) - tzn. jen poprvé
+                        if data.event == TradeEvent.FILL and trade.entry_time is None:
+                            trade.entry_time = datetime.fromtimestamp(self.state.time).astimezone(zoneNY)
 
                 #zapsat do tradeList
                 for tradeData in self.state.tradeList:
                     if tradeData.execution_id == data.execution_id:
                         setattr(tradeData, "signal_name", signal_name)
+                        setattr(tradeData, "prescribed_trade_id", self.state.vars.pending)
 
                 self.state.ilog(e="BUY: Jde o LONG nakuú nepocitame profit zatim")
 
@@ -271,8 +279,10 @@ class StrategyClassicSL(Strategy):
                         trade.rel_profit = rel_profit
                         trade.rel_profit_cum = rel_profit_cum_calculated
                         signal_name = trade.generated_by
-                        if data.event == TradeEvent.FILL:
-                            trade.status == TradeStatus.CLOSED
+                        #Pokud FILL uzaviral celou pozici - uzavreme prescribed trade
+                        if data.event == TradeEvent.FILL and data.position_qty == 0:
+                            trade.status = TradeStatus.CLOSED
+                            trade.exit_time = datetime.fromtimestamp(self.state.time).astimezone(zoneNY)
                         break
 
                 if data.event == TradeEvent.FILL:
@@ -285,6 +295,7 @@ class StrategyClassicSL(Strategy):
                             setattr(tradeData, "profit", trade_profit)
                             setattr(tradeData, "profit_sum", self.state.profit)
                             setattr(tradeData, "signal_name", signal_name)
+                            setattr(tradeData, "prescribed_trade_id", self.state.vars.pending)
                             #self.state.ilog(f"updatnut tradeList o profi {str(tradeData)}")
                             setattr(tradeData, "rel_profit", rel_profit)
                             setattr(tradeData, "rel_profit_cum", rel_profit_cum_calculated)
@@ -305,11 +316,15 @@ class StrategyClassicSL(Strategy):
                 for trade in self.state.vars.prescribedTrades:
                     if trade.id == self.state.vars.pending:
                         signal_name = trade.generated_by
+                        #zapiseme entry_time (jen pokud to neni partial add) - tzn. jen poprvé
+                        if data.event == TradeEvent.FILL and trade.entry_time is None:
+                            trade.entry_time = datetime.fromtimestamp(self.state.time).astimezone(zoneNY)
 
                 #zapsat update profitu do tradeList
                 for tradeData in self.state.tradeList:
                     if tradeData.execution_id == data.execution_id:
                         setattr(tradeData, "signal_name", signal_name)
+                        setattr(tradeData, "prescribed_trade_id", self.state.vars.pending)
 
                 self.state.ilog(e="SELL: Jde o SHORT nepocitame profit zatim")
 

@@ -56,6 +56,7 @@ class RecordType(str, Enum):
     BAR = "bar"
     CBAR = "cbar"
     CBARVOLUME = "cbarvolume"
+    CBARRENKO = "cbarrenko"
     TRADE = "trade"
 
 class Mode(str, Enum):

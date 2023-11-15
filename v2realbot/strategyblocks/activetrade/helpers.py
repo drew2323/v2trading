@@ -161,22 +161,31 @@ def get_profit_target_price(state, data, direction: TradeDirection):
 
     #mame v direktivve ticky
     if isinstance(def_profit, (float, int)):
-        normalized_def_profit = normalize_tick(state, data, float(def_profit))
-
-        state.ilog(lvl=0,e=f"PROFIT {def_profit=} {normalized_def_profit=}")
-
-        base_price = state.avgp if state.avgp != 0 else data["close"]
-
-        to_return = price2dec(float(base_price)+normalized_def_profit,3) if direction == TradeDirection.LONG else price2dec(float(base_price)-normalized_def_profit,3)
+        to_return = get_normalized_profitprice_from_tick(state, data, def_profit, direction)
     #mame v direktive indikator
     elif isinstance(def_profit, str):
         to_return = float(value_or_indicator(state, def_profit))
 
-        if direction == TradeDirection.LONG and to_return < data['close'] or direction == TradeDirection.SHORT and to_return > data['close']:
-            state.ilog(lvl=1,e=f"SPATNA HODOTA DOTAZENEHO PROFITU z ind {def_profit} {to_return=} {smer} {data['close']}")
-            raise Exception(f"SPATNA HODOTA DOTAZENEHO PROFITU z ind{def_profit} {to_return=} {smer} {data['close']}")
-        state.ilog(lvl=1,e=f"DOTAZENY PROFIT z indikatoru {def_profit} {to_return=}")
+        #min profit (ochrana extremnich hodnot indikatoru)
+        directive_name = 'profit_min_ind_tick_value'
+        profit_min_ind_tick_value = get_override_for_active_trade(state, directive_name=directive_name, default_value=def_profit_both_directions)
+        profit_min_ind_price_value = get_normalized_profitprice_from_tick(state, data, profit_min_ind_tick_value, direction)
+
+        #ochrana pri nastaveni profitu prilis nizko
+        if direction == TradeDirection.LONG and to_return < profit_min_ind_price_value or direction == TradeDirection.SHORT and to_return > profit_min_ind_price_value:
+            state.ilog(lvl=1,e=f"SPATNA HODOTA DOTAZENEHO PROFITU z ind {def_profit} {to_return=} MINIMUM:{profit_min_ind_price_value} {smer} {data['close']}")
+            #fallback na profit_min_ind_price_value
+            to_return = profit_min_ind_price_value
+        state.ilog(lvl=1,e=f"PROFIT z indikatoru {def_profit} {to_return=}")
     return to_return
+
+##based on tick a direction, returns normalized prfoit price (LONG = avgp(nebo currprice)+norm.tick, SHORT=avgp(or currprice)-norm.tick)
+def get_normalized_profitprice_from_tick(state, data, tick, direction: TradeDirection):
+        normalized_tick = normalize_tick(state, data, float(tick))
+        base_price = state.avgp if state.avgp != 0 else data["close"]
+        returned_price = price2dec(float(base_price)+normalized_tick,3) if direction == TradeDirection.LONG else price2dec(float(base_price)-normalized_tick,3)
+        state.ilog(lvl=0,e=f"NORMALIZED TICK {tick=} {normalized_tick=} NORM.PRICE {returned_price}")
+        return returned_price
 
 def get_max_profit_price(state, data, direction: TradeDirection):
     if direction == TradeDirection.LONG:

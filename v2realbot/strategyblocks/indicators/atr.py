@@ -3,7 +3,8 @@ from v2realbot.indicators.oscillators import rsi
 from v2realbot.utils.utils import isrising, isfalling,zoneNY, price2dec, print, safe_get, is_still, is_window_open, eval_cond_dict, crossed_down, crossed_up, crossed, is_pivot, json_serial, pct_diff, create_new_bars, slice_dict_lists
 from v2realbot.strategy.base import StrategyState
 from traceback import format_exc
-
+from v2realbot.strategyblocks.indicators.helpers import get_source_series
+from collections import defaultdict
 #TODO ATR INDICATOR -  predelat na CUSTOM a udelat scitani a odecteni od close (atru, atrd)
 # type = ATR, ĺength = [14], on_confirmed_only = [true, false]
 def populate_dynamic_atr_indicator(data, state: StrategyState, name):
@@ -16,17 +17,28 @@ def populate_dynamic_atr_indicator(data, state: StrategyState, name):
     #poustet kazdy tick nebo jenom na confirmed baru (on_confirmed_only = true)
     on_confirmed_only = safe_get(options, 'on_confirmed_only', False)
     atr_length = int(safe_get(options, "length",5))
+
+    # priceline with high/low/close (bars/daily bars)
+
+    #TODO tady jsem skoncil - dodelat
+    source = safe_get(options, "source", "bars")
+    source_dict = eval(f"state.{source}")
+
     if on_confirmed_only is False or (on_confirmed_only is True and data['confirmed']==1):
         try:
-            source_high = state.bars["high"][-atr_length:]
-            source_low = state.bars["low"][-atr_length:]
-            source_close = state.bars["close"][-atr_length:]
+            delka_close = len(source_dict["close"])
+            if atr_length > delka_close:
+                atr_length = delka_close
+
+            source_high = source_dict["high"][-atr_length:]
+            source_low = source_dict["low"][-atr_length:]
+            source_close = source_dict["close"][-atr_length:]
             #if len(source) > ema_length:
             atr_value = atr(source_high, source_low, source_close, atr_length)
             val = round(atr_value[-1],4)
             state.indicators[name][-1]= val
             #state.indicators[name][-1]= round2five(val)
-            state.ilog(lvl=0,e=f"IND {name} ATR {val} {atr_length=}")
+            state.ilog(lvl=0,e=f"IND {name} on {source} ATR {val} {atr_length=}")
             #else:
             #    state.ilog(lvl=0,e=f"IND {name} EMA necháváme 0", message="not enough source data", source=source, ema_length=ema_length)
         except Exception as e:

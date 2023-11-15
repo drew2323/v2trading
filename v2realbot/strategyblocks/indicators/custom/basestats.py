@@ -111,6 +111,16 @@ def basestats(state, params, name):
             #vracime most dominant
             val = float(np.max(dominant_frequencies))
             return 0, val
+        
+    elif func == "histogram":
+        #takes only first N - items
+        dt = np.array(source_array)
+        #creates 4 buckets
+        bins = 4
+        mean_of_4th_bin = np.mean(dt[np.where(np.histogram(dt, bins)[1][3] <= dt)[0]])
+        if not np.isfinite(mean_of_4th_bin):
+            mean_of_4th_bin = 0
+        return 0, float(mean_of_4th_bin)
 
     elif func == "maxima":
         if len(source_array) < 3:

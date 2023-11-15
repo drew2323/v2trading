@@ -88,5 +88,5 @@ def get_historical_bars(symbol: str, time_from: datetime, time_to: datetime, tim
 
     bar_request = StockBarsRequest(symbol_or_symbols=symbol,timeframe=timeframe, start=time_from, end=time_to, feed=DataFeed.SIP)
     bars: BarSet = stock_client.get_stock_bars(bar_request)
-    ##print("puvodni bars", bars["BAC"])
+    #print("puvodni bars", bars["BAC"])
     return convert_daily_bars(bars[symbol])

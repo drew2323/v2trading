@@ -16,6 +16,10 @@ from v2realbot.strategyblocks.newtrade.signals import signal_search
 from v2realbot.strategyblocks.activetrade.activetrade_hub import manage_active_trade
 from v2realbot.strategyblocks.inits.init_indicators import initialize_dynamic_indicators
 from v2realbot.strategyblocks.inits.init_directives import intialize_directive_conditions
+from alpaca.trading.requests import GetCalendarRequest
+from alpaca.trading.client import TradingClient
+from v2realbot.config import ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, DATA_DIR, OFFLINE_MODE
+from alpaca.trading.models import Calendar
 
 print(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 """"
@@ -141,11 +145,42 @@ def init(state: StrategyState):
 
 
     #TBD pridat i hour data - pro pocitani RSI na hodine
-    #get 30 days (time_from musí být alespoň -2 aby to bralo i vcerejsek)
-    time_from = time_to - timedelta(days=40)
-    time_to = time_to - timedelta(days=1)
-    state.dailyBars = get_historical_bars(state.symbol, time_from, time_to, TimeFrame.Day)
-    #printanyway("daily bars FILLED", state.dailyBars)
+    #get 30 days (history_datetime_from musí být alespoň -2 aby to bralo i vcerejsek)
+    #history_datetime_from = time_to - timedelta(days=40)
+    #get previous market day
+    #time_to = time_to - timedelta(days=1)
+
+    #time_to = time_to.date()
+
+    #vypocet posledniho market dne - do samostatne funkce get_previous_market_day(today)
+    #time_to = time_to.date()
+
+    today = time_to.date()
+    several_days_ago = today - timedelta(days=40)
+    printanyway(f"{today=}",f"{several_days_ago=}")
+    clientTrading = TradingClient(ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, raw_data=False)
+    #get all market days from here to 40days ago
+    calendar_request = GetCalendarRequest(start=several_days_ago,end=today)
+    cal_dates = clientTrading.get_calendar(calendar_request)
+
+    #find the first market day - 40days ago
+    #history_datetime_from = zoneNY.localize(cal_dates[0].open)
+    history_datetime_from = cal_dates[0].open
+
+    # Find the previous market day
+    history_datetime_to = None
+    for session in reversed(cal_dates):
+        if session.date < today:
+            #history_datetime_to = zoneNY.localize(session.close)
+            history_datetime_to = session.close
+            break
+    printanyway("Previous Market Day Close:", history_datetime_to)
+    printanyway("Market day 40days ago Open:", history_datetime_from)
+
+    printanyway(history_datetime_from, history_datetime_to)
+    #az do predchziho market dne dne
+    state.dailyBars = get_historical_bars(state.symbol, history_datetime_from, history_datetime_to, TimeFrame.Day)
+    printanyway("daily bars FILLED", state.dailyBars)
     #zatim ukladame do extData - pro instant indicatory a gui
     state.extData["dailyBars"] = state.dailyBars
 

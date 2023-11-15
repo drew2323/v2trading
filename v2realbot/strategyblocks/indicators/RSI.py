@@ -4,6 +4,7 @@ from v2realbot.indicators.indicators import ema, natr, roc
 from v2realbot.indicators.oscillators import rsi
 from traceback import format_exc
 from v2realbot.strategyblocks.indicators.helpers import get_source_series, value_or_indicator
+import numpy as np
 
 #RSI INDICATOR
 # type = RSI, source = [close, vwap, hlcc4], rsi_length = [14], MA_length = int (optional), on_confirmed_only = [true, false]
@@ -39,7 +40,8 @@ def populate_dynamic_RSI_indicator(data, state: StrategyState, name):
                     rsi_length = delka
 
                 rsi_res = rsi(source, rsi_length)
-                rsi_value = round(rsi_res[-1],4)
+                val =  rsi_res[-1] if np.isfinite(rsi_res[-1]) else 0
+                rsi_value = round(val,4)
                 state.indicators[name][-1]=rsi_value
                 state.ilog(lvl=0,e=f"IND {name} RSI {rsi_value}")
 

@@ -31,13 +31,14 @@ import threading
 class Cacher:  
     def __init__(self,
                  
-                 rectype: RecordType = RecordType.BAR,
+                 rectype: RecordType,
                  resolution: int = 5,
                  minsize: int = 100,
                  update_ltp: bool = False,
                  align: StartBarAlign = StartBarAlign.ROUND,
                  mintick: int = 0,
                  exthours: bool = False):
+        
 #vstupuje seznam aggregatoru - obvykle 1 pro queue, 1 pro backtest engine
 def get_cached_agg_data(agg_list, open, close):
     file_path = DATA_DIR + "/cache/"+populate_file_name(agg_list[0], open, close)

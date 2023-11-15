@@ -5,7 +5,7 @@ from appdirs import user_data_dir
 #'0.0.0.0',
 #currently only prod server has acces to LIVE
 PROD_SERVER_HOSTNAMES = ['tradingeastcoast','David-MacBook-Pro.local'] #,'David-MacBook-Pro.local'
-TEST_SERVER_HOSTNAMES = ['tradingtestprod'] 
+TEST_SERVER_HOSTNAMES = ['tradingtest'] 
 
 #TODO vybrane dat do config db a managovat pres GUI
 

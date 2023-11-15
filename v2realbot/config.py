@@ -15,7 +15,7 @@ AGG_EXCLUDED_TRADES = ['C','O','4','B','7','V','P','W','U','Z','F']
 
 OFFLINE_MODE = False
 
-#ilog lvls = 0,1 - 0 debug, 1 info
+# ilog lvls = 0,1 - 0 debug, 1 info
 ILOG_SAVE_LEVEL_FROM  = 1
 
 #minimalni vzdalenost mezi trady, kterou agregator pousti pro CBAR(0.001 - blokuje mensi nez 1ms)

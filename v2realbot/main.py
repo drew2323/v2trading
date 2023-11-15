@@ -16,6 +16,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPExcept
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from v2realbot.enums.enums import Env, Mode
 from typing import Annotated
 import os
 import uvicorn
@@ -25,6 +26,7 @@ from threading import Thread
 import asyncio
 from v2realbot.common.db import insert_queue, insert_conn, pool
 from v2realbot.utils.utils import json_serial, send_to_telegram, zoneNY, zonePRG
+from v2realbot.utils.sysutils import get_environment
 from uuid import uuid4
 from sqlite3 import OperationalError
 from time import sleep
@@ -225,6 +227,10 @@ def _get_stratin(stratin_id) -> StrategyInstance:
 
 @app.put("/stratins/{stratin_id}/run", dependencies=[Depends(api_key_auth)], status_code=status.HTTP_200_OK)
 def _run_stratin(stratin_id: UUID, runReq: RunRequest):
+
+    if runReq.mode == Mode.LIVE and get_environment() != Env.PROD:
+                raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Live MODE disabled for TEST env")
+
     #print(runReq)
     if runReq.bt_from is not None and runReq.bt_from.tzinfo is None:
         runReq.bt_from = zonePRG.localize(runReq.bt_from)
@@ -233,7 +239,7 @@ def _run_stratin(stratin_id: UUID, runReq: RunRequest):
         runReq.bt_to = zonePRG.localize(runReq.bt_to)  
     #pokud jedeme nad test intervaly anebo je požadováno více dní - pouštíme jako batch day by day
     #do budoucna dát na FE jako flag
-    if runReq.test_batch_id is not None or (runReq.bt_from.date() != runReq.bt_to.date()):
+    if runReq.mode != Mode.LIVE and runReq.test_batch_id is not None or (runReq.bt_from.date() != runReq.bt_to.date()):
         res, id = cs.run_batch_stratin(id=stratin_id, runReq=runReq)
     else:
         res, id = cs.run_stratin(id=stratin_id, runReq=runReq)

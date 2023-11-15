@@ -2,6 +2,11 @@ from alpaca.data.enums import DataFeed
 from v2realbot.enums.enums import Mode, Account, FillCondition
 from appdirs import user_data_dir
 
+#'0.0.0.0',
+#currently only prod server has acces to LIVE
+PROD_SERVER_HOSTNAMES = ['tradingeastcoast','David-MacBook-Pro.local'] #,'David-MacBook-Pro.local'
+TEST_SERVER_HOSTNAMES = ['tradingtestprod'] 
+
 #TODO vybrane dat do config db a managovat pres GUI
 
 #AGGREGATOR filter trades

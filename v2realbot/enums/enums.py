@@ -1,6 +1,10 @@
 from enum import Enum
 from alpaca.trading.enums import OrderSide, OrderStatus, OrderType
 
+class Env(str, Enum):
+    PROD = "prod"
+    TEST = "test"
+
 class TargetTRFM(str, Enum):
     #ponecha as is
     KEEPVAL = "keepval"

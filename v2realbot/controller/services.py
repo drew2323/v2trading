@@ -363,8 +363,8 @@ def run_batch_stratin(id: UUID, runReq: RunRequest):
     if runReq.test_batch_id is None and (runReq.bt_from is None or runReq.bt_from.date() == runReq.bt_to.date()):
         return (-1, "test interval or different days required for batch run")
 
-    if runReq.mode != Mode.BT:
-        return (-1, "batch run only for backtest")
+    if runReq.mode not in (Mode.BT, Mode.PREP):
+        return (-1, "batch run only for backtest/prep")
     
     #print("request values:", runReq)
 

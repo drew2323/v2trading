@@ -36,7 +36,7 @@ Prism.languages.log = {
 			alias: ['info', 'keyword']
 		},
 		{
-			pattern: /\b(?:DBG|DEBUG|FINE|REVERSE|ADD|EXITADD|SIGNAL|PRECOND)\b/,
+			pattern: /\b(?:DBG|DEBUG|FINE|REVERSE|ADD|EXITADD|DONT_EXIT|SIGNAL|PRECOND)\b/,
 			alias: ['debug', 'keyword']
 		},
 		{

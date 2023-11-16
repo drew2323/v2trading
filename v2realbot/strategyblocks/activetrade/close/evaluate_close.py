@@ -96,6 +96,13 @@ def eval_close_position(state: StrategyState, data):
                 if max_price_signal or dontexit_protection_met(state=state, data=data,direction=TradeDirection.SHORT) is False:
                     close_position(state=state, data=data, direction=TradeDirection.SHORT, reason=f"PROFIT or MAXPROFIT REACHED {max_price_signal=}")
                     return
+            #pokud je cena horsi, ale byla uz dont exit aktivovany - pak prodavame také
+            elif state.dont_exit_already_activated == True:
+                #TODO toto mozna take na direktivu, timto neprodavame pokud porkacuje trend - EXIT_PROT_BOUNCE_IMMEDIATE
+                #if dontexit_protection_met(state=state, data=data,direction=TradeDirection.SHORT) is False:
+                close_position(state=state, data=data, direction=TradeDirection.SHORT, reason=f"EXIT PROTECTION BOUNCE {state.dont_exit_already_activated=}")
+                state.dont_exit_already_activated = False
+                return
 
             #FORCED EXIT PRI KONCI DNE
             if eod_exit_activated(state, data, TradeDirection.SHORT):
@@ -177,7 +184,14 @@ def eval_close_position(state: StrategyState, data):
                 if max_price_signal or dontexit_protection_met(state, data, direction=TradeDirection.LONG) is False:
                     close_position(state=state, data=data, direction=TradeDirection.LONG, reason=f"PROFIT or MAXPROFIT REACHED {max_price_signal=}")
                     return
-
+            #pokud je cena horsi, ale byl uz dont exit aktivovany - pak prodavame také
+            elif state.dont_exit_already_activated == True:
+                #TODO toto mozna take na direktivu, timto neprodavame pokud porkacuje trend - EXIT_PROT_BOUNCE_IMMEDIATE
+                # if dontexit_protection_met(state=state, data=data,direction=TradeDirection.LONG) is False:
+                close_position(state=state, data=data, direction=TradeDirection.LONG, reason=f"EXIT PROTECTION BOUNCE {state.dont_exit_already_activated=}")
+                state.dont_exit_already_activated = False
+                return
+            
             #FORCED EXIT PRI KONCI DNE
             if eod_exit_activated(state, data, TradeDirection.LONG):
                     close_position(state=state, data=data, direction=TradeDirection.LONG, reason="EOD EXIT ACTIVATED")

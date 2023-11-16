@@ -669,7 +669,7 @@ def populate_metrics_output_directory(strat: StrategyInstance, inter_batch_param
         res["profit"]["batch_sum_rel_profit"] = inter_batch_params["batch_rel_profit"]
 
     #rel_profit zprumerovane
-    res["profit"]["daily_rel_profit_avg"] = float(np.mean(strat.state.rel_profit_cum)) if len(strat.state.rel_profit_cum) > 0 else 0
+    res["profit"]["daily_rel_profit_avg"] = float(np.sum(strat.state.rel_profit_cum)) if len(strat.state.rel_profit_cum) > 0 else 0
     #rel_profit rozepsane zisky
     res["profit"]["daily_rel_profit_list"] = strat.state.rel_profit_cum
 
@@ -728,7 +728,7 @@ def populate_metrics_output_directory(strat: StrategyInstance, inter_batch_param
 
             mpt_string = "PT"+str(max_profit_time.hour)+":"+str(max_profit_time.minute) if max_profit_time is not None else "" 
             mlt_string ="LT"+str(max_loss_time.hour)+":"+str(max_loss_time.minute) if max_loss_time is not None else "" 
-            rp_string = "RP" + str(float(np.mean(strat.state.rel_profit_cum))) if len(strat.state.rel_profit_cum) >0 else "noRP"
+            rp_string = "RP" + str(float(np.sum(strat.state.rel_profit_cum))) if len(strat.state.rel_profit_cum) >0 else "noRP"
 
             ##summary pro rychle zobrazeni P333L-222 PT9:30 PL10:30
             res["profit"]["sum"]="P"+str(int(max_profit))+"L"+str(int(max_loss))+" "+ mpt_string+" " + mlt_string + rp_string + " "+str(strat.state.rel_profit_cum)
@@ -768,7 +768,7 @@ def archive_runner(runner: Runner, strat: StrategyInstance, inter_batch_params: 
         #add profit of this batch iteration to batch_sum_profit
         if inter_batch_params is not None:
             inter_batch_params["batch_profit"] += round(float(strat.state.profit),2)
-            inter_batch_params["batch_rel_profit"] += float(np.mean(strat.state.rel_profit_cum)) if len(strat.state.rel_profit_cum) > 0 else 0
+            inter_batch_params["batch_rel_profit"] += float(np.sum(strat.state.rel_profit_cum)) if len(strat.state.rel_profit_cum) > 0 else 0
 
         
         #WIP

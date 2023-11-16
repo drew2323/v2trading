@@ -21,34 +21,53 @@ def dontexit_protection_met(state, data, direction: TradeDirection):
     else:
         smer = "short"
 
-    mother_signal = state.vars.activeTrade.generated_by
+    #zapracovana optimalizace, kdy po aktivovanem DONTEXITU to opet klesne pod profit a neprodá se
+    #vyreseno pri kazde aktivaci se vyplni flag already_activated
+    #pri naslednem false podminky se v pripade, ze je aktivovany flag posle True - 
+    #take se vyrusi v closu
+    def process_result(result):
+        if result:
+            state.dont_exit_already_activated = True
+            return True
+        else:
+            return False
 
-    if mother_signal is not None:
-        #TESTUJEME DONT_EXIT_
-        cond_dict = state.vars.conditions[KW.dont_exit][mother_signal][smer]
+    def evaluate_result():
+        mother_signal = state.vars.activeTrade.generated_by
+
+        if mother_signal is not None:
+            #TESTUJEME DONT_EXIT_
+            cond_dict = state.vars.conditions[KW.dont_exit][mother_signal][smer]
+            #OR 
+            result, conditions_met = evaluate_directive_conditions(state, cond_dict, "OR")
+            state.ilog(lvl=1,e=f"DONT_EXIT {mother_signal} {smer} =OR= {result}", **conditions_met, cond_dict=cond_dict, already_activated=str(state.dont_exit_already_activated))
+            if result:
+                return True
+            
+            #OR neprosly testujeme AND
+            result, conditions_met = evaluate_directive_conditions(state, cond_dict, "AND")
+            state.ilog(lvl=1,e=f"DONT_EXIT {mother_signal}  {smer} =AND= {result}", **conditions_met, cond_dict=cond_dict, already_activated=str(state.dont_exit_already_activated))
+            if result:
+                return True
+            
+        cond_dict = state.vars.conditions[KW.dont_exit]["common"][smer]            
         #OR 
         result, conditions_met = evaluate_directive_conditions(state, cond_dict, "OR")
-        state.ilog(lvl=1,e=f"DONT_EXIT {mother_signal} {smer} =OR= {result}", **conditions_met, cond_dict=cond_dict)
+        state.ilog(lvl=1,e=f"DONT_EXIT common {smer} =OR= {result}", **conditions_met, cond_dict=cond_dict, already_activated=str(state.dont_exit_already_activated))
         if result:
             return True
         
         #OR neprosly testujeme AND
         result, conditions_met = evaluate_directive_conditions(state, cond_dict, "AND")
-        state.ilog(lvl=1,e=f"DONT_EXIT {mother_signal}  {smer} =AND= {result}", **conditions_met, cond_dict=cond_dict)
-        if result:
-            return True
-        
-    cond_dict = state.vars.conditions[KW.dont_exit]["common"][smer]            
-    #OR 
-    result, conditions_met = evaluate_directive_conditions(state, cond_dict, "OR")
-    state.ilog(lvl=1,e=f"DONT_EXIT common {smer} =OR= {result}", **conditions_met, cond_dict=cond_dict)
-    if result:
-        return True
-    
-    #OR neprosly testujeme AND
-    result, conditions_met = evaluate_directive_conditions(state, cond_dict, "AND")
-    state.ilog(lvl=1,e=f"DONT_EXIT common {smer} =AND= {result}", **conditions_met, cond_dict=cond_dict)
-    return result
+        state.ilog(lvl=1,e=f"DONT_EXIT common {smer} =AND= {result}", **conditions_met, cond_dict=cond_dict, already_activated=str(state.dont_exit_already_activated))
+        return result
+
+    #nejprve evaluujeme vsechny podminky
+    result = evaluate_result()
+
+    #pak evaluujeme vysledek a vracíme
+    return process_result(result)
+
 
 def exit_conditions_met(state, data, direction: TradeDirection):
     if direction == TradeDirection.LONG:

@@ -38,6 +38,7 @@ def close_position(state, data, direction: TradeDirection, reason: str, followup
     
     #pri uzavreni tradu zapisujeme SL history - lepsi zorbazeni v grafu
     insert_SL_history(state)
+    state.dont_exit_already_activated = False
     state.vars.pending = state.vars.activeTrade.id
     state.vars.activeTrade = None   
     state.vars.last_exit_index = data["index"]    

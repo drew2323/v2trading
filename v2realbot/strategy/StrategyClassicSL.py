@@ -36,35 +36,34 @@ class StrategyClassicSL(Strategy):
         max_sum_profit_to_quit_rel = safe_get(self.state.vars, "max_sum_profit_to_quit_rel", None)
         max_sum_loss_to_quit_rel = safe_get(self.state.vars, "max_sum_loss_to_quit_rel", None)
 
+        rel_profit  = round(float(np.sum(self.state.rel_profit_cum)),5)
         if max_sum_profit_to_quit_rel is not None:
-            rel_profit  = round(float(np.mean(self.state.rel_profit_cum)),5)
             if rel_profit >= float(max_sum_profit_to_quit_rel):
-                self.state.ilog(e=f"QUITTING MAX SUM REL PROFIT REACHED {max_sum_profit_to_quit_rel=} {self.state.profit=} {rel_profit=}")
+                self.state.ilog(e=f"QUITTING MAX SUM REL PROFIT REACHED {max_sum_profit_to_quit_rel=} {self.state.profit=} {rel_profit=} relprofits:{str(self.state.rel_profit_cum)}")
                 self.state.vars.pending = "max_sum_profit_to_quit_rel"
-                send_to_telegram(f"QUITTING MAX SUM REL PROFIT REACHED {max_sum_profit_to_quit_rel=} {self.state.profit=} {rel_profit=}")
+                send_to_telegram(f"QUITTING MAX SUM REL PROFIT REACHED {max_sum_profit_to_quit_rel=} {self.state.profit=} {rel_profit=} relprofits:{str(self.state.rel_profit_cum)}")
                 self.se.set()
                 return True
         if max_sum_loss_to_quit_rel is not None:
-            rel_profit  = round(float(np.mean(self.state.rel_profit_cum)),5)
             if rel_profit < 0 and rel_profit <= float(max_sum_loss_to_quit_rel):
-                self.state.ilog(e=f"QUITTING MAX SUM REL LOSS REACHED {max_sum_loss_to_quit_rel=} {self.state.profit=} {rel_profit=}")
+                self.state.ilog(e=f"QUITTING MAX SUM REL LOSS REACHED {max_sum_loss_to_quit_rel=} {self.state.profit=} {rel_profit=} relprofits:{str(self.state.rel_profit_cum)}")
                 self.state.vars.pending = "max_sum_loss_to_quit_rel"
-                send_to_telegram(f"QUITTING MAX SUM REL LOSS REACHED {max_sum_loss_to_quit_rel=} {self.state.profit=} {rel_profit=}")
+                send_to_telegram(f"QUITTING MAX SUM REL LOSS REACHED {max_sum_loss_to_quit_rel=} {self.state.profit=} {rel_profit=} relprofits:{str(self.state.rel_profit_cum)}")
                 self.se.set()
                 return True
 
         if max_sum_profit_to_quit is not None:
             if float(self.state.profit) >= float(max_sum_profit_to_quit):
-                self.state.ilog(e=f"QUITTING MAX SUM ABS PROFIT REACHED {max_sum_profit_to_quit=} {self.state.profit=} {rel_profit=}")
+                self.state.ilog(e=f"QUITTING MAX SUM ABS PROFIT REACHED {max_sum_profit_to_quit=} {self.state.profit=} {rel_profit=} relprofits:{str(self.state.rel_profit_cum)}")
                 self.state.vars.pending = "max_sum_profit_to_quit"
-                send_to_telegram(f"QUITTING MAX SUM ABS PROFIT REACHED {max_sum_profit_to_quit=} {self.state.profit=} {rel_profit=}")
+                send_to_telegram(f"QUITTING MAX SUM ABS PROFIT REACHED {max_sum_profit_to_quit=} {self.state.profit=} {rel_profit=} relprofits:{str(self.state.rel_profit_cum)}")
                 self.se.set()
                 return True
         if max_sum_loss_to_quit is not None:
             if float(self.state.profit) < 0 and float(self.state.profit) <= float(max_sum_loss_to_quit):
-                self.state.ilog(e=f"QUITTING MAX SUM ABS LOSS REACHED {max_sum_loss_to_quit=} {self.state.profit=} {rel_profit=}")
+                self.state.ilog(e=f"QUITTING MAX SUM ABS LOSS REACHED {max_sum_loss_to_quit=} {self.state.profit=} {rel_profit=} relprofits:{str(self.state.rel_profit_cum)}")
                 self.state.vars.pending = "max_sum_loss_to_quit"
-                send_to_telegram(f"QUITTING MAX SUM ABS LOSS REACHED {max_sum_loss_to_quit=} {self.state.profit=} {rel_profit=}")
+                send_to_telegram(f"QUITTING MAX SUM ABS LOSS REACHED {max_sum_loss_to_quit=} {self.state.profit=} {rel_profit=} relprofits:{str(self.state.rel_profit_cum)}")
                 self.se.set()
                 return True
 
@@ -135,7 +134,7 @@ class StrategyClassicSL(Strategy):
                     #TODO pokud mame partial exit, tak se spravne vypocita relativni profit, ale
                     #  je jen na mensi mnozszvi take z nej delat cum_calculate je blbost - OPRAVIT
                     self.state.rel_profit_cum.append(rel_profit)
-                    rel_profit_cum_calculated = round(np.mean(self.state.rel_profit_cum),5)
+                    rel_profit_cum_calculated = round(np.sum(self.state.rel_profit_cum),5)
 
                 self.state.ilog(e=f"BUY notif - SHORT PROFIT:{round(float(trade_profit),3)} celkem:{round(float(self.state.profit),3)} rel:{float(rel_profit)} rel_cum:{round(rel_profit_cum_calculated,7)}", msg=str(data.event), rel_profit_cum=str(self.state.rel_profit_cum), bought_amount=bought_amount, avg_costs=avg_costs, trade_qty=data.qty, trade_price=data.price, orderid=str(data.order.id))
 
@@ -264,7 +263,7 @@ class StrategyClassicSL(Strategy):
                 #pokud jde o finalni FILL - pridame do pole relativnich profit (ze ktereho se pocita kumulativni relativni profit)
                 if data.event == TradeEvent.FILL:
                     self.state.rel_profit_cum.append(rel_profit)
-                    rel_profit_cum_calculated = round(np.mean(self.state.rel_profit_cum),5)
+                    rel_profit_cum_calculated = round(np.sum(self.state.rel_profit_cum),5)
 
                 self.state.ilog(e=f"SELL notif - PROFIT:{round(float(trade_profit),3)} celkem:{round(float(self.state.profit),3)} rel:{float(rel_profit)} rel_cum:{round(rel_profit_cum_calculated,7)}", msg=str(data.event), rel_profit_cum = str(self.state.rel_profit_cum), sold_amount=sold_amount, avg_costs=avg_costs, trade_qty=data.qty, trade_price=data.price, orderid=str(data.order.id))
 

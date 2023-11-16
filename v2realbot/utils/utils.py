@@ -24,7 +24,7 @@ from alpaca.trading.models import Order, TradeUpdate
 import numpy as np
 import pandas as pd
 from collections import deque
-
+import socket
 import numpy as np
 
 def slice_dict_lists(d, last_item, to_tmstp = False):
@@ -312,6 +312,7 @@ def send_to_telegram(message):
     chatID = '5029424778'
     apiURL = f'https://api.telegram.org/bot{apiToken}/sendMessage'
 
+    message = socket.gethostname() + " " + message
     try:
         response = requests.post(apiURL, json={'chat_id': chatID, 'text': message})
         print(response.text)

@@ -385,8 +385,8 @@ def run_batch_stratin(id: UUID, runReq: RunRequest):
         #TODO do budoucna predelat Interval na RunDays a na zone aware datetime
         #zatim testlisty dávám v cz casu
         for intrvl in testlist.dates:
-            start_time = zonePRG.localize(datetime.fromisoformat(intrvl.start))
-            end_time = zonePRG.localize(datetime.fromisoformat(intrvl.end))
+            start_time = zoneNY.localize(datetime.fromisoformat(intrvl.start))
+            end_time = zoneNY.localize(datetime.fromisoformat(intrvl.end))
             cal_list.append(RunDay(start = start_time, end = end_time, note=intrvl.note, id=testlist.id))
 
         print(f"Getting intervals - RESULT ({len(cal_list)}): {cal_list}")

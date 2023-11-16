@@ -233,10 +233,10 @@ def _run_stratin(stratin_id: UUID, runReq: RunRequest):
 
     #print(runReq)
     if runReq.bt_from is not None and runReq.bt_from.tzinfo is None:
-        runReq.bt_from = zonePRG.localize(runReq.bt_from)
+        runReq.bt_from = zoneNY.localize(runReq.bt_from)
 
     if runReq.bt_to is not None and runReq.bt_to.tzinfo is None:
-        runReq.bt_to = zonePRG.localize(runReq.bt_to)  
+        runReq.bt_to = zoneNY.localize(runReq.bt_to)  
     #pokud jedeme nad test intervaly anebo je požadováno více dní - pouštíme jako batch day by day
     #do budoucna dát na FE jako flag
     if runReq.mode != Mode.LIVE and runReq.test_batch_id is not None or (runReq.bt_from.date() != runReq.bt_to.date()):

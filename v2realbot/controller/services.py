@@ -368,36 +368,10 @@ def run_batch_stratin(id: UUID, runReq: RunRequest):
     
     #print("request values:", runReq)
 
-    #getting days to run into RunDays format
-    if runReq.test_batch_id is not None:
-        print("getting intervals days")
-        testlist: TestList
-
-        res, testlist = get_testlist_byID(record_id=runReq.test_batch_id)
-
-        if res < 0:
-            return (-1, f"not existing ID of testlists with {runReq.test_batch_id}")
-        
-        print("test interval:", testlist)
-
-        cal_list = []
-        #interval dame do formatu list(RunDays)
-        #TODO do budoucna predelat Interval na RunDays a na zone aware datetime
-        #zatim testlisty dávám v cz casu
-        for intrvl in testlist.dates:
-            start_time = zoneNY.localize(datetime.fromisoformat(intrvl.start))
-            end_time = zoneNY.localize(datetime.fromisoformat(intrvl.end))
-            cal_list.append(RunDay(start = start_time, end = end_time, note=intrvl.note, id=testlist.id))
-
-        print(f"Getting intervals - RESULT ({len(cal_list)}): {cal_list}")
-        #sem getting dates
-    else:
+    def get_market_days_in_interval(datefrom, dateto, note = None, id = None):
         #getting dates from calendat
-        clientTrading = TradingClient(ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, raw_data=False)
-        if runReq.bt_to is None:
-            runReq.bt_to = datetime.now().astimezone(zoneNY)
-        
-        calendar_request = GetCalendarRequest(start=runReq.bt_from,end=runReq.bt_to)
+        clientTrading = TradingClient(ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, raw_data=False)        
+        calendar_request = GetCalendarRequest(start=datefrom,end=dateto)
         cal_dates = clientTrading.get_calendar(calendar_request)
         #list(Calendar)
         # Calendar
@@ -412,20 +386,54 @@ def run_batch_stratin(id: UUID, runReq: RunRequest):
             #u prvni polozky
             if day == cal_dates[0]:
                 #pokud je cas od od vetsi nez open marketu prvniho dne, pouzijeme tento pozdejis cas
-                if runReq.bt_from > start_time:
-                    start_time = runReq.bt_from
+                if datefrom > start_time:
+                    start_time = datefrom
 
             #u posledni polozky
             if day == cal_dates[-1]:
                 #cas do, je pred openenem market, nedavame tento den
-                if runReq.bt_to < start_time:
+                if dateto < start_time:
                     continue
                 #pokud koncovy cas neni do konce marketu, pouzijeme tento drivejsi namisto konce posledniho dne
-                if runReq.bt_to < end_time:
-                    end_time = runReq.bt_to
-            cal_list.append(RunDay(start = start_time, end = end_time))
+                if dateto < end_time:
+                    end_time = dateto
+            cal_list.append(RunDay(start = start_time, end = end_time, note = note, id = id))
 
         print(f"Getting interval dates from - to - RESULT ({len(cal_list)}): {cal_list}")
+        return cal_list
+    
+    #getting days to run into RunDays format
+    if runReq.test_batch_id is not None:
+        print("getting intervals days")
+        testlist: TestList
+
+        res, testlist = get_testlist_byID(record_id=runReq.test_batch_id)
+
+        if res < 0:
+            return (-1, f"not existing ID of testlists with {runReq.test_batch_id}")
+        
+        print("test interval:", testlist)
+
+        cal_list = []
+        #interval dame do formatu list(RunDays)
+        #v intervalu je market local time
+        for intrvl in testlist.dates:
+            start_time = zoneNY.localize(datetime.fromisoformat(intrvl.start))
+            end_time = zoneNY.localize(datetime.fromisoformat(intrvl.end))
+            #pokud nejde o konkretni dny, ale o interval, pridame vsechny dny z tohoto intervalu
+            if start_time.date() != end_time.date():
+                print("interval within testlist, fetching market days")
+                cal_list += get_market_days_in_interval(start_time, end_time, intrvl.note, testlist.id)
+            else:
+                cal_list.append(RunDay(start = start_time, end = end_time, note=intrvl.note, id=testlist.id))
+
+        print(f"Getting intervals - RESULT ({len(cal_list)}): {cal_list}")
+        #sem getting dates
+    else:
+        if runReq.bt_to is None:
+            runReq.bt_to = datetime.now().astimezone(zoneNY)
+        
+        cal_list = get_market_days_in_interval(runReq.bt_from, runReq.bt_to)
 
 #spousti se vlakno s paralelnim behem a vracime ok
     ridici_vlakno = Thread(target=batch_run_manager, args=(id, runReq, cal_list), name=f"Batch run control thread started.")

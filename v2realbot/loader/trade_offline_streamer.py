@@ -133,6 +133,10 @@ class Trade_Offline_Streamer(Thread):
                 print("time_to je pred zacatkem marketu. Vynechavame tento den.")
                 continue
 
+            if datetime.now().astimezone(zoneNY) < day.open:
+                print("Tento den je v budoucnu. Vynechavame tento den.")
+                continue                
+
             
             #check if we have aggregated data in cache
             

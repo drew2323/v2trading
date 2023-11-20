@@ -83,7 +83,7 @@ def generate_trading_report_image(runner_ids: list = None, batch_id: str = None,
     long_profits = [trade.profit for trade in closed_trades if trade.direction == TradeDirection.LONG and trade.profit is not None]
     short_profits = [trade.profit for trade in closed_trades if trade.direction == TradeDirection.SHORT and trade.profit is not None]
 
-    # Setting up dark mode for the plots
+    # # Setting up dark mode for the plots
     plt.style.use('dark_background')
 
     # Optionally, you can further customize colors, labels, and axes
@@ -103,6 +103,43 @@ def generate_trading_report_image(runner_ids: list = None, batch_id: str = None,
         'axes.edgecolor': '#a9a9a9'
     }
     plt.rcParams.update(params)
+
+    #NEW LOOK
+    # # Set the style to dark mode with custom settings
+    # plt.style.use('dark_background')
+
+    # # Define a custom dark theme color palette
+    # dark_theme_colors = {
+    #     'background': '#1c1c1c',  # Dark gray
+    #     'text': '#d6d6d6',       # Light gray for a subtle contrast
+    #     'grid': '#414141',       # Slightly lighter gray than background for grid
+    #     'highlight': '#3498db',  # Bright blue for highlights (max/min points, etc.)
+    #     'warning': '#e74c3c',    # Red color for warnings or important highlights
+    #     'neutral': '#7f8c8d',    # Neutral color for less important elements
+    # }
+
+    # # Customize the color scheme
+    # params = {
+    #     'figure.facecolor': dark_theme_colors['background'],
+    #     'axes.titlesize': 10,
+    #     'axes.labelsize': 9,
+    #     'xtick.labelsize': 9,
+    #     'ytick.labelsize': 9,
+    #     'axes.labelcolor': dark_theme_colors['text'],
+    #     'axes.facecolor': dark_theme_colors['background'],
+    #     'axes.grid': False,  # Control grid visibility
+    #     'axes.edgecolor': dark_theme_colors['text'],
+    #     'xtick.color': dark_theme_colors['text'],
+    #     'ytick.color': dark_theme_colors['text'],
+    #     'text.color': dark_theme_colors['text'],
+    #     'legend.facecolor': dark_theme_colors['background'],
+    #     'legend.edgecolor': dark_theme_colors['text'],
+    #     'legend.fontsize': 8,
+    #     'legend.title_fontsize': 9,
+    # }
+
+    # # Apply the custom color scheme
+    # plt.rcParams.update(params)
 
     # Create a combined figure for all plots
     fig, axs = plt.subplots(3, 4, figsize=(11, 7))
@@ -195,7 +232,7 @@ def generate_trading_report_image(runner_ids: list = None, batch_id: str = None,
 
     #Cumulative profit - bud 1 den nebo vice dni
     if len(runner_ids)== 1:
-        if cumulative_profits.size == 0:
+        if cumulative_profits.size > 0:
             # Plot 3: Cumulative Profit Over Time with Max Profit Point
             max_profit_time = exit_times[np.argmax(cumulative_profits)]
             max_profit = max(cumulative_profits)

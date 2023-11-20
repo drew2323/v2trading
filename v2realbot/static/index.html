@@ -279,8 +279,15 @@
                     </div>
                 </div>
             </div>
-            <div id="imagePreview" onclick="hideImage()">
-                <img src="" id="previewImg" style="width: auto; height: auto;" />
+            <div id="imageModal" class="modal fade" style="--bs-modal-width: 591px;">
+                <div class="modal-dialog">
+                        <div class="modal-content">
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                           <div id="imagePreview">   <!-- onclick="hideImage()"> -->
+                                <img src="" id="previewImg" style="width: auto; height: auto;" />
+                            </div>
+                        </div>
+                </div>
             </div>
             <div id="archive-table" class="flex-items">
                 <label data-bs-toggle="collapse" data-bs-target="#archive-table-inner">

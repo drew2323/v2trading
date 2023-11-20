@@ -117,7 +117,8 @@ function display_image(imageUrl) {
     img.onload = function() {
         // If the image loads successfully, display it
         $('#previewImg').attr('src', imageUrl);
-        $('#imagePreview').show();
+        //$('#imagePreview').show();
+        window.$('#imageModal').modal('show');        
     };
     img.onerror = function() {
         console.log("no image available")
@@ -153,13 +154,13 @@ $(document).ready(function () {
     // });
 
     // Hide image on click anywhere in the document
-    $(document).on('click', function() {
-        $('#imagePreview').hide();
-    });
+    // $(document).on('click', function() {
+    //     $('#imagePreview').hide();
+    // });
 
-    function hideImage() {
-        $('#imagePreview').hide();
-    }
+    // function hideImage() {
+    //     $('#imagePreview').hide();
+    // }
     // $('#archiveTable tbody').on('mousemove', 'td:nth-child(2)', function(e) {
     //     $('#imagePreview').css({'top': e.pageY + 10, 'left': e.pageX + 10});
     // });

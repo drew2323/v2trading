@@ -51,9 +51,9 @@ def generate_trading_report_image(runner_ids: list = None, batch_id: str = None,
         trades_dicts =  sada.metrics["prescr_trades"]
 
         for trade_dict in trades_dicts:
-            trade_dict['last_update'] = datetime.fromtimestamp(trade_dict.get('last_update')).astimezone(zoneNY)
-            trade_dict['entry_time'] = datetime.fromtimestamp(trade_dict.get('entry_time')).astimezone(zoneNY)
-            trade_dict['exit_time'] = datetime.fromtimestamp(trade_dict.get('exit_time')).astimezone(zoneNY)
+            trade_dict['last_update'] = datetime.fromtimestamp(trade_dict.get('last_update')).astimezone(zoneNY) if trade_dict['last_update'] is not None else None
+            trade_dict['entry_time'] = datetime.fromtimestamp(trade_dict.get('entry_time')).astimezone(zoneNY) if trade_dict['entry_time'] is not None else None
+            trade_dict['exit_time'] = datetime.fromtimestamp(trade_dict.get('exit_time')).astimezone(zoneNY) if trade_dict['exit_time'] is not None else None
             trades.append(Trade(**trade_dict))
 
         print(trades)
@@ -61,10 +61,15 @@ def generate_trading_report_image(runner_ids: list = None, batch_id: str = None,
     # Filter to only use trades with status 'CLOSED'
     closed_trades = [trade for trade in trades if trade.status == TradeStatus.CLOSED]
 
+    if len(closed_trades) == 0:
+        return -1, "image generation no closed trades"
+    
     # Data extraction for the plots
     exit_times = [trade.exit_time for trade in closed_trades if trade.exit_time is not None]
-    cumulative_profits = [trade.profit_sum for trade in closed_trades if trade.profit_sum is not None]
+    ##cumulative_profits = [trade.profit_sum for trade in closed_trades if trade.profit_sum is not None]
+
     profits = [trade.profit for trade in closed_trades if trade.profit is not None]
+    cumulative_profits = np.cumsum(profits)
     wins = [trade.profit for trade in closed_trades if trade.profit > 0]
     losses = [trade.profit for trade in closed_trades if trade.profit < 0]
 
@@ -190,27 +195,35 @@ def generate_trading_report_image(runner_ids: list = None, batch_id: str = None,
 
     #Cumulative profit - bud 1 den nebo vice dni
     if len(runner_ids)== 1:
-        # Plot 3: Cumulative Profit Over Time with Max Profit Point
-        max_profit_time = exit_times[np.argmax(cumulative_profits)]
-        max_profit = max(cumulative_profits)
-        min_profit_time = exit_times[np.argmin(cumulative_profits)]
-        min_profit = min(cumulative_profits)
-        sns.lineplot(x=exit_times, y=cumulative_profits, label='Cumulative Profit', ax=axs[1, 3])
-        axs[1, 3].scatter(max_profit_time, max_profit, color='green', label='Max Profit')
-        axs[1, 3].scatter(min_profit_time, min_profit, color='red', label='Min Profit')
-        # Format dates on the x-axis
-        axs[1, 3].xaxis.set_major_formatter(mdates.DateFormatter('%H', tz=zoneNY))
-        axs[1, 3].set_title('Cumulative Profit Over Time')
-        axs[1, 3].legend()
+        if cumulative_profits:
+            # Plot 3: Cumulative Profit Over Time with Max Profit Point
+            max_profit_time = exit_times[np.argmax(cumulative_profits)]
+            max_profit = max(cumulative_profits)
+            min_profit_time = exit_times[np.argmin(cumulative_profits)]
+            min_profit = min(cumulative_profits)
+            sns.lineplot(x=exit_times, y=cumulative_profits, label='Cumulative Profit', ax=axs[1, 3])
+            axs[1, 3].scatter(max_profit_time, max_profit, color='green', label='Max Profit')
+            axs[1, 3].scatter(min_profit_time, min_profit, color='red', label='Min Profit')
+            # Format dates on the x-axis
+            axs[1, 3].xaxis.set_major_formatter(mdates.DateFormatter('%H', tz=zoneNY))
+            axs[1, 3].set_title('Cumulative Profit Over Time')
+            axs[1, 3].legend()
+        else:
+            # Handle the case where cumulative_profits is empty
+            axs[1, 3].text(0.5, 0.5, 'No profit data available', 
+                            horizontalalignment='center', 
+                            verticalalignment='center', 
+                            transform=axs[1, 3].transAxes)
+            axs[1, 3].set_title('Cumulative Profit Over Time')
     else:
         # Calculate cumulative profit
         # Additional Plot: Cumulative Profit Over Time
         # Sort trades by exit time
         sorted_trades = sorted([trade for trade in trades if trade.status == TradeStatus.CLOSED], 
                             key=lambda x: x.exit_time)
-        cumulative_profits = np.cumsum([trade.profit for trade in sorted_trades])
-        exit_times_sorted = [trade.exit_time for trade in sorted_trades]
-        axs[1, 3].plot(exit_times_sorted, cumulative_profits, color='blue')
+        cumulative_profits_sorted = np.cumsum([trade.profit for trade in sorted_trades])
+        exit_times_sorted = [trade.exit_time for trade in sorted_trades if trade.exit_time is not None]
+        axs[1, 3].plot(exit_times_sorted, cumulative_profits_sorted, color='blue')
         axs[1, 3].set_title('Cumulative Profit Over Time')
         axs[1, 3].set_xlabel('Time')
         axs[1, 3].set_ylabel('Cumulative Profit')
@@ -226,15 +239,23 @@ def generate_trading_report_image(runner_ids: list = None, batch_id: str = None,
             profit = trade.profit
             heatmap_data_list.append({'Day': day, 'Hour': hour, 'Profit': profit})
 
-    heatmap_data = pd.DataFrame(heatmap_data_list)
-    heatmap_data = heatmap_data.groupby(['Day', 'Hour']).sum().reset_index()
-    heatmap_pivot = heatmap_data.pivot(index='Day', columns='Hour', values='Profit')
+    try:
+        heatmap_data = pd.DataFrame(heatmap_data_list)
+        heatmap_data = heatmap_data.groupby(['Day', 'Hour']).sum().reset_index()
+        heatmap_pivot = heatmap_data.pivot(index='Day', columns='Hour', values='Profit')
 
-    # Plot 3: Heatmap of Profits
-    sns.heatmap(heatmap_pivot, cmap='viridis', ax=axs[1, 0])
-    axs[1, 0].set_title('Heatmap of Profits (based on Exit time)')
-    axs[1, 0].set_xlabel('Hour of Day')
-    axs[1, 0].set_ylabel('Day')
+        # Plot 3: Heatmap of Profits
+        sns.heatmap(heatmap_pivot, cmap='viridis', ax=axs[1, 0])
+        axs[1, 0].set_title('Heatmap of Profits (based on Exit time)')
+        axs[1, 0].set_xlabel('Hour of Day')
+        axs[1, 0].set_ylabel('Day')
+    except KeyError:
+             # Handle the case where there is no data
+            axs[1, 0].text(0.5, 0.5, 'No data available', 
+                            horizontalalignment='center', 
+                            verticalalignment='center', 
+                            transform=axs[1, 0].transAxes)
+            axs[1, 0].set_title('Heatmap of Profits (based on Exit time)')       
     
     # Plot 9: Profit/Loss Distribution Histogram
     sns.histplot(profits, bins=30, ax=axs[1, 1], kde=True, color='skyblue')
@@ -248,9 +269,17 @@ def generate_trading_report_image(runner_ids: list = None, batch_id: str = None,
     if len(runner_ids) == 1:
         
         sizes = [trade.size for trade in closed_trades if trade.size is not None]
-        size_counts = {size: sizes.count(size) for size in set(sizes)}
-        sns.barplot(x=list(size_counts.keys()), y=list(size_counts.values()), ax=axs[1, 2])
-        axs[1, 2].set_title('Position Size Distribution')
+        if sizes:
+            size_counts = {size: sizes.count(size) for size in set(sizes)}
+            sns.barplot(x=list(size_counts.keys()), y=list(size_counts.values()), ax=axs[1, 2])
+            axs[1, 2].set_title('Position Size Distribution')
+        else:
+             # Handle the case where there is no data
+            axs[1, 2].text(0.5, 0.5, 'No data available', 
+                            horizontalalignment='center', 
+                            verticalalignment='center', 
+                            transform=axs[1, 2].transAxes)
+            axs[1, 2].set_title('Position Size Distribution')   
     else:
         trade_durations = []
         trade_profits = []
@@ -317,10 +346,18 @@ def generate_trading_report_image(runner_ids: list = None, batch_id: str = None,
     sorted_hours = sorted(profits_by_hour.keys())
     sorted_profits = [profits_by_hour[hour] for hour in sorted_hours]
 
-    sns.barplot(x=sorted_hours, y=sorted_profits, ax=axs[2, 1])
-    axs[2, 1].set_title('Profits by Hour of Day (Entry)')
-    axs[2, 1].set_xlabel('Hour of Day')
-    axs[2, 1].set_ylabel('Profit')
+    if sorted_profits:
+        sns.barplot(x=sorted_hours, y=sorted_profits, ax=axs[2, 1])
+        axs[2, 1].set_title('Profits by Hour of Day (Entry)')
+        axs[2, 1].set_xlabel('Hour of Day')
+        axs[2, 1].set_ylabel('Profit')
+    else:
+        # Handle the case where sorted_profits is empty
+        axs[2, 1].text(0.5, 0.5, 'No data available', 
+                        horizontalalignment='center', 
+                        verticalalignment='center', 
+                        transform=axs[2, 1].transAxes)
+        axs[2, 1].set_title('Profits by Hour of Day (Entry)')
 
     # Plot 9: Profits Based on Hour of the Day - based on Exit
     exit_hours = [trade.exit_time.hour for trade in closed_trades if trade.exit_time is not None]
@@ -334,10 +371,18 @@ def generate_trading_report_image(runner_ids: list = None, batch_id: str = None,
     sorted_hours = sorted(profits_by_hour.keys())
     sorted_profits = [profits_by_hour[hour] for hour in sorted_hours]
 
-    sns.barplot(x=sorted_hours, y=sorted_profits, ax=axs[2, 2])
-    axs[2, 2].set_title('Profits by Hour of Day (Exit)')
-    axs[2, 2].set_xlabel('Hour of Day')
-    axs[2, 2].set_ylabel('Profit')
+    if sorted_profits:
+        sns.barplot(x=sorted_hours, y=sorted_profits, ax=axs[2, 2])
+        axs[2, 2].set_title('Profits by Hour of Day (Exit)')
+        axs[2, 2].set_xlabel('Hour of Day')
+        axs[2, 2].set_ylabel('Profit')
+    else:
+        # Handle the case where sorted_profits is empty
+        axs[2, 2].text(0.5, 0.5, 'No data available', 
+                        horizontalalignment='center', 
+                        verticalalignment='center', 
+                        transform=axs[2, 2].transAxes)
+        axs[2, 2].set_title('Profits by Hour of Day (Exit)')
 
     # Calculate profits by day of the week
     day_of_week_profits = {i: 0 for i in range(7)}  # Dictionary to store profits for each day of the week
@@ -365,6 +410,7 @@ def generate_trading_report_image(runner_ids: list = None, batch_id: str = None,
     if stream is False:
         plt.savefig(image_path)
         plt.close()
+        return 0, None
     else:
         # Return the image as a BytesIO stream
         img_stream = BytesIO()

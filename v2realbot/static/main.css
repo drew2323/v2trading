@@ -165,7 +165,7 @@ table.dataTable thead>tr>th.sorting_asc:before, table.dataTable thead>tr>th.sort
 }
 
 #imagePreview {
-  display: none; 
+  /* display: none;  */
   position: fixed; 
   z-index: 100;
   left: 50%;

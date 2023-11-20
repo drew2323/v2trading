@@ -336,8 +336,11 @@ def capsule(target: object, db: object, inter_batch_params: dict = None):
                 db.runners.remove(i)
                 #vytvoreni report image pro RUNNER
                 try:
-                    generate_trading_report_image(runner_ids=[str(i.id)])
-                    print("DAILY REPORT IMAGE CREATED")
+                    res, val = generate_trading_report_image(runner_ids=[str(i.id)])
+                    if res == 0:
+                        print("DAILY REPORT IMAGE CREATED")
+                    else:
+                        print(f"Daily report ERROR - {val}")
                 except Exception as e:
                     print("Nepodarilo se vytvorit report image", str(e)+format_exc())       
 
@@ -510,8 +513,12 @@ def batch_run_manager(id: UUID, runReq: RunRequest, rundays: list[RunDay]):
 
     #vytvoreni report image pro batch
     try:
-        generate_trading_report_image(batch_id=batch_id)
-        print("BATCH REPORT IMAGE CREATED")
+        res, val = generate_trading_report_image(batch_id=batch_id)
+        if res == 0:
+            print("BATCH REPORT CREATED")
+        else:
+            print(f"BATCH REPORT ERROR - {val}")
+
     except Exception as e:
         print("Nepodarilo se vytvorit report image", str(e)+format_exc())       
 

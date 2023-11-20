@@ -889,6 +889,10 @@ function set_timestamp(timestamp) {
 }
 
 //KEY shortcuts
+Mousetrap.bind('q', function() { 
+  $( "#button_report" ).trigger( "click" );
+});
+
 Mousetrap.bind('e', function() { 
     $( "#button_edit" ).trigger( "click" );
 });

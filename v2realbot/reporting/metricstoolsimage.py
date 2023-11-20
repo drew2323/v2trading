@@ -195,7 +195,7 @@ def generate_trading_report_image(runner_ids: list = None, batch_id: str = None,
 
     #Cumulative profit - bud 1 den nebo vice dni
     if len(runner_ids)== 1:
-        if cumulative_profits:
+        if cumulative_profits.size == 0:
             # Plot 3: Cumulative Profit Over Time with Max Profit Point
             max_profit_time = exit_times[np.argmax(cumulative_profits)]
             max_profit = max(cumulative_profits)

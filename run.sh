@@ -37,7 +37,7 @@ fi
 if [ ! -e "$OUTPUT_PID_PATH/$OUTPUT_PID_FILE" ]; then
 
 	# If the running.pid file doesn't exists, create it, start PseudoChannel.py and add the PID to it.
-	"$PYTHON_TO_USE" ./$SCRIPT_TO_EXECUTE_PLUS_ARGS > strat.log 2>&1 & echo $! > "$OUTPUT_PID_PATH/$OUTPUT_PID_FILE"
+	nohup "$PYTHON_TO_USE" ./$SCRIPT_TO_EXECUTE_PLUS_ARGS > strat.log 2>&1 & echo $! > "$OUTPUT_PID_PATH/$OUTPUT_PID_FILE"
 
 	echo "Started $SCRIPT_TO_EXECUTE_PLUS_ARGS @ Process: $!"
 

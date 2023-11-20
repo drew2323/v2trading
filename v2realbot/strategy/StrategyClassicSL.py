@@ -129,14 +129,27 @@ class StrategyClassicSL(Strategy):
 
                 #pokud jde o finalni FILL - pridame do pole tento celkovy relativnich profit (ze ktereho se pocita kumulativni relativni profit)
                 rel_profit_cum_calculated = 0
-
+                partial_exit = False
+                partial_last = False
                 if data.event == TradeEvent.FILL:
-                    #TODO pokud mame partial exit, tak se spravne vypocita relativni profit, ale
-                    #  je jen na mensi mnozszvi take z nej delat cum_calculate je blbost - OPRAVIT
-                    self.state.rel_profit_cum.append(rel_profit)
-                    rel_profit_cum_calculated = round(np.sum(self.state.rel_profit_cum),5)
+                    #jde o partial EXIT dvááme si rel.profit do docasne promenne, po poslednim exitu z nich vypocteme skutecny rel.profit
+                    if data.position_qty != 0:
+                        self.state.docasny_rel_profit.append(rel_profit)
+                        partial_exit = True
+                    else:
+                        #jde o posledni z PARTIAL EXITU tzn.data.position_qty == 0
+                        if len(self.state.docasny_rel_profit) > 0:
+                            #pricteme aktualni rel profit
+                            self.state.docasny_rel_profit.append(rel_profit)
+                            #a z rel profitu tohoto tradu vypocteme prumer, ktery teprve ulozime
+                            rel_profit = round(np.mean(self.state.docasny_rel_profit),5)
+                            self.state.docasny_rel_profit = []
+                            partial_last = True
 
-                self.state.ilog(e=f"BUY notif - SHORT PROFIT:{round(float(trade_profit),3)} celkem:{round(float(self.state.profit),3)} rel:{float(rel_profit)} rel_cum:{round(rel_profit_cum_calculated,7)}", msg=str(data.event), rel_profit_cum=str(self.state.rel_profit_cum), bought_amount=bought_amount, avg_costs=avg_costs, trade_qty=data.qty, trade_price=data.price, orderid=str(data.order.id))
+                        self.state.rel_profit_cum.append(rel_profit)
+                        rel_profit_cum_calculated = round(np.sum(self.state.rel_profit_cum),5)
+
+                self.state.ilog(e=f"BUY notif - SHORT PROFIT: {partial_exit=} {partial_last=} {round(float(trade_profit),3)} celkem:{round(float(self.state.profit),3)} rel:{float(rel_profit)} rel_cum:{round(rel_profit_cum_calculated,7)}", msg=str(data.event), rel_profit_cum=str(self.state.rel_profit_cum), bought_amount=bought_amount, avg_costs=avg_costs, trade_qty=data.qty, trade_price=data.price, orderid=str(data.order.id))
 
                 #zapsat profit do prescr.trades
                 for trade in self.state.vars.prescribedTrades:
@@ -260,12 +273,27 @@ class StrategyClassicSL(Strategy):
                     rel_profit = round((trade_profit / (vstup_cena * float(data.order.qty))) * 100,5)
 
                 rel_profit_cum_calculated = 0
-                #pokud jde o finalni FILL - pridame do pole relativnich profit (ze ktereho se pocita kumulativni relativni profit)
+                partial_exit = False
+                partial_last = False
                 if data.event == TradeEvent.FILL:
-                    self.state.rel_profit_cum.append(rel_profit)
-                    rel_profit_cum_calculated = round(np.sum(self.state.rel_profit_cum),5)
+                    #jde o partial EXIT dvááme si rel.profit do docasne promenne, po poslednim exitu z nich vypocteme skutecny rel.profit
+                    if data.position_qty != 0:
+                        self.state.docasny_rel_profit.append(rel_profit)
+                        partial_exit = True
+                    else:
+                        #jde o posledni z PARTIAL EXITU tzn.data.position_qty == 0
+                        if len(self.state.docasny_rel_profit) > 0:
+                            #pricteme aktualni rel profit
+                            self.state.docasny_rel_profit.append(rel_profit)
+                            #a z rel profitu tohoto tradu vypocteme prumer, ktery teprve ulozime
+                            rel_profit = round(np.mean(self.state.docasny_rel_profit),5)
+                            self.state.docasny_rel_profit = []
+                            partial_last = True
 
-                self.state.ilog(e=f"SELL notif - PROFIT:{round(float(trade_profit),3)} celkem:{round(float(self.state.profit),3)} rel:{float(rel_profit)} rel_cum:{round(rel_profit_cum_calculated,7)}", msg=str(data.event), rel_profit_cum = str(self.state.rel_profit_cum), sold_amount=sold_amount, avg_costs=avg_costs, trade_qty=data.qty, trade_price=data.price, orderid=str(data.order.id))
+                        self.state.rel_profit_cum.append(rel_profit)
+                        rel_profit_cum_calculated = round(np.sum(self.state.rel_profit_cum),5)
+
+                self.state.ilog(e=f"SELL notif - LONG PROFIT {partial_exit=} {partial_last=}:{round(float(trade_profit),3)} celkem:{round(float(self.state.profit),3)} rel:{float(rel_profit)} rel_cum:{round(rel_profit_cum_calculated,7)}", msg=str(data.event), rel_profit_cum = str(self.state.rel_profit_cum), sold_amount=sold_amount, avg_costs=avg_costs, trade_qty=data.qty, trade_price=data.price, orderid=str(data.order.id))
 
                 #zapsat profit do prescr.trades
                 for trade in self.state.vars.prescribedTrades:

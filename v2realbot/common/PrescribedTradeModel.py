@@ -30,6 +30,8 @@ class Trade(BaseModel):
     entry_price: Optional[float] = None
     goal_price: Optional[float] = None
     size: Optional[int] = None
+    # size_multiplier je pomocna promenna pro pocitani relativniho denniho profit
+    size_multiplier: Optional[float] = None    
     # stoploss_type: TradeStoplossType
     stoploss_value: Optional[float] = None
     profit: Optional[float] = 0

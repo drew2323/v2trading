@@ -110,8 +110,60 @@ function prepare_export() {
     return trdList
 }
 
+function display_image(imageUrl) {
+    // Attempt to load the image
+    var img = new Image();
+    img.src = imageUrl;
+    img.onload = function() {
+        // If the image loads successfully, display it
+        $('#previewImg').attr('src', imageUrl);
+        $('#imagePreview').show();
+    };
+    img.onerror = function() {
+        console.log("no image available")
+        // If the image fails to load, do nothing
+    };
+}
+
 $(document).ready(function () {
     archiveRecords.ajax.reload();
+
+    // Use 'td:nth-child(2)' to target the second column
+    $('#archiveTable tbody').on('click', 'td:nth-child(2)', function () {
+        var data = archiveRecords.row(this).data();
+        //var imageUrl = '/media/report_'+data.id+".png"; // Replace with your logic to get image URL
+        var imageUrl = '/media/basic/'+data.id+'.png'; // Replace with your logic to get image URL
+        console.log(imageUrl)
+        display_image(imageUrl)
+    });
+
+    // Use 'td:nth-child(2)' to target the second column
+    $('#archiveTable tbody').on('click', 'td:nth-child(18)', function () {
+        var data = archiveRecords.row(this).data();
+        if (data.batch_id) {
+            //var imageUrl = '/media/report_'+data.id+".png"; // Replace with your logic to get image URL
+            var imageUrl = '/media/basic/'+data.batch_id+'.png'; // Replace with your logic to get image URL
+            console.log(imageUrl)
+            display_image(imageUrl)
+        }
+    });    
+
+    // $('#archiveTable tbody').on('mouseleave', 'td:nth-child(2)', function () {
+    //     $('#imagePreview').hide();
+    // });
+
+    // Hide image on click anywhere in the document
+    $(document).on('click', function() {
+        $('#imagePreview').hide();
+    });
+
+    function hideImage() {
+        $('#imagePreview').hide();
+    }
+    // $('#archiveTable tbody').on('mousemove', 'td:nth-child(2)', function(e) {
+    //     $('#imagePreview').css({'top': e.pageY + 10, 'left': e.pageX + 10});
+    // });
+
 
     //button export
     $('#button_export_xml').click(function () {
@@ -358,6 +410,46 @@ $(document).ready(function () {
             event.preventDefault();
             //$('#button_compare').attr('disabled','disabled');
         }
+    });
+
+    //generate report button
+    $('#button_report').click(function () {
+        rows = archiveRecords.rows('.selected');
+        if (rows == undefined) {
+            return
+        }
+        runnerIds = []
+        if(rows.data().length > 0 ) {
+            // Loop through the selected rows and display an alert with each row's ID
+            rows.every(function (rowIdx, tableLoop, rowLoop ) {
+                var data = this.data()
+                runnerIds.push(data.id);
+            });
+        }
+        $.ajax({
+            url:"/archived_runners/generatereportimage",
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader('X-API-Key',
+                    API_KEY); },
+            method:"POST",
+            xhrFields: {
+                responseType: 'blob'
+            },
+            contentType: "application/json",
+            processData: false,
+            data: JSON.stringify(runnerIds),
+            success:function(blob){		
+                var url = window.URL || window.webkitURL;
+                console.log("vraceny obraz", blob)
+                console.log("url",url.createObjectURL(blob))
+                display_image(url.createObjectURL(blob))
+            },
+            error: function(xhr, status, error) {
+                console.log("proc to skace do erroru?")
+                //window.alert(JSON.stringify(xhr));
+                console.log(JSON.stringify(xhr));             
+            }
+        })
     });
 
 

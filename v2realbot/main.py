@@ -1,6 +1,6 @@
 import os,sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from v2realbot.config import WEB_API_KEY, DATA_DIR
+from v2realbot.config import WEB_API_KEY, DATA_DIR, MEDIA_DIRECTORY
 from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from datetime import datetime
 import os
@@ -13,7 +13,7 @@ import v2realbot.controller.services as cs
 from v2realbot.utils.ilog import get_log_window
 from v2realbot.common.model import StrategyInstance, RunnerView, RunRequest, Trade, RunArchive, RunArchiveView, RunArchiveDetail, Bar, RunArchiveChange, TestList, ConfigItem, InstantIndicator
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status, WebSocketException, Cookie, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from v2realbot.enums.enums import Env, Mode
@@ -30,6 +30,9 @@ from v2realbot.utils.sysutils import get_environment
 from uuid import uuid4
 from sqlite3 import OperationalError
 from time import sleep
+import v2realbot.reporting.metricstools as mt
+from v2realbot.reporting.metricstoolsimage import generate_trading_report_image
+from traceback import format_exc
 #from async io import Queue, QueueEmpty
                    
 # install()
@@ -64,6 +67,7 @@ def api_key_auth(api_key: str = Depends(X_API_KEY)):
 app = FastAPI()
 root = os.path.dirname(os.path.abspath(__file__))
 app.mount("/static", StaticFiles(html=True, directory=os.path.join(root, 'static')), name="static")
+app.mount("/media", StaticFiles(directory=str(MEDIA_DIRECTORY)), name="media")
 #app.mount("/", StaticFiles(html=True, directory=os.path.join(root, 'static')), name="www")
 
 security = HTTPBasic()
@@ -459,7 +463,6 @@ def _delete_indicator_byName(runner_id: UUID, indicator: InstantIndicator):
         raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error not changed: {res}:{runner_id}:{vals}")
 
 
-
 #edit archived runner ("note",..)
 @app.patch("/archived_runners/{runner_id}", dependencies=[Depends(api_key_auth)])
 def _edit_archived_runners(archChange: RunArchiveChange, runner_id: UUID):
@@ -508,6 +511,31 @@ def _get_alpaca_history_bars(symbol: str, datetime_object_from: datetime, dateti
         return set
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No data found {res} {set}")
+
+#get pdf report - WIP
+@app.put("/archived_runners/{runner_id}/generatepdf", dependencies=[Depends(api_key_auth)], responses={200: {"content": {"application/pdf": {}}}})
+def _generat_pdf(runner_id: UUID):
+    #jako vstup umouznit i seznam runneru - vytvori to pote report ze vsech techto
+    #pripadne mit jako vstup batch a udelat to pro batch ()
+    res, vals = mt.create_trading_report_pdf(id=runner_id)
+    if res == 0:
+        # Return the PDF data as a streaming response {str(runner_id)}
+        return StreamingResponse(vals, media_type="application/pdf", headers={"Content-Disposition": "attachment; filename=report.pdf"})
+    elif res == -1:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Error no runner: {runner_id} {res}:{vals}")
+    else:
+        raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error not changed: {res}:{runner_id}:{vals}")
+
+#generate image based list of ids
+@app.post("/archived_runners/generatereportimage", dependencies=[Depends(api_key_auth)], responses={200: {"content": {"image/png": {}}}})
+def _generate_report_image(runner_ids: list[UUID]):
+    try:
+        res, stream = generate_trading_report_image(runner_ids=runner_ids,stream=True)
+        if res == 0: return StreamingResponse(stream, media_type="image/png",headers={"Content-Disposition": "attachment; filename=report.png"})
+        elif res < 0:
+            raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error: {res}:{id}")
+    except Exception as e:
+            raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error: {str(e)}" + format_exc())        
 
 #TestList APIS - do budoucna predelat SQL do separatnich funkci
 @app.post('/testlists/', dependencies=[Depends(api_key_auth)])

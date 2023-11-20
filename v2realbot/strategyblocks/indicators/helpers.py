@@ -82,7 +82,10 @@ def get_source_series(state, source: str):
         try:
             return state.bars[source]
         except KeyError:
-            return state.indicators[source]
+            try:
+                return state.indicators[source]
+            except KeyError:
+                return None
     else:
         dict_name = source[:split_index]
         key = source[split_index + 1:]

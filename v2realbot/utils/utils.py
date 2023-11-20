@@ -464,6 +464,30 @@ def is_open_rush(dt: datetime, mins: int = 30):
     rushtime = (datetime.combine(date.today(), business_hours["from"]) + timedelta(minutes=mins)).time()
     return business_hours["from"] <= dt.time() < rushtime
 
+
+#TODO v budoucnu predelat - v initu nacist jednou market open cas a ten pouzivat vsude
+#kde je treba (ted je tady natvrdo 9.30)
+def minutes_since_market_open(datetime_aware: datetime):
+    """
+    Calculate the number of minutes elapsed from 9:30 AM to the given timezone-aware datetime of the same day.
+    This version is optimized for speed and should be used when calling in a loop.
+
+    :param datetime_aware: A timezone-aware datetime object representing the time to compare.
+    :return: The number of minutes since today's 9:30 AM.
+    """
+    # Ensure the input datetime is timezone-aware
+    if datetime_aware.tzinfo is None or datetime_aware.tzinfo.utcoffset(datetime_aware) is None:
+        raise ValueError("The input datetime must be timezone-aware.")
+
+    # Calculate minutes since midnight for both times
+    minutes_since_midnight = datetime_aware.hour * 60 + datetime_aware.minute
+    morning_minutes = 9 * 60 + 30
+
+    # Calculate the difference
+    delta_minutes = minutes_since_midnight - morning_minutes
+
+    return delta_minutes if delta_minutes >= 0 else 0
+
 #optimalized by BARD
 def is_window_open(dt: datetime, start: int = 0, end: int = 390):
     """"

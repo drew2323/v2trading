@@ -164,7 +164,14 @@ table.dataTable thead>tr>th.sorting_asc:before, table.dataTable thead>tr>th.sort
   --bs-gradient: none;
 }
 
-
+#imagePreview {
+  display: none; 
+  position: fixed; 
+  z-index: 100;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
 
 /* .btn-outline-success {
   --bs-btn-color: #316164;

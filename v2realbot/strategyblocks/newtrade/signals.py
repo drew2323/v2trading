@@ -7,6 +7,7 @@ from datetime import datetime
 from rich import print as printanyway
 from traceback import format_exc
 from v2realbot.strategyblocks.newtrade.conditions import go_conditions_met, common_go_preconditions_check
+from v2realbot.strategyblocks.newtrade.sizing import get_size, get_multiplier
 
 def signal_search(state: StrategyState, data):
     # SIGNAL sekce ve stratvars obsahuje signaly: Ty se skladaji z obecnych parametru a podsekce podminek.
@@ -42,7 +43,7 @@ def execute_signal_generator(state, data, name):
     options = safe_get(state.vars.signals, name, None)
 
     if options is None:
-        state.ilog(lvl=1,e="No options for {name} in stratvars")
+        state.ilog(lvl=1,e=f"No options for {name} in stratvars")
         return
     
     if common_go_preconditions_check(state, data, signalname=name, options=options) is False:
@@ -71,20 +72,26 @@ def execute_signal_generator(state, data, name):
         if long_enabled is False:
             state.ilog(lvl=1,e=f"{name} LONG DISABLED")
         if long_enabled and go_conditions_met(state, data,signalname=name, direction=TradeDirection.LONG):
+            multiplier = get_multiplier(state, data, options, TradeDirection.LONG)
             state.vars.prescribedTrades.append(Trade(
                                     id=uuid4(),
                                     last_update=datetime.fromtimestamp(state.time).astimezone(zoneNY),
                                     status=TradeStatus.READY,
                                     generated_by=name,
+                                    size=multiplier*state.vars.chunk,
+                                    size_multiplier = multiplier,
                                     direction=TradeDirection.LONG,
                                     entry_price=None,
                                     stoploss_value = None))
         elif short_enabled and go_conditions_met(state, data, signalname=name, direction=TradeDirection.SHORT):
+            multiplier = get_multiplier(state, data, options, TradeDirection.SHORT)
             state.vars.prescribedTrades.append(Trade(
                     id=uuid4(),
                     last_update=datetime.fromtimestamp(state.time).astimezone(zoneNY),
                     status=TradeStatus.READY,
                     generated_by=name,
+                    size=multiplier*state.vars.chunk,
+                    size_multiplier = multiplier,
                     direction=TradeDirection.SHORT,
                     entry_price=None,
                     stoploss_value = None))

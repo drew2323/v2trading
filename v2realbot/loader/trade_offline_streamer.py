@@ -8,7 +8,7 @@ from alpaca.data.enums import DataFeed
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockLatestQuoteRequest, StockBarsRequest, StockTradesRequest
 from threading import Thread, current_thread
-from v2realbot.utils.utils import parse_alpaca_timestamp, ltp, zoneNY, print
+from v2realbot.utils.utils import parse_alpaca_timestamp, ltp, zoneNY
 from v2realbot.utils.tlog import tlog
 from datetime import datetime, timedelta, date
 from threading import Thread
@@ -21,6 +21,8 @@ import os
 from rich import print
 import queue
 from alpaca.trading.models import Calendar
+from tqdm import tqdm
+
 """
     Trade offline data streamer, based on Alpaca historical data.
 """
@@ -212,7 +214,7 @@ class Trade_Offline_Streamer(Thread):
                 cnt = 1
                 
                 
-                for t in tradesResponse[symbol]:
+                for t in tqdm(tradesResponse[symbol]):
                     
                     #protoze je zde cely den, poustime dal, jen ty relevantni
                     #pokud je    start_time < trade < end_time

@@ -707,6 +707,7 @@ class StrategyState:
         self.runner_id = runner_id
         self.bt = bt
         self.dont_exit_already_activated = False
+        self.docasny_rel_profit = []
         self.ilog_save = ilog_save
         self.sl_optimizer_short = optimsl.SLOptimizer(ptm.TradeDirection.SHORT)
         self.sl_optimizer_long = optimsl.SLOptimizer(ptm.TradeDirection.LONG)

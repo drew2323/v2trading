@@ -1,6 +1,10 @@
 from alpaca.data.enums import DataFeed
 from v2realbot.enums.enums import Mode, Account, FillCondition
 from appdirs import user_data_dir
+from pathlib import Path
+
+#directory for generated images and basic reports
+MEDIA_DIRECTORY = Path(__file__).parent.parent / "media"
 
 #'0.0.0.0',
 #currently only prod server has acces to LIVE

@@ -13,7 +13,7 @@ from v2realbot.utils.ilog import delete_logs
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
 from datetime import datetime
 from threading import Thread, current_thread, Event, enumerate
-from v2realbot.config import STRATVARS_UNCHANGEABLES, ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, ACCOUNT1_LIVE_API_KEY, ACCOUNT1_LIVE_SECRET_KEY, DATA_DIR,BT_FILL_CONS_TRADES_REQUIRED,BT_FILL_LOG_SURROUNDING_TRADES,BT_FILL_CONDITION_BUY_LIMIT,BT_FILL_CONDITION_SELL_LIMIT, GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN
+from v2realbot.config import STRATVARS_UNCHANGEABLES, ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, ACCOUNT1_LIVE_API_KEY, ACCOUNT1_LIVE_SECRET_KEY, DATA_DIR,BT_FILL_CONS_TRADES_REQUIRED,BT_FILL_LOG_SURROUNDING_TRADES,BT_FILL_CONDITION_BUY_LIMIT,BT_FILL_CONDITION_SELL_LIMIT, GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN, MEDIA_DIRECTORY
 import importlib
 from alpaca.trading.requests import GetCalendarRequest
 from alpaca.trading.client import TradingClient
@@ -35,6 +35,8 @@ import v2realbot.strategyblocks.indicators.custom as ci
 from v2realbot.strategyblocks.inits.init_indicators import initialize_dynamic_indicators
 from v2realbot.strategyblocks.indicators.indicators_hub import populate_dynamic_indicators
 from v2realbot.interfaces.backtest_interface import BacktestInterface
+import os
+from v2realbot.reporting.metricstoolsimage import generate_trading_report_image
 
 #from pyinstrument import Profiler
 #adding lock to ensure thread safety of TinyDB (in future will be migrated to proper db)
@@ -332,6 +334,12 @@ def capsule(target: object, db: object, inter_batch_params: dict = None):
                 archive_runner(runner=i, strat=target, inter_batch_params=inter_batch_params)
                 #mazeme runner po skonceni instance
                 db.runners.remove(i)
+                #vytvoreni report image pro RUNNER
+                try:
+                    generate_trading_report_image(runner_ids=[str(i.id)])
+                    print("DAILY REPORT IMAGE CREATED")
+                except Exception as e:
+                    print("Nepodarilo se vytvorit report image", str(e)+format_exc())       
 
     print("Runner STOPPED")
 
@@ -499,6 +507,13 @@ def batch_run_manager(id: UUID, runReq: RunRequest, rundays: list[RunDay]):
             i.history += "\nBatch: "+str(batch_id)+" "+str(first)+" "+str(last)+" P:"+str(int(batch_abs_profit))+ "R:"+str(round(batch_rel_profit,4))
             #i.history += str(runner.__dict__)+"<BR>"
             db.save()
+
+    #vytvoreni report image pro batch
+    try:
+        generate_trading_report_image(batch_id=batch_id)
+        print("BATCH REPORT IMAGE CREATED")
+    except Exception as e:
+        print("Nepodarilo se vytvorit report image", str(e)+format_exc())       
 
 #stratin run
 def run_stratin(id: UUID, runReq: RunRequest, synchronous: bool = False, inter_batch_params: dict = None):
@@ -676,12 +691,6 @@ def populate_metrics_output_directory(strat: StrategyInstance, inter_batch_param
         res["profit"]["batch_sum_profit"] = int(inter_batch_params["batch_profit"])
         res["profit"]["batch_sum_rel_profit"] = inter_batch_params["batch_rel_profit"]
 
-    #rel_profit zprumerovane
-    res["profit"]["daily_rel_profit_avg"] = float(np.sum(strat.state.rel_profit_cum)) if len(strat.state.rel_profit_cum) > 0 else 0
-    #rel_profit rozepsane zisky
-    res["profit"]["daily_rel_profit_list"] = strat.state.rel_profit_cum
-
-
     #metrikz z prescribedTrades, pokud existuji
     try:
         long_profit = 0
@@ -696,39 +705,53 @@ def populate_metrics_output_directory(strat: StrategyInstance, inter_batch_param
         max_loss_time = None
         long_cnt = 0
         short_cnt = 0
+        sum_wins_profit= 0
+        sum_loss = 0
 
         if "prescribedTrades" in strat.state.vars:
             for trade in strat.state.vars.prescribedTrades:
-                if trade.profit_sum < max_loss:
-                    max_loss = trade.profit_sum
-                    max_loss_time = trade.last_update
-                if trade.profit_sum > max_profit:
-                    max_profit = trade.profit_sum
-                    max_profit_time = trade.last_update
-                if trade.status == TradeStatus.ACTIVATED and trade.direction == TradeDirection.LONG:
-                    long_cnt += 1
-                    if trade.profit is not None:
-                        long_profit += trade.profit
-                        if trade.profit < 0:
-                            long_losses += trade.profit
-                        if trade.profit > 0:
-                            long_wins += trade.profit
-                if trade.status == TradeStatus.ACTIVATED and trade.direction == TradeDirection.SHORT:
-                    short_cnt +=1
-                    if trade.profit is not None:
-                        short_profit += trade.profit
-                        if trade.profit < 0:
-                            short_losses += trade.profit
-                        if trade.profit > 0:
-                            short_wins += trade.profit
+                if trade.status == TradeStatus.CLOSED:
+                    if trade.profit_sum < max_loss:
+                        max_loss = trade.profit_sum
+                        max_loss_time = trade.last_update
+                    if trade.profit_sum > max_profit:
+                        max_profit = trade.profit_sum
+                        max_profit_time = trade.last_update
+                    if trade.direction == TradeDirection.LONG:
+                        long_cnt += 1
+                        if trade.profit is not None:
+                            long_profit += trade.profit
+                            if trade.profit < 0:
+                                long_losses += trade.profit
+                            if trade.profit > 0:
+                                long_wins += trade.profit
+                    if trade.direction == TradeDirection.SHORT:
+                        short_cnt +=1
+                        if trade.profit is not None:
+                            short_profit += trade.profit
+                            if trade.profit < 0:
+                                short_losses += trade.profit
+                            if trade.profit > 0:
+                                short_wins += trade.profit
+            sum_wins = long_wins + short_wins
+            sum_losses = long_losses + short_losses
+            #toto nejak narovnat, mozna diskutovat s Martinem nebo s Vercou
+
+            #zatim to neukazuje moc jasne - poznámka: ztráta by měla být jenom negativní profit, nikoliv nová veličina
+            #jediná vyjímka je u max.kumulativní ztráty (drawdown)
+            res["profit"]["sum_wins"] = sum_wins
+            res["profit"]["sum_losses"] = sum_losses
             res["profit"]["long_cnt"] = long_cnt
-            res["profit"]["short_cnt"] = short_cnt          
+            res["profit"]["short_cnt"] = short_cnt
+            #celkovy profit za long/short          
             res["profit"]["long_profit"] = round(long_profit,2)
             res["profit"]["short_profit"] = round(short_profit,2)
-            res["profit"]["max_profit"] = round(max_profit,2)
-            res["profit"]["max_profit_time"] = str(max_profit_time)
-            res["profit"]["max_loss"] = round(max_loss,2)
-            res["profit"]["max_loss_time"] = str(max_loss_time)
+            #maximalni kumulativni profit (tzn. peaky profitu)
+            res["profit"]["max_profit_cum"] = round(max_profit,2)
+            res["profit"]["max_profit_cum_time"] = str(max_profit_time)
+            #maximalni kumulativni ztrata (tzn. peaky v lossu)
+            res["profit"]["max_loss_cum"] = round(max_loss,2)
+            res["profit"]["max_loss_time_cum"] = str(max_loss_time)
             res["profit"]["long_wins"] = round(long_wins,2)
             res["profit"]["long_losses"] = round(long_losses,2)
             res["profit"]["short_wins"] = round(short_wins,2)
@@ -739,7 +762,13 @@ def populate_metrics_output_directory(strat: StrategyInstance, inter_batch_param
             rp_string = "RP" + str(float(np.sum(strat.state.rel_profit_cum))) if len(strat.state.rel_profit_cum) >0 else "noRP"
 
             ##summary pro rychle zobrazeni P333L-222 PT9:30 PL10:30
-            res["profit"]["sum"]="P"+str(int(max_profit))+"L"+str(int(max_loss))+" "+ mpt_string+" " + mlt_string + rp_string + " "+str(strat.state.rel_profit_cum)
+            res["profit"]["sum"]="P"+str(int(sum_wins))+"L"+str(int(sum_losses))+" "+"MCP"+str(int(max_profit))+"MCL(DD)"+str(int(max_loss))+" "+ mpt_string+" " + mlt_string + rp_string + " "+str(strat.state.rel_profit_cum)
+
+            #rel_profit zprumerovane
+            res["profit"]["daily_rel_profit_sum"] = float(np.sum(strat.state.rel_profit_cum)) if len(strat.state.rel_profit_cum) > 0 else 0
+            #rel_profit rozepsane zisky
+            res["profit"]["daily_rel_profit_list"] = strat.state.rel_profit_cum
+
             #vlozeni celeho listu
             res["prescr_trades"]=json.loads(json.dumps(strat.state.vars.prescribedTrades, default=json_serial))
 
@@ -1007,6 +1036,25 @@ def edit_archived_runners(runner_id: UUID, archChange: RunArchiveChange):
         print(errmsg)
         return -2, errmsg
 
+
+def delete_report_files(id):
+    
+    #ZATIM MAME JEN BASIC
+    #delete report images
+    image_file_name = f"{id}.png"
+    image_path = str(MEDIA_DIRECTORY / "basic" / image_file_name)
+    try:
+        if os.path.exists(image_path):
+            os.remove(image_path)
+            print(f"File {image_path} has been deleted.")
+            return (0, "deleted")
+        else:
+            print(f"No File {image_path} found to delte.")
+            return (1, "not found")
+    except Exception as e:
+        print(f"An error occurred while deleting the file: {e}")
+        return (-1, str(e))        
+
 #delete runner in archive and archive detail and runner logs
 #predelano do JEDNE TRANSAKCE
 def delete_archived_runners_byIDs(ids: list[UUID]):
@@ -1016,6 +1064,19 @@ def delete_archived_runners_byIDs(ids: list[UUID]):
         for id in ids:
             c = conn.cursor()
             print(str(id))
+
+           # Get batch_id for the current runner_id
+            c.execute("SELECT batch_id FROM runner_header WHERE runner_id = ?", (str(id),))
+            batch_id = c.fetchone()
+            if batch_id:
+                batch_id = batch_id[0]
+                # Check if this is the last record with the given batch_id
+                c.execute("SELECT COUNT(*) FROM runner_header WHERE batch_id = ?", (batch_id,))
+                count = c.fetchone()[0]
+                if count == 1:
+                    # If it's the last record, call delete_report_files
+                    delete_report_files(batch_id)
+
             resh = c.execute(f"DELETE from runner_header WHERE runner_id='{str(id)}';")
             print("header deleted",resh.rowcount)
             resd = c.execute(f"DELETE from runner_detail WHERE runner_id='{str(id)}';")
@@ -1025,6 +1086,9 @@ def delete_archived_runners_byIDs(ids: list[UUID]):
             out.append(str(id) + ":   " + str(resh.rowcount) + " " + str(resd.rowcount) + " " + str(resl.rowcount))
             conn.commit()
             print("commit")
+
+            delete_report_files(id)
+
         # if resh.rowcount == 0 or resd.rowcount == 0:
         #     return -1, "not found "+str(resh.rowcount) + " " + str(resd.rowcount) + " " + str(resl.rowcount)
         return 0, out
@@ -1044,6 +1108,15 @@ def delete_archive_header_byID(id: UUID):
         res = execute_with_retry(c,statement)
         conn.commit()
         print("deleted", res.rowcount)
+        #delete report images
+        image_file_name = f"report_{id}.png"
+        image_path = str(MEDIA_DIRECTORY / image_file_name)
+        try:
+            if os.path.exists(image_path):
+                os.remove(image_path)
+                print(f"File {image_path} has been deleted.")
+        except Exception as e:
+            print(f"An error occurred while deleting the file: {e}")  
     finally:
         pool.release_connection(conn)
     return res.rowcount

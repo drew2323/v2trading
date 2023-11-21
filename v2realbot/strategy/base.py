@@ -28,6 +28,7 @@ from uuid import UUID
 from rich import print as printnow
 from collections import defaultdict
 import v2realbot.strategyblocks.activetrade.sl.optimsl as optimsl
+from tqdm import tqdm
 
 if PROFILING_NEXT_ENABLED:
     from pyinstrument import Profiler
@@ -418,40 +419,42 @@ class Strategy:
         
         #main strat loop
         print(self.name, "Waiting for DATA")
-        while True:
-            try:
-                #block 5s, after that check signals
-                item = self.q1.get(timeout=HEARTBEAT_TIMEOUT)
-                #printnow(current_thread().name, "Items waiting in queue:", self.q1.qsize())
-            except queue.Empty:
-                #check signals
-                if self.se.is_set():
-                    print(current_thread().name, "Stopping signal")
+        with tqdm(total=self.q1.qsize()) as pbar:
+            while True:
+                try:
+                    #block 5s, after that check signals
+                    item = self.q1.get(timeout=HEARTBEAT_TIMEOUT)
+                    #printnow(current_thread().name, "Items waiting in queue:", self.q1.qsize())
+                except queue.Empty:
+                    #check signals
+                    if self.se.is_set():
+                        print(current_thread().name, "Stopping signal")
+                        break
+                    if self.pe.is_set():
+                        print(current_thread().name, "Paused.")
+                        continue
+                    else:
+                        print(current_thread().name, "HEARTBEAT - no trades or signals")
+                        continue
+                #prijde posledni zaznam nebo stop event signal 
+                if item == "last" or self.se.is_set():
+                    print(current_thread().name, "stopping")
                     break
-                if self.pe.is_set():
+                elif self.pe.is_set():
                     print(current_thread().name, "Paused.")
                     continue
-                else:
-                    print(current_thread().name, "HEARTBEAT - no trades or signals")
-                    continue
-            #prijde posledni zaznam nebo stop event signal 
-            if item == "last" or self.se.is_set():
-                print(current_thread().name, "stopping")
-                break
-            elif self.pe.is_set():
-                print(current_thread().name, "Paused.")
-                continue
-            #self.state.iter_log(event="INGEST",msg="New data ingested", item=item)
-            print("New data ingested", item)
-            print("bars list - previous", self.state.bars)
-            #TODO sem pridat ochranu kulometu 
-            #pokud je updatetime aktualniho baru mensi nez LIMIT a nejde o potvrzovaci bar
-            #tak jej vyhodit
-            #zabraní se tím akcím na než bych stejně nešlo reagovat
-            #TODO jeste promyslet
-            
-            #calling main loop
-            self.strat_loop(item=item)
+                #self.state.iter_log(event="INGEST",msg="New data ingested", item=item)
+                print("New data ingested", item)
+                print("bars list - previous", self.state.bars)
+                #TODO sem pridat ochranu kulometu 
+                #pokud je updatetime aktualniho baru mensi nez LIMIT a nejde o potvrzovaci bar
+                #tak jej vyhodit
+                #zabraní se tím akcím na než bych stejně nešlo reagovat
+                #TODO jeste promyslet
+                
+                #calling main loop
+                self.strat_loop(item=item)
+                pbar.update(1)
 
         tlog(f"FINISHED")
         print(40*"*",self.mode, "STRATEGY ", self.name,"STOPPING",40*"*")

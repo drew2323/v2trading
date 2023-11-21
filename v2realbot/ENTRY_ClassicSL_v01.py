@@ -157,7 +157,7 @@ def init(state: StrategyState):
 
     today = time_to.date()
     several_days_ago = today - timedelta(days=40)
-    printanyway(f"{today=}",f"{several_days_ago=}")
+    #printanyway(f"{today=}",f"{several_days_ago=}")
     clientTrading = TradingClient(ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, raw_data=False)
     #get all market days from here to 40days ago
     calendar_request = GetCalendarRequest(start=several_days_ago,end=today)
@@ -174,13 +174,13 @@ def init(state: StrategyState):
             #history_datetime_to = zoneNY.localize(session.close)
             history_datetime_to = session.close
             break
-    printanyway("Previous Market Day Close:", history_datetime_to)
-    printanyway("Market day 40days ago Open:", history_datetime_from)
+    #printanyway("Previous Market Day Close:", history_datetime_to)
+    #printanyway("Market day 40days ago Open:", history_datetime_from)
 
-    printanyway(history_datetime_from, history_datetime_to)
+    #printanyway(history_datetime_from, history_datetime_to)
     #az do predchziho market dne dne
     state.dailyBars = get_historical_bars(state.symbol, history_datetime_from, history_datetime_to, TimeFrame.Day)
-    printanyway("daily bars FILLED", state.dailyBars)
+    #printanyway("daily bars FILLED", state.dailyBars)
     #zatim ukladame do extData - pro instant indicatory a gui
     state.extData["dailyBars"] = state.dailyBars
 

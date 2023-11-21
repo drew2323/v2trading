@@ -476,6 +476,8 @@ def batch_run_manager(id: UUID, runReq: RunRequest, rundays: list[RunDay]):
     note_from_run_request = runReq.note
     first = None
     last = None
+    first_frm = runReq.bt_from.strftime("%d.%m.")
+    last_frm = runReq.bt_to.strftime("%d.%m.")
     for day in rundays:
         cnt += 1
         if cnt == 1:
@@ -486,7 +488,7 @@ def batch_run_manager(id: UUID, runReq: RunRequest, rundays: list[RunDay]):
         print("Datum do", day.end)
         runReq.bt_from = day.start
         runReq.bt_to = day.end
-        runReq.note = f"Batch {batch_id} #{cnt}/{cnt_max} {day.name} N:{day.note} {note_from_run_request}"
+        runReq.note = f"{first_frm}-{last_frm} Batch {batch_id} #{cnt}/{cnt_max} {day.name} N:{day.note} {note_from_run_request}"
 
         #protoze jsme v ridicim vlaknu, poustime za sebou jednotlive stratiny v synchronnim modu
         res, id_val = run_stratin(id=id, runReq=runReq, synchronous=True, inter_batch_params=inter_batch_params)

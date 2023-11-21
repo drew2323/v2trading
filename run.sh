@@ -3,12 +3,12 @@
 # file: runstop.sh
 
 #----
-# Simple script to start / stop a python script in the background.
+# Simple script to start / stop / restart a python script in the background.
 #----
 
-#---- 
+#----
 # To Use:
-# Just run: "./startstop.sh". If the process is running it will stop it or it will start it if not.
+# Run "./run.sh start" to start, "./run.sh stop" to stop, and "./run.sh restart" to restart.
 #----
 
 #----BEGIN EDITABLE VARS----
@@ -28,62 +28,64 @@ PYTHON_TO_USE="python3"
 
 # If virtualenv specified & exists, using that version of python instead.
 if [ -d "$VIRTUAL_ENV_DIR" ]; then
-
-	PYTHON_TO_USE="$VIRTUAL_ENV_DIR/bin/python"
-
+    PYTHON_TO_USE="$VIRTUAL_ENV_DIR/bin/python"
 fi
 
-# If the .pid file doesn't exist (let's assume no processes are running)...
-if [ ! -e "$OUTPUT_PID_PATH/$OUTPUT_PID_FILE" ]; then
+start() {
+    if [ ! -e "$OUTPUT_PID_PATH/$OUTPUT_PID_FILE" ]; then
+        nohup "$PYTHON_TO_USE" ./$SCRIPT_TO_EXECUTE_PLUS_ARGS > strat.log 2>&1 & echo $! > "$OUTPUT_PID_PATH/$OUTPUT_PID_FILE"
+        echo "Started $SCRIPT_TO_EXECUTE_PLUS_ARGS @ Process: $!"
+        sleep .7
+        echo "Created $OUTPUT_PID_FILE file in $OUTPUT_PID_PATH dir"
+    else
+        echo "$SCRIPT_TO_EXECUTE_PLUS_ARGS is already running."
+    fi
+}
 
-	# If the running.pid file doesn't exists, create it, start PseudoChannel.py and add the PID to it.
-	nohup "$PYTHON_TO_USE" ./$SCRIPT_TO_EXECUTE_PLUS_ARGS > strat.log 2>&1 & echo $! > "$OUTPUT_PID_PATH/$OUTPUT_PID_FILE"
+stop() {
+    if [ -e "$OUTPUT_PID_PATH/$OUTPUT_PID_FILE" ]; then
+        the_pid=$(<$OUTPUT_PID_PATH/$OUTPUT_PID_FILE)
+        rm "$OUTPUT_PID_PATH/$OUTPUT_PID_FILE"
+        echo "Deleted $OUTPUT_PID_FILE file in $OUTPUT_PID_PATH dir"
+        kill "$the_pid"
+        COUNTER=1
+        while [ -e /proc/$the_pid ]
+        do
+            echo "$SCRIPT_TO_EXECUTE_PLUS_ARGS @: $the_pid is still running"
+            sleep .7
+            COUNTER=$[$COUNTER +1]
+            if [ $COUNTER -eq 20 ]; then
+                kill -9 "$the_pid"
+            fi
+            if [ $COUNTER -eq 40 ]; then
+                exit 1
+            fi
+        done
+        echo "$SCRIPT_TO_EXECUTE_PLUS_ARGS @: $the_pid has finished"
+    else
+        echo "$SCRIPT_TO_EXECUTE_PLUS_ARGS is not running."
+    fi
+}
 
-	echo "Started $SCRIPT_TO_EXECUTE_PLUS_ARGS @ Process: $!"
+restart() {
+    stop
+    sleep 1
+    start
+}
 
-	sleep .7
-
-	echo "Created $OUTPUT_PID_FILE file in $OUTPUT_PID_PATH dir"
-
-else
-
-	# If the running.pid exists, read it & try to kill the process if it exists, then delete it.
-	the_pid=$(<$OUTPUT_PID_PATH/$OUTPUT_PID_FILE)
-
-	rm "$OUTPUT_PID_PATH/$OUTPUT_PID_FILE"
-
-	echo "Deleted $OUTPUT_PID_FILE file in $OUTPUT_PID_PATH dir"
-
-	kill "$the_pid"
-
-	COUNTER=1
-
-	while [ -e /proc/$the_pid ]
-	
-	do
-
-	    echo "$SCRIPT_TO_EXECUTE_PLUS_ARGS @: $the_pid is still running"
-
-	    sleep .7
-
-	    COUNTER=$[$COUNTER +1]
-
-	    if [ $COUNTER -eq 20 ]; then
-
-	    	kill -9 "$the_pid"
-
-	    fi
-
-	    if [ $COUNTER -eq 40 ]; then
-
-	    	exit 1
-
-	    fi
-
-	done
-
-	echo "$SCRIPT_TO_EXECUTE_PLUS_ARGS @: $the_pid has finished"
-
-fi
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        restart
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+esac
 
 exit 0

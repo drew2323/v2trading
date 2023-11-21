@@ -234,6 +234,7 @@
                         <button id="button_stopall" class="btn btn-outline-success btn-sm">Stop All</button>
                         <button id="button_refresh" class="refresh btn btn-outline-success btn-sm">Refresh</button>
                         <button id="button_connect" class="btn btn-outline-success btn-sm">Connect</button>
+                        <button id="button_show_log" class="btn btn-outline-success btn-sm">Log</button>
                     </div>
                     <div>status info</div>
                     <table id="runnerTable" class="table-striped table dataTable" style="width:100%; border-color: #dce1dc;">
@@ -362,6 +363,29 @@
                                 </div>
                             </div>
                         </form>
+                    </div>
+                </div>
+                <div id="logModal" class="modal fade" style="--bs-modal-width: 825px;">
+                    <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h4 class="modal-title"><i class="fa fa-plus"></i>Log</h4>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="form-group">
+                                        <label for="logHere" class="form-label">Log</label>
+                                        <div id="log-container">
+                                            <pre id="log-content"></pre>
+                                        </div>
+                                        <!-- <input type="text" class="form-control" id="delidarchive" name="delidarchive" placeholder="id">			 -->
+                                    </div>				
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-primary" id="logRefreshButton"  value="Refresh">Refresh</button>
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
                     </div>
                 </div>
                 <div id="editModalArchive" class="modal fade">

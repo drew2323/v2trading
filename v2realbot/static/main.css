@@ -591,6 +591,23 @@ pre {
   background-color: #3e8e41;
 } */
 
+#log-container {
+  width: 800px; /* Adjust based on the average line length and font size */
+  height: auto;
+  max-height: 800px; /* Adjust the height as needed */
+  overflow-y: scroll; /* Add scroll for overflow */
+  border: 1px solid #ccc;
+  padding: 5px;
+  /* background-color: #f9f9f9; */
+}
+
+#log-content {
+  font-family: "Courier New", monospace;
+  font-size: 14px; /* Adjust font size as needed */
+  line-height: 1.5; /* Adjust line spacing as needed */
+}
+
+
 .recordItem:after {
   content: "";
   display: table;

@@ -6,6 +6,9 @@ from pathlib import Path
 #directory for generated images and basic reports
 MEDIA_DIRECTORY = Path(__file__).parent.parent / "media"
 
+LOG_FILE = Path(__file__).parent.parent / "strat.log"
+
+
 #'0.0.0.0',
 #currently only prod server has acces to LIVE
 PROD_SERVER_HOSTNAMES = ['tradingeastcoast','David-MacBook-Pro.local'] #,'David-MacBook-Pro.local'

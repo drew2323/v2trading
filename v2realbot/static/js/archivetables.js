@@ -453,6 +453,41 @@ $(document).ready(function () {
         })
     });
 
+    
+    function refresh_logfile() {
+        $.ajax({
+            url:"/log?lines=30",
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader('X-API-Key',
+                API_KEY); },
+            method:"GET",
+            contentType: "application/json",
+            dataType: "json",
+            success:function(response){
+                if (response.lines.length == 0) {
+                    $('#log-content').html("no records");
+                }
+                else {
+                    $('#log-content').html(response.lines.join('\n'));	
+                }	
+            },
+            error: function(xhr, status, error) {
+                var err = eval("(" + xhr.responseText + ")");
+                window.alert(JSON.stringify(xhr));
+            }
+        })        
+    }
+
+    //button to query log
+    $('#logRefreshButton').click(function () {
+        refresh_logfile()
+    });
+
+    //button to open log modal
+    $('#button_show_log').click(function () {
+        window.$('#logModal').modal('show');
+        refresh_logfile()
+    });
 
     //delete button
     $('#button_delete_arch').click(function () {

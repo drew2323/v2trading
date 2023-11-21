@@ -1,6 +1,6 @@
 import os,sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from v2realbot.config import WEB_API_KEY, DATA_DIR, MEDIA_DIRECTORY
+from v2realbot.config import WEB_API_KEY, DATA_DIR, MEDIA_DIRECTORY, LOG_FILE
 from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from datetime import datetime
 import os
@@ -501,6 +501,30 @@ def _get_archived_runner_log_byID(runner_id: UUID, timestamp_from: float, timest
         raise HTTPException(status_code=404, detail=f"No logs found with id: {runner_id} and between {timestamp_from} and {timestamp_to}")
 
 # endregion 
+# A simple function to read the last lines of a file
+def tail(file_path, n=10, buffer_size=1024):
+    with open(file_path, 'rb') as f:
+        f.seek(0, 2)  # Move to the end of the file
+        file_size = f.tell()
+        lines = []
+        buffer = bytearray()
+
+        for i in range(file_size // buffer_size + 1):
+            read_start = max(-buffer_size * (i + 1), -file_size)
+            f.seek(read_start, 2)
+            read_size = min(buffer_size, file_size - buffer_size * i)
+            buffer[0:0] = f.read(read_size)  # Prepend to buffer
+
+            if buffer.count(b'\n') >= n + 1:
+                break
+
+        lines = buffer.decode(errors='ignore').splitlines()[-n:]
+        return lines
+
+@app.get("/log", dependencies=[Depends(api_key_auth)])
+def read_log(lines: int = 10):
+    log_path = LOG_FILE
+    return {"lines": tail(log_path, lines)}
 
 #get alpaca history bars
 @app.get("/history_bars/", dependencies=[Depends(api_key_auth)])

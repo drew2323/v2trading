@@ -127,7 +127,7 @@ def init(state: StrategyState):
     local_dict_bars = {key: state.bars[key] for key in state.bars.keys() if key != "time"}
 
     state.ind_mapping = {**local_dict_inds, **local_dict_bars}
-    printanyway("IND MAPPING DONE:", state.ind_mapping)
+    print("IND MAPPING DONE:", state.ind_mapping)
 
     #30 DAYS historicall data fill - pridat do base pokud se osvedci
     # -1 je vždy včerejšek v tomto případě

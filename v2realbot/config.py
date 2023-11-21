@@ -4,7 +4,7 @@ from appdirs import user_data_dir
 from pathlib import Path
 
 #directory for generated images and basic reports
-MEDIA_DIRECTORY = Path(__file__).parent.parent / "media"
+MEDIA_DIRECTORY = Path(__file__).parent.parent.parent / "media"
 
 LOG_FILE = Path(__file__).parent.parent / "strat.log"
 

@@ -37,7 +37,7 @@ from v2realbot.strategyblocks.indicators.indicators_hub import populate_dynamic_
 from v2realbot.interfaces.backtest_interface import BacktestInterface
 import os
 from v2realbot.reporting.metricstoolsimage import generate_trading_report_image
-
+import gc
 #from pyinstrument import Profiler
 #adding lock to ensure thread safety of TinyDB (in future will be migrated to proper db)
 lock = Lock()
@@ -523,6 +523,8 @@ def batch_run_manager(id: UUID, runReq: RunRequest, rundays: list[RunDay]):
 
     except Exception as e:
         print("Nepodarilo se vytvorit report image", str(e)+format_exc())       
+
+    gc.collect()
 
 #stratin run
 def run_stratin(id: UUID, runReq: RunRequest, synchronous: bool = False, inter_batch_params: dict = None):

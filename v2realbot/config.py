@@ -6,8 +6,8 @@ from pathlib import Path
 #directory for generated images and basic reports
 MEDIA_DIRECTORY = Path(__file__).parent.parent.parent / "media"
 
+#location of strat.log - it is used to fetch by gui
 LOG_FILE = Path(__file__).parent.parent / "strat.log"
-
 
 #'0.0.0.0',
 #currently only prod server has acces to LIVE

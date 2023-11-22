@@ -22,7 +22,8 @@ from rich import print
 import queue
 from alpaca.trading.models import Calendar
 from tqdm import tqdm
-
+import time
+from traceback import format_exc
 """
     Trade offline data streamer, based on Alpaca historical data.
 """
@@ -101,6 +102,19 @@ class Trade_Offline_Streamer(Thread):
         #REFACTOR STARTS HERE
         #print(f"{self.time_from=} {self.time_to=}")
               
+        def get_calendar_with_retry(self, calendar_request, max_retries=3, delay=4):
+            attempts = 0
+            while attempts < max_retries:
+                try:
+                    cal_dates = self.clientTrading.get_calendar(calendar_request)
+                    return cal_dates
+                except Exception as e:
+                    attempts += 1
+                    if attempts >= max_retries:
+                        raise
+                    print(f"Attempt {attempts}: Error occurred - {e}. Retrying in {delay} seconds...")
+                    time.sleep(delay)
+
         if OFFLINE_MODE:
             #just one day - same like time_from
             den = str(self.time_to.date())
@@ -108,8 +122,15 @@ class Trade_Offline_Streamer(Thread):
             cal_dates = [bt_day]
         else:
             calendar_request = GetCalendarRequest(start=self.time_from,end=self.time_to)
-            cal_dates = self.clientTrading.get_calendar(calendar_request)
-            #ic(cal_dates)
+
+            #toto zatim workaround - dat do retry funkce a obecne vymyslet exception handling, abych byl notifikovan a bylo videt okamzite v logu a na frontendu
+            try:
+                cal_dates = self.clientTrading.get_calendar(calendar_request)
+            except Exception as e:
+                print("CHYBA - retrying in 4s: " + str(e) + format_exc())
+                time.sleep(5)
+                cal_dates = self.clientTrading.get_calendar(calendar_request)
+
             #zatim podpora pouze main session
 
         #zatim podpora pouze 1 symbolu, predelat na froloop vsech symbolu ze symbpole

@@ -210,6 +210,7 @@ $(document).ready(function () {
     $('#button_runagain_arch').attr('disabled','disabled');
     $('#button_show_arch').attr('disabled','disabled');
     $('#button_delete_arch').attr('disabled','disabled');
+    $('#button_analyze').attr('disabled','disabled');
     $('#button_edit_arch').attr('disabled','disabled');
     $('#button_compare_arch').attr('disabled','disabled');
 
@@ -218,6 +219,7 @@ $(document).ready(function () {
         if ($(this).hasClass('selected')) {
             //$(this).removeClass('selected');
             $('#button_show_arch').attr('disabled','disabled');
+            $('#button_analyze').attr('disabled','disabled');
             $('#button_runagain_arch').attr('disabled','disabled');
             $('#button_delete_arch').attr('disabled','disabled');
             $('#button_edit_arch').attr('disabled','disabled');
@@ -225,6 +227,7 @@ $(document).ready(function () {
         } else {
             //archiveRecords.$('tr.selected').removeClass('selected');
             $(this).addClass('selected');
+            $('#button_analyze').attr('disabled',false);
             $('#button_show_arch').attr('disabled',false);
             $('#button_runagain_arch').attr('disabled',false);
             $('#button_delete_arch').attr('disabled',false);
@@ -413,12 +416,50 @@ $(document).ready(function () {
         }
     });
 
+    //generate batch optimization cutoff (predelat na button pro obecne analyzy batche)
+    $('#button_analyze').click(function () {
+        row = archiveRecords.row('.selected').data();
+        if (row == undefined || row.batch_id == undefined) {
+            return
+        }
+        console.log(row)
+        $('#button_analyze').attr('disabled','disabled');
+        $.ajax({
+            url:"/batches/optimizecutoff/"+row.batch_id,
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader('X-API-Key',
+                    API_KEY); },
+            method:"POST",
+            xhrFields: {
+                responseType: 'blob'
+            },
+            contentType: "application/json",
+            processData: false,
+            data: JSON.stringify(row.batch_id),
+            success:function(blob){		
+                var url = window.URL || window.webkitURL;
+                console.log("vraceny obraz", blob)
+                console.log("url",url.createObjectURL(blob))
+                display_image(url.createObjectURL(blob))
+                $('#button_analyze').attr('disabled',false);
+            },
+            error: function(xhr, status, error) {
+                console.log("proc to skace do erroru?")
+                //window.alert(JSON.stringify(xhr));
+                console.log(JSON.stringify(xhr));
+                $('#button_analyze').attr('disabled',false);             
+            }
+        })
+    });
+
+
     //generate report button
     $('#button_report').click(function () {
         rows = archiveRecords.rows('.selected');
         if (rows == undefined) {
             return
         }
+        $('#button_report').attr('disabled','disabled');
         runnerIds = []
         if(rows.data().length > 0 ) {
             // Loop through the selected rows and display an alert with each row's ID
@@ -444,11 +485,13 @@ $(document).ready(function () {
                 console.log("vraceny obraz", blob)
                 console.log("url",url.createObjectURL(blob))
                 display_image(url.createObjectURL(blob))
+                $('#button_report').attr('disabled',false);
             },
             error: function(xhr, status, error) {
                 console.log("proc to skace do erroru?")
                 //window.alert(JSON.stringify(xhr));
-                console.log(JSON.stringify(xhr));             
+                console.log(JSON.stringify(xhr));
+                $('#button_report').attr('disabled',false);             
             }
         })
     });

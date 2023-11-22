@@ -33,8 +33,9 @@ from time import sleep
 import v2realbot.reporting.metricstools as mt
 from v2realbot.reporting.metricstoolsimage import generate_trading_report_image
 from traceback import format_exc
+from v2realbot.reporting.optimizecutoffs import find_optimal_cutoff
 #from async io import Queue, QueueEmpty
-                   
+#              
 # install()
 # ic.configureOutput(includeContext=True)
 # def threadName():
@@ -560,6 +561,20 @@ def _generate_report_image(runner_ids: list[UUID]):
             raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error: {res}:{id}")
     except Exception as e:
             raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error: {str(e)}" + format_exc())        
+
+
+#TODO toto bude zaklad pro obecnou funkci, ktera bude volat ruzne analyzy
+#vstupem bude obecny objekt, ktery ponese nazev analyzy + atributy
+@app.post("/batches/optimizecutoff/{batch_id}", dependencies=[Depends(api_key_auth)], responses={200: {"content": {"image/png": {}}}})
+def _generate_analysis(batch_id: str):
+    try:
+        res, stream = find_optimal_cutoff(batch_id=batch_id, steps=50, stream=True)
+        if res == 0: return StreamingResponse(stream, media_type="image/png",headers={"Content-Disposition": "attachment; filename=optimizedcutoff.png"})
+        elif res < 0:
+            raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error: {res}:{id}")
+    except Exception as e:
+            raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error: {str(e)}" + format_exc())        
+
 
 #TestList APIS - do budoucna predelat SQL do separatnich funkci
 @app.post('/testlists/', dependencies=[Depends(api_key_auth)])

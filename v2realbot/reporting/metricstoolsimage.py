@@ -171,9 +171,11 @@ def generate_trading_report_image(runner_ids: list = None, batch_id: str = None,
     #     'patch.edgecolor': dark_finance_theme['accent'],
     # })
 
-
-    # Create a combined figure for all plots 11,7 ideal na 3,4
-    fig, axs = plt.subplots(3, 4, figsize=(12, 7))
+    if len(closed_trades) > 100:
+        fig, axs = plt.subplots(3, 4, figsize=(15, 10))        
+    else:
+        # Create a combined figure for all plots 11,7 ideal na 3,4
+        fig, axs = plt.subplots(3, 4, figsize=(12, 7))
 
     #TITLE
     title = ""

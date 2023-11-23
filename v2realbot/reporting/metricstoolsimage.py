@@ -37,7 +37,8 @@ def generate_trading_report_image(runner_ids: list = None, batch_id: str = None,
             return -1, f"no batch {batch_id} found"
         
     trades = []
-
+    symbol = None
+    mode = None
     sada_list = []
     for id in runner_ids:
         #get runner
@@ -50,6 +51,8 @@ def generate_trading_report_image(runner_ids: list = None, batch_id: str = None,
         #print(sada)
         sada_list.append(sada)
     
+        symbol = sada.symbol
+        mode = sada.mode
         # Parse trades
 
         trades_dicts =  sada.metrics["prescr_trades"]
@@ -61,9 +64,6 @@ def generate_trading_report_image(runner_ids: list = None, batch_id: str = None,
             trades.append(Trade(**trade_dict))
 
         print(trades)
-
-    symbol = sada.symbol
-    mode = sada.mode
 
     #get from to dates
     #calculate start a end z min a max dni - jelikoz muze byt i seznam runner_ids a nejenom batch, pripadne testovaci sady

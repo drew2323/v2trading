@@ -469,10 +469,10 @@ def batch_run_manager(id: UUID, runReq: RunRequest, rundays: list[RunDay]):
     print("Entering BATCH RUN MANAGER")
     print("generated batch_ID", batch_id)
 
-    #sort rundays according to start atttibute
-    print("RUNDAYS before sort:", rundays)
+    #SORT RUNDAYS according to start atttibute
+    #print("RUNDAYS before sort:", rundays)
     rundays.sort(key=lambda x: x.start)
-    print("RUNDAYS after sort:", rundays)
+    #print("RUNDAYS after sort:", rundays)
 
     cnt_max = len(rundays)
     cnt = 0

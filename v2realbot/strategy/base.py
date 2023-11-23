@@ -408,6 +408,8 @@ class Strategy:
         #data loader thread
         self.dataloader.start()
 
+        print("jsme za spustenim loaderu")
+
         if self.mode == Mode.LIVE or self.mode == Mode.PAPER:
             #live notification thread
             self.order_notifs.start()

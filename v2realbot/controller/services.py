@@ -381,7 +381,7 @@ def run_batch_stratin(id: UUID, runReq: RunRequest):
 
     def get_market_days_in_interval(datefrom, dateto, note = None, id = None):
         #getting dates from calendat
-        clientTrading = TradingClient(ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, raw_data=False)        
+        clientTrading = TradingClient(ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, raw_data=False, paper=True)        
         calendar_request = GetCalendarRequest(start=datefrom,end=dateto)
         cal_dates = clientTrading.get_calendar(calendar_request)
         #list(Calendar)
@@ -469,6 +469,11 @@ def batch_run_manager(id: UUID, runReq: RunRequest, rundays: list[RunDay]):
     print("Entering BATCH RUN MANAGER")
     print("generated batch_ID", batch_id)
 
+    #sort rundays according to start atttibute
+    print("RUNDAYS before sort:", rundays)
+    rundays.sort(key=lambda x: x.start)
+    print("RUNDAYS after sort:", rundays)
+
     cnt_max = len(rundays)
     cnt = 0
     #promenna pro sdileni mezi runy jednotlivych batchů (např. daily profit)
@@ -476,14 +481,15 @@ def batch_run_manager(id: UUID, runReq: RunRequest, rundays: list[RunDay]):
     note_from_run_request = runReq.note
     first = None
     last = None
-    first_frm = runReq.bt_from.strftime("%d.%m.")
-    last_frm = runReq.bt_to.strftime("%d.%m.")
+
+    # Find the minimum start date and maximum end date to add to Note
+    first = min(runday.start for runday in rundays)
+    last = max(runday.end for runday in rundays)
+    first_frm = first.strftime("%d.%m.")
+    last_frm = last.strftime("%d.%m.")
+
     for day in rundays:
         cnt += 1
-        if cnt == 1:
-            first = day.start
-        elif cnt == cnt_max:
-            last = day.end
         print("Datum od", day.start)
         print("Datum do", day.end)
         runReq.bt_from = day.start
@@ -509,7 +515,7 @@ def batch_run_manager(id: UUID, runReq: RunRequest, rundays: list[RunDay]):
 
     for i in db.stratins:
         if str(i.id) == str(id):
-            i.history += "\nBatch: "+str(batch_id)+" "+str(first)+" "+str(last)+" P:"+str(int(batch_abs_profit))+ "R:"+str(round(batch_rel_profit,4))
+            i.history += "\nBatch: "+str(batch_id)+" "+str(first_frm)+" "+str(last_frm)+" P:"+str(int(batch_abs_profit))+ "R:"+str(round(batch_rel_profit,4))
             #i.history += str(runner.__dict__)+"<BR>"
             db.save()
 
@@ -791,7 +797,7 @@ def populate_metrics_output_directory(strat: StrategyInstance, inter_batch_param
 #archives runner and details
 def archive_runner(runner: Runner, strat: StrategyInstance, inter_batch_params: dict = None):
     results_metrics = dict()
-    print("inside archive_runner")
+    print("inside store archive_runner")
     try:
         if strat.bt is not None:
             bp_from = strat.bt.bp_from

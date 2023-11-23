@@ -37,13 +37,9 @@ def generate_trading_report_image(runner_ids: list = None, batch_id: str = None,
             return -1, f"no batch {batch_id} found"
         
     trades = []
-    cnt_max = len(runner_ids) 
-    cnt = 0
-    #zatim zjistujeme start a end z min a max dni - jelikoz muze byt i seznam runner_ids a nejenom batch
-    end_date = None
-    start_date = None
+
+    sada_list = []
     for id in runner_ids:
-        cnt += 1
         #get runner
         res, sada =cs.get_archived_runner_header_byID(id)
         if res != 0:
@@ -51,12 +47,9 @@ def generate_trading_report_image(runner_ids: list = None, batch_id: str = None,
             return -1, f"no runner {id} found"
         
         print("archrunner")
-        print(sada)
+        #print(sada)
+        sada_list.append(sada)
     
-        if cnt == 1:
-            start_date = sada.bt_from if sada.mode in [Mode.BT,Mode.PREP] else sada.started
-        if cnt == cnt_max:
-            end_date = sada.bt_to if sada.mode in [Mode.BT or Mode.PREP] else sada.stopped
         # Parse trades
 
         trades_dicts =  sada.metrics["prescr_trades"]
@@ -70,6 +63,17 @@ def generate_trading_report_image(runner_ids: list = None, batch_id: str = None,
         print(trades)
 
     symbol = sada.symbol
+    mode = sada.mode
+
+    #get from to dates
+    #calculate start a end z min a max dni - jelikoz muze byt i seznam runner_ids a nejenom batch, pripadne testovaci sady
+    if mode in [Mode.BT,Mode.PREP]:
+        start_date = min(runner.bt_from for runner in sada_list)
+        end_date = max(runner.bt_to for runner in sada_list)
+    else:
+        start_date = min(runner.started for runner in sada_list)
+        end_date = max(runner.stopped for runner in sada_list) 
+
     #hour bars for backtested period
     print(start_date,end_date)
     bars= get_historical_bars(symbol, start_date, end_date, TimeFrame.Hour)
@@ -542,5 +546,5 @@ def generate_trading_report_image(runner_ids: list = None, batch_id: str = None,
 if __name__ == '__main__':
     # id_list = ["e8938b2e-8462-441a-8a82-d823c6a025cb"]
     # generate_trading_report_image(runner_ids=id_list)
-    batch_id = "90973e57"
+    batch_id = "05cb35e3"
     generate_trading_report_image(batch_id=batch_id)

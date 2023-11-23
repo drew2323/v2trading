@@ -50,7 +50,10 @@ class Trade_Offline_Streamer(Thread):
         pass
 
     def run(self):
-        self.main()
+        try:
+            self.main()
+        except Exception as e:
+            print("ERROR IN TRADE OFFLINE STREAMER"+str(e)+format_exc())
         # #create new asyncio loop in the thread
         # loop = asyncio.new_event_loop()
         # asyncio.set_event_loop(loop)

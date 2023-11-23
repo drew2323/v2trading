@@ -509,6 +509,17 @@ class Strategy:
         #     self.order_notifs.stop()
         # self.dataloader.stop()
 
+    def release(self):
+        #release large variables
+        self.bt = None
+        self.btdata= None
+        self.dataloader = None
+        self.state = None
+        self.rtqueue = None
+        self._streams = None
+
+
+
     #for order updates from LIVE or BACKTEST
     #updates are sent only for SYMBOL of strategy
 

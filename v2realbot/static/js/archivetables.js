@@ -210,6 +210,7 @@ $(document).ready(function () {
     $('#button_runagain_arch').attr('disabled','disabled');
     $('#button_show_arch').attr('disabled','disabled');
     $('#button_delete_arch').attr('disabled','disabled');
+    $('#button_delete_batch').attr('disabled','disabled');
     $('#button_analyze').attr('disabled','disabled');
     $('#button_edit_arch').attr('disabled','disabled');
     $('#button_compare_arch').attr('disabled','disabled');
@@ -222,6 +223,7 @@ $(document).ready(function () {
             $('#button_analyze').attr('disabled','disabled');
             $('#button_runagain_arch').attr('disabled','disabled');
             $('#button_delete_arch').attr('disabled','disabled');
+            $('#button_delete_batch').attr('disabled','disabled');
             $('#button_edit_arch').attr('disabled','disabled');
             $('#button_compare_arch').attr('disabled','disabled');
         } else {
@@ -231,6 +233,7 @@ $(document).ready(function () {
             $('#button_show_arch').attr('disabled',false);
             $('#button_runagain_arch').attr('disabled',false);
             $('#button_delete_arch').attr('disabled',false);
+            $('#button_delete_batch').attr('disabled',false);
             $('#button_edit_arch').attr('disabled',false);
             $('#button_compare_arch').attr('disabled',false);
         }
@@ -532,7 +535,56 @@ $(document).ready(function () {
         refresh_logfile()
     });
 
-    //delete button
+    //delete batch button
+    $('#button_delete_batch').click(function () {
+        row = archiveRecords.row('.selected').data();
+        if (row == undefined || row.batch_id == undefined) {
+            return
+        }
+        $('#batch_id_del').val(row.batch_id);
+
+        rows = archiveRecords.rows('.selected');
+        if (rows == undefined) {
+            return
+        }
+        $('#listofids').html("");
+        window.$('#delModalBatch').modal('show');
+    });
+
+    //delete batch modal
+    $("#delModalBatch").on('submit','#delFormBatch', function(event){
+        event.preventDefault();
+        row = archiveRecords.row('.selected').data();
+        if (row == undefined || row.batch_id == undefined) {
+            return
+        }
+        $.ajax({
+            url:"/archived_runners/batch/"+row.batch_id,
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader('X-API-Key',
+                    API_KEY); },
+            method:"DELETE",
+            contentType: "application/json",
+            dataType: "json",
+            data: JSON.stringify(row.batch_id),
+            success:function(data){				
+                $('#delFormBatch')[0].reset();
+                window.$('#delModalBatch').modal('hide');				
+                $('#button_delete_batch').attr('disabled', false);
+                //console.log(data)
+                archiveRecords.ajax.reload();
+            },
+            error: function(xhr, status, error) {
+                var err = eval("(" + xhr.responseText + ")");
+                window.alert(JSON.stringify(xhr));
+                console.log(JSON.stringify(xhr));
+                $('#button_delete_batch').attr('disabled', false);
+                archiveRecords.ajax.reload();
+            }
+        })
+    });
+
+    //delete arch button
     $('#button_delete_arch').click(function () {
         rows = archiveRecords.rows('.selected');
         if (rows == undefined) {

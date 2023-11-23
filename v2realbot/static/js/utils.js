@@ -902,6 +902,9 @@ Mousetrap.bind('e', function() {
 Mousetrap.bind('d', function() { 
     $( "#button_delete_arch" ).trigger( "click" );
 });
+Mousetrap.bind('b', function() { 
+  $( "#button_delete_batch" ).trigger( "click" );
+});
 Mousetrap.bind('c', function() { 
     $( "#button_copy" ).trigger( "click" );
 });

@@ -343,7 +343,7 @@ def capsule(target: object, db: object, inter_batch_params: dict = None):
                         print(f"Daily report ERROR - {val}")
                 except Exception as e:
                     print("Nepodarilo se vytvorit report image", str(e)+format_exc())       
-
+        target.release()
     print("Runner STOPPED")
 
 #vrátí konkrétní sadu testlistu
@@ -519,6 +519,8 @@ def batch_run_manager(id: UUID, runReq: RunRequest, rundays: list[RunDay]):
             #i.history += str(runner.__dict__)+"<BR>"
             db.save()
 
+    inter_batch_params = None
+    runReq = None
     #vytvoreni report image pro batch
     try:
         res, val = generate_trading_report_image(batch_id=batch_id)
@@ -1077,6 +1079,23 @@ def delete_report_files(id):
         print(f"An error occurred while deleting the file: {e}")
         return (-1, str(e))        
 
+#delete runners by BatchID
+#NOTE: Batch image is deleted on runners level - uvidime jak to bude moc overhead
+def delete_archived_runners_byBatchID(batch_id: str):
+        res, runner_ids = get_archived_runnerslist_byBatchID(batch_id)
+
+        if res != 0:
+            print(f"no batch {batch_id} found")
+            return -1, f"no batch {batch_id} found"
+        
+        res, val = delete_archived_runners_byIDs(runner_ids)
+
+        if res == 0:
+            return 0, batch_id
+        else:
+            print(f"error delete")
+            return res, f"ERROR deleting {batch_id} : {val}"
+
 #delete runner in archive and archive detail and runner logs
 #predelano do JEDNE TRANSAKCE
 def delete_archived_runners_byIDs(ids: list[UUID]):
@@ -1096,8 +1115,9 @@ def delete_archived_runners_byIDs(ids: list[UUID]):
                 c.execute("SELECT COUNT(*) FROM runner_header WHERE batch_id = ?", (batch_id,))
                 count = c.fetchone()[0]
                 if count == 1:
-                    # If it's the last record, call delete_report_files
+                    # If it's the last record, call delete_batch_report_files
                     delete_report_files(batch_id)
+                    print("Batch report file deleted")
 
             resh = c.execute(f"DELETE from runner_header WHERE runner_id='{str(id)}';")
             print("header deleted",resh.rowcount)

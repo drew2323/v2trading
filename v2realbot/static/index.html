@@ -302,6 +302,7 @@
                     <div id="controls">
                         <button id="button_edit_arch" class="btn btn-outline-success btn-sm">Edit(a)</button>
                         <button id="button_delete_arch" class="btn btn-outline-success btn-sm">Delete(d)</button>
+                        <button id="button_delete_batch" class="btn btn-outline-success btn-sm">Delete Batch(b)</button>
                         <button id="button_show_arch" class="btn btn-outline-success btn-sm">Show(w)</button>
                         <button id="button_refresh" class="refresh btn btn-outline-success btn-sm">Refresh</button>
                         <button id="button_compare_arch" class="refresh btn btn-outline-success btn-sm">Compare</button>
@@ -360,6 +361,28 @@
                                 </div>
                                 <div class="modal-footer">
                                     <input type="submit" name="delete" id="deletearchive" class="btn btn-primary" value="Delete" />
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div id="delModalBatch" class="modal fade">
+                    <div class="modal-dialog">
+                        <form method="post" id="delFormBatch">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h4 class="modal-title"><i class="fa fa-plus"></i> Delete Batch</h4>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="form-group">
+                                        <label for="batch_id_del" class="form-label">Batch ID</label>
+                                        <input type="text" class="form-control" id="batch_id_del" name="delidarchive" placeholder="batch id" readonly>
+                                    </div>				
+                                </div>
+                                <div class="modal-footer">
+                                    <input type="submit" name="delete" id="deletebatch" class="btn btn-primary" value="Delete" />
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                                 </div>
                             </div>

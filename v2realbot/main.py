@@ -440,6 +440,17 @@ def _delete_archived_runners_byIDs(runner_ids: list[UUID]):
     elif res < 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Error: {res}:{id}")
 
+#delete archive runner from header and detail
+@app.delete("/archived_runners/batch/{batch_id}", dependencies=[Depends(api_key_auth)], status_code=status.HTTP_200_OK)
+def _delete_archived_runners_byBatchID(batch_id: str):
+    res, id = cs.delete_archived_runners_byBatchID(batch_id=batch_id)
+    if res == 0: return id
+    elif res == -1:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Error: {res}:{id}")
+    else:
+        raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error not changed: {res}:{batch_id}:{id}")
+
+
 #WIP - TOM indicator preview from frontend
 #return indicator value for archived runner
 @app.put("/archived_runners/{runner_id}/previewindicator", dependencies=[Depends(api_key_auth)], status_code=status.HTTP_200_OK)

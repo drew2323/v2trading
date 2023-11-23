@@ -6,7 +6,7 @@ from v2realbot.utils.utils import AttributeDict, zoneNY, is_open_rush, is_close_
 from v2realbot.utils.tlog import tlog
 from v2realbot.utils.ilog import insert_log, insert_log_multiple_queue
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Order, Account
-from v2realbot.config import BT_DELAYS, get_key, HEARTBEAT_TIMEOUT, QUIET_MODE, LOG_RUNNER_EVENTS, ILOG_SAVE_LEVEL_FROM,PROFILING_NEXT_ENABLED, PROFILING_OUTPUT_DIR
+from v2realbot.config import BT_DELAYS, get_key, HEARTBEAT_TIMEOUT, QUIET_MODE, LOG_RUNNER_EVENTS, ILOG_SAVE_LEVEL_FROM,PROFILING_NEXT_ENABLED, PROFILING_OUTPUT_DIR, AGG_EXCLUDED_TRADES
 import queue
 #from rich import print
 from v2realbot.loader.aggregator import TradeAggregator2Queue, TradeAggregator2List, TradeAggregator
@@ -90,7 +90,8 @@ class Strategy:
             update_ltp: bool = False,
             align: StartBarAlign = StartBarAlign.ROUND,
             mintick: int = 0,
-            exthours: bool = False):
+            exthours: bool = False,
+            excludes: list = AGG_EXCLUDED_TRADES):
         
         ##TODO vytvorit self.datas_here containing dict - queue - SYMBOL - RecType - 
         ##zatim natvrdo
@@ -98,7 +99,7 @@ class Strategy:
         self.rectype = rectype
         self.state.rectype = rectype
         self.state.resolution = resolution
-        stream = TradeAggregator2Queue(symbol=symbol,queue=self.q1,rectype=rectype,resolution=resolution,update_ltp=update_ltp,align=align,mintick = mintick, exthours=exthours, minsize=minsize)
+        stream = TradeAggregator2Queue(symbol=symbol,queue=self.q1,rectype=rectype,resolution=resolution,update_ltp=update_ltp,align=align,mintick = mintick, exthours=exthours, minsize=minsize, excludes=excludes)
         self._streams.append(stream)
         self.dataloader.add_stream(stream)
 
@@ -418,7 +419,7 @@ class Strategy:
 
         
         #main strat loop
-        print(self.name, "Waiting for DATA")
+        print(self.name, "Waiting for DATA",self.q1.qsize())
         with tqdm(total=self.q1.qsize()) as pbar:
             while True:
                 try:

@@ -24,6 +24,7 @@ from alpaca.trading.models import Calendar
 from tqdm import tqdm
 import time
 from traceback import format_exc
+from collections import defaultdict
 """
     Trade offline data streamer, based on Alpaca historical data.
 """
@@ -40,6 +41,7 @@ class Trade_Offline_Streamer(Thread):
        self.time_from = time_from
        self.time_to = time_to
        self.btdata = btdata
+       self.cache_used = defaultdict(list)
  
     def add_stream(self, obj: TradeAggregator):
         self.streams.append(obj)
@@ -102,19 +104,6 @@ class Trade_Offline_Streamer(Thread):
         #REFACTOR STARTS HERE
         #print(f"{self.time_from=} {self.time_to=}")
               
-        def get_calendar_with_retry(self, calendar_request, max_retries=3, delay=4):
-            attempts = 0
-            while attempts < max_retries:
-                try:
-                    cal_dates = self.clientTrading.get_calendar(calendar_request)
-                    return cal_dates
-                except Exception as e:
-                    attempts += 1
-                    if attempts >= max_retries:
-                        raise
-                    print(f"Attempt {attempts}: Error occurred - {e}. Retrying in {delay} seconds...")
-                    time.sleep(delay)
-
         if OFFLINE_MODE:
             #just one day - same like time_from
             den = str(self.time_to.date())
@@ -132,7 +121,7 @@ class Trade_Offline_Streamer(Thread):
                 cal_dates = self.clientTrading.get_calendar(calendar_request)
 
             #zatim podpora pouze main session
-
+        
         #zatim podpora pouze 1 symbolu, predelat na froloop vsech symbolu ze symbpole
         #minimalni jednotka pro CACHE je 1 den - a to jen marketopen to marketclose (extended hours not supported yet)
         for day in cal_dates:
@@ -161,23 +150,53 @@ class Trade_Offline_Streamer(Thread):
                 continue                
 
             
-            #check if we have aggregated data in cache
-            
-            #agg dat found, load it from file
-            #and call cacher
-            #trade daily file
+            #check if we have  data in aggregator cache - for all streams
+            #zatim jednoduse
+            # predpokladame ze [0] jsou btdata a [1] hlavni add_data
+            # - pokud jsou oba, jedeme z cache ,pokud jeden nebo zadny - jedeme trady
+            # - cache pokryva cely den
 
-            #vstupuje pole agregatoru, open, close daneho dne
-            #cached_aggregated_data = get_cached_agg_data(self.to_run[symbpole[0]], day.open, day.close)
+            #musim zajistit, ze BT data tam jdou drive nez cache
+            # to_rem = []
+            # for stream in self.to_run[symbpole[0]]:
+            #     cache = stream.get_cache(day.open, day.close)
+            #     if cache is not None:
+            #         stream.send_cache_to_output(cache)
+            #         to_rem.append(stream)
 
-            # if cached_aggregated_data is not None:
-            #     #poslu agregovana data do ingest cache aggregatorů pro přeposlání do jednotlivých kanálů
+            #cache resime jen kdyz backtestujeme cely den
+            #pokud ne tak ani necteme, ani nezapisujeme do cache
+            if self.time_to >= day.close:
+                #tento odstavec obchazime pokud je nastaveno "dont_use_cache"
+                stream_btdata = self.to_run[symbpole[0]][0]
+                cache_btdata, file_btdata = stream_btdata.get_cache(day.open, day.close)
+                stream_main = self.to_run[symbpole[0]][1]
+                cache_main, file_main = stream_main.get_cache(day.open, day.close)
+                if cache_btdata is not None and cache_main is not None:
+                    stream_btdata.send_cache_to_output(cache_btdata)
+                    stream_main.send_cache_to_output(cache_main)
+                    #ukladame nazvy souboru pro pozdejsi ulozeni ke strategii
+                    self.cache_used[str(day.date)].append(file_btdata)
+                    self.cache_used[str(day.date)].append(file_main)
+                    continue
 
-    
+                #TBD pokud se jede na cache a testovaci obdobi je mensi nez den
+                #    - bud disablujeme cashovani
+                #    - nebo nechavame dobehnout cely den
+
+                #pokud cache neexistuje, pak ji zapiname
+                if day.open < datetime.now().astimezone(zoneNY) < day.close:
+                    print("not saving the aggregating cache, market still open today")
+                else:
+                    if cache_btdata is None:
+                        stream_btdata.enable_cache_output(day.open, day.close)
+                    if cache_main is None:
+                        stream_main.enable_cache_output(day.open, day.close)
+
             #trade daily file
             daily_file = str(symbpole[0]) + '-' + str(int(day.open.timestamp())) + '-' + str(int(day.close.timestamp())) + '.cache'
             print(daily_file)
-            file_path = DATA_DIR + "/"+daily_file
+            file_path = DATA_DIR + "/tradecache/"+daily_file
         
             if os.path.exists(file_path):
                 ##denní file existuje
@@ -187,7 +206,7 @@ class Trade_Offline_Streamer(Thread):
                     #jinak pass
                 with open (file_path, 'rb') as fp:
                     tradesResponse = pickle.load(fp)
-                    print("Loading DATA from CACHE", file_path)
+                    print("Loading from Trade CACHE", file_path)
             #daily file doesnt exist
             else:
                 # TODO refactor pro zpracovani vice symbolu najednou(multithreads), nyni predpokladame pouze 1 
@@ -197,7 +216,7 @@ class Trade_Offline_Streamer(Thread):
 
                 #pokud jde o dnešní den a nebyl konec trhu tak cache neukládáme
                 if day.open < datetime.now().astimezone(zoneNY) < day.close:
-                    print("not saving the cache, market still open today")
+                    print("not saving trade cache, market still open today")
                     #ic(datetime.now().astimezone(zoneNY))
                     #ic(day.open, day.close)
                 else:

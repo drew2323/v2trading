@@ -803,8 +803,13 @@ def archive_runner(runner: Runner, strat: StrategyInstance, inter_batch_params: 
         #get rid of attributes that are links to the models
         strat.state.vars["loaded_models"] = {}
 
+        #ulozime informace o nastavení
+        # if self.mode in [Mode.BT, Mode.PREP]:
+        #     str(self.dataloader.cache_used)
+
         settings = dict(resolution=strat.state.resolution,
                         rectype=strat.state.rectype,
+                        cache_used=strat.dataloader.cache_used,
                         configs=dict(
                             GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN=GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN,
                             BT_FILL_CONS_TRADES_REQUIRED=BT_FILL_CONS_TRADES_REQUIRED,

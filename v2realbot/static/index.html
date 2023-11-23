@@ -703,6 +703,40 @@
                                         <label for="bt_to" class="form-label">bt_to</label>							
                                         <input type="datetime-local" class="form-control" id="bt_to" name="bt_to" placeholder="2023-04-06T09:00:00Z" step="1">							
                                     </div>
+
+                                    <!-- Initial Checkbox for Enabling Weekday Selection -->
+                                    <div class="form-group">
+                                        <div style="display:inline-flex">
+                                            <label for="enable_weekdays" class="form-label">Limit BT to Weekdays</label>							
+                                            <input type="checkbox" class="form-check" id="enable_weekdays" name="enable_weekdays" aria-label="Enable Weekday Selection">							
+                                        </div>
+                                    </div>
+
+                                    <!-- Weekday Checkboxes -->
+                                    <div class="form-group weekday-checkboxes" style="display:none;">
+                                        <!-- <label class="form-label">Select Weekdays:</label> -->
+                                        <div>
+                                            <input type="checkbox" id="monday" name="weekdays" value="monday">
+                                            <label for="monday">Monday</label>
+                                        </div>
+                                        <div>
+                                            <input type="checkbox" id="tuesday" name="weekdays" value="tuesday">
+                                            <label for="tuesday">Tuesday</label>
+                                        </div>
+                                        <div>
+                                            <input type="checkbox" id="wednesday" name="weekdays" value="wednesday">
+                                            <label for="wednesday">Wednesday</label>
+                                        </div>
+                                        <div>
+                                            <input type="checkbox" id="thursday" name="weekdays" value="thursday">
+                                            <label for="thursday">Thursday</label>
+                                        </div>
+                                        <div>
+                                            <input type="checkbox" id="friday" name="weekdays" value="friday">
+                                            <label for="friday">Friday</label>
+                                        </div>
+                                    </div>
+
                                     <div class="form-group">
                                         <label for="test_batch_id" class="form-label">Test Batch ID</label>							
                                         <input type="text" class="form-control" id="test_batch_id" name="test_batch_id" placeholder="test intervals ID">							

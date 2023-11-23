@@ -88,6 +88,9 @@ class RunRequest(BaseModel):
     ilog_save: bool = False
     bt_from: datetime = None
     bt_to: datetime = None
+    #weekdays filter
+    #pokud je uvedeny filtrujeme tyto dny
+    weekdays_filter: Optional[list] = None
     #id testovaciho intervalu TODO prejmenovat
     test_batch_id: Optional[str] = None
     #GENERATED ID v ramci runu, vaze vsechny runnery v batchovem behu

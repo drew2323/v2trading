@@ -625,6 +625,8 @@ $(document).ready(function () {
         if (row == undefined) {
             return
         }
+        $('#enable_weekdays').prop('checked', false);
+        $('.weekday-checkboxes').hide();
         window.$('#runModal').modal('show');
         $('#bt_from').val(localStorage.getItem("bt_from"));
         //console.log(localStorage.getItem("bt_from"))
@@ -654,7 +656,14 @@ $(document).ready(function () {
                 $("#bt_from, #bt_to").prop("disabled", false);
             }
         });
-
+        //listen for changes on weekday enabling button
+        $('#enable_weekdays').change(function() {
+            if ($(this).is(':checked')) {
+                $('.weekday-checkboxes').show();
+            } else {
+                $('.weekday-checkboxes').hide();
+            }
+        });   
 
     });
 
@@ -865,10 +874,33 @@ $("#runModal").on('submit','#runForm', function(event){
     event.preventDefault();
     $('#run').attr('disabled','disabled');
     
+    // Handle weekdays functionality
+    var weekdays = [];
+    if ($('#enable_weekdays').is(':checked')) {
+        $('#runForm input[name="weekdays"]:checked').each(function() {
+            var weekday = $(this).val();
+            switch(weekday) {
+                case 'monday':    weekdays.push(0); break;
+                case 'tuesday':   weekdays.push(1); break;
+                case 'wednesday': weekdays.push(2); break;
+                case 'thursday':  weekdays.push(3); break;
+                case 'friday':    weekdays.push(4); break;
+                // Add cases for Saturday and Sunday if needed
+            }
+        });
+    }
+
     var formData = $(this).serializeJSON();
     //rename runid to id
     Object.defineProperty(formData, "id", Object.getOwnPropertyDescriptor(formData, "runid"));
     delete formData["runid"];
+    delete formData["enable_weekdays"]
+    delete formData["weekdays"]
+
+    //pokud je zatrzeno tak aplikujeme filter, jinak nevyplnujeme
+    if (weekdays.length > 0) {
+        formData.weekdays_filter = weekdays
+    }
     console.log(formData)
     if ($('#ilog_save').prop('checked')) {
         formData.ilog_save = true;

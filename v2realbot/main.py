@@ -247,6 +247,8 @@ def _run_stratin(stratin_id: UUID, runReq: RunRequest):
     if runReq.mode != Mode.LIVE and runReq.test_batch_id is not None or (runReq.bt_from.date() != runReq.bt_to.date()):
         res, id = cs.run_batch_stratin(id=stratin_id, runReq=runReq)
     else:
+        if runReq.weekdays_filter is not None:
+                raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Weekday only for backtest mode with batch (not single day)")
         res, id = cs.run_stratin(id=stratin_id, runReq=runReq)
     if res == 0: return id
     elif res < 0:

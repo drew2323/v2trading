@@ -558,6 +558,7 @@ $(document).ready(function () {
         if (row == undefined || row.batch_id == undefined) {
             return
         }
+        $('#deletebatch').attr('disabled', 'disabled');
         $.ajax({
             url:"/archived_runners/batch/"+row.batch_id,
             beforeSend: function (xhr) {
@@ -569,7 +570,8 @@ $(document).ready(function () {
             data: JSON.stringify(row.batch_id),
             success:function(data){				
                 $('#delFormBatch')[0].reset();
-                window.$('#delModalBatch').modal('hide');				
+                window.$('#delModalBatch').modal('hide');
+                $('#deletebatch').attr('disabled', false);				
                 $('#button_delete_batch').attr('disabled', false);
                 //console.log(data)
                 archiveRecords.ajax.reload();
@@ -578,6 +580,7 @@ $(document).ready(function () {
                 var err = eval("(" + xhr.responseText + ")");
                 window.alert(JSON.stringify(xhr));
                 console.log(JSON.stringify(xhr));
+                $('#deletebatch').attr('disabled', false);
                 $('#button_delete_batch').attr('disabled', false);
                 archiveRecords.ajax.reload();
             }

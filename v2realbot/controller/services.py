@@ -8,7 +8,7 @@ from alpaca.data.timeframe import TimeFrame
 from v2realbot.strategy.base import StrategyState
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, OrderSide
 from v2realbot.common.model import RunDay, StrategyInstance, Runner, RunRequest, RunArchive, RunArchiveView, RunArchiveDetail, RunArchiveChange, Bar, TradeEvent, TestList, Intervals, ConfigItem, InstantIndicator
-from v2realbot.utils.utils import AttributeDict, zoneNY, zonePRG, safe_get, dict_replace_value, Store, parse_toml_string, json_serial, is_open_hours, send_to_telegram
+from v2realbot.utils.utils import AttributeDict, zoneNY, zonePRG, safe_get, dict_replace_value, Store, parse_toml_string, json_serial, is_open_hours, send_to_telegram, concatenate_weekdays
 from v2realbot.utils.ilog import delete_logs
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
 from datetime import datetime
@@ -410,7 +410,8 @@ def run_batch_stratin(id: UUID, runReq: RunRequest):
                     end_time = dateto
             cal_list.append(RunDay(start = start_time, end = end_time, note = note, id = id))
 
-        print(f"Getting interval dates from - to - RESULT ({len(cal_list)}): {cal_list}")
+        print(f"Getting interval dates from - to - RESULT ({len(cal_list)}):")
+        print(cal_list)
         return cal_list
     
     #getting days to run into RunDays format
@@ -474,19 +475,34 @@ def batch_run_manager(id: UUID, runReq: RunRequest, rundays: list[RunDay]):
     rundays.sort(key=lambda x: x.start)
     #print("RUNDAYS after sort:", rundays)
 
+    #APPLY WEEKDAYS filter - necháváme pouze ty, ktere jsou uvedene
+    if runReq.weekdays_filter is not None:
+        rundays = [run_day for run_day in rundays if run_day.start.weekday() in runReq.weekdays_filter]
+
+    if len(rundays) == 0:
+        print("No eligible DAYS")
+        return
+    
     cnt_max = len(rundays)
     cnt = 0
     #promenna pro sdileni mezi runy jednotlivych batchů (např. daily profit)
     inter_batch_params = dict(batch_profit=0, batch_rel_profit=0)
     note_from_run_request = runReq.note
     first = None
+    first_frm = None
     last = None
+    last_frm = None
 
     # Find the minimum start date and maximum end date to add to Note
     first = min(runday.start for runday in rundays)
     last = max(runday.end for runday in rundays)
     first_frm = first.strftime("%d.%m.")
-    last_frm = last.strftime("%d.%m.")
+    last_frm = last.strftime("%d.%m.") 
+
+    weekdayfilter_string = ""
+    if runReq.weekdays_filter is not None:
+        weekdayfilter_string = concatenate_weekdays(runReq.weekdays_filter)
+        weekdayfilter_string = "DAYS:" + weekdayfilter_string.upper() if weekdayfilter_string != '' else ''
 
     for day in rundays:
         cnt += 1
@@ -494,7 +510,7 @@ def batch_run_manager(id: UUID, runReq: RunRequest, rundays: list[RunDay]):
         print("Datum do", day.end)
         runReq.bt_from = day.start
         runReq.bt_to = day.end
-        runReq.note = f"{first_frm}-{last_frm} Batch {batch_id} #{cnt}/{cnt_max} {day.name} N:{day.note} {note_from_run_request}"
+        runReq.note = f"{first_frm}-{last_frm} Batch {batch_id} #{cnt}/{cnt_max} {weekdayfilter_string} {day.name} N:{day.note} {note_from_run_request}"
 
         #protoze jsme v ridicim vlaknu, poustime za sebou jednotlive stratiny v synchronnim modu
         res, id_val = run_stratin(id=id, runReq=runReq, synchronous=True, inter_batch_params=inter_batch_params)

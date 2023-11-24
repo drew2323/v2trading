@@ -181,8 +181,19 @@ table.dataTable thead>tr>th.sorting_asc:before, table.dataTable thead>tr>th.sort
   font-weight: bold;
 }
 
-.group-header .profit-info {
+.group-header .batchheader-profit-info {
   color: #3e999e; /* Highlight profit info */
+  font-weight: bold;
+}
+
+.group-header .batchheader-count-info  {
+  color: #a1a1a1; /* Highlight count info */
+  font-weight: bold;
+}
+
+
+.group-header .batchheader-period-info  {
+  color: #a1a1a1; /* Highlight period info */
   font-weight: bold;
 }
 

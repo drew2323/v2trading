@@ -2,6 +2,7 @@
 let editor_diff_arch1
 let editor_diff_arch2
 var archData = null
+var batchHeaders = []
 
 function refresh_arch_and_callback(row, callback) {
     //console.log("entering refresh")
@@ -954,7 +955,7 @@ var archiveRecords =
                     {data: 'metrics', visible: true},
                     {data: 'batch_id', visible: true},
                 ],
-        paging: false,
+        paging: true,
         processing: true,
         serverSide: true,
         columnDefs: [{
@@ -1126,40 +1127,75 @@ var archiveRecords =
         // Add row grouping based on 'batch_id'
         rowGroup: {
             dataSrc: 'batch_id',
+            //toto je volano pri renderovani groupy
             startRender: function (rows, group) {
                 var groupId = group ? group : 'no-batch-id';
         
                 // Initialize variables for the group
                 var itemCount = 0;
-                var firstNote = '';
+                var period = '';
                 var profit = '';
+                var started = null;
+
+                // // Process each item only once
+                // archiveRecords.rows({ search: 'applied' }).every(function (rowIdx, tableLoop, rowLoop) {
+                //     var data = this.data();
         
-                // Process each item only once
-                archiveRecords.rows({ search: 'applied' }).every(function (rowIdx, tableLoop, rowLoop) {
-                    var data = this.data();
-        
-                    if ((group && data.batch_id === group)) {
-                        itemCount++;
-                        if (itemCount === 1) {
-                            firstNote = data.note ? data.note.substring(0, 14) : '';
-                            try {
-                                profit = data.metrics.profit.batch_sum_profit;
-                            } catch (e) {
-                                profit = 'N/A';
-                            }
-                        }
+                //     if ((group && data.batch_id == group)) {
+                //         itemCount++;
+                //         if (itemCount === 1 ) {
+                //             firstNote = data.note ? data.note.substring(0, 14) : '';
+
+                //             if (data.note) {
+                //                 better_counter = extractNumbersFromString(data.note);
+                //             }
+                //             try {
+                //                 profit = data.metrics.profit.batch_sum_profit;
+                //             } catch (e) {
+                //                 profit = 'N/A';
+                //             }
+                //         }
+                //     }
+                // });                
+
+
+                //pokud mame batch_id podivame se zda jeho nastaveni uz nema a pokud ano pouzijeme to
+                //pokud nemame tak si ho loadneme
+                if (group) {
+                    const existingBatch = batchHeaders.find(batch => batch.batch_id == group);
+                    var firstRowData = rows.data()[0];
+                    //jeste neni v poli batchu - udelame hlavicku
+                    if (!existingBatch) {
+                        itemCount = extractNumbersFromString(firstRowData.note);
+                        profit = firstRowData.metrics.profit.batch_sum_profit;
+                        period = firstRowData.note ? firstRowData.note.substring(0, 14) : '';
+                        started = firstRowData.started
+                        var newBatchHeader = {batch_id:group, profit:profit, itemCount:itemCount, period:period, started:started}
+                        batchHeaders.push(newBatchHeader)
                     }
-                });
-        
+                    //uz je v poli, ale mame novejsi (pribyl v ramci backtestu napr.) - updatujeme
+                    else if (new Date(existingBatch.started) < new Date(firstRowData.started)) {
+                        itemCount = extractNumbersFromString(firstRowData.note);
+                        profit = firstRowData.metrics.profit.batch_sum_profit;
+                        period = firstRowData.note ? firstRowData.note.substring(0, 14) : '';
+                        started = firstRowData.started
+                        existingBatch.itemCount = itemCount;
+                        existingBatch.profit = profit;
+                        existingBatch.period = period;
+                        existingBatch.started = started;
+                    }
+                    //uz je v poli batchu vytahneme
+                    else {
+                        profit = existingBatch.profit
+                        itemCount = existingBatch.itemCount
+                        period = existingBatch.period
+                        started = existingBatch.started
+                    }
+                }
+
                 // Construct the group header
                 var groupHeaderContent = '<strong>' + (group ? 'Batch ID: ' + group : 'No Batch') + '</strong>';
-                groupHeaderContent += (group ? ' <span>(' + itemCount + ')</span>' : '');
-                if (firstNote) {
-                    groupHeaderContent += '  ' + firstNote;
-                }
-                if (profit) {
-                    groupHeaderContent += ' - <span class="profit-info">Profit: ' + profit + '</span>';
-                }
+                groupHeaderContent += (group ? ' <span class="batchheader-count-info">(' + itemCount + ')</span>' + '  <span class="batchheader-period-info">' + period + '</span>   <span class="batchheader-profit-info">Profit: ' + profit + '</span>'  : '');
         
                 return $('<tr/>')
                     .append('<td colspan="18">' + groupHeaderContent + '</td>')
@@ -1171,7 +1207,6 @@ var archiveRecords =
             var api = this.api();
             var rows = api.rows({ page: 'current' }).nodes();
 
-        
             // Iterate over all rows in the current page
             api.column(17, { page: 'current' }).data().each(function (group, i) {
                 var groupName = group ? group : 'no-batch-id';
@@ -1191,6 +1226,23 @@ var archiveRecords =
         }
 });
 
+function extractNumbersFromString(str) {
+    // Regular expression to match the pattern #number1/number2
+    const pattern = /#(\d+)\/(\d+)/;
+    const match = str.match(pattern);
+
+    if (match) {
+        // Extract number1 and number2 from the match
+        const number1 = parseInt(match[1], 10);
+        const number2 = parseInt(match[2], 10);
+
+        //return { number1, number2 };
+        return number2;
+    } else {
+        return null;
+    }
+}
+
 // Function to generate a unique key for localStorage based on batch_id
 function generateStorageKey(batchId) {
     return 'dt-group-state-' + batchId;
@@ -1204,7 +1256,7 @@ $('#archiveTable tbody').on('click', 'tr.group-header', function () {
 
     archiveRecords.rows().every(function () {
         var rowGroup = this.data().batch_id ? this.data().batch_id : 'no-batch-id';
-        if (rowGroup === name) {
+        if (rowGroup == name) {
             if (collapsed) {
                 this.node().style.display = '';
             } else {

@@ -514,9 +514,12 @@ class Strategy:
         self.bt = None
         self.btdata= None
         self.dataloader = None
-        self.state = None
         self.rtqueue = None
         self._streams = None
+        self.q1 = None
+        self.q2 = None
+        self.state.release()
+        self.state = None
 
 
 
@@ -778,6 +781,13 @@ class StrategyState:
         self.mode = None
         self.wait_for_fill = None
     
+    def release(self):
+        #release large variables
+        self.bars = None
+        self.trades = None
+        self.indicators = None
+        self.iter_log_list = None
+  
     def ilog(self, e: str = None, msg: str = None, lvl: int = 1, **kwargs):
         if lvl < ILOG_SAVE_LEVEL_FROM:
             return

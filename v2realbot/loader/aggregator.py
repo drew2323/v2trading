@@ -24,7 +24,8 @@ class TradeAggregator:
                  align: StartBarAlign = StartBarAlign.ROUND,
                  mintick: int = 0,
                  exthours: bool = False,
-                 excludes: list = AGG_EXCLUDED_TRADES):
+                 excludes: list = AGG_EXCLUDED_TRADES,
+                 skip_cache: bool = False):
         """
         UPDATED VERSION - vrací více záznamů
 
@@ -44,6 +45,7 @@ class TradeAggregator:
         self.update_ltp = update_ltp
         self.exthours = exthours
         self.excludes = excludes
+        self.skip_cache = skip_cache
 
         if mintick >= resolution:
             print("Mintick musi byt mensi nez resolution")
@@ -715,7 +717,7 @@ class TradeAggregator:
     #returns cached objects for given period
     def get_cache(self, date_from: datetime, date_to: datetime):
         file_path = self.populate_file_name(date_from, date_to)
-        if os.path.exists(file_path):
+        if self.skip_cache is False and os.path.exists(file_path):
             ##daily aggregated file exists
             with open (file_path, 'rb') as fp:
                 cachedobject = dill.load(fp)
@@ -770,8 +772,8 @@ class TradeAggregator2Queue(TradeAggregator):
     Child of TradeAggregator - sends items to given queue
     In the future others will be added - TradeAggToTxT etc.
     """
-    def __init__(self, symbol: str, queue: Queue, rectype: RecordType = RecordType.BAR, resolution: int = 5, minsize: int = 100, update_ltp: bool = False, align: StartBarAlign = StartBarAlign.ROUND, mintick: int = 0, exthours: bool = False, excludes: list = AGG_EXCLUDED_TRADES):
-        super().__init__(rectype=rectype, resolution=resolution, minsize=minsize, update_ltp=update_ltp, align=align, mintick=mintick, exthours=exthours, excludes=excludes)
+    def __init__(self, symbol: str, queue: Queue, rectype: RecordType = RecordType.BAR, resolution: int = 5, minsize: int = 100, update_ltp: bool = False, align: StartBarAlign = StartBarAlign.ROUND, mintick: int = 0, exthours: bool = False, excludes: list = AGG_EXCLUDED_TRADES, skip_cache: bool = False):
+        super().__init__(rectype=rectype, resolution=resolution, minsize=minsize, update_ltp=update_ltp, align=align, mintick=mintick, exthours=exthours, excludes=excludes, skip_cache=skip_cache)
         self.queue = queue
         self.symbol = symbol
         self.cached_object = Queue()
@@ -815,8 +817,8 @@ class TradeAggregator2List(TradeAggregator):
     """"
     stores records to the list
     """
-    def __init__(self, symbol: str, btdata: list, rectype: RecordType = RecordType.BAR, resolution: int = 5, minsize: int = 100, update_ltp: bool = False, align: StartBarAlign = StartBarAlign.ROUND, mintick: int = 0, exthours: bool = False, excludes: list = AGG_EXCLUDED_TRADES):
-        super().__init__(rectype=rectype, resolution=resolution, minsize=minsize, update_ltp=update_ltp, align=align, mintick=mintick, exthours=exthours, excludes=excludes)
+    def __init__(self, symbol: str, btdata: list, rectype: RecordType = RecordType.BAR, resolution: int = 5, minsize: int = 100, update_ltp: bool = False, align: StartBarAlign = StartBarAlign.ROUND, mintick: int = 0, exthours: bool = False, excludes: list = AGG_EXCLUDED_TRADES, skip_cache: bool = False):
+        super().__init__(rectype=rectype, resolution=resolution, minsize=minsize, update_ltp=update_ltp, align=align, mintick=mintick, exthours=exthours, excludes=excludes, skip_cache=skip_cache)
         self.btdata = btdata
         self.symbol = symbol
         self.cached_object = []

@@ -11,7 +11,7 @@ import uvicorn
 from uuid import UUID
 import v2realbot.controller.services as cs
 from v2realbot.utils.ilog import get_log_window
-from v2realbot.common.model import StrategyInstance, RunnerView, RunRequest, Trade, RunArchive, RunArchiveView, RunArchiveDetail, Bar, RunArchiveChange, TestList, ConfigItem, InstantIndicator
+from v2realbot.common.model import StrategyInstance, RunnerView, RunRequest, Trade, RunArchive, RunArchiveView, RunArchiveViewPagination, RunArchiveDetail, Bar, RunArchiveChange, TestList, ConfigItem, InstantIndicator
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status, WebSocketException, Cookie, Query
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -424,6 +424,16 @@ def _get_all_archived_runners() -> list[RunArchiveView]:
         return set
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No data found")
+
+#get all archived runners headers - just RunArchiveView - with pagination
+@app.get("/archived_runners_p/", dependencies=[Depends(api_key_auth)])
+def _get_all_archived_runners_p(start: int = 0, length: int = 10, draw: int = 1) -> RunArchiveViewPagination:
+    res, set =cs.get_all_archived_runners_p(start, length, draw)
+    if res == 0:
+        return set
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No data found")
+
 
 #get complete header data for specific archivedRunner = RunArchive
 @app.get("/archived_runners/{runner_id}", dependencies=[Depends(api_key_auth)])

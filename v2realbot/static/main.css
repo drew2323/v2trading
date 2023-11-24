@@ -173,6 +173,34 @@ table.dataTable thead>tr>th.sorting_asc:before, table.dataTable thead>tr>th.sort
   transform: translate(-50%, -50%);
 }
 
+
+.group-header {
+  /* cursor: pointer; */
+  background-color: #f2f2f2; /* Light gray background */
+  color: #b2b2b2; /* Dark text for contrast */
+  font-weight: bold;
+}
+
+.group-header .profit-info {
+  color: #3e999e; /* Highlight profit info */
+  font-weight: bold;
+}
+
+.group-header strong {
+  color: #3e999e; /* Distinct color for Batch ID */
+}
+
+.group-header.collapsed::after {
+  content: '▼'; /* Downward arrow for collapsed groups */
+  float: right;
+}
+
+.group-header::after {
+  content: '▲'; /* Upward arrow for expanded groups */
+  float: right;
+}
+
+
 /* .btn-outline-success {
   --bs-btn-color: #316164;
   --bs-btn-border-color: #247e85;

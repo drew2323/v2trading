@@ -96,6 +96,7 @@ class RunRequest(BaseModel):
     #GENERATED ID v ramci runu, vaze vsechny runnery v batchovem behu
     batch_id: Optional[str] = None
     cash: int = 100000
+    skip_cache: Optional[bool] = False
 
 
 class RunnerView(BaseModel):
@@ -254,6 +255,13 @@ class RunArchiveView(BaseModel):
     end_positions: int = 0
     end_positions_avgp: float = 0
     metrics: Union[dict, str] = None
+
+#same but with pagination
+class RunArchiveViewPagination(BaseModel):
+    draw: int
+    recordsTotal: int
+    recordsFiltered: int
+    data: List[RunArchiveView]
 
 #trida pro ukladani historie stoplossy do ext_data
 class SLHistory(BaseModel):

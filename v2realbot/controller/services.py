@@ -308,10 +308,10 @@ def capsule(target: object, db: object, inter_batch_params: dict = None):
         print("Strategy instance stopped. Update runners")
         reason = None
 
-        if target.se.is_set():
-            print("STOP FLAG IS SET - cancel BATCH")
-            inter_batch_params["stop"] = True
-            reason = "STOP Signal received"
+        # if target.se.is_set():
+        #     print("STOP FLAG IS SET - cancel BATCH")
+        #     inter_batch_params["stop"] = True
+        #     reason = "STOP Signal received"
 
     except Exception as e:
         reason = "SHUTDOWN Exception:" + str(e) + format_exc()

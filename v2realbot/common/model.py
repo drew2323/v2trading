@@ -8,6 +8,34 @@ from pydantic import BaseModel
 from v2realbot.enums.enums import Mode, Account
 from alpaca.data.enums import Exchange
 
+
+#models for server side datatables
+# Model for individual column data
+class ColumnData(BaseModel):
+    data: str
+    name: str
+    searchable: bool
+    orderable: bool
+    search: dict
+
+# Model for the search value
+class SearchValue(BaseModel):
+    value: str
+    regex: bool
+
+class OrderValue(BaseModel):
+    column: int
+    dir: str
+
+# Model for incoming DataTables request
+class DataTablesRequest(BaseModel):
+    draw: int
+    start: int
+    length: int
+    search: SearchValue
+    order: List[OrderValue]
+    columns: List[ColumnData]
+
 #tu samou variantu pak UpdateStrategyInstanceWhileRunning
 
 #only those that can be changed UUID id prijde v parametru

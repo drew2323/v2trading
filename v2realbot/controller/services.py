@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any, List, Tuple
 from uuid import UUID, uuid4
 import pickle
 from alpaca.data.historical import StockHistoricalDataClient
@@ -7,7 +7,7 @@ from alpaca.data.enums import DataFeed
 from alpaca.data.timeframe import TimeFrame
 from v2realbot.strategy.base import StrategyState
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, OrderSide
-from v2realbot.common.model import RunDay, StrategyInstance, Runner, RunRequest, RunArchive, RunArchiveView, RunArchiveViewPagination, RunArchiveDetail, RunArchiveChange, Bar, TradeEvent, TestList, Intervals, ConfigItem, InstantIndicator
+from v2realbot.common.model import RunDay, StrategyInstance, Runner, RunRequest, RunArchive, RunArchiveView, RunArchiveViewPagination, RunArchiveDetail, RunArchiveChange, Bar, TradeEvent, TestList, Intervals, ConfigItem, InstantIndicator, DataTablesRequest
 from v2realbot.utils.utils import AttributeDict, zoneNY, zonePRG, safe_get, dict_replace_value, Store, parse_toml_string, json_serial, is_open_hours, send_to_telegram, concatenate_weekdays
 from v2realbot.utils.ilog import delete_logs
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
@@ -308,14 +308,16 @@ def capsule(target: object, db: object, inter_batch_params: dict = None):
         print("Strategy instance stopped. Update runners")
         reason = None
 
-        # if target.se.is_set():
-        #     print("STOP FLAG IS SET - cancel BATCH")
-        #     inter_batch_params["stop"] = True
-        #     reason = "STOP Signal received"
+        if target.se.is_set():
+            print("EXTERNAL STOP FLAG IS SET - cancel BATCH")
+            inter_batch_params["stop"] = True
+            reason = "STOP Signal received"
 
     except Exception as e:
         reason = "SHUTDOWN Exception:" + str(e) + format_exc()
         #raise RuntimeError('Exception v runneru POZOR') from e
+        if inter_batch_params is not None:
+            inter_batch_params["error"] = reason
         print(str(e))
         print(reason)
         send_to_telegram(reason)
@@ -521,7 +523,10 @@ def batch_run_manager(id: UUID, runReq: RunRequest, rundays: list[RunDay]):
         #protoze jsme v ridicim vlaknu, poustime za sebou jednotlive stratiny v synchronnim modu
         res, id_val = run_stratin(id=id, runReq=runReq, synchronous=True, inter_batch_params=inter_batch_params)
         if res < 0:
-            print(f"CHyba v runu #{cnt} od:{runReq.bt_from} do {runReq.bt_to} -> {id_val}")
+            msg = f"Chyba v runu #{cnt} od:{runReq.bt_from} do {runReq.bt_to} -> {id_val}"
+            if inter_batch_params is not None:
+                inter_batch_params["error"] = msg
+            print(msg)
             break
 
         if "stop" in inter_batch_params and inter_batch_params["stop"] is True:
@@ -976,28 +981,78 @@ def get_all_archived_runners() -> list[RunArchiveView]:
     return 0, results
 
 #with pagination
-def get_all_archived_runners_p(start: int, length: int, draw: int) -> list[RunArchiveViewPagination]:
+# def get_all_archived_runners_p(request: DataTablesRequest) -> list[RunArchiveViewPagination]:
+#     conn = pool.get_connection()
+#     try:
+#         conn.row_factory = Row
+#         c = conn.cursor()
+
+#         # Query to get the total count of records
+#         total_count_query = "SELECT COUNT(*) FROM runner_header"
+#         c.execute(total_count_query)
+#         total_count = c.fetchone()[0]
+
+#         # Query to get the paginated data
+#         paginated_query = f"""
+#         SELECT runner_id, strat_id, batch_id, symbol, name, note, started, 
+#                stopped, mode, account, bt_from, bt_to, ilog_save, profit, 
+#                trade_count, end_positions, end_positions_avgp, metrics 
+#         FROM runner_header
+#         ORDER BY stopped DESC
+#         LIMIT {request.length} OFFSET {request.start}
+#         """
+#         c.execute(paginated_query)
+#         rows = c.fetchall()
+
+#         results = [row_to_runarchiveview(row) for row in rows]
+
+#     finally:
+#         conn.row_factory = None
+#         pool.release_connection(conn)
+
+#     try:
+#         obj = RunArchiveViewPagination(draw=request.draw,recordsTotal=total_count, recordsFiltered=total_count,data=results)
+#         return 0, obj
+#     except Exception as e:
+#         return -2, str(e)+format_exc()
+
+#new version to support search and ordering
+#TODO index nad strat_id a batch_id mam?
+def get_all_archived_runners_p(request: DataTablesRequest) -> Tuple[int, RunArchiveViewPagination]:
     conn = pool.get_connection()
+    search_value = request.search.value  # Extract the search value from the request
     try:
         conn.row_factory = Row
         c = conn.cursor()
 
-        # Query to get the total count of records
-        total_count_query = "SELECT COUNT(*) FROM runner_header"
-        c.execute(total_count_query)
+        # Modify the total count query to include the search filter if search_value is provided
+        total_count_query = """
+        SELECT COUNT(*) FROM runner_header
+        WHERE (:search_value = '' OR strat_id LIKE :search_value OR batch_id LIKE :search_value)
+        """
+        c.execute(total_count_query, {'search_value': f'%{search_value}%'})
         total_count = c.fetchone()[0]
 
-        # Query to get the paginated data
+        # Modify the paginated query to include the search filter if search_value is provided
         paginated_query = f"""
         SELECT runner_id, strat_id, batch_id, symbol, name, note, started, 
                stopped, mode, account, bt_from, bt_to, ilog_save, profit, 
                trade_count, end_positions, end_positions_avgp, metrics 
         FROM runner_header
+        WHERE (:search_value = '' OR strat_id LIKE :search_value OR batch_id LIKE :search_value)
         ORDER BY stopped DESC
-        LIMIT {length} OFFSET {start}
+        LIMIT {request.length} OFFSET {request.start}
         """
-        c.execute(paginated_query)
+        c.execute(paginated_query, {'search_value': f'%{search_value}%'})
         rows = c.fetchall()
+
+        # Filtered count might be different from total count when search is applied
+        filtered_count_query = """
+        SELECT COUNT(*) FROM runner_header
+        WHERE (:search_value = '' OR strat_id LIKE :search_value OR batch_id LIKE :search_value)
+        """
+        c.execute(filtered_count_query, {'search_value': f'%{search_value}%'})
+        filtered_count = c.fetchone()[0]
 
         results = [row_to_runarchiveview(row) for row in rows]
 
@@ -1006,25 +1061,10 @@ def get_all_archived_runners_p(start: int, length: int, draw: int) -> list[RunAr
         pool.release_connection(conn)
 
     try:
-        obj = RunArchiveViewPagination(draw=draw,recordsTotal=total_count, recordsFiltered=total_count,data=results)
+        obj = RunArchiveViewPagination(draw=request.draw, recordsTotal=total_count, recordsFiltered=filtered_count, data=results)
         return 0, obj
     except Exception as e:
-        return -2, str(e)+format_exc()
-
-
-    conn = pool.get_connection()
-    try:
-        conn.row_factory = Row
-        c = conn.cursor()
-        c.execute(f"SELECT runner_id, strat_id, batch_id, symbol, name, note, started, stopped, mode, account, bt_from, bt_to, ilog_save, profit, trade_count, end_positions, end_positions_avgp, metrics FROM runner_header")
-        rows = c.fetchall()
-        results = []
-        for row in rows:
-            results.append(row_to_runarchiveview(row))
-    finally:
-        conn.row_factory = None
-        pool.release_connection(conn)        
-    return 0, results
+        return -2, str(e) + format_exc()
 
 
 #DECOMMS

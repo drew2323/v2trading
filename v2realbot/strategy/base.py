@@ -78,6 +78,8 @@ class Strategy:
         #pause event and end event
         self.pe = pe
         self.se = se
+        #signal stop - internal
+        self.signal_stop = False
 
     #prdelat queue na dynamic - podle toho jak bud uchtit pracovat s multiresolutions
     #zatim jen jedna q1
@@ -429,9 +431,13 @@ class Strategy:
                     item = self.q1.get(timeout=HEARTBEAT_TIMEOUT)
                     #printnow(current_thread().name, "Items waiting in queue:", self.q1.qsize())
                 except queue.Empty:
-                    #check signals
+                    #check internal signals - for profit/loss optim etc - valid for runner
+                    if self.signal_stop:
+                        print(current_thread().name, "Stopping signal - internal")
+                        break                    
+                    #check signals - stops also batch
                     if self.se.is_set():
-                        print(current_thread().name, "Stopping signal")
+                        print(current_thread().name, "External stopping signal")
                         break
                     if self.pe.is_set():
                         print(current_thread().name, "Paused.")
@@ -443,6 +449,9 @@ class Strategy:
                 if item == "last" or self.se.is_set():
                     print(current_thread().name, "stopping")
                     break
+                elif self.signal_stop:
+                    print(current_thread().name, "Stopping signal - internal")
+                    break                     
                 elif self.pe.is_set():
                     print(current_thread().name, "Paused.")
                     continue

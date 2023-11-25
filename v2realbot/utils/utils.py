@@ -35,7 +35,7 @@ def concatenate_weekdays(weekday_filter):
     weekday_strings = [weekdays[day] for day in weekday_filter]
 
     # Concatenate the weekday strings
-    return '-'.join(weekday_strings)
+    return ','.join(weekday_strings)
 
 def slice_dict_lists(d, last_item, to_tmstp = False):
   """Slices every list in the dictionary to the last last_item items.

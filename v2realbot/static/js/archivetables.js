@@ -921,15 +921,16 @@ var archiveRecords =
     $('#archiveTable').DataTable( {
         ajax: { 
             url: '/archived_runners_p/',
-            // dataSrc: 'data',
+            dataSrc: 'data',
+            method:"POST",
+            contentType: "application/json",
+            // dataType: "json",
             beforeSend: function (xhr) {
                 xhr.setRequestHeader('X-API-Key',
                     API_KEY); },
-            // data: function(d) {
-            //     d.start = d.start;
-            //     d.length = d.length;
-            //     d.draw = d.draw;
-            // },        
+            data: function (d) {
+                        return JSON.stringify(d);
+                    },       
             error: function(xhr, status, error) {
                 //var err = eval("(" + xhr.responseText + ")");
                 //window.alert(JSON.stringify(xhr));
@@ -1125,12 +1126,30 @@ var archiveRecords =
         //     }
         //}
         // Add row grouping based on 'batch_id'
+        //TODO projit a zrevidovat - pripadne optimalizovat 
+        //NOTE zde jse skoncil
         rowGroup: {
             dataSrc: 'batch_id',
-            //toto je volano pri renderovani groupy
+            //toto je volano pri renderovani headeru grupy
             startRender: function (rows, group) {
-                var groupId = group ? group : 'no-batch-id';
-        
+                var firstRowData = rows.data()[0];
+                //pro no-batch-id je idcko prvni id
+                var groupId = group ? group : 'no-batch-id-' + firstRowData.id;
+                var stateKey = 'dt-group-state-' + groupId;
+                var state = localStorage.getItem(stateKey);
+
+                // Iterate over each row in the group to set the data attribute
+                // zaroven pro kazdy node nastavime viditelnost podle nastaveni
+                rows.every(function (rowIdx, tableLoop, rowLoop) {
+                    var rowNode = $(this.node());
+                    rowNode.attr('data-group-name', groupId);
+                    if (state == 'collapsed') {
+                        rowNode.hide();
+                    } else {
+                        rowNode.show();
+                    }
+                });
+
                 // Initialize variables for the group
                 var itemCount = 0;
                 var period = '';
@@ -1163,7 +1182,6 @@ var archiveRecords =
                 //pokud nemame tak si ho loadneme
                 if (group) {
                     const existingBatch = batchHeaders.find(batch => batch.batch_id == group);
-                    var firstRowData = rows.data()[0];
                     //jeste neni v poli batchu - udelame hlavicku
                     if (!existingBatch) {
                         itemCount = extractNumbersFromString(firstRowData.note);
@@ -1193,37 +1211,47 @@ var archiveRecords =
                     }
                 }
 
-                // Construct the group header
-                var groupHeaderContent = '<strong>' + (group ? 'Batch ID: ' + group : 'No Batch') + '</strong>';
+                //zaroven nastavime u vsech childu
+
+                // Construct the GROUP HEADER - sem pripadna tlačítka atp.
+                //var groupHeaderContent = '<strong>' + (group ? 'Batch ID: ' + group : 'No Batch') + '</strong>';
+                var groupHeaderContent = '<strong>' + (group ? 'Batch ID: ' + group : 'No Batch')+'</strong>';
                 groupHeaderContent += (group ? ' <span class="batchheader-count-info">(' + itemCount + ')</span>' + '  <span class="batchheader-period-info">' + period + '</span>   <span class="batchheader-profit-info">Profit: ' + profit + '</span>'  : '');
         
                 return $('<tr/>')
                     .append('<td colspan="18">' + groupHeaderContent + '</td>')
                     .attr('data-name', groupId)
-                    .addClass('group-header collapsed');
+                    .addClass('group-header')
+                    .addClass(state);
             }
         },
-        drawCallback: function (settings) {
-            var api = this.api();
-            var rows = api.rows({ page: 'current' }).nodes();
-
-            // Iterate over all rows in the current page
-            api.column(17, { page: 'current' }).data().each(function (group, i) {
-                var groupName = group ? group : 'no-batch-id';
-                var stateKey = 'dt-group-state-' + groupName;
-                var state = localStorage.getItem(stateKey);
-
-                if (state === 'collapsed') {
-                    // Hide all rows in the collapsed group
-                    $(rows).eq(i).hide();
-                    $('tr[data-name="' + groupName + '"]').addClass('collapsed');
-                } else {
-                    // Show all rows in the expanded group
-                    $(rows).eq(i).show();
-                    $('tr[data-name="' + groupName + '"]').removeClass('collapsed');
-                }
-            });
-        }
+        // drawCallback: function (settings) {
+        //     var api = this.api();
+        //     var rows = api.rows({ page: 'current' }).nodes();
+                
+        //     api.column(17, { page: 'current' }).data().each(function (group, i) {
+        //         console.log("drawCallabck i",i)
+        //         console.log("rows", $(rows).eq(i))
+        //         var groupName = group ? group : $(rows).eq(i).attr('data-name');
+        //         console.log("groupName", groupName)
+        //         var stateKey = 'dt-group-state-' + groupName;
+        //         var state = localStorage.getItem(stateKey);
+        
+        //         if (state === 'collapsed') {
+        //             $(rows).eq(i).hide();
+        //         } else {
+        //             $(rows).eq(i).show();
+        //         }
+                
+        //         // Set the unique identifier as a data attribute on each row
+        //         //$(rows).eq(i).attr('data-group-name', groupName);
+        
+        //         // // Add or remove the 'collapsed' class based on the state
+        //         // if (groupName.startsWith('no-batch-id-')) {
+        //         //     $('tr[data-name="' + groupName + '"]').toggleClass('collapsed', state === 'collapsed');
+        //         // }
+        //     });
+        // }
 });
 
 function extractNumbersFromString(str) {
@@ -1250,29 +1278,31 @@ function generateStorageKey(batchId) {
 
 // Expand/Collapse functionality
 $('#archiveTable tbody').on('click', 'tr.group-header', function () {
-    var name = $(this).data('name');
-    var collapsed = $(this).hasClass('collapsed');
-    $(this).toggleClass('collapsed');
+    var headerRow = $(this);
+    var name = headerRow.data('name');
+    var collapsed = headerRow.hasClass('collapsed');
+    headerRow.toggleClass('collapsed');
 
     archiveRecords.rows().every(function () {
-        var rowGroup = this.data().batch_id ? this.data().batch_id : 'no-batch-id';
+        var row = $(this.node());
+        var rowGroup = row.attr('data-group-name');
         if (rowGroup == name) {
-            if (collapsed) {
-                this.node().style.display = '';
-            } else {
-                this.node().style.display = 'none';
-            }
+            row.toggle();
         }
     });
 
-       // Save the state
+    // Save the state
     if (collapsed) {
-        localStorage.setItem(generateStorageKey(name), 'expanded');
+        localStorage.setItem('dt-group-state-' + name, 'expanded');
     } else {
-        localStorage.setItem(generateStorageKey(name), 'collapsed');
+        localStorage.setItem('dt-group-state-' + name, 'collapsed');
     }
-
 });
+
+
+
+
+
 //WIP buttons to hide datatable columns
         // document.querySelectorAll('a.toggle-vis').forEach((el) => {
         //     el.addEventListener('click', function (e) {

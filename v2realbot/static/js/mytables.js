@@ -201,14 +201,14 @@ $(document).ready(function () {
     $('#button_filter_strat').click(function () {
         if ($('#button_filter_strat').hasClass('active')) {
             $('#button_filter_strat').removeClass('active');
-            archiveRecords.columns().search("").draw();
+            archiveRecords.search("").draw();
             console.log("draw")
         }
         else {
             row = stratinRecords.row('.selected').data();
             if (row) {
                 $('#button_filter_strat').addClass('active');
-                archiveRecords.column(1).search(row.id).draw();
+                archiveRecords.search(row.id).draw();
                 console.log("filteredon",row.id)
             }
         }

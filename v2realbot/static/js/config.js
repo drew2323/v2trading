@@ -1,9 +1,19 @@
 //JS code for using config value on the frontend
 //TODO zvazit presunuti do TOML z JSONu
 
+// CREATE TABLE "config_table" (
+// 	"id"	INTEGER,
+// 	"item_name"	TEXT NOT NULL,
+// 	"json_data"	JSON NOT NULL,
+// 	"item_lang"	TEXT NOT NULL, //not implemented yet
+// 	PRIMARY KEY("id" AUTOINCREMENT)
+// );
+
 configData = {}
 
+//pridat sem i config area
 function get_from_config(name, def_value) {
+    def_value = def_value ? def_value : null 
     console.log("required", name, configData)
     if ((configData["JS"]) && (configData["JS"][name] !== undefined)) {
         console.log("returned from config", configData["JS"][name])

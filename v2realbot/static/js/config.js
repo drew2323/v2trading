@@ -7,7 +7,7 @@
 // 	"json_data"	JSON NOT NULL,
 // 	"item_lang"	TEXT NOT NULL, //not implemented yet
 // 	PRIMARY KEY("id" AUTOINCREMENT)
-// );
+// ); //novy komentar
 
 configData = {}
 

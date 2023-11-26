@@ -1049,7 +1049,8 @@ function chart_archived_run(archRecord, data, oneMinuteBars) {
     $("#statusIlog").text("Logged:" + archRecord.ilog_save)
     $("#statusStratvars").text(((archRecord.strat_json)?archRecord.strat_json:archRecord.stratvars),null,2)
     $("#statusSettings").text(JSON.stringify(archRecord.settings,null,2) + JSON.stringify(data.ext_data,null,2))
-    //TBD other dynamically created indicators //test /novy test
+    
+//mezitim se master zmenil //test /novy test
 
 }
 

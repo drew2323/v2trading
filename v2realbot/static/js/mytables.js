@@ -792,6 +792,22 @@ var stratinRecords =
                     return '<div class="tdnowrap" data-bs-toggle="tooltip" data-bs-placement="top" title="'+data+'">'+data+'</i>'
                 },
                 },
+            {
+                targets: 10,
+                render: function(data, type, row, meta) {
+                    var stateClass = 'truncated-text';
+                    var uniqueId = 'note-' + row.id;
+    
+                    if (localStorage.getItem(uniqueId) === 'expanded') {
+                        stateClass = 'expanded-text';
+                    }
+    
+                    if (type === 'display') {
+                        return '<div class="' + stateClass + '" id="' + uniqueId + '">' + data + '</div>';
+                    }
+                    return data;
+                },
+            },
             ],
         order: [[1, 'asc']],
         select: {
@@ -805,6 +821,21 @@ var stratinRecords =
         //     }
         //}
         } );
+
+
+        $('#stratinTable tbody').on('click', '.truncated-text, .expanded-text', function() {
+            var div = $(this);
+            var isExpanded = div.hasClass('expanded-text');
+            var id = div.attr('id');
+    
+            div.toggleClass('expanded-text truncated-text');
+            
+            if (isExpanded) {
+                localStorage.setItem(id, 'collapsed');
+            } else {
+                localStorage.setItem(id, 'expanded');
+            }
+        });
 
 //runner table
 var runnerRecords = 

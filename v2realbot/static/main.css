@@ -7,6 +7,19 @@
   --dt-row-selected-text: 173,181,189;
 }
 
+.truncated-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px; /* Adjust as needed */
+  display: inline-block;
+}
+
+.expanded-text {
+  white-space: normal;
+  overflow: visible;
+}
+
 .pagination {
   --bs-pagination-padding-x: 0.45rem;
   --bs-pagination-padding-y: 0.15rem;
@@ -105,7 +118,8 @@
 }
 
 tbody, td, tfoot, th, thead, tr {
-  border-color: #7d7d8a;
+  /* border-color: #7d7d8a; */
+  border-color: #2a2a2a;
   border-style: solid;
   border-width: 0;
   padding: 4px;

@@ -1149,7 +1149,8 @@ var archiveRecords =
         select: {
             info: true,
             style: 'multi',
-            selector: 'tbody > tr:not(.group-header) td'
+            //selector: 'tbody > tr:not(.group-header)'
+            selector: 'tbody > tr:not(.group-header)' 
         },
         paging: true,
         // lengthChange: false,
@@ -1297,6 +1298,22 @@ var archiveRecords =
         //         // }
         //     });
         // }
+});
+
+//workaround pro spatne oznacovani selectu i pro group-headery
+$('#archiveTable tbody').on('click', 'tr.group-header', function(event) {
+    var $row = $(this);
+
+    // Schedule the class removal/addition for the next event loop
+    setTimeout(function() {
+        if ($row.hasClass("selected")) {
+            console.log("Header selected, removing selection");
+            $row.removeClass("selected");
+        } else {
+            console.log("Header not selected, adding selection");
+            $row.addClass("selected");
+        }
+    }, 0);
 });
 
 function extractNumbersFromString(str) {

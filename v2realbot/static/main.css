@@ -274,7 +274,7 @@ table.dataTable thead>tr>th.sorting_asc:before, table.dataTable thead>tr>th.sort
 
 .group-header .batchheader-batch-id  {
   color: #a1a1a1; /* Highlight period info */
-  /* font-weight: bold; */
+  font-weight: 400;
 }
 
 .group-header .batchheader-period-info  {
@@ -409,6 +409,14 @@ html {
     width: 35%;
   }
 }
+/* 
+.even {
+  display: block;
+}
+
+.odd {
+  display: block;
+} */
 
 @media (min-width: 2001px) {
   .msgContainerInner {

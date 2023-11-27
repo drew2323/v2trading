@@ -1257,12 +1257,15 @@ var archiveRecords =
                 //var groupHeaderContent = '<strong>' + (group ? 'Batch ID: ' + group : 'No Batch') + '</strong>';
                 var tools = ''
                 var icon = ''
+                icon_color = ''
+                profit_icon_color = ''
                 exp_coll_icon_name = ''
                 exp_coll_icon_name = (state == 'collapsed') ? 'expand_more' : 'expand_less'
                 if (group) {
                     tools += '<span id="batchtool_report_button" class="material-symbols-outlined tool-icon" title="Batch Report">lab_profile</span>'
                     tools += '<span id="batchtool_delete_button" class="material-symbols-outlined tool-icon" title="Delete Batch">delete</span>'
                     icon_color = getColorForId(stratinId)
+                    profit_icon_color = (profit>0) ? "#e33972" : "#d42962"
                 }
                 else {
                     //def color for no batch - semi transparent
@@ -1270,11 +1273,10 @@ var archiveRecords =
                 }
                 icon = '<span class="material-symbols-outlined expand-icon" style="background-color:' + icon_color + ';" title="Expand">'+exp_coll_icon_name+'</span>'
 
-
                 //console.log(group, groupId, stratinId)
                 //var groupHeaderContent = '<span class="batchheader-batch-id">'+(group ? '<span class="color-tag" style="background-color:' + getColorForId(stratinId) + ';"></span>Batch ID: ' + group: 'No Batch')+'</span>';
                 var groupHeaderContent = '<span class="batchheader-batch-id">'+ icon + (group ? 'Batch ID: ' + group: 'No Batch')+'</span>';
-                groupHeaderContent += (group ? ' <span class="batchheader-count-info">(' + itemCount + ')</span>' + '  <span class="batchheader-period-info">' + period + '</span>   <span class="batchheader-profit-info">Profit: ' + profit + '</span>'  : '');
+                groupHeaderContent += (group ? ' <span class="batchheader-count-info">(' + itemCount + ')</span>' + '  <span class="batchheader-period-info">' + period + '</span>   <span class="batchheader-profit-info" style="color:'+profit_icon_color+'">Profit: ' + profit + '</span>'  : '');
                 groupHeaderContent += group ? tools : ""
                 return $('<tr/>')
                     .append('<td colspan="18">' + groupHeaderContent + '</td>')

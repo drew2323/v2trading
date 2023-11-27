@@ -135,7 +135,7 @@ $(document).ready(function () {
         var data = archiveRecords.row(this).data();
         //var imageUrl = '/media/report_'+data.id+".png"; // Replace with your logic to get image URL
         var imageUrl = '/media/basic/'+data.id+'.png'; // Replace with your logic to get image URL
-        console.log(imageUrl)
+        //console.log(imageUrl)
         display_image(imageUrl)
     });
 
@@ -172,7 +172,7 @@ $(document).ready(function () {
     function display_batch_report(batch_id) {
             //var imageUrl = '/media/report_'+data.id+".png"; // Replace with your logic to get image URL
             var imageUrl = '/media/basic/'+batch_id+'.png'; // Replace with your logic to get image URL
-            console.log(imageUrl)
+            //console.log(imageUrl)
             display_image(imageUrl)
     }
 
@@ -987,7 +987,7 @@ var archiveRecords =
                 targets: 1,
                 render: function ( data, type, row ) {
                     if (type === 'display') {
-                        console.log("arch")
+                        //console.log("arch")
                         var color = getColorForId(data);
                         return '<div class="tdnowrap" data-bs-toggle="tooltip" data-bs-placement="top" title="'+data+'"><span class="color-tag" style="background-color:' + color + ';"></span>'+data+'</div>';
                     }
@@ -1322,7 +1322,8 @@ function generateStorageKey(batchId) {
 }
 
 // Expand/Collapse functionality
-$('#archiveTable tbody').on('click', 'tr.group-header', function () {
+$('#archiveTable tbody').on('click', 'tr.group-header', function (event) {
+    event.stopPropagation()
     var headerRow = $(this);
     var name = headerRow.data('name');
     var collapsed = headerRow.hasClass('collapsed');

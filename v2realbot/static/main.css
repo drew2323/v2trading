@@ -20,6 +20,15 @@
   overflow: visible;
 }
 
+.expand-icon {
+  margin-right: 3px;
+  vertical-align: middle;
+  font-size: 15px;
+  color: var(--bs-gray-400);
+  border-radius: 4px;
+  /* padding: 2px; */
+}
+
 .tool-icon {
   margin-right: 0px;
   vertical-align: middle;
@@ -254,6 +263,15 @@ table.dataTable thead>tr>th.sorting_asc:before, table.dataTable thead>tr>th.sort
   margin-right: 5px;
   vertical-align: middle;
 }
+/* Base style for color-tag */
+
+/* Additional class to change the triangle direction when the row is expanded */
+.collapsed .color-tag {
+  border-top: none;
+  border-bottom: 10px solid #838E65; /* Triangle pointing down when expanded */
+}
+
+
 
 .group-header {
   cursor: pointer;

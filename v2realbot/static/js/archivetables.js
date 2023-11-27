@@ -1256,12 +1256,19 @@ var archiveRecords =
                 // Construct the GROUP HEADER - sem pripadna tlačítka atp.
                 //var groupHeaderContent = '<strong>' + (group ? 'Batch ID: ' + group : 'No Batch') + '</strong>';
                 var tools = ''
+                var icon = ''
+                exp_coll_icon_name = ''
                 if (group) {
                     tools += '<span id="batchtool_report_button" class="material-symbols-outlined tool-icon" title="Batch Report">lab_profile</span>'
                     tools += '<span id="batchtool_delete_button" class="material-symbols-outlined tool-icon" title="Delete Batch">delete</span>'
+                    exp_coll_icon_name = (state == 'collapsed') ? 'expand_more' : 'expand_less'
+                    icon = '<span class="material-symbols-outlined expand-icon" style="background-color:' + getColorForId(stratinId) + ';" title="Expand">'+exp_coll_icon_name+'</span>'
                 }
+
+
                 //console.log(group, groupId, stratinId)
-                var groupHeaderContent = '<span class="batchheader-batch-id">'+(group ? '<span class="color-tag" style="background-color:' + getColorForId(stratinId) + ';"></span>Batch ID: ' + group: 'No Batch')+'</span>';
+                //var groupHeaderContent = '<span class="batchheader-batch-id">'+(group ? '<span class="color-tag" style="background-color:' + getColorForId(stratinId) + ';"></span>Batch ID: ' + group: 'No Batch')+'</span>';
+                var groupHeaderContent = '<span class="batchheader-batch-id">'+(group ? icon + 'Batch ID: ' + group: 'No Batch')+'</span>';
                 groupHeaderContent += (group ? ' <span class="batchheader-count-info">(' + itemCount + ')</span>' + '  <span class="batchheader-period-info">' + period + '</span>   <span class="batchheader-profit-info">Profit: ' + profit + '</span>'  : '');
                 groupHeaderContent += group ? tools : ""
                 return $('<tr/>')
@@ -1344,6 +1351,15 @@ $('#archiveTable tbody').on('click', 'tr.group-header', function (event) {
     var headerRow = $(this);
     var name = headerRow.data('name');
     var collapsed = headerRow.hasClass('collapsed');
+
+    // Toggle the expand icon name
+    var expandIcon = headerRow.find('.expand-icon');
+    if (collapsed) {
+        expandIcon.text('expand_less');
+    } else {
+        expandIcon.text('expand_more');
+    }
+
     headerRow.toggleClass('collapsed');
 
     archiveRecords.rows().every(function () {

@@ -1265,7 +1265,7 @@ var archiveRecords =
                     tools += '<span id="batchtool_report_button" class="material-symbols-outlined tool-icon" title="Batch Report">lab_profile</span>'
                     tools += '<span id="batchtool_delete_button" class="material-symbols-outlined tool-icon" title="Delete Batch">delete</span>'
                     icon_color = getColorForId(stratinId)
-                    profit_icon_color = (profit>0) ? "#e33972" : "#d42962"
+                    profit_icon_color = (profit>0) ? "#4f8966" : "#bb2f5e" //"#d42962"  
                 }
                 else {
                     //def color for no batch - semi transparent

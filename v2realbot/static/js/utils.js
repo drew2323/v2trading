@@ -137,6 +137,7 @@ function initialize_statusheader() {
 
     // Create the grid table
     var gridTable = document.getElementById('statusHeaderTool');
+    gridTable.style.display = 'flex';
 
     var cntid = 0
 
@@ -330,8 +331,8 @@ function initialize_chart() {
     //var chartOptions = { width: 1045, height: 600, leftPriceScale: {visible: true}}
 
     //TMAVY MOD
-    var chartOptions = { width: 1280,
-        height: 600,
+    var chartOptions = { width: 1024,
+        height: 480,
         leftPriceScale: {visible: true},
         layout: {
             background: {
@@ -556,14 +557,14 @@ function profitLineToggle() {
 
 //togle go wide
 function toggleWide() {
-  width = 2000;
+  width = 1600;
   const elem = document.getElementById("goWide");
   const msgContainer = document.getElementById("msgContainer");
   const msgContainerInner = document.getElementById("msgContainerInner");
   const clrButton = document.getElementById("clrButton");
 
   if (elem.classList.contains("switcher-active-item")) {
-      width = 1080;
+      width = 1024;
       msgContainer.removeAttribute("style");
       msgContainerInner.removeAttribute("style");
       clrButton.removeAttribute("style");

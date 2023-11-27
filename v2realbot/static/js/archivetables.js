@@ -143,12 +143,38 @@ $(document).ready(function () {
     $('#archiveTable tbody').on('click', 'td:nth-child(18)', function () {
         var data = archiveRecords.row(this).data();
         if (data.batch_id) {
+            display_batch_report(data.batch_id)
+        }
+    });
+
+    // Event listener for click to display batch report
+    $('#archiveTable tbody').on('click', 'tr.group-header #batchtool_report_button', function (event) {
+        event.stopPropagation();
+        // Get the parent <tr> element
+        var parentTr = $(this).closest('tr');
+        // Retrieve the 'data-name' attribute from the parent <tr>
+        var batch_id = parentTr.data('name');
+        display_batch_report(batch_id)
+    });
+
+    // Event listener for click to delete batch
+    $('#archiveTable tbody').on('click', 'tr.group-header #batchtool_delete_button', function (event) {
+        event.stopPropagation();
+        // Get the parent <tr> element
+        var parentTr = $(this).closest('tr');
+        // Retrieve the 'data-name' attribute from the parent <tr>
+        var batch_id = parentTr.data('name');
+        $('#batch_id_del').val(batch_id);
+        $('#listofids').html("");
+        window.$('#delModalBatch').modal('show');
+    });
+
+    function display_batch_report(batch_id) {
             //var imageUrl = '/media/report_'+data.id+".png"; // Replace with your logic to get image URL
-            var imageUrl = '/media/basic/'+data.batch_id+'.png'; // Replace with your logic to get image URL
+            var imageUrl = '/media/basic/'+batch_id+'.png'; // Replace with your logic to get image URL
             console.log(imageUrl)
             display_image(imageUrl)
-        }
-    });    
+    }
 
     // $('#archiveTable tbody').on('mouseleave', 'td:nth-child(2)', function () {
     //     $('#imagePreview').hide();
@@ -555,20 +581,17 @@ $(document).ready(function () {
     //delete batch modal
     $("#delModalBatch").on('submit','#delFormBatch', function(event){
         event.preventDefault();
-        row = archiveRecords.row('.selected').data();
-        if (row == undefined || row.batch_id == undefined) {
-            return
-        }
+        batch_id = $('#batch_id_del').val();
         $('#deletebatch').attr('disabled', 'disabled');
         $.ajax({
-            url:"/archived_runners/batch/"+row.batch_id,
+            url:"/archived_runners/batch/"+batch_id,
             beforeSend: function (xhr) {
                 xhr.setRequestHeader('X-API-Key',
                     API_KEY); },
             method:"DELETE",
             contentType: "application/json",
             dataType: "json",
-            data: JSON.stringify(row.batch_id),
+            data: JSON.stringify(batch_id),
             success:function(data){				
                 $('#delFormBatch')[0].reset();
                 window.$('#delModalBatch').modal('hide');
@@ -959,8 +982,20 @@ var archiveRecords =
         paging: true,
         processing: true,
         serverSide: true,
-        columnDefs: [{
-            targets: [0,1,17],
+        columnDefs: [
+            {
+                targets: 1,
+                render: function ( data, type, row ) {
+                    if (type === 'display') {
+                        console.log("arch")
+                        var color = getColorForId(data);
+                        return '<div class="tdnowrap" data-bs-toggle="tooltip" data-bs-placement="top" title="'+data+'"><span class="color-tag" style="background-color:' + color + ';"></span>'+data+'</div>';
+                    }
+                    return data;
+                },
+            },
+            {
+            targets: [0,17],
             render: function ( data, type, row ) {
                 if (!data) return data
                 return '<div class="tdnowrap" title="'+data+'">'+data+'</i>'
@@ -1155,6 +1190,7 @@ var archiveRecords =
                 var period = '';
                 var profit = '';
                 var started = null;
+                var stratinId = null;
 
                 // // Process each item only once
                 // archiveRecords.rows({ search: 'applied' }).every(function (rowIdx, tableLoop, rowLoop) {
@@ -1188,7 +1224,8 @@ var archiveRecords =
                         profit = firstRowData.metrics.profit.batch_sum_profit;
                         period = firstRowData.note ? firstRowData.note.substring(0, 14) : '';
                         started = firstRowData.started
-                        var newBatchHeader = {batch_id:group, profit:profit, itemCount:itemCount, period:period, started:started}
+                        stratinId = firstRowData.strat_id
+                        var newBatchHeader = {batch_id:group, profit:profit, itemCount:itemCount, period:period, started:started, stratinId:stratinId}
                         batchHeaders.push(newBatchHeader)
                     }
                     //uz je v poli, ale mame novejsi (pribyl v ramci backtestu napr.) - updatujeme
@@ -1197,6 +1234,7 @@ var archiveRecords =
                         profit = firstRowData.metrics.profit.batch_sum_profit;
                         period = firstRowData.note ? firstRowData.note.substring(0, 14) : '';
                         started = firstRowData.started
+                        stratinId = firstRowData.id
                         existingBatch.itemCount = itemCount;
                         existingBatch.profit = profit;
                         existingBatch.period = period;
@@ -1208,6 +1246,7 @@ var archiveRecords =
                         itemCount = existingBatch.itemCount
                         period = existingBatch.period
                         started = existingBatch.started
+                        stratinId = existingBatch.stratinId
                     }
                 }
 
@@ -1215,9 +1254,15 @@ var archiveRecords =
 
                 // Construct the GROUP HEADER - sem pripadna tlačítka atp.
                 //var groupHeaderContent = '<strong>' + (group ? 'Batch ID: ' + group : 'No Batch') + '</strong>';
-                var groupHeaderContent = '<strong>' + (group ? 'Batch ID: ' + group : 'No Batch')+'</strong>';
+                var tools = ''
+                if (group) {
+                    tools += '<span id="batchtool_report_button" class="material-symbols-outlined tool-icon" title="Batch Report">lab_profile</span>'
+                    tools += '<span id="batchtool_delete_button" class="material-symbols-outlined tool-icon" title="Delete Batch">delete</span>'
+                }
+                //console.log(group, groupId, stratinId)
+                var groupHeaderContent = '<span class="batchheader-batch-id">'+(group ? '<span class="color-tag" style="background-color:' + getColorForId(stratinId) + ';"></span>Batch ID: ' + group: 'No Batch')+'</span>';
                 groupHeaderContent += (group ? ' <span class="batchheader-count-info">(' + itemCount + ')</span>' + '  <span class="batchheader-period-info">' + period + '</span>   <span class="batchheader-profit-info">Profit: ' + profit + '</span>'  : '');
-        
+                groupHeaderContent += group ? tools : ""
                 return $('<tr/>')
                     .append('<td colspan="18">' + groupHeaderContent + '</td>')
                     .attr('data-name', groupId)

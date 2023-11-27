@@ -747,6 +747,48 @@ $(document).ready(function () {
 } );
 
 
+//section for color of stratins
+// Function to generate a color from an ID
+// function generateColor(id) {
+//     var hash = 0;
+//     for (var i = 0; i < id.length; i++) {
+//         hash = id.charCodeAt(i) + ((hash << 5) - hash);
+//     }
+    
+//     // Convert hash to HSL (Hue, Saturation, Lightness)
+//     var hue = hash % 360; // Hue (0-360)
+//     var saturation = 70; // Saturation (percentage)
+//     var lightness = 30; // Lightness (percentage)
+
+//     // Convert HSL to RGB, then to hex (optional)
+//     return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+// }
+
+//version of generateColor that randomly picks from array of colors
+function generateColor(id) {
+    var randomIndex = Math.floor(Math.random() * colors.length);
+    return colors[randomIndex];
+}
+
+// Function to get color for an ID, from localStorage or generate a new one
+function getColorForId(id) {
+    //temp generate always new
+    var color = null;
+    var color = localStorage.getItem('color-' + id);
+    if (!color) {
+        color = generateColor(id);
+        localStorage.setItem('color-' + id, color);
+    }
+    return color;
+}
+
+function deleteColor(id) {
+    var key = 'color-' + id;
+    if (localStorage.getItem(key)) {
+        localStorage.removeItem(key);
+    }
+}
+
 
 //stratin table
 var stratinRecords = 
@@ -779,6 +821,10 @@ var stratinRecords =
                 ],
         paging: true,
         processing: false,
+        // rowCallback: function(row, data, index) {
+        //     var color = getColorForId(data.id); // Assuming 'id' is the identifier in your data
+        //     $(row).css('color', color);
+        // },
         columnDefs: [{
             targets: 12,
             render: function ( data, type, row ) {
@@ -789,7 +835,13 @@ var stratinRecords =
             {
                 targets: 0,
                 render: function ( data, type, row ) {
-                    return '<div class="tdnowrap" data-bs-toggle="tooltip" data-bs-placement="top" title="'+data+'">'+data+'</i>'
+                    if (type === 'display') {
+                        //console.log("stratin")
+                        var color = getColorForId(data);
+                        //style="color:' + color + ';" 
+                        return '<div class="tdnowrap" data-bs-toggle="tooltip" data-bs-placement="top" title="'+data+'"><span class="color-tag" style="background-color:' + color + ';"></span>'+data+'</div>';
+                    }
+                    return data;
                 },
                 },
             {
@@ -1193,7 +1245,8 @@ $("#delModal").on('submit','#delForm', function(event){
             method:"DELETE",
             contentType: "application/json",
             dataType: "json",
-            success:function(data){				
+            success:function(data){
+                deleteColor(formData.delid)			
                 $('#delForm')[0].reset();
                 window.$('#delModal').modal('hide');				
                 $('#delete').attr('disabled', false);

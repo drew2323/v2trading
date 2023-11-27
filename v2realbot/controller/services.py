@@ -814,7 +814,10 @@ def populate_metrics_output_directory(strat: StrategyInstance, inter_batch_param
             rp_string = "RP" + str(float(np.sum(strat.state.rel_profit_cum))) if len(strat.state.rel_profit_cum) >0 else "noRP"
 
             ##summary pro rychle zobrazeni P333L-222 PT9:30 PL10:30
-            res["profit"]["sum"]="P"+str(int(sum_wins))+"L"+str(int(sum_losses))+" "+"MP"+str(int(max_profit))+"ML"+str(int(max_loss))+" "+ mpt_string+" " + mlt_string + rp_string + " "+str(strat.state.rel_profit_cum)
+            res["profit"]["sum"]="P"+str(int(sum_wins))+"L"+str(int(sum_losses))+" "+"MP"+str(int(max_profit))+"ML"+str(int(max_loss))
+            
+            #summary pokracovani - max casy + rel profity
+            res["profit"]["sum_detail"] = mpt_string+" " + mlt_string + rp_string + " "+str(strat.state.rel_profit_cum)
 
             #rel_profit zprumerovane
             res["profit"]["daily_rel_profit_sum"] = float(np.sum(strat.state.rel_profit_cum)) if len(strat.state.rel_profit_cum) > 0 else 0

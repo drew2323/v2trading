@@ -20,6 +20,23 @@
   overflow: visible;
 }
 
+.tool-icon {
+  margin-right: 0px;
+  vertical-align: middle;
+  font-size: 19px;
+  color: var(--bs-secondary);
+  border-radius: 4px;
+  padding: 2px;
+}
+
+.tool-icon:hover {
+  background-color: var(--bs-info-text-emphasis);
+  color: var(--bs-dark-bg-subtle);
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 2px;
+}
+
 .pagination {
   --bs-pagination-padding-x: 0.45rem;
   --bs-pagination-padding-y: 0.15rem;
@@ -46,7 +63,23 @@
   list-style: none;
 }
 
+strong {
+  font-weight: normal;
+}
+
+.line {
+  /* font-family: 'Roboto Mono', monospace;
+  font-size: 11px; */
+  font-family: 'Fira Code', 'Roboto Mono', monospace;
+  font-size: 11px; /* Adjust size as necessary */
+  line-height: 1.3; /* This increases the line spacing */
+}
+
 [data-bs-theme=dark] {
+  --bs-font-sans-serif: Söhne, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --bs-body-line-height: 1.3;
+  --bs-body-font-size: 1.0rem;
+  --bs-body-font-weight: 300;
   color-scheme: dark;
   --bs-body-color: #787b86;
   --bs-body-color-rgb: 173,181,189;
@@ -135,7 +168,7 @@ tbody, td, tfoot, th, thead, tr {
 .tdmetrics {
   overflow: hidden;
   text-overflow: ellipsis;
-  width: 132px;
+  width: 154px;
   white-space: nowrap;
   font-size: x-small;
 }
@@ -213,28 +246,40 @@ table.dataTable thead>tr>th.sorting_asc:before, table.dataTable thead>tr>th.sort
   transform: translate(-50%, -50%);
 }
 
+.color-tag {
+  height: 10px;
+  width: 10px;
+  display: inline-block;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: middle;
+}
 
 .group-header {
-  /* cursor: pointer; */
+  cursor: pointer;
   background-color: #f2f2f2; /* Light gray background */
   color: #b2b2b2; /* Dark text for contrast */
-  font-weight: bold;
+  /* font-weight: bold; */
 }
 
 .group-header .batchheader-profit-info {
   color: #3e999e; /* Highlight profit info */
-  font-weight: bold;
+  /* font-weight: bold; */
 }
 
 .group-header .batchheader-count-info  {
   color: #a1a1a1; /* Highlight count info */
-  font-weight: bold;
+  /* font-weight: bold; */
 }
 
+.group-header .batchheader-batch-id  {
+  color: #a1a1a1; /* Highlight period info */
+  /* font-weight: bold; */
+}
 
 .group-header .batchheader-period-info  {
   color: #a1a1a1; /* Highlight period info */
-  font-weight: bold;
+  /* font-weight: bold; */
 }
 
 .group-header strong {
@@ -324,7 +369,9 @@ html {
     position: absolute;
     color: #050505;
     left: 100px;
-    top: 195px;
+    top: 100px;
+    /* po zapnuti statusHeaderToolbar prepnout na */
+    /* top: 195px; */
     z-index: 1;
     font-size: 12px;
     line-height: 18px;
@@ -350,7 +397,7 @@ html {
   .msgContainerInner {
     display: flex;
     overflow: auto;
-    height: 568px;
+    height: 480px;
     flex-direction: column-reverse;
     margin-left: 14px;
     width: 100%;
@@ -358,8 +405,8 @@ html {
   #msgContainer {
     display: inline-block;
     /* overflow: auto; */
-    height: 600px;
-    width: 40%;
+    height: 480px;
+    width: 35%;
   }
 }
 
@@ -367,7 +414,7 @@ html {
   .msgContainerInner {
       display: flex;
       overflow: auto;
-      height: 568px;
+      height: 480px;
       flex-direction: column-reverse;
       margin-left: 14px;
       width: 130%;
@@ -375,7 +422,7 @@ html {
   #msgContainer {
     display: inline-block;
     /* overflow: auto; */
-    height: 600px;
+    height: 480px;
     width: 750px;
   }
 }
@@ -436,10 +483,8 @@ pre {
 }
 
 #statusHeaderTool {
+  display: none;
   margin-left: 0px;
-  font-size: normal;
-  /* font-weight: bold; */
-  display: flex;
   /* background-color: #dfe4e6; */
   /* color: white; */
   padding: 1px;
@@ -503,7 +548,7 @@ pre {
   text-decoration: double;
   display: inline-block;
   padding: 1px 6px;
-  font-size: 14px;
+  /* font-size: 14px; */
   /* color: #262b3e; */
   /* background-color: #818581; */
   background-color: #0202022e;
@@ -578,7 +623,7 @@ pre {
   text-decoration: double;
   display: inline-block;
   padding: 1px 6px;
-  font-size: 14px;
+  /* font-size: 14px; */
   /* color: #262b3e; */
   /* background-color: #818581; */
   background-color: #0202022e;

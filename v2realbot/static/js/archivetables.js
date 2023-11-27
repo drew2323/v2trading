@@ -1258,17 +1258,22 @@ var archiveRecords =
                 var tools = ''
                 var icon = ''
                 exp_coll_icon_name = ''
+                exp_coll_icon_name = (state == 'collapsed') ? 'expand_more' : 'expand_less'
                 if (group) {
                     tools += '<span id="batchtool_report_button" class="material-symbols-outlined tool-icon" title="Batch Report">lab_profile</span>'
                     tools += '<span id="batchtool_delete_button" class="material-symbols-outlined tool-icon" title="Delete Batch">delete</span>'
-                    exp_coll_icon_name = (state == 'collapsed') ? 'expand_more' : 'expand_less'
-                    icon = '<span class="material-symbols-outlined expand-icon" style="background-color:' + getColorForId(stratinId) + ';" title="Expand">'+exp_coll_icon_name+'</span>'
+                    icon_color = getColorForId(stratinId)
                 }
+                else {
+                    //def color for no batch - semi transparent
+                    icon_color = "#ced4da17"
+                }
+                icon = '<span class="material-symbols-outlined expand-icon" style="background-color:' + icon_color + ';" title="Expand">'+exp_coll_icon_name+'</span>'
 
 
                 //console.log(group, groupId, stratinId)
                 //var groupHeaderContent = '<span class="batchheader-batch-id">'+(group ? '<span class="color-tag" style="background-color:' + getColorForId(stratinId) + ';"></span>Batch ID: ' + group: 'No Batch')+'</span>';
-                var groupHeaderContent = '<span class="batchheader-batch-id">'+(group ? icon + 'Batch ID: ' + group: 'No Batch')+'</span>';
+                var groupHeaderContent = '<span class="batchheader-batch-id">'+ icon + (group ? 'Batch ID: ' + group: 'No Batch')+'</span>';
                 groupHeaderContent += (group ? ' <span class="batchheader-count-info">(' + itemCount + ')</span>' + '  <span class="batchheader-period-info">' + period + '</span>   <span class="batchheader-profit-info">Profit: ' + profit + '</span>'  : '');
                 groupHeaderContent += group ? tools : ""
                 return $('<tr/>')

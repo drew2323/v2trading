@@ -302,6 +302,7 @@ $(document).ready(function () {
         runnerRecords.ajax.reload();
         stratinRecords.ajax.reload();
         archiveRecords.ajax.reload();
+        disable_arch_buttons();
     })
 
     //button copy
@@ -927,11 +928,23 @@ var runnerRecords =
                 ],
         paging: false,
         processing: false,
-        columnDefs: [            {
-            targets: [0,1],
+        columnDefs: [            
+            {
+            targets: [0],
             render: function ( data, type, row ) {
                 return '<div class="tdnowrap" title="'+data+'">'+data+'</i>'
+                },
             },
+            {
+                targets: 1,
+                render: function ( data, type, row ) {
+                    if (type === 'display') {
+                        //console.log("arch")
+                        var color = getColorForId(data);
+                        return '<div class="tdnowrap" data-bs-toggle="tooltip" data-bs-placement="top" title="'+data+'"><span class="color-tag" style="background-color:' + color + ';"></span>'+data+'</div>';
+                    }
+                    return data;
+                },
             },
             {
                 targets: [2],

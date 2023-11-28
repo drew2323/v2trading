@@ -52,6 +52,14 @@ class DataTablesRequest(BaseModel):
 #  return user.id
 #  raise HTTPException(status_code=404, detail=f"Could not find user with id: {id}")
 
+
+#obecny vstup pro analyzera (vstupem muze byt bud batch_id nebo seznam runneru)
+class AnalyzerInputs(BaseModel):
+    batch_id: Optional[str] = None
+    runner_ids: Optional[List[UUID]] = None
+    #additional parameter
+    params: Optional[dict] = {}
+
 class RunDay(BaseModel):
     """
     Helper object for batch run - carries list of days in format required by run batch manager

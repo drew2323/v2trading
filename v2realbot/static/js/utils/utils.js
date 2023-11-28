@@ -1,3 +1,5 @@
+//general util functions all accross
+
 
 API_KEY = localStorage.getItem("api-key")
 var chart = null

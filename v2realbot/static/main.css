@@ -280,6 +280,16 @@ table.dataTable thead>tr>th.sorting_asc:before, table.dataTable thead>tr>th.sort
   /* font-weight: bold; */
 }
 
+/* Hide all .batchtool_ elements by default */
+.batchtool {
+  display: none;
+}
+
+/* Show .batchtool elements when hovering over a .group-header row */
+.group-header:hover .batchtool {
+  display: inline-block; /* or whatever display type suits your layout */
+}
+
 .group-header .batchheader-profit-info {
   color: #3e999e; /* Highlight profit info */
   /* font-weight: bold; */

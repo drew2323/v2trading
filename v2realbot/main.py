@@ -11,7 +11,7 @@ import uvicorn
 from uuid import UUID
 import v2realbot.controller.services as cs
 from v2realbot.utils.ilog import get_log_window
-from v2realbot.common.model import StrategyInstance, RunnerView, RunRequest, Trade, RunArchive, RunArchiveView, RunArchiveViewPagination, RunArchiveDetail, Bar, RunArchiveChange, TestList, ConfigItem, InstantIndicator, DataTablesRequest
+from v2realbot.common.model import StrategyInstance, RunnerView, RunRequest, Trade, RunArchive, RunArchiveView, RunArchiveViewPagination, RunArchiveDetail, Bar, RunArchiveChange, TestList, ConfigItem, InstantIndicator, DataTablesRequest, AnalyzerInputs
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status, WebSocketException, Cookie, Query
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -590,10 +590,14 @@ def _generate_report_image(runner_ids: list[UUID]):
 
 #TODO toto bude zaklad pro obecnou funkci, ktera bude volat ruzne analyzy
 #vstupem bude obecny objekt, ktery ponese nazev analyzy + atributy
-@app.post("/batches/optimizecutoff/{batch_id}", dependencies=[Depends(api_key_auth)], responses={200: {"content": {"image/png": {}}}})
-def _generate_analysis(batch_id: str):
+@app.post("/batches/optimizecutoff", dependencies=[Depends(api_key_auth)], responses={200: {"content": {"image/png": {}}}})
+def _generate_analysis(analyzerInputs: AnalyzerInputs):
     try:
-        res, stream = find_optimal_cutoff(batch_id=batch_id, steps=50, stream=True)
+        if len(analyzerInputs.runner_ids) == 0 and analyzerInputs.batch_id is None:
+                     raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error: batch_id or runner_ids required")   
+
+        #bude predelano na obecny analyzator s obecnym rozhrannim
+        res, stream = find_optimal_cutoff(runner_ids=analyzerInputs.runner_ids, batch_id=analyzerInputs.batch_id, stream=True, **analyzerInputs.params)
         if res == 0: return StreamingResponse(stream, media_type="image/png",headers={"Content-Disposition": "attachment; filename=optimizedcutoff.png"})
         elif res < 0:
             raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error: {res}:{id}")

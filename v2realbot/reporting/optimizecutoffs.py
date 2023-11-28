@@ -10,6 +10,7 @@ from enum import Enum
 import numpy as np
 import v2realbot.controller.services as cs
 from rich import print
+from v2realbot.common.model import AnalyzerInputs
 from v2realbot.common.PrescribedTradeModel import TradeDirection, TradeStatus, Trade, TradeStoplossType
 from v2realbot.utils.utils import isrising, isfalling,zoneNY, price2dec, safe_get#, print
 from pathlib import Path
@@ -211,7 +212,7 @@ def find_optimal_cutoff(runner_ids: list = None, batch_id: str = None, stream: b
     plt.yticks(rotation=0)   # Keep y-axis labels horizontal
     plt.gca().invert_yaxis()
     plt.gca().invert_xaxis()
-    plt.suptitle("Total Profit for Combinations of Profit and Loss Cutoffs", fontsize=16)
+    plt.suptitle(f"Total Profit for Combinations of Profit/Loss Cutoffs ({cnt_max})", fontsize=16)
     plt.title(f"Optimal Profit Cutoff: {optimal_profit_cutoff:.2f}, Optimal Loss Cutoff: {optimal_loss_cutoff:.2f}, Max Profit: {max_profit:.2f}", fontsize=10)
     plt.xlabel("Loss Cutoff")
     plt.ylabel("Profit Cutoff")
@@ -235,6 +236,7 @@ if __name__ == '__main__':
     # id_list = ["e8938b2e-8462-441a-8a82-d823c6a025cb"]
     # generate_trading_report_image(runner_ids=id_list)
     batch_id = "c76b4414"
+    vstup = AnalyzerInputs(**params)
     res, val = find_optimal_cutoff(batch_id=batch_id, file="optimal_cutoff_vectorized.png",steps=20)
     #res, val  = find_optimal_cutoff(batch_id=batch_id, rem_outliers=True, file="optimal_cutoff_vectorized_nooutliers.png")
 

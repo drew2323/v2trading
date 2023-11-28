@@ -309,18 +309,18 @@
                         <div class="legend" id="legendArchive"></div>
                     </div> -->
                     <div id="controls">
-                        <button id="button_edit_arch" class="btn btn-outline-success btn-sm">Edit(a)</button>
-                        <button id="button_delete_arch" class="btn btn-outline-success btn-sm">Delete(d)</button>
-                        <button id="button_delete_batch" class="btn btn-outline-success btn-sm">Delete Batch(b)</button>
-                        <button id="button_show_arch" class="btn btn-outline-success btn-sm">Show(w)</button>
+                        <button title="Edit selected days" id="button_edit_arch" class="btn btn-outline-success btn-sm">Edit(a)</button>
+                        <button title="Delete selected days" id="button_delete_arch" class="btn btn-outline-success btn-sm">Delete(d)</button>
+                        <!-- <button id="button_delete_batch" class="btn btn-outline-success btn-sm">Delete Batch(b)</button> -->
+                        <button title="Show selected day on the chart" id="button_show_arch" class="btn btn-outline-success btn-sm">Show(w)</button>
                         <button id="button_refresh" class="refresh btn btn-outline-success btn-sm">Refresh</button>
-                        <button id="button_compare_arch" class="refresh btn btn-outline-success btn-sm">Compare</button>
-                        <button id="button_runagain_arch" class="refresh btn btn-outline-success btn-sm">Run Again(r)</button>
-                        <button id="button_selpage" class="btn btn-outline-success btn-sm">Select all</button>
-                        <button id="button_export_xml" class="btn btn-outline-success btn-sm">Export xml</button>
-                        <button id="button_export_csv" class="btn btn-outline-success btn-sm">Export csv</button>
+                        <button title="Compare selected days" id="button_compare_arch" class="refresh btn btn-outline-success btn-sm">Compare</button>
+                        <button title="Run selected day" id="button_runagain_arch" class="refresh btn btn-outline-success btn-sm">Run Again(r)</button>
+                        <button title="Select all days on the page" id="button_selpage" class="btn btn-outline-success btn-sm">Select all</button>
+                        <button title="Export selected days to XML" id="button_export_xml" class="btn btn-outline-success btn-sm">Export xml</button>
+                        <button title="Export selected days to CSV" id="button_export_csv" class="btn btn-outline-success btn-sm">Export csv</button>
                         <button title="For selected days generates basic report image." id="button_report" class="btn btn-outline-success btn-sm">Report(q)</button>
-                        <button title="For selected batch creates heatmap for optimal profit/loss cutoffs" id="button_analyze" class="btn btn-outline-success btn-sm">Optimal cutoffs</button>
+                        <button title="For selected days creates heatmap for optimal profit/loss cutoffs" id="button_analyze" class="btn btn-outline-success btn-sm">Cutoffs Heatmap</button>
                         <!-- <button id="button_stopall" class="btn btn-outline-success btn-sm">Stop All</button>
                         <button id="button_refresh" class="btn btn-outline-success btn-sm">Refresh</button> -->
                         <div id="buttons-container"></div>
@@ -853,10 +853,26 @@
        
     
        
-        <script src="/static/js/utils.js?v=1.01"></script>
+        <!-- <script src="/static/js/utils.js?v=1.01"></script> -->
+        <!-- new util structure and exports and colors -->
+        <script src="/static/js/utils/utils.js?v=1.01"></script>
+        <script src="/static/js/utils/exports.js?v=1.01"></script>
+        <script src="/static/js/utils/colors.js?v=1.01"></script>
+
+
         <script src="/static/js/instantindicators.js?v=1.01"></script>
         <script src="/static/js/archivechart.js?v=1.03"></script>
-        <script src="/static/js/archivetables.js?v=1.05"></script>
+
+        <!-- <script src="/static/js/archivetables.js?v=1.05"></script> -->
+        <!-- archiveTables split into separate files -->
+        <script src="/static/js/tables/archivetable/init.js?v=1.03"></script>
+        <script src="/static/js/tables/archivetable/functions.js?v=1.03"></script>
+        <script src="/static/js/tables/archivetable/modals.js?v=1.03"></script>
+        <script src="/static/js/tables/archivetable/handlers.js?v=1.03"></script>
+
+
+
+
         <script src="/static/js/livewebsocket.js?v=1.01"></script>
         <script src="/static/js/realtimechart.js?v=1.01"></script>
         <script src="/static/js/mytables.js?v=1.01"></script>

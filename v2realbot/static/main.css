@@ -370,7 +370,7 @@ html {
 }
 
 .flex-container {
-    display: inline-grid;
+    /* display: inline-grid; */
     flex-direction: row;
     flex-wrap: wrap;
     justify-content: flex-start;

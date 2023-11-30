@@ -276,7 +276,7 @@ function populate_dynamic_buttons(targetElement, config, batch_id = null)  {
         // Stop the event from propagating to parent elements
         event.stopPropagation();
         // Check if the clicked element or any of its parents is a submit button
-        if (!$(event.target).closest('input[type="submit"], button[type="submit"]').length) {
+        if (!$(event.target).closest('input[type="submit"], button[type="submit"], input[type="checkbox"]').length) {
             // Stop the event from propagating to parent elements
             event.preventDefault();
         }

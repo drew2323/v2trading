@@ -320,10 +320,11 @@
                         <button title="Export selected days to XML" id="button_export_xml" class="btn btn-outline-success btn-sm">Export xml</button>
                         <button title="Export selected days to CSV" id="button_export_csv" class="btn btn-outline-success btn-sm">Export csv</button>
                         <button title="For selected days generates basic report image." id="button_report" class="btn btn-outline-success btn-sm">Report(q)</button>
-                        <button title="For selected days creates heatmap for optimal profit/loss cutoffs" id="button_analyze" class="btn btn-outline-success btn-sm">Cutoffs Heatmap</button>
+                        <!-- <button title="For selected days creates heatmap for optimal profit/loss cutoffs" id="button_analyze" class="btn btn-outline-success btn-sm">Cutoffs Heatmap</button> -->
                         <!-- <button id="button_stopall" class="btn btn-outline-success btn-sm">Stop All</button>
                         <button id="button_refresh" class="btn btn-outline-success btn-sm">Refresh</button> -->
-                        <div id="buttons-container"></div>
+                        <div id="buttons-container" style="display: contents"></div>
+
                     </div>
 
                     <!-- <div>
@@ -850,7 +851,7 @@
         <!-- tady zacina polska docasna lokalizace -->
         <!-- <script type="text/javascript" src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script> -->
         <script type="text/javascript" src="/static/js/libs/lightweightcharts/lightweight-charts.standalone.production410.js"></script>
-       
+        <script src="/static/js/dynamicbuttons.js"></script>
     
        
         <!-- <script src="/static/js/utils.js?v=1.01"></script> -->
@@ -872,12 +873,11 @@
 
 
 
-
         <script src="/static/js/livewebsocket.js?v=1.01"></script>
         <script src="/static/js/realtimechart.js?v=1.01"></script>
         <script src="/static/js/mytables.js?v=1.01"></script>
         <script src="/static/js/testlist.js?v=1.01"></script>
         <script src="/static/js/configform.js?v=1.01"></script>
-        <!-- <script src="/static/js/dynamicbuttons.js"></script> -->
+
     </body>
 </html>

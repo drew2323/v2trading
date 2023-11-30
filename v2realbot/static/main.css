@@ -35,7 +35,9 @@
   font-size: 19px;
   color: var(--bs-secondary);
   border-radius: 4px;
-  padding: 2px;
+  /* padding: 2px; */
+  padding-left: 2px;
+  padding-right: 2px;
 }
 
 .tool-icon:hover {
@@ -43,8 +45,71 @@
   color: var(--bs-dark-bg-subtle);
   cursor: pointer;
   border-radius: 4px;
-  padding: 2px;
+  /* padding: 2px; */
 }
+
+.stat_div {
+  display: contents;
+}
+
+        /* Custom styles for dark mode and form offset */
+        .dropdown-menu-dark .form-control, .dropdown-menu-dark .btn {
+          background-color: #343a40;
+          border-color: #6c757d;
+          color: white;
+      }
+      .dropdown-menu-dark .form-control:focus {
+          box-shadow: none;
+          border-color: #5cb85c;
+      }
+      .dropdown-item {
+          position: relative;
+          display: flex;
+          align-items: center; /* Align play icon vertically */
+      }
+      .hover-icon {
+          margin-left: auto; /* Push play icon to the right */
+          cursor: pointer; /* Change cursor on hover */
+      }
+      .action-form {
+        z-index: 500000;  
+        display: none; /* Hide form by default */
+          position: absolute;
+          left: 100%; /* Position form to the right of the dropdown item */
+          top: 0;
+          white-space: nowrap; /* Prevent wrapping on small screens */
+          width: max-content;
+/* Add some space between the dropdown item and the form */
+          background: #343a40; /* Match the dropdown background color */
+          border-radius: 0.25rem; /* Match Bootstrap's border radius */
+          border: 1px solid #6c757d; /* Slight border for the form */
+      }
+      /* .form-group {
+          display: flex;
+          gap: 0.5rem;
+          align-items: center;
+          margin-bottom: 0.5rem;
+      } */
+      /* Floating label styles */
+      .form-label-group {
+          position: relative;
+          /* padding-top: 15px; */
+      }
+      .form-label-group label {
+          position: absolute;
+          top: 0;
+          left: 12px;
+          font-size: 75%;
+          /* transform: translateY(-50%); */
+          margin-top: 0; /* Adjusted for font size */
+          color: #6c757d; 
+          pointer-events: none;
+      }
+      .form-label-group input,
+      .form-label-group select {
+          padding-top: 18px;
+          /* padding-bottom: 2px; */
+      }
 
 .pagination {
   --bs-pagination-padding-x: 0.45rem;
@@ -271,7 +336,7 @@ table.dataTable thead>tr>th.sorting_asc:before, table.dataTable thead>tr>th.sort
   border-bottom: 10px solid #838E65; /* Triangle pointing down when expanded */
 }
 
-
+.input-group { margin-top: 10px; display: none; }
 
 .group-header {
   cursor: pointer;
@@ -280,33 +345,47 @@ table.dataTable thead>tr>th.sorting_asc:before, table.dataTable thead>tr>th.sort
   /* font-weight: bold; */
 }
 
-/* Hide all .batchtool_ elements by default */
+/* Hide all .batchtool elements by default */
 .batchtool {
-  display: none;
+  display: inline-flex; /* Maintain the desired display type */
+  opacity: 0; /* Initially fully transparent */
+  visibility: hidden; /* Initially hidden */
+  transition: opacity 0.5s, visibility 0s 0.5s; /* Transition for opacity and delay for visibility */
 }
 
-/* Show .batchtool elements when hovering over a .group-header row */
+/* Show .batchtool elements immediately when hovering over a .group-header row */
 .group-header:hover .batchtool {
-  display: inline-block; /* or whatever display type suits your layout */
+  opacity: 1; /* Fully opaque when hovered */
+  visibility: visible; /* Visible when hovered */
+  transition: opacity 0.5s, visibility 0s; /* Immediate transition for visibility */
+}
+
+/* Delay the transition when mouse leaves */
+.group-header .batchtool {
+  transition-delay: 0.5s; /* Delay the transition */
 }
 
 .group-header .batchheader-profit-info {
   color: #3e999e; /* Highlight profit info */
+  vertical-align: super;
   /* font-weight: bold; */
 }
 
 .group-header .batchheader-count-info  {
   color: #a1a1a1; /* Highlight count info */
+  vertical-align: super;
   /* font-weight: bold; */
 }
 
 .group-header .batchheader-batch-id  {
   color: #a1a1a1; /* Highlight period info */
   font-weight: 400;
+  vertical-align: super;
 }
 
 .group-header .batchheader-period-info  {
   color: #a1a1a1; /* Highlight period info */
+  vertical-align: super;
   /* font-weight: bold; */
 }
 

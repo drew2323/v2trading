@@ -3,6 +3,7 @@
 
 
 $(document).ready(function () {
+    initialize_archiveRecords();
     archiveRecords.ajax.reload();
     disable_arch_buttons();
 

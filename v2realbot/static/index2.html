@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Bootstrap CSS (Dark Mode Enabled) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css">
+    <!-- Custom CSS -->
+    <style>
+        /* Custom styles for dark mode and form offset */
+        .dropdown-menu-dark .form-control, .dropdown-menu-dark .btn {
+            background-color: #343a40;
+            border-color: #6c757d;
+            color: white;
+        }
+        .dropdown-menu-dark .form-control:focus {
+            box-shadow: none;
+            border-color: #5cb85c;
+        }
+        .dropdown-item {
+            position: relative;
+            display: flex;
+            align-items: center; /* Align play icon vertically */
+        }
+        .hover-icon {
+            margin-left: auto; /* Push play icon to the right */
+            cursor: pointer; /* Change cursor on hover */
+        }
+        .action-form {
+            display: none; /* Hide form by default */
+            position: absolute;
+            left: 100%; /* Position form to the right of the dropdown item */
+            top: 0;
+            white-space: nowrap; /* Prevent wrapping on small screens */
+            width: max-content;
+/* Add some space between the dropdown item and the form */
+            background: #343a40; /* Match the dropdown background color */
+            border-radius: 0.25rem; /* Match Bootstrap's border radius */
+            border: 1px solid #6c757d; /* Slight border for the form */
+        }
+        .form-group {
+            display: flex;
+            gap: 0.5rem; /* Spacing between form fields */
+            align-items: center;
+            margin-bottom: 0.5rem; /* Spacing between each form group */
+        }
+        /* Floating label styles */
+        .form-label-group {
+            position: relative;
+            /* padding-top: 15px; */
+        }
+        .form-label-group label {
+            position: absolute;
+            top: 0;
+            left: 12px;
+            font-size: 75%;
+            /* transform: translateY(-50%); */
+            margin-top: 0; /* Adjusted for font size */
+            color: #6c757d; 
+            pointer-events: none;
+        }
+        .form-label-group input,
+        .form-label-group select {
+            padding-top: 18px;
+            /* padding-bottom: 2px; */
+        }
+
+    </style>
+</head>
+<body class="bg-dark text-white">
+    <div class="container mt-5">
+        <!-- Dropdown Button -->
+        <div class="dropdown">
+            <button class="btn btn-secondary dropdown-toggle" type="button" id="actionDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                Choose Action
+            </button>
+            <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="actionDropdown">
+                <!-- Action 1-->
+                <li>
+                    <a class="dropdown-item" href="#">
+                        Action 1
+                        <i class="bi bi-play-circle float-end hover-icon"></i>
+                    <!-- ... Action 1 content ... -->
+                    <form class="d-none action-form">
+                        <div class="form-label-group">
+                            <input type="text" id="param1-action1" class="form-control form-control-sm" placeholder="Parameter 1" value="Default Value">
+                            <label for="param1-action1">Parameter 1</label>
+                        </div>
+                        <div class="form-label-group">
+                            <input type="text" id="param2-action1" class="form-control form-control-sm" placeholder="Parameter 2">
+                            <label for="param2-action1">Parameter 2</label>
+                        </div>
+                        <div class="form-label-group">
+                            <select class="form-select form-select-sm" id="select-action1">
+                                <option selected>Option 1</option>
+                                <option value="1">Option 2</option>
+                                <option value="2">Option 3</option>
+                            </select>
+                            <label for="select-action1">Select Option</label>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm">Submit</button>
+                    </form>
+                    </a>
+                </li>
+                <!-- ... Additional Actions ... -->
+                <li>
+                    <a class="dropdown-item" href="#">
+                        Action 2
+                        <i class="bi bi-play-circle float-end hover-icon"></i> <!-- Bootstrap Icons for Play -->
+                    <!-- ... Action 1 content ... -->
+                    <form class="d-none action-form">
+                        <div class="form-label-group">
+                            <input type="text" id="param1-action2" class="form-control form-control-sm" placeholder="Parameter 1" value="Default Value">
+                            <label for="param1-action1">Parameter 1</label>
+                        </div>
+                        <div class="form-label-group">
+                            <input type="text" id="param2-action2" class="form-control form-control-sm" placeholder="Parameter 2">
+                            <label for="param2-action2">Parameter 2</label>
+                        </div>
+                        <div class="form-label-group">
+                            <select class="form-select form-select-sm" id="select-action2">
+                                <option selected>Option 1</option>
+                                <option value="1">Option 2</option>
+                                <option value="2">Option 3</option>
+                            </select>
+                            <label for="select-action2">Select Option</label>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm">Submit</button>
+                    </form>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    <!-- jQuery and Bootstrap Bundle -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    $(document).ready(function() {
+
+        // Toggle visibility of form on hover for any number of actions
+        $('.dropdown-menu').on('mouseenter', '.dropdown-item', function() {
+            $(this).find('.action-form').removeClass('d-none').show();
+        });
+
+        $('.dropdown-menu').on('mouseleave', '.dropdown-item', function() {
+            setTimeout(() => { // Timeout to prevent flickering effect
+                if (!$('.action-form:hover').length) {
+                    $(this).find('.action-form').addClass('d-none').hide();
+                }
+            }, 100);
+            
+        });
+
+
+    // // Show the form when hovering over the play icon
+    // $('.dropdown-menu').on('mouseenter', '.hover-icon', function() {
+    //     $(this).siblings('.action-form').removeClass('d-none').show();
+    // });
+
+    // // Hide the form when hovering out of the play icon and form area
+    // $('.dropdown-menu').on('mouseleave', '.hover-icon, .action-form', function() {
+    //     setTimeout(() => { // Timeout to prevent flickering effect
+    //         if (!$('.action-form:hover').length) {
+    //             $('.action-form').hide();
+    //         }
+    //     }, 100);
+    // });
+
+    // Hide form when mouse leaves the form area
+    $('.dropdown-menu').on('mouseleave', '.action-form', function() {
+        $(this).hide();
+    });
+
+    // Submit form logic
+    $('.dropdown-menu').on('submit', '.action-form', function(e) {
+        e.preventDefault();
+        // Add logic to process form submission
+        console.log('Form submitted for', $(this).closest('.dropdown-item').text().trim());
+    });
+});
+
+    </script>
+</body>
+</html>

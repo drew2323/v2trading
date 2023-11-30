@@ -8,7 +8,6 @@ from pydantic import BaseModel
 from v2realbot.enums.enums import Mode, Account
 from alpaca.data.enums import Exchange
 
-
 #models for server side datatables
 # Model for individual column data
 class ColumnData(BaseModel):
@@ -55,6 +54,7 @@ class DataTablesRequest(BaseModel):
 
 #obecny vstup pro analyzera (vstupem muze byt bud batch_id nebo seznam runneru)
 class AnalyzerInputs(BaseModel):
+    function: str
     batch_id: Optional[str] = None
     runner_ids: Optional[List[UUID]] = None
     #additional parameter

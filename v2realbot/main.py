@@ -33,7 +33,8 @@ from time import sleep
 import v2realbot.reporting.metricstools as mt
 from v2realbot.reporting.metricstoolsimage import generate_trading_report_image
 from traceback import format_exc
-from v2realbot.reporting.optimizecutoffs import find_optimal_cutoff
+#from v2realbot.reporting.optimizecutoffs import find_optimal_cutoff
+import v2realbot.reporting.analyzer as ci
 #from async io import Queue, QueueEmpty
 #              
 # install()
@@ -591,19 +592,37 @@ def _generate_report_image(runner_ids: list[UUID]):
 #TODO toto bude zaklad pro obecnou funkci, ktera bude volat ruzne analyzy
 #vstupem bude obecny objekt, ktery ponese nazev analyzy + atributy
 @app.post("/batches/optimizecutoff", dependencies=[Depends(api_key_auth)], responses={200: {"content": {"image/png": {}}}})
-def _generate_analysis(analyzerInputs: AnalyzerInputs):
+def _optimize_cutoff(analyzerInputs: AnalyzerInputs):
     try:
         if len(analyzerInputs.runner_ids) == 0 and analyzerInputs.batch_id is None:
                      raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error: batch_id or runner_ids required")   
 
         #bude predelano na obecny analyzator s obecnym rozhrannim
-        res, stream = find_optimal_cutoff(runner_ids=analyzerInputs.runner_ids, batch_id=analyzerInputs.batch_id, stream=True, **analyzerInputs.params)
+        res, stream = ci.find_optimal_cutoff.find_optimal_cutoff(runner_ids=analyzerInputs.runner_ids, batch_id=analyzerInputs.batch_id, stream=True, **analyzerInputs.params)
         if res == 0: return StreamingResponse(stream, media_type="image/png",headers={"Content-Disposition": "attachment; filename=optimizedcutoff.png"})
         elif res < 0:
             raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error: {res}:{id}")
     except Exception as e:
             raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error: {str(e)}" + format_exc())        
 
+#obecna funkce pro analyzy
+#vstupem bude obecny objekt, ktery ponese nazev analyzy + atributy
+@app.post("/batches/analytics", dependencies=[Depends(api_key_auth)], responses={200: {"content": {"image/png": {}}}})
+def _generate_analysis(analyzerInputs: AnalyzerInputs):
+    try:
+        if (analyzerInputs.runner_ids is None or len(analyzerInputs.runner_ids) == 0) and analyzerInputs.batch_id is None:
+                     raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error: batch_id or runner_ids required")   
+
+        funct = "ci."+analyzerInputs.function+"."+analyzerInputs.function
+        custom_function = eval(funct)
+        stream = None
+        res, stream = custom_function(runner_ids=analyzerInputs.runner_ids, batch_id=analyzerInputs.batch_id, stream=True, **analyzerInputs.params)
+
+        if res == 0: return StreamingResponse(stream, media_type="image/png")
+        elif res < 0:
+            raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error: {res}:{id}")
+    except Exception as e:
+            raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error: {str(e)}" + format_exc())        
 
 #TestList APIS - do budoucna predelat SQL do separatnich funkci
 @app.post('/testlists/', dependencies=[Depends(api_key_auth)])

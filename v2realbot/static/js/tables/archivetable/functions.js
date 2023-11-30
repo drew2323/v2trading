@@ -296,7 +296,7 @@ function delete_batch(event){
 function analyze_optimal_cutoff(batch_id = null) {
     //definice parametru
     param_obj = { rem_outliers:false, steps:50}
-    obj = {runner_ids:[], batch_id:null, params:param_obj}
+    obj = {function: "analyze_optimal_cutoff", runner_ids:[], batch_id:null, params:param_obj}
     //bereme bud selected runners
     if (!batch_id) {
         rows = archiveRecords.rows('.selected').data();
@@ -330,6 +330,19 @@ function analyze_optimal_cutoff(batch_id = null) {
         xhrFields: {
             responseType: 'blob'
         },
+        xhr: function() {
+            var xhr = new XMLHttpRequest();
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 2) { // Headers have been received
+                    if (xhr.status === 200) {
+                        xhr.responseType = "blob"; // Set responseType to 'blob' for successful image responses
+                    } else {
+                        xhr.responseType = "text"; // Set responseType to 'text' for error messages
+                    }
+                }
+            };
+            return xhr;
+        },
         contentType: "application/json",
         processData: false,
         data: JSON.stringify(obj),
@@ -344,7 +357,7 @@ function analyze_optimal_cutoff(batch_id = null) {
         },
         error: function(xhr, status, error) {
             console.log("proc to skace do erroru?")
-            //window.alert(JSON.stringify(xhr));
+            window.alert(JSON.stringify(xhr));
             console.log(JSON.stringify(xhr));
             $('#button_analyze').attr('disabled',false);
             if (!batch_id) {
@@ -419,7 +432,9 @@ function display_image(imageUrl) {
         //$('#imagePreview').show();
         window.$('#imageModal').modal('show');        
     };
-    img.onerror = function() {
+    img.onerror = function(e) {
+        console.log("Image load error", e);
+        console.log("Image object:", img);
         console.log("no image available")
         // If the image fails to load, do nothing
     };

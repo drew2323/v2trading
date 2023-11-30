@@ -9,9 +9,9 @@
 // 	PRIMARY KEY("id" AUTOINCREMENT)
 // ); //novy komentar
 
-configData = {}
+let configData = {}
 
-//pridat sem i config area
+//sluzba z globalni promenne s JS configuraci dotahne dana data
 function get_from_config(name, def_value) {
     def_value = def_value ? def_value : null 
     console.log("required", name, configData)
@@ -25,52 +25,58 @@ function get_from_config(name, def_value) {
     }
 }
 
-$(document).ready(function () {
-    const apiBaseUrl = '';
 
-    // Function to populate the config list and load JSON data initially
-    function loadConfig(configName) {
-        const rec = new Object()
-        rec.item_name = configName
+function loadConfig(configName) {
+    return new Promise((resolve, reject) => {
+        const rec = new Object();
+        rec.item_name = configName;
         $.ajax({
-            url: `${apiBaseUrl}/config-items-by-name/`,
+            url: `/config-items-by-name/`,
             beforeSend: function (xhr) {
-                xhr.setRequestHeader('X-API-Key',
-                    API_KEY); },
-            METHOD: 'GET',
+                xhr.setRequestHeader('X-API-Key', API_KEY);
+            },
+            method: 'GET',
             contentType: "application/json",
             dataType: "json",
             data: rec,
             success: function (data) {
-                console.log(data)
                 try {
-                    configData[configName] = JSON.parse(data.json_data)
-                    console.log(configData)
-                    console.log("jsme tu")
-                    indConfig = configData["JS"].indConfig
-                    console.log("after")
-                    //console.log(JSON.stringify(indConfig, null,null, 2))
-
-                    console.log("before CHART_SHOW_TEXT",CHART_SHOW_TEXT)
-                    var CHART_SHOW_TEXT = configData["JS"].CHART_SHOW_TEXT
-                    console.log("after CHART_SHOW_TEXT",CHART_SHOW_TEXT)
+                    var configData = JSON.parse(data.json_data);
+                    resolve(configData);  // Resolve the promise with configData
                 }
                 catch (error) {
-                    window.alert(`Nešlo rozparsovat JSON_data string ${configName}`, error.message)
+                    reject(error);  // Reject the promise if there's an error
                 }
-                
             },
             error: function(xhr, status, error) {
-                var err = eval("(" + xhr.responseText + ")");
-                window.alert(`Nešlo dotáhnout config nastaveni z db ${configName}`, JSON.stringify(xhr));
-                console.log(JSON.stringify(xhr));
+                reject(new Error(xhr.responseText));  // Reject the promise on AJAX error
             }
         });
+    });
+}
 
+function getConfiguration(area) {
+    return loadConfig(area).then(configData => {
+        console.log("Config loaded for", area, configData);
+        return configData;
+    }).catch(error => {
+        console.error('Error loading config for', area, error);
+        throw error; // Re-throw to allow caller to handle
+    });
+}
+
+//asynchrone naplni promennou
+async function loadConfigData(jsConfigName) {
+    try {
+        configData[jsConfigName] = await getConfiguration(jsConfigName);
+        console.log("jsConfigName", jsConfigName);
+    } catch (error) {
+        console.error('Failed to load button configuration:',jsConfigName, error);
     }
+}
 
-    const jsConfigName = "JS"
-    //naloadovan config
-    loadConfig(jsConfigName)
 
+$(document).ready(function () {
+    var jsConfigName = "JS"
+    loadConfigData(jsConfigName)
 });

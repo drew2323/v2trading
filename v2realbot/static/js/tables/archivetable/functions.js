@@ -377,6 +377,7 @@ function get_selected_or_batch(batch_id = null) {
         });
         //console.log("batch rows",batch_id, rows)
     }
+    return rows
 }
 
 //prepares export data, either for selected rows or based on batch_id

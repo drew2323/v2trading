@@ -256,6 +256,7 @@ function initialize_archiveRecords() {
                     var profit = '';
                     var started = null;
                     var stratinId = null;
+                    var symbol = null;
 
                     // // Process each item only once
                     // archiveRecords.rows({ search: 'applied' }).every(function (rowIdx, tableLoop, rowLoop) {
@@ -290,7 +291,8 @@ function initialize_archiveRecords() {
                             period = firstRowData.note ? firstRowData.note.substring(0, 14) : '';
                             started = firstRowData.started
                             stratinId = firstRowData.strat_id
-                            var newBatchHeader = {batch_id:group, profit:profit, itemCount:itemCount, period:period, started:started, stratinId:stratinId}
+                            symbol = firstRowData.symbol
+                            var newBatchHeader = {batch_id:group, profit:profit, itemCount:itemCount, period:period, started:started, stratinId:stratinId, symbol:symbol};
                             batchHeaders.push(newBatchHeader)
                         }
                         //uz je v poli, ale mame novejsi (pribyl v ramci backtestu napr.) - updatujeme
@@ -300,6 +302,7 @@ function initialize_archiveRecords() {
                             period = firstRowData.note ? firstRowData.note.substring(0, 14) : '';
                             started = firstRowData.started
                             stratinId = firstRowData.id
+                            symbol = firstRowData.symbol
                             existingBatch.itemCount = itemCount;
                             existingBatch.profit = profit;
                             existingBatch.period = period;
@@ -312,6 +315,7 @@ function initialize_archiveRecords() {
                             period = existingBatch.period
                             started = existingBatch.started
                             stratinId = existingBatch.stratinId
+                            symbol = existingBatch.symbol
                         }
                     }
 
@@ -350,7 +354,7 @@ function initialize_archiveRecords() {
                     //console.log(group, groupId, stratinId)
                     //var groupHeaderContent = '<span class="batchheader-batch-id">'+(group ? '<span class="color-tag" style="background-color:' + getColorForId(stratinId) + ';"></span>Batch ID: ' + group: 'No Batch')+'</span>';
                     var groupHeaderContent = '<span class="batchheader-batch-id">'+ icon + (group ? 'Batch ID: ' + group: 'No Batch')+'</span>';
-                    groupHeaderContent += (group ? ' <span class="batchheader-count-info">(' + itemCount + ')</span>' + '  <span class="batchheader-period-info">' + period + '</span>   <span class="batchheader-profit-info" style="color:'+profit_icon_color+'">Profit: ' + profit + '</span>'  : '');
+                    groupHeaderContent += (group ? '<span class="batchheader-symbol-info" style="color:'+icon_color+'">' + symbol + '</span><span class="batchheader-count-info">(' + itemCount + ')</span>' + '  <span class="batchheader-period-info">' + period + '</span>   <span class="batchheader-profit-info" style="color:'+profit_icon_color+'">Profit: ' + profit + '</span>'  : '');
                     groupHeaderContent += group ? tools : ""
                     return $('<tr/>')
                         .append('<td colspan="18">' + groupHeaderContent + '</td>')

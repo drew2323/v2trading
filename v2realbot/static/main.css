@@ -377,6 +377,13 @@ table.dataTable thead>tr>th.sorting_asc:before, table.dataTable thead>tr>th.sort
   /* font-weight: bold; */
 }
 
+.group-header .batchheader-symbol-info  {
+    font-weight: 600;
+    vertical-align: super;
+    margin-left: 2px;
+    margin-right: 2px;
+}
+
 .group-header .batchheader-batch-id  {
   color: #a1a1a1; /* Highlight period info */
   font-weight: 400;

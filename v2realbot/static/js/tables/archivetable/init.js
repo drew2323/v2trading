@@ -243,7 +243,8 @@ function initialize_archiveRecords() {
                     rows.every(function (rowIdx, tableLoop, rowLoop) {
                         var rowNode = $(this.node());
                         rowNode.attr('data-group-name', groupId);
-                        if (state == 'collapsed') {
+                        //defaultne jsou batche zabalene a nobatche rozbalene, pokud nenastavim jinak
+                        if (state == 'collapsed' || (!state) && group) {
                             rowNode.hide();
                         } else {
                             rowNode.show();
@@ -287,7 +288,8 @@ function initialize_archiveRecords() {
                         //jeste neni v poli batchu - udelame hlavicku
                         if (!existingBatch) {
                             itemCount = extractNumbersFromString(firstRowData.note);
-                            profit = firstRowData.metrics.profit.batch_sum_profit;
+                            try {profit = firstRowData.metrics.profit.batch_sum_profit;}
+                            catch (e) {profit = 'NA'}
                             period = firstRowData.note ? firstRowData.note.substring(0, 14) : '';
                             started = firstRowData.started
                             stratinId = firstRowData.strat_id
@@ -298,10 +300,11 @@ function initialize_archiveRecords() {
                         //uz je v poli, ale mame novejsi (pribyl v ramci backtestu napr.) - updatujeme
                         else if (new Date(existingBatch.started) < new Date(firstRowData.started)) {
                             itemCount = extractNumbersFromString(firstRowData.note);
-                            profit = firstRowData.metrics.profit.batch_sum_profit;
+                            try {profit = firstRowData.metrics.profit.batch_sum_profit;}
+                            catch (e) {profit = 'NA'}
                             period = firstRowData.note ? firstRowData.note.substring(0, 14) : '';
                             started = firstRowData.started
-                            stratinId = firstRowData.id
+                            stratinId = firstRowData.strat_id
                             symbol = firstRowData.symbol
                             existingBatch.itemCount = itemCount;
                             existingBatch.profit = profit;

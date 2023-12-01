@@ -309,8 +309,9 @@ def capsule(target: object, db: object, inter_batch_params: dict = None):
         reason = None
 
         if target.se.is_set():
-            print("EXTERNAL STOP FLAG IS SET - cancel BATCH")
-            inter_batch_params["stop"] = True
+            print("EXTERNAL STOP FLAG IS SET - cancel BATCH if running")
+            if inter_batch_params is not None:
+                inter_batch_params["stop"] = True
             reason = "STOP Signal received"
 
     except Exception as e:

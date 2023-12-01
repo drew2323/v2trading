@@ -434,8 +434,11 @@ class Strategy:
                     #check internal signals - for profit/loss optim etc - valid for runner
                     if self.signal_stop:
                         print(current_thread().name, "Stopping signal - internal")
-                        break                    
-                    #check signals - stops also batch
+                        break     
+                    if self.state.time is not None and self.state.time > self.state.today_market_close:
+                        print(current_thread().name, "MARKET CLOSE - Stopping signal - internal")
+                        break                                
+                    #check signals - external signal stops also batch
                     if self.se.is_set():
                         print(current_thread().name, "External stopping signal")
                         break
@@ -728,7 +731,7 @@ class StrategyState:
         self.rectype = rectype
         #LIVE - now()
         #BACKTEST - allows the interface to realize past events
-        self.time = 0
+        self.time = None
         #time of last trade processed
         self.last_trade_time = 0
         self.last_entry_price=dict(long=0,short=999)
@@ -789,6 +792,7 @@ class StrategyState:
         self.extData = defaultdict(dict)
         self.mode = None
         self.wait_for_fill = None
+        self.today_market_close = None
     
     def release(self):
         #release large variables

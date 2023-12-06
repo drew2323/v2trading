@@ -49,11 +49,17 @@
 }
 
 .scrollable-div {
-  width: 177px;
-  height: 140px;
+  width: 229px;
+  height: 143px;
   overflow-y: auto;
   border: 1px solid #585858;
   padding: 10px;
+}
+
+.delete-model {
+  color: red;
+  cursor: pointer;
+  margin-left: 10px;
 }
 
 .stat_div {

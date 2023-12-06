@@ -35,6 +35,8 @@ from v2realbot.reporting.metricstoolsimage import generate_trading_report_image
 from traceback import format_exc
 #from v2realbot.reporting.optimizecutoffs import find_optimal_cutoff
 import v2realbot.reporting.analyzer as ci
+import shutil
+from starlette.responses import JSONResponse
 #from async io import Queue, QueueEmpty
 #              
 # install()
@@ -811,6 +813,25 @@ def list_models():
     # List all files in the directory
     model_files = os.listdir(models_directory)
     return {"models": model_files}
+
+@app.post("/model/upload-model", dependencies=[Depends(api_key_auth)])
+def upload_model(file: UploadFile = File(...)):
+    if not file:
+        raise HTTPException(status_code=400, detail="No file uploaded.")
+    file_location = os.path.join(MODEL_DIR, file.filename)
+    with open(file_location, "wb+") as file_object:
+        shutil.copyfileobj(file.file, file_object)
+
+    return JSONResponse(status_code=200, content={"message": "Model uploaded successfully."})
+
+@app.delete("/model/delete-model/{model_name}", dependencies=[Depends(api_key_auth)])
+def delete_model(model_name: str):
+    model_path = os.path.join(MODEL_DIR, model_name)
+    if os.path.exists(model_path):
+        os.remove(model_path)
+        return {"message": "Model deleted successfully."}
+    else:
+        raise HTTPException(status_code=404, detail="Model not found.")
 
 # Thread function to insert data from the queue into the database
 def insert_queue2db():

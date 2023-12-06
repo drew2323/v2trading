@@ -26,12 +26,27 @@ PYTHON_TO_USE="python3"
 
 #----END EDITABLE VARS-------
 
+# Additions for handling strat.log backup
+HISTORY_DIR="$HOME/stratlogs"
+TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
+LOG_FILE="strat.log"
+BACKUP_LOG_FILE="$HISTORY_DIR/${TIMESTAMP}_$LOG_FILE"
+
 # If virtualenv specified & exists, using that version of python instead.
 if [ -d "$VIRTUAL_ENV_DIR" ]; then
     PYTHON_TO_USE="$VIRTUAL_ENV_DIR/bin/python"
 fi
 
 start() {
+    # Check and create history directory if it doesn't exist
+    [ ! -d "$HISTORY_DIR" ] && mkdir -p "$HISTORY_DIR"
+
+    # Check if strat.log exists and back it up
+    if [ -f "$LOG_FILE" ]; then
+        mv "$LOG_FILE" "$BACKUP_LOG_FILE"
+        echo "Backed up log to $BACKUP_LOG_FILE"
+    fi
+
     if [ ! -e "$OUTPUT_PID_PATH/$OUTPUT_PID_FILE" ]; then
         nohup "$PYTHON_TO_USE" ./$SCRIPT_TO_EXECUTE_PLUS_ARGS > strat.log 2>&1 & echo $! > "$OUTPUT_PID_PATH/$OUTPUT_PID_FILE"
         echo "Started $SCRIPT_TO_EXECUTE_PLUS_ARGS @ Process: $!"

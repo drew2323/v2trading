@@ -48,6 +48,14 @@
   /* padding: 2px; */
 }
 
+.scrollable-div {
+  width: 177px;
+  height: 140px;
+  overflow-y: auto;
+  border: 1px solid #585858;
+  padding: 10px;
+}
+
 .stat_div {
   display: contents;
 }
@@ -372,6 +380,12 @@ table.dataTable thead>tr>th.sorting_asc:before, table.dataTable thead>tr>th.sort
 }
 
 .group-header .batchheader-count-info  {
+  color: #a1a1a1; /* Highlight count info */
+  vertical-align: super;
+  /* font-weight: bold; */
+}
+
+.group-header .batchheader-note-info  {
   color: #a1a1a1; /* Highlight count info */
   vertical-align: super;
   /* font-weight: bold; */

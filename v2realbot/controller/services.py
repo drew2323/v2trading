@@ -519,7 +519,8 @@ def batch_run_manager(id: UUID, runReq: RunRequest, rundays: list[RunDay]):
         print("Datum do", day.end)
         runReq.bt_from = day.start
         runReq.bt_to = day.end
-        runReq.note = f"{first_frm}-{last_frm} Batch {batch_id} #{cnt}/{cnt_max} {weekdayfilter_string} {day.name} N:{day.note} {note_from_run_request}"
+        #pozor z tohoto parsuje GUI Na batchheader
+        runReq.note = f"{first_frm}-{last_frm} Batch {batch_id} #{cnt}/{cnt_max} {weekdayfilter_string} {day.name} {day.note if day.note is not None else ''} N: {note_from_run_request}"
 
         #protoze jsme v ridicim vlaknu, poustime za sebou jednotlive stratiny v synchronnim modu
         res, id_val = run_stratin(id=id, runReq=runReq, synchronous=True, inter_batch_params=inter_batch_params)

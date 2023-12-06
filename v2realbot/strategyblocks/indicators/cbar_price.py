@@ -5,7 +5,7 @@ def populate_cbar_tick_price_indicator(data, state: StrategyState):
     conf_bar = data['confirmed']
 
     #specifická sekce pro CBARVOLUME, kde vzdy máme nova data v confirmation baru (tzn. tickprice pocitame jak pri potvrzenem tak nepotvrzenem)
-    if state.rectype in (RecordType.CBARVOLUME, RecordType.CBARRENKO):
+    if state.rectype in (RecordType.CBARVOLUME, RecordType.CBARDOLLAR, RecordType.CBARRENKO):
         try:
             tick_price = data['close']
             tick_delta_volume = data['volume'] - state.vars.last_tick_volume

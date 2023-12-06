@@ -4,9 +4,9 @@ from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, Foll
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus
 from v2realbot.utils.utils import isrising, isfalling,zoneNY, price2dec, print, safe_get, is_still, is_window_open, eval_cond_dict, crossed_down, crossed_up, crossed, is_pivot, json_serial, pct_diff, create_new_bars, slice_dict_lists
 from v2realbot.utils.directive_utils import get_conditions_from_configuration
-from v2realbot.ml.mlutils import load_model
+import mlroom.utils.mlutils as ml
 from v2realbot.common.model import SLHistory
-from v2realbot.config import KW
+from v2realbot.config import KW, MODEL_DIR
 from uuid import uuid4
 from datetime import datetime
 #import random
@@ -48,7 +48,7 @@ def initialize_dynamic_indicators(state):
                     modelname = safe_get(indsettings["cp"], 'name', None)
                     modelversion = safe_get(indsettings["cp"], 'version', "1")
                     if modelname is not None:
-                        state.vars.loaded_models[modelname] =  load_model(modelname, modelversion)
+                        state.vars.loaded_models[modelname] =  ml.load_model(modelname, modelversion, MODEL_DIR)
                         if state.vars.loaded_models[modelname] is not None:
                             printanyway(f"model {modelname} loaded")
                         else:

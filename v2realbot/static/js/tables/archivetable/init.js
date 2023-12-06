@@ -254,6 +254,7 @@ function initialize_archiveRecords() {
                     // Initialize variables for the group
                     var itemCount = 0;
                     var period = '';
+                    var batch_note = '';
                     var profit = '';
                     var started = null;
                     var stratinId = null;
@@ -291,10 +292,13 @@ function initialize_archiveRecords() {
                             try {profit = firstRowData.metrics.profit.batch_sum_profit;}
                             catch (e) {profit = 'NA'}
                             period = firstRowData.note ? firstRowData.note.substring(0, 14) : '';
+                            try {
+                            batch_note = firstRowData.note ? firstRowData.note.split("N:")[1].trim() : ''
+                            } catch (e) { batch_note = ''}
                             started = firstRowData.started
                             stratinId = firstRowData.strat_id
                             symbol = firstRowData.symbol
-                            var newBatchHeader = {batch_id:group, profit:profit, itemCount:itemCount, period:period, started:started, stratinId:stratinId, symbol:symbol};
+                            var newBatchHeader = {batch_id:group, batch_note:batch_note, profit:profit, itemCount:itemCount, period:period, started:started, stratinId:stratinId, symbol:symbol};
                             batchHeaders.push(newBatchHeader)
                         }
                         //uz je v poli, ale mame novejsi (pribyl v ramci backtestu napr.) - updatujeme
@@ -303,6 +307,9 @@ function initialize_archiveRecords() {
                             try {profit = firstRowData.metrics.profit.batch_sum_profit;}
                             catch (e) {profit = 'NA'}
                             period = firstRowData.note ? firstRowData.note.substring(0, 14) : '';
+                            try {
+                                batch_note = firstRowData.note ? firstRowData.note.split("N:")[1].trim() : ''
+                                } catch (e) { batch_note = ''}
                             started = firstRowData.started
                             stratinId = firstRowData.strat_id
                             symbol = firstRowData.symbol
@@ -310,6 +317,7 @@ function initialize_archiveRecords() {
                             existingBatch.profit = profit;
                             existingBatch.period = period;
                             existingBatch.started = started;
+                            existingBatch.batch_note = batch_note
                         }
                         //uz je v poli batchu vytahneme
                         else {
@@ -319,6 +327,7 @@ function initialize_archiveRecords() {
                             started = existingBatch.started
                             stratinId = existingBatch.stratinId
                             symbol = existingBatch.symbol
+                            batch_note = existingBatch.batch_note
                         }
                     }
 
@@ -359,6 +368,7 @@ function initialize_archiveRecords() {
                     var groupHeaderContent = '<span class="batchheader-batch-id">'+ icon + (group ? 'Batch ID: ' + group: 'No Batch')+'</span>';
                     groupHeaderContent += (group ? '<span class="batchheader-symbol-info" style="color:'+icon_color+'">' + symbol + '</span><span class="batchheader-count-info">(' + itemCount + ')</span>' + '  <span class="batchheader-period-info">' + period + '</span>   <span class="batchheader-profit-info" style="color:'+profit_icon_color+'">Profit: ' + profit + '</span>'  : '');
                     groupHeaderContent += group ? tools : ""
+                    groupHeaderContent += group ? '<span class="batchheader-note-info">' + batch_note + '</span>' : ''
                     return $('<tr/>')
                         .append('<td colspan="18">' + groupHeaderContent + '</td>')
                         .attr('data-name', groupId)
@@ -366,6 +376,7 @@ function initialize_archiveRecords() {
                         .addClass(state);
                 }
             },
+            lengthMenu: [ [10, 50, 200, 500, -1], [10, 50, 200, 500, "All"] ],
             drawCallback: function (settings) {
                 //console.log("drawcallback", configData)
                 setTimeout(function(){ 

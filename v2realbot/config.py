@@ -52,6 +52,7 @@ COUNT_API_REQUESTS = False
 #stratvars that cannot be changed in gui
 STRATVARS_UNCHANGEABLES = ['pendingbuys', 'blockbuy', 'jevylozeno', 'limitka']
 DATA_DIR = user_data_dir("v2realbot")
+MODEL_DIR = Path(DATA_DIR)/"models"
 #BT DELAYS
 #profiling
 PROFILING_NEXT_ENABLED = False

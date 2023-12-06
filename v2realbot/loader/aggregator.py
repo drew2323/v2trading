@@ -178,14 +178,30 @@ class TradeAggregator:
         #         return
         #     else: pass
 
-        if self.rectype in (RecordType.BAR, RecordType.CBAR):
-            return await self.calculate_time_bar(data, symbol)
+        # if self.rectype in (RecordType.BAR, RecordType.CBAR):
+        #     return await self.calculate_time_bar(data, symbol)
         
-        if self.rectype == RecordType.CBARVOLUME:
-            return await self.calculate_volume_bar(data, symbol)
+        # if self.rectype == RecordType.CBARVOLUME:
+        #     return await self.calculate_volume_bar(data, symbol)
         
-        if self.rectype == RecordType.CBARRENKO:
-            return await self.calculate_renko_bar(data, symbol)
+        # if self.rectype == RecordType.CBARVOLUME:
+        #     return await self.calculate_volume_bar(data, symbol)
+        
+        # if self.rectype == RecordType.CBARRENKO:
+        #     return await self.calculate_renko_bar(data, symbol)
+
+        match self.rectype:
+            case RecordType.BAR | RecordType.CBAR:
+                return await self.calculate_time_bar(data, symbol)
+
+            case RecordType.CBARVOLUME:
+                return await self.calculate_volume_bar(data, symbol)
+
+            case RecordType.CBARDOLLAR:
+                return await self.calculate_dollar_bar(data, symbol)
+
+            case RecordType.CBARRENKO:
+                return await self.calculate_renko_bar(data, symbol)
 
     async def calculate_time_bar(self, data, symbol):
         #print("barstart",datetime.fromtimestamp(self.bar_start))
@@ -550,6 +566,179 @@ class TradeAggregator:
                 return []
         else:
             return []
+
+    #WIP - revidovant kod a otestovat
+    async def calculate_dollar_bar(self, data, symbol):
+        """"
+        Agreguje DOLLAR BARS -
+        hlavni promenne 
+        - self.openedBar (dict) = stavová obsahují aktivní nepotvrzený bar
+        - confirmedBars (list) = nestavová obsahuje confirmnute bary, které budou na konci funkceflushnuty
+        """""
+        #volume_bucket = 10000 #daily MA volume z emackova na 30 deleno 50ti - dat do configu
+        dollar_bucket = self.resolution
+        #potvrzene pripravene k vraceni
+        confirmedBars = []
+        #potvrdi existujici a nastavi k vraceni
+        def confirm_existing():
+            self.openedBar['confirmed'] = 1
+            self.openedBar['vwap'] = self.vwaphelper / self.openedBar['volume']
+            self.vwaphelper = 0
+
+            #ulozime zacatek potvrzeneho baru
+            #self.lastBarConfirmed = self.openedBar['time']
+
+            self.openedBar['updated'] = data['t']
+            confirmedBars.append(deepcopy(self.openedBar))
+            self.openedBar = None
+            #TBD po každém potvrzení zvýšíme čas o nanosekundu (pro zobrazení v gui)
+            #data['t'] = data['t'] + 0.000001
+            
+        #init unconfirmed - velikost bucketu kontrolovana predtim
+        def initialize_unconfirmed(size):
+                #inicializuji pro nový bar
+                self.vwaphelper += (data['p'] * size)
+                self.barindex +=1
+                self.openedBar =  {
+                    "close": data['p'],
+                    "high": data['p'],
+                    "low": data['p'],
+                    "open": data['p'],
+                    "volume": size,
+                    "trades": 1,
+                    "hlcc4": data['p'],
+                    "confirmed": 0,
+                    "time": datetime.fromtimestamp(data['t']),
+                    "updated": data['t'],
+                    "vwap": data['p'],
+                    "index": self.barindex,
+                    "resolution":dollar_bucket
+                    }
+
+        def update_unconfirmed(size):
+            #spočteme vwap - potřebujeme předchozí hodnoty 
+            self.vwaphelper += (data['p'] * size)
+            self.openedBar['updated'] = data['t']
+            self.openedBar['close'] = data['p']
+            self.openedBar['high'] = max(self.openedBar['high'],data['p'])
+            self.openedBar['low'] = min(self.openedBar['low'],data['p'])
+            self.openedBar['volume'] = self.openedBar['volume'] + size
+            self.openedBar['trades'] = self.openedBar['trades'] + 1
+            self.openedBar['vwap'] = self.vwaphelper / self.openedBar['volume']
+            #pohrat si s timto round
+            self.openedBar['hlcc4'] = round((self.openedBar['high']+self.openedBar['low']+self.openedBar['close']+self.openedBar['close'])/4,3)
+
+        #init new - confirmed
+        def initialize_confirmed(size):
+                #ulozime zacatek potvrzeneho baru
+                #self.lastBarConfirmed = datetime.fromtimestamp(data['t'])
+                self.barindex +=1
+                confirmedBars.append({
+                    "close": data['p'],
+                    "high": data['p'],
+                    "low": data['p'],
+                    "open": data['p'],
+                    "volume": size,
+                    "trades": 1,
+                    "hlcc4":data['p'],
+                    "confirmed": 1,
+                    "time": datetime.fromtimestamp(data['t']),
+                    "updated": data['t'],
+                    "vwap": data['p'],
+                    "index": self.barindex,
+                    "resolution": dollar_bucket
+                    })
+      
+        #current trade dollar value
+        trade_dollar_val = int(data['s'])*float(data['p'])
+
+        #existuje stávající bar a vejdeme se do nej
+        if self.openedBar is not None and trade_dollar_val + self.openedBar['volume']*self.openedBar['close'] < dollar_bucket:
+            #vejdeme se do stávajícího baru (tzn. neprekracujeme bucket)
+            update_unconfirmed(int(data['s']))
+            #updatujeme stávající nepotvrzeny bar
+        #nevejdem se do nej nebo neexistuje predchozi bar
+        else:
+            #1)existuje predchozi bar - doplnime zbytkem do valikosti bucketu a nastavime confirmed
+            if self.openedBar is not None:
+                
+                #doplnime je zbytkem (v bucket left-je zbyvajici volume)
+                opened_bar_dollar_val = self.openedBar['volume']*self.openedBar['close']
+                bucket_left = int((dollar_bucket - opened_bar_dollar_val)/float(data['p']))
+                # - update and confirm bar
+                update_unconfirmed(bucket_left)
+                confirm_existing()
+                
+                #zbytek mnozství jde do dalsiho zpracovani
+                data['s'] = int(data['s']) - bucket_left
+                #nastavime cas o nanosekundu vyssi
+                data['t'] = round((data['t']) + 0.000001,6)
+
+            #2 vytvarime novy bar (bary) a vejdeme se do nej
+            if int(data['s'])*float(data['p']) < dollar_bucket:
+                #vytvarime novy nepotvrzeny bar
+                initialize_unconfirmed(int(data['s']))
+            #nevejdeme se do nej - pak vytvarime 1 až N dalsich baru (posledni nepotvrzený)           
+            else:
+            # >>> for i in range(0, 550, 500):
+            # ...     print(i)
+            # ... 
+            # 0
+            # 500
+
+                #vytvarime plne potvrzene buckety (kolik se jich plne vejde)
+                for size in range(int(dollar_bucket/float(data['p'])), int(data['s']), int(dollar_bucket/float(data['p']))):
+                    initialize_confirmed(dollar_bucket/float(data['p']))
+                    #nastavime cas o nanosekundu vyssi
+                    data['t'] = round((data['t']) + 0.000001,6)
+                    #create complete full bucket with same prices and size
+                    #naplnit do return pole
+                
+                #pokud je zbytek vytvorime z nej nepotvrzeny bar
+                zbytek = int(data['s'])*float(data['p']) % dollar_bucket
+                
+                #ze zbytku vytvorime nepotvrzeny bar
+                if zbytek > 0:
+                    #prevedeme zpatky na volume
+                    zbytek = int(zbytek/float(data['p']))
+                    initialize_unconfirmed(zbytek)
+                    #create new open bar with size zbytek s otevrenym
+
+        #je cena stejna od predchoziho tradu? pro nepotvrzeny cbar vracime jen pri zmene ceny  
+        if self.last_price == data['p']:
+            self.diff_price = False
+        else:
+            self.diff_price = True    
+        self.last_price = data['p'] 
+
+        if float(data['t']) - float(self.lasttimestamp) < GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN:
+            self.trades_too_close = True
+        else:
+            self.trades_too_close = False
+
+        #uložíme do předchozí hodnoty (poznáme tak open a close)
+        self.lasttimestamp = data['t']
+        self.iterace += 1
+        # print(self.iterace, data)
+
+        #pokud mame confirm bary, tak FLUSHNEME confirm a i případný open (zrejme se pak nejaky vytvoril)
+        if len(confirmedBars) > 0:
+            return_set = confirmedBars + ([self.openedBar] if self.openedBar is not None else [])
+            confirmedBars = []
+            return return_set
+
+        #nemame confirm, FLUSHUJEME CBARVOLUME open - neresime zmenu ceny, ale neposilame kulomet (pokud nam nevytvari conf. bar)
+        if self.openedBar is not None and self.rectype == RecordType.CBARDOLLAR:
+            
+             #zkousime pustit i stejnou cenu(potrebujeme kvuli MYSELLU), ale blokoval kulomet,tzn. trady mensi nez GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN (1ms)
+            #if self.diff_price is True:
+            if self.trades_too_close is False:
+                return [self.openedBar]
+            else:
+                return []
+        else:
+            return []
+
 
     async def calculate_renko_bar(self, data, symbol):
         """"

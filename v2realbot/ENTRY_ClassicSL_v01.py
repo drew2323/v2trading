@@ -167,6 +167,12 @@ def init(state: StrategyState):
     #history_datetime_from = zoneNY.localize(cal_dates[0].open)
     history_datetime_from = cal_dates[0].open
 
+    #ulozime si dnesni market close
+    #pro automaticke ukonceni
+    #TODO pripadne enablovat na parametr
+    state.today_market_close = cal_dates[-1].close
+
+
     # Find the previous market day
     history_datetime_to = None
     for session in reversed(cal_dates):

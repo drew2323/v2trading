@@ -24,8 +24,9 @@ from scipy.stats import zscore
 from io import BytesIO
 # Assuming Trade, TradeStatus, TradeDirection, TradeStoplossType classes are defined elsewhere
 
-#LOSS and PROFIT without GRAPH
-def find_optimal_cutoff(runner_ids: list = None, batch_id: str = None, stream: bool = False, mode:str="absolute", rem_outliers:bool = False, z_score_threshold:int = 3, file: str = "optimalcutoff.png",steps:int = 50):
+#HEATMAPA pro RELATIVNI PROFIT - WIP
+#po dodelani dat do stejné funkce jen s parametrem typ
+def find_optimal_cutoff(runner_ids: list = None, batch_id: str = None, stream: bool = False, rem_outliers:bool = False, z_score_threshold:int = 3, file: str = "optimalcutoff.png",steps:int = 50):
     
     #TODO dopracovat drawdown a minimalni a maximalni profity nikoliv cumulovane, zamyslet se
     #TODO list of runner_ids
@@ -115,11 +116,7 @@ def find_optimal_cutoff(runner_ids: list = None, batch_id: str = None, stream: b
     for trade in trades:
         if trade.status == TradeStatus.CLOSED and trade.exit_time:
             day = trade.exit_time.date()
-            if mode == "absolute":
-                daily_cumulative_profits[day].append(trade.profit)
-            #relative profit
-            else:
-                daily_cumulative_profits[day].append(trade.rel_profit)
+            daily_cumulative_profits[day].append(trade.profit)
 
     for day in daily_cumulative_profits:
         daily_cumulative_profits[day] = np.cumsum(daily_cumulative_profits[day])
@@ -149,25 +146,26 @@ def find_optimal_cutoff(runner_ids: list = None, batch_id: str = None, stream: b
     # profit_range = (0, max_profit) if max_profit > 0 else (0, 0)
     # loss_range = (min_profit, 0) if min_profit < 0 else (0, 0)
 
-    if mode == "absolute":
     # OPT2 Calculate profit_range and loss_range based on all cumulative profits
-        all_cumulative_profits = np.concatenate([profits for profits in daily_cumulative_profits.values()])
-        max_cumulative_profit = np.max(all_cumulative_profits)
-        min_cumulative_profit = np.min(all_cumulative_profits)
-        profit_range = (0, max_cumulative_profit) if max_cumulative_profit > 0 else (0, 0)
-        loss_range = (min_cumulative_profit, 0) if min_cumulative_profit < 0 else (0, 0)
-    else:
-    #for relative - hardcoded
-        profit_range = (0, 1)  # Adjust based on your data
-        loss_range = (-1, 0)
+    all_cumulative_profits = np.concatenate([profits for profits in daily_cumulative_profits.values()])
+    max_cumulative_profit = np.max(all_cumulative_profits)
+    min_cumulative_profit = np.min(all_cumulative_profits)
+    profit_range = (0, max_cumulative_profit) if max_cumulative_profit > 0 else (0, 0)
+    loss_range = (min_cumulative_profit, 0) if min_cumulative_profit < 0 else (0, 0)
 
-    print("Ranges", profit_range, loss_range)
+    print("Calculated ranges", profit_range, loss_range)
 
     num_points = steps  # Adjust for speed vs accuracy
     profit_cutoffs = np.linspace(*profit_range, num_points)
     loss_cutoffs = np.linspace(*loss_range, num_points)
 
+    # OPT 3Statically define ranges for loss and profit cutoffs
+    # profit_range = (0, 1000)  # Adjust based on your data
+    # loss_range = (-1000, 0)
+    # num_points = 20  # Adjust for speed vs accuracy
 
+    profit_cutoffs = np.linspace(*profit_range, num_points)
+    loss_cutoffs = np.linspace(*loss_range, num_points)
 
     total_profits_matrix = np.zeros((len(profit_cutoffs), len(loss_cutoffs)))
 
@@ -210,12 +208,12 @@ def find_optimal_cutoff(runner_ids: list = None, batch_id: str = None, stream: b
     }
     plt.rcParams.update(params)
     plt.figure(figsize=(10, 8))
-    sns.heatmap(total_profits_matrix, xticklabels=np.rint(loss_cutoffs).astype(int) if mode == "absolute" else np.around(loss_cutoffs, decimals=3), yticklabels=np.rint(profit_cutoffs).astype(int) if mode == "absolute" else np.around(profit_cutoffs, decimals=3), cmap="viridis")
+    sns.heatmap(total_profits_matrix, xticklabels=np.rint(loss_cutoffs).astype(int), yticklabels=np.rint(profit_cutoffs).astype(int), cmap="viridis")
     plt.xticks(rotation=90)  # Rotate x-axis labels to be vertical
     plt.yticks(rotation=0)   # Keep y-axis labels horizontal
     plt.gca().invert_yaxis()
     plt.gca().invert_xaxis()
-    plt.suptitle(f"Total {mode} Profit for Profit/Loss Cutoffs ({cnt_max})", fontsize=16)
+    plt.suptitle(f"Total Profit for Combinations of Profit/Loss Cutoffs ({cnt_max})", fontsize=16)
     plt.title(f"Optimal Profit Cutoff: {optimal_profit_cutoff:.2f}, Optimal Loss Cutoff: {optimal_loss_cutoff:.2f}, Max Profit: {max_profit:.2f}", fontsize=10)
     plt.xlabel("Loss Cutoff")
     plt.ylabel("Profit Cutoff")
@@ -239,8 +237,8 @@ if __name__ == '__main__':
     # id_list = ["e8938b2e-8462-441a-8a82-d823c6a025cb"]
     # generate_trading_report_image(runner_ids=id_list)
     batch_id = "c76b4414"
-    #vstup = AnalyzerInputs(**params)
-    res, val = find_optimal_cutoff(batch_id=batch_id, mode="relative", z_score_threshold=2, file="optimal_cutoff_vectorized.png",steps=20)
+    vstup = AnalyzerInputs(**params)
+    res, val = find_optimal_cutoff(batch_id=batch_id, file="optimal_cutoff_vectorized.png",steps=20)
     #res, val  = find_optimal_cutoff(batch_id=batch_id, rem_outliers=True, file="optimal_cutoff_vectorized_nooutliers.png")
 
     print(res,val)

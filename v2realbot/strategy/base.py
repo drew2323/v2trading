@@ -227,7 +227,7 @@ class Strategy:
                     #zatim jedno, predelat pak na list
                     # if safe_get(self.state.vars, "secondary_resolution",None):
                     #     self.process_secondary_indicators(item)
-        elif self.rectype in (RecordType.CBARVOLUME, RecordType.CBARRENKO):
+        elif self.rectype in (RecordType.CBARVOLUME, RecordType.CBARDOLLAR, RecordType.CBARRENKO):
 
             #u cbarvolume muze prijit i samostatny confirm nesouci data, tzn. chytame se na INDEX (tzn. jestli prisel udpate nebo novy)
             #NEW
@@ -315,14 +315,14 @@ class Strategy:
             a,p = self.interface.pos()
             if a != -1:
                 self.state.avgp, self.state.positions = a,p
-        elif self.rectype in (RecordType.CBAR, RecordType.CBARVOLUME, RecordType.CBARRENKO) and item['confirmed'] == 1:
+        elif self.rectype in (RecordType.CBAR, RecordType.CBARVOLUME, RecordType.CBARDOLLAR, RecordType.CBARRENKO) and item['confirmed'] == 1:
             a,p = self.interface.pos()
             if a != -1:
                 self.state.avgp, self.state.positions = a,p
 
     """update state.last_trade_time a time of iteration"""
     def update_times(self, item):
-        if self.rectype == RecordType.BAR or self.rectype in (RecordType.CBAR, RecordType.CBARVOLUME, RecordType.CBARRENKO):
+        if self.rectype == RecordType.BAR or self.rectype in (RecordType.CBAR, RecordType.CBARVOLUME, RecordType.CBARDOLLAR, RecordType.CBARRENKO):
             self.state.last_trade_time = item['updated']
         elif self.rectype == RecordType.TRADE:
             self.state.last_trade_time = item['t']
@@ -592,7 +592,7 @@ class Strategy:
         if self.rtqueue is not None:
             rt_out = dict()
 
-            if self.rectype == RecordType.BAR or self.rectype in (RecordType.CBAR, RecordType.CBARVOLUME, RecordType.CBARRENKO):
+            if self.rectype == RecordType.BAR or self.rectype in (RecordType.CBAR, RecordType.CBARVOLUME, RecordType.CBARDOLLAR, RecordType.CBARRENKO):
                 rt_out["bars"] = item
             else:
                 rt_out["trades"] = item

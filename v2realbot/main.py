@@ -1,11 +1,11 @@
 import os,sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from v2realbot.config import WEB_API_KEY, DATA_DIR, MEDIA_DIRECTORY, LOG_FILE
+from v2realbot.config import WEB_API_KEY, DATA_DIR, MEDIA_DIRECTORY, LOG_FILE, MODEL_DIR
 from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from datetime import datetime
 import os
 from rich import print
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, File, UploadFile
 from fastapi.security import APIKeyHeader
 import uvicorn
 from uuid import UUID
@@ -455,6 +455,16 @@ def _delete_archived_runners_byIDs(runner_ids: list[UUID]):
     elif res < 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Error: {res}:{id}")
 
+#get runners list based on batch_id
+@app.get("/archived_runners/batch/{batch_id}", dependencies=[Depends(api_key_auth)])
+def _get_archived_runnerslist_byBatchID(batch_id: str) -> list[UUID]:
+    res, set =cs.get_archived_runnerslist_byBatchID(batch_id)
+    if res == 0:
+        return set
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No data found")
+
+
 #delete archive runner from header and detail
 @app.delete("/archived_runners/batch/{batch_id}", dependencies=[Depends(api_key_auth)], status_code=status.HTTP_200_OK)
 def _delete_archived_runners_byBatchID(batch_id: str):
@@ -763,6 +773,44 @@ def delete_item(item_id: int) -> dict:
 
 # endregion
 
+#model section
+#UPLOAD MODEL
+@app.post("/model/upload_model", dependencies=[Depends(api_key_auth)])
+async def upload_model(file: UploadFile = File(...)):
+    # Specify the directory to save the file
+    #save_directory = DATA_DIR+'/models/'
+    save_directory = MODEL_DIR
+
+    os.makedirs(save_directory, exist_ok=True)
+    
+    # Extract just the filename, discarding any path information
+    base_filename = os.path.basename(file.filename)
+    file_path = os.path.join(save_directory, base_filename)
+
+    # Save the uploaded file
+    with open(file_path, "wb") as buffer:
+        while True:
+            data = await file.read(1024)  # Read in chunks
+            if not data:
+                break
+            buffer.write(data)
+
+    print(f"saved to {file_path=} file:{base_filename=}")
+
+    return {"filename": base_filename, "location": file_path}
+
+#LIST MODELS
+@app.get("/model/list-models", dependencies=[Depends(api_key_auth)])
+def list_models():
+    #models_directory = DATA_DIR + '/models/'
+    models_directory = MODEL_DIR
+    # Ensure the directory exists
+    if not os.path.exists(models_directory):
+        return {"error": "Models directory does not exist."}
+
+    # List all files in the directory
+    model_files = os.listdir(models_directory)
+    return {"models": model_files}
 
 # Thread function to insert data from the queue into the database
 def insert_queue2db():

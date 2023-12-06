@@ -49,17 +49,24 @@
 }
 
 .scrollable-div {
-  width: 229px;
+  width: 262px;
   height: 143px;
   overflow-y: auto;
   border: 1px solid #585858;
   padding: 10px;
 }
 
-.delete-model {
-  color: red;
+/* ... existing CSS ... */
+.download-model, .delete-model {
   cursor: pointer;
-  margin-left: 10px;
+  padding: 0 5px;
+}
+
+.download-model {
+  color: green; /* or use an actual icon */
+}
+.delete-model {
+  color: red; /* or use an actual icon */
 }
 
 .stat_div {

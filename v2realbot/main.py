@@ -833,6 +833,14 @@ def delete_model(model_name: str):
     else:
         raise HTTPException(status_code=404, detail="Model not found.")
 
+@app.get("/model/download-model/{model_name}", dependencies=[Depends(api_key_auth)])
+def download_model(model_name: str):
+    model_path = os.path.join(MODEL_DIR, model_name)
+    if os.path.exists(model_path):
+        return FileResponse(path=model_path, filename=model_name, media_type='application/octet-stream')
+    else:
+        raise HTTPException(status_code=404, detail="Model not found.")
+
 # Thread function to insert data from the queue into the database
 def insert_queue2db():
     print("starting insert_queue2db thread")

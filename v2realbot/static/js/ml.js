@@ -13,7 +13,13 @@ $(document).ready(function() {
                 } else {
                     const models = response.models;
                     models.forEach(function(model) {
-                        $('#model-list').append('<p>' + model + ' <span class="delete-model" data-model="' + model + '">x</span></p>');
+                        $('#model-list').append(`
+                        <p>${model} 
+                            <span class="download-model" data-model="${model}">[↓]</span>
+                            <span class="delete-model" data-model="${model}">[x]</span>
+                        </p>
+                    `);
+        
                     });
                 }
             },
@@ -59,6 +65,32 @@ $(document).ready(function() {
         });
     }
 
+    function downloadModel(modelName) {
+        $.ajax({
+            url: '/model/download-model/' + modelName,
+            type: 'GET',
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader('X-API-Key', API_KEY);
+            },
+            success: function(data, status, xhr) {
+                // Get a URL for the blob to download
+                var blob = new Blob([data], { type: xhr.getResponseHeader('Content-Type') });
+                var downloadUrl = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = modelName;
+                document.body.appendChild(a);
+                a.click();
+                // Clean up
+                window.URL.revokeObjectURL(downloadUrl);
+                a.remove();
+            },
+            error: function(xhr, status, error) {
+                alert('Error downloading model: ' + error);
+            }
+        });
+    }    
+
 
     // Fetch models on page load
     fetchModels();
@@ -85,6 +117,12 @@ $(document).ready(function() {
         }
         formData.append('file', $('#model-file')[0].files[0]); // Make sure 'file' matches the FastAPI parameter
         uploadModel(formData);
+    });
+
+    //Handler to download the model
+    $('#model-list').on('click', '.download-model', function() {
+        const modelName = $(this).data('model');
+        downloadModel(modelName);
     });
 
 });

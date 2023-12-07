@@ -793,6 +793,7 @@ class StrategyState:
         self.mode = None
         self.wait_for_fill = None
         self.today_market_close = None
+        self.classed_indicators = {}
     
     def release(self):
         #release large variables

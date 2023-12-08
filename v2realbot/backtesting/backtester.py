@@ -196,7 +196,10 @@ class Backtester:
         #TEST zkusime to nemazat, jak ovlivni performance
         #Mazeme, jinak je to hruza
         #nechavame na konci trady, které muzeme potrebovat pro consekutivni pravidlo
-        del self.btdata[0:index_end-2-BT_FILL_CONS_TRADES_REQUIRED]
+        #osetrujeme, kdy je malo tradu a oriznuti by slo do zaporu
+        del_to_index = index_end-2-BT_FILL_CONS_TRADES_REQUIRED
+        del_to_index = del_to_index if del_to_index > 0 else 0
+        del self.btdata[0:del_to_index]
         ##ic("after delete",len(self.btdata[0:index_end]))
     
         if changes: return 1

@@ -88,6 +88,8 @@ $(document).ready(function () {
 
     require(["vs/editor/editor.main"], () => {
 
+        monaco.languages.register({ id: 'python' });
+        monaco.languages.register({ id: 'json' });
         // Register the TOML language
         monaco.languages.register({ id: 'toml' });
 

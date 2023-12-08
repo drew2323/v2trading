@@ -1,3 +1,8 @@
+//ML Model GUI section
+
+let model_editor_json
+let model_editor_python
+
 $(document).ready(function() {
     function fetchModels() {
         $.ajax({
@@ -14,7 +19,8 @@ $(document).ready(function() {
                     const models = response.models;
                     models.forEach(function(model) {
                         $('#model-list').append(`
-                        <p>${model} 
+                        <p>${model}
+                            <span class="inspect-model" data-model="${model}">[🔍]</span>
                             <span class="download-model" data-model="${model}">[↓]</span>
                             <span class="delete-model" data-model="${model}">[x]</span>
                         </p>
@@ -24,7 +30,7 @@ $(document).ready(function() {
                 }
             },
             error: function(xhr, status, error) {
-                $('#model-list').html('An error occurred: ' + error);
+                $('#model-list').html('An error occurred: ' + error + xhr.responseText + status);
             }
         });
     }
@@ -40,7 +46,7 @@ $(document).ready(function() {
                 fetchModels(); // Refresh the list after deletion
             },
             error: function(xhr, status, error) {
-                alert('Error deleting model: ' + error);
+                alert('Error deleting model: ' + error + xhr.responseText + status);
             }
         });
     }
@@ -60,7 +66,7 @@ $(document).ready(function() {
                 alert('Model uploaded successfully');
             },
             error: function(xhr, status, error) {
-                alert('Error uploading model: ' + error);
+                alert('Error uploading model: ' + error + xhr.responseText + status);
             }
         });
     }
@@ -86,11 +92,53 @@ $(document).ready(function() {
                 a.remove();
             },
             error: function(xhr, status, error) {
-                alert('Error downloading model: ' + error);
+                alert('Error downloading model: ' + error + xhr.responseText + status);
             }
         });
-    }    
+    }
 
+    // Function to fetch metadata
+    function fetchMetadata(modelName) {
+        $.ajax({
+            url: '/model/metadata/' + modelName,
+            type: 'GET',
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader('X-API-Key', API_KEY);
+            },
+            success: function(response) {
+                show_metadata(response, modelName)
+            },
+            error: function(xhr, status, error) {
+                $('#metadata-container').html('Error fetching metadata: ' + error + xhr.responseText + status);
+            }
+        });
+    }
+
+    function show_metadata(response, name) {
+        // var formattedMetadata = '<pre>cfg:' + JSON.stringify(response.cfg, null, 4) + '</pre>';
+        // formattedMetadata += '<pre>arch_function:' + response.arch_function + '</pre>';
+        // $('#metadata-container').html(formattedMetadata);
+        //console.log(response)
+        console.log(JSON.stringify(response,null,4))
+        $('#metadata_label').html(name);
+
+        require(["vs/editor/editor.main"], () => {
+            model_editor_json = monaco.editor.create(document.getElementById('toml-editor-container'), {
+                value: response.cfg_toml,
+                language: 'toml',
+                theme: 'tomlTheme-dark',
+                automaticLayout: true,
+                readOnly: true
+            });
+            model_editor_python = monaco.editor.create(document.getElementById('python-editor-container'), {
+                value: response.arch_function,
+                language: 'python',
+                theme: 'tomlTheme-dark',
+                automaticLayout: true,
+                readOnly: true
+            });
+            });
+    }
 
     // Fetch models on page load
     fetchModels();
@@ -117,6 +165,15 @@ $(document).ready(function() {
         }
         formData.append('file', $('#model-file')[0].files[0]); // Make sure 'file' matches the FastAPI parameter
         uploadModel(formData);
+    });
+
+    // Event handler for the inspect icon
+    $('#model-list').on('click', '.inspect-model', function() {
+        if (model_editor_json) {model_editor_json.dispose()}
+        if (model_editor_python) {model_editor_python.dispose()}
+        const modelName = $(this).data('model');
+        fetchMetadata(modelName);
+        window.$('#modelModal').modal('show');
     });
 
     //Handler to download the model

@@ -798,6 +798,30 @@
                         <button type="submit" class="btn btn-outline-success btn-sm">Upload Model</button>
                     </form>
                 </div>
+                <!-- modal na inspekci -->
+                <div id="modelModal" class="modal fade" style="--bs-modal-width: 900px;">
+                    <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h4 class="modal-title_json"><i class="fa fa-plus"></i>Model metadata</h4>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="form-group">
+                                        <label for="metadata-container" id="metadata_label" class="form-label">Metadata</label>
+                                        <div id="metadata-container" style="height:700px;border:1px solid black;">
+                                            <div id="toml-editor-container"></div>
+                                            <div id="python-editor-container"></div>
+                                        </div>
+                                        <!-- <div id="metadata-container" style="height:200px;border:1px solid black;"></div>	 -->
+                                    </div>				
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                    </div>
+                </div>
             </div>
 
             <div id="TestListContainer" class="flex-items">

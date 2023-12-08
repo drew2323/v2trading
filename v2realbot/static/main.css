@@ -49,15 +49,36 @@
 }
 
 .scrollable-div {
-  width: 262px;
+  width: 328px;
   height: 143px;
   overflow-y: auto;
   border: 1px solid #585858;
   padding: 10px;
 }
 
+/* #metadata-container {
+  overflow-y: auto;
+  height: 500px;
+} */
+
+#metadata-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* Adjust this as needed */
+}
+
+#toml-editor-container {
+  height: 60%; /* Adjust this as needed */
+}
+
+#python-editor-container {
+  height: 40%; /* Adjust this as needed */
+  margin-top: 3rem;
+}
+
+
 /* ... existing CSS ... */
-.download-model, .delete-model {
+.download-model, .delete-model, .inspect-model {
   cursor: pointer;
   padding: 0 5px;
 }

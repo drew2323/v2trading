@@ -37,6 +37,8 @@ from traceback import format_exc
 import v2realbot.reporting.analyzer as ci
 import shutil
 from starlette.responses import JSONResponse
+import mlroom
+import mlroom.utils.mlutils as ml
 #from async io import Queue, QueueEmpty
 #              
 # install()
@@ -840,6 +842,29 @@ def download_model(model_name: str):
         return FileResponse(path=model_path, filename=model_name, media_type='application/octet-stream')
     else:
         raise HTTPException(status_code=404, detail="Model not found.")
+
+@app.get("/model/metadata/{model_name}", dependencies=[Depends(api_key_auth)])
+def get_metadata(model_name: str):
+    try:
+        model_instance = ml.load_model(file=model_name, directory=MODEL_DIR)
+        try:
+            metadata = model_instance.metadata
+        except Exception as e:
+            metadata = "No Metada" + str(e) + format_exc()
+        return metadata
+    except Exception as e:
+        raise HTTPException(status_code=404, detail="Model not found."+str(e) + format_exc())
+    
+    # model_path = os.path.join(MODEL_DIR, model_name)
+    # if os.path.exists(model_path):
+    #     # Example: Retrieve metadata from a file or generate it
+    #     metadata = {
+    #         "name": model_name,
+    #         "size": os.path.getsize(model_path),
+    #         "last_modified": os.path.getmtime(model_path),
+    #         # ... other metadata fields ...
+    #     }
+
 
 # Thread function to insert data from the queue into the database
 def insert_queue2db():

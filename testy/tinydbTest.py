@@ -13,7 +13,7 @@ from v2realbot.common.model import Order, TradeUpdate as btTradeUpdate
 from alpaca.trading.models import TradeUpdate
 from alpaca.trading.enums import TradeEvent, OrderType, OrderSide, OrderType, OrderStatus
 from rich import print
-import json
+import orjson
 
 #storage_with_injected_serialization = JSONStorage()
 
@@ -110,7 +110,7 @@ a = Order(id=uuid4(),
                                 limit_price=22.4)
 
 db_file = DATA_DIR + "/db.json"
-db = TinyDB(db_file, default=json_serial)
+db = TinyDB(db_file, default=json_serial, option=orjson.OPT_PASSTHROUGH_DATETIME)
 db.truncate()
 insert = {'datum': datetime.now(), 'side': OrderSide.BUY, 'name': 'david','id': uuid4(), 'order': orderList}
 

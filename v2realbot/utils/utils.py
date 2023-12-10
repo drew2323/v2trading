@@ -329,6 +329,36 @@ def send_to_telegram(message):
     except Exception as e:
         print(e)
 
+def transform_data(data, transform_function):
+    """
+    Recursively transform the data in a dictionary, list of dictionaries, or nested dictionaries 
+    using a specified transformation function.
+
+    This function applies the transformation function to each value in the data structure. 
+    It handles nested dictionaries and lists of dictionaries.
+
+    Parameters:
+    data (dict or list): The dictionary, list of dictionaries, or nested dictionary to be transformed.
+    transform_function (function): The function to be applied to each value in the data. This function 
+                                   should accept a single value and return a transformed value.
+
+    Returns:
+    dict or list: The transformed dictionary, list of dictionaries, or nested dictionary with each value 
+                  processed by the transform_function.
+
+    Raises:
+    TypeError: If the transform_function cannot process a value, the original value is kept.
+    """
+    if isinstance(data, dict):
+        return {key: transform_data(value, transform_function) for key, value in data.items()}
+    elif isinstance(data, list):
+        return [transform_data(element, transform_function) for element in data]
+    else:
+        try:
+            return transform_function(data)
+        except TypeError:
+            return data
+
 #OPTIMIZED BY BARD
 def json_serial(obj):
     """JSON serializer for objects not serializable by default json code
@@ -341,6 +371,7 @@ def json_serial(obj):
         UUID: lambda obj: str(obj),
         Enum: lambda obj: str(obj),
         np.int64: lambda obj: int(obj),
+        np.float64: lambda obj: float(obj),
         Order: lambda obj: obj.__dict__,
         TradeUpdate: lambda obj: obj.__dict__,
         btOrder: lambda obj: obj.__dict__,

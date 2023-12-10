@@ -16,7 +16,7 @@ import importlib
 from queue import Queue
 #from tinydb import TinyDB, Query, where
 #from tinydb.operations import set
-import json
+import orjson
 from rich import print
 from tinyflux import Point, TinyFlux
 
@@ -26,7 +26,7 @@ runner_log_file = DATA_DIR + "/runner_flux__log.json"
 db_runner_log = TinyFlux(runner_log_file)
 
 insert_dict = {'datum': datetime.now(), 'side': "dd", 'name': 'david','id': uuid4(), 'order': "neco"}
-#json.dumps(insert_dict, default=json_serial)
+#orjson.dumps(insert_dict, default=json_serial, option=orjson.OPT_PASSTHROUGH_DATETIME)
 p1 = Point(time=datetime.now(), tags=insert_dict)
 
 db_runner_log.insert(p1)

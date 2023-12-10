@@ -348,9 +348,9 @@ def generate_trading_report_image(runner_ids: list = None, batch_id: str = None,
 
     #Plot 8 Cumulative profit - bud 1 den nebo vice dni + pridame pod to vyvoj ceny
     # Extract the closing prices and times
-    closing_prices = bars['close']
+    closing_prices = bars.get('close',[])
     #times = bars['time']  # Assuming this is a list of pandas Timestamp objects
-    times = pd.to_datetime(bars['time'])  # Ensure this is a Pandas datetime series
+    times = pd.to_datetime(bars['time']) if bars is not None else []  # Ensure this is a Pandas datetime series
     # # Plot the closing prices over time
     # axs[0, 4].plot(times, closing_prices, color='blue')
     # axs[0, 4].tick_params(axis='x', rotation=45)  # Rotate date labels if necessar

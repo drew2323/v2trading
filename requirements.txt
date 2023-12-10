@@ -12,6 +12,7 @@ better-exceptions==0.3.3
 bleach==6.0.0
 blinker==1.5
 cachetools==5.3.0
+CD==1.1.0
 certifi==2022.12.7
 chardet==5.1.0
 charset-normalizer==3.0.1
@@ -58,7 +59,7 @@ Jinja2==3.1.2
 joblib==1.3.2
 jsonschema==4.17.3
 jupyterlab-widgets==3.0.9
-keras==2.13.1
+keras==2.15.0
 kiwisolver==1.4.4
 libclang==16.0.6
 llvmlite==0.39.1
@@ -68,7 +69,8 @@ MarkupSafe==2.1.2
 matplotlib==3.8.2
 matplotlib-inline==0.1.6
 mdurl==0.1.2
-mlroom @ git+https://github.com/drew2323/mlroom.git@967b1e3b5071854910ea859eca68bf0c3e67f951
+ml-dtypes==0.2.0
+mlroom @ git+https://github.com/drew2323/mlroom.git@768c88348a0bd24c244a8720c67abb20fcb1403e
 mplfinance==0.12.10b0
 msgpack==1.0.4
 mypy-extensions==1.0.0
@@ -77,6 +79,7 @@ numba==0.56.4
 numpy==1.23.5
 oauthlib==3.2.2
 opt-einsum==3.3.0
+orjson==3.9.10
 packaging==23.0
 pandas==1.5.3
 param==1.13.0
@@ -114,7 +117,7 @@ requests-oauthlib==1.3.1
 rich==13.3.1
 rsa==4.9
 schedule==1.2.1
-scikit-learn==1.3.1
+scikit-learn==1.3.2
 scipy==1.11.2
 seaborn==0.12.2
 semver==2.13.0
@@ -128,10 +131,10 @@ streamlit==1.20.0
 structlog==23.1.0
 TA-Lib==0.4.28
 tenacity==8.2.2
-tensorboard==2.13.0
+tensorboard==2.15.1
 tensorboard-data-server==0.7.1
-tensorflow==2.13.0
-tensorflow-estimator==2.13.0
+tensorflow==2.15.0
+tensorflow-estimator==2.15.0
 tensorflow-io-gcs-filesystem==0.34.0
 termcolor==2.3.0
 threadpoolctl==3.2.0
@@ -149,12 +152,12 @@ tzdata==2023.2
 tzlocal==4.3
 urllib3==1.26.14
 uvicorn==0.21.1
--e git+https://github.com/drew2323/v2trading.git@d38bf0600fbadbffba78ae23625eaecd1febc7f4#egg=v2realbot
+-e git+https://github.com/drew2323/v2trading.git@523905ece6d99bf48a8952d39ced6a13f3b9a84e#egg=v2realbot
 validators==0.20.0
 wcwidth==0.2.9
 webencodings==0.5.1
 websockets==10.4
 Werkzeug==2.2.3
 widgetsnbextension==4.0.9
-wrapt==1.15.0
+wrapt==1.14.1
 zipp==3.15.0

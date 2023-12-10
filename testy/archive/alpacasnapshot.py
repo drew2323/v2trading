@@ -23,7 +23,7 @@ from rich import print
 from collections import defaultdict
 from pandas import to_datetime
 from msgpack.ext import Timestamp
-from v2realbot.utils.historicals import convert_daily_bars
+from v2realbot.utils.historicals import convert_historical_bars
 
 def get_last_close():
    pass
@@ -38,7 +38,7 @@ def get_historical_bars(symbol: str, time_from: datetime, time_to: datetime, tim
     bars: BarSet = stock_client.get_stock_bars(bar_request)
     print("puvodni bars", bars["BAC"])
     print(bars)
-    return convert_daily_bars(bars[symbol])
+    return convert_historical_bars(bars[symbol])
 
 
 #v initu plnime pozadovana historicka data do historicals[]

@@ -1,11 +1,11 @@
 from v2realbot.strategy.base import Strategy
-from v2realbot.utils.utils import parse_alpaca_timestamp, ltp, AttributeDict,trunc,price2dec, zoneNY, print, json_serial, safe_get
+from v2realbot.utils.utils import parse_alpaca_timestamp, ltp, AttributeDict,trunc,price2dec, zoneNY, print, json_serial, safe_get, transform_data
 from v2realbot.utils.tlog import tlog, tlog_exception
 from v2realbot.enums.enums import Mode, Order, Account
 from alpaca.trading.models import TradeUpdate
 from alpaca.trading.enums import TradeEvent, OrderStatus
 from v2realbot.indicators.indicators import ema
-import json
+import orjson
 #from rich import print
 from random import randrange
 from alpaca.common.exceptions import APIError
@@ -21,7 +21,7 @@ class StrategyOrderLimitVykladaci(Strategy):
     async def orderUpdateBuy(self, data: TradeUpdate):
         o: Order = data.order
         ##nejak to vymyslet, aby se dal poslat cely Trade a serializoval se
-        self.state.ilog(e="Příchozí BUY notif", msg=o.status, trade=json.loads(json.dumps(data, default=json_serial)))
+        self.state.ilog(e="Příchozí BUY notif", msg=o.status, trade=transform_data(data, json_serial))
         if o.status == OrderStatus.FILLED or o.status == OrderStatus.CANCELED:
             
             #pokud existuje objednavka v pendingbuys - vyhodime ji
@@ -73,7 +73,7 @@ class StrategyOrderLimitVykladaci(Strategy):
 
     async def orderUpdateSell(self, data: TradeUpdate): 
 
-        self.state.ilog(e="Příchozí SELL notif", msg=data.order.status, trade=json.loads(json.dumps(data, default=json_serial)))
+        self.state.ilog(e="Příchozí SELL notif", msg=data.order.status, trade=transform_data(data, json_serial))
         #PROFIT
         #profit pocitame z TradeUpdate.price a TradeUpdate.qty - aktualne provedene mnozstvi a cena
         #naklady vypocteme z prumerne ceny, kterou mame v pozicich

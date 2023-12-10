@@ -2,7 +2,7 @@ import sqlite3
 from v2realbot.config import DATA_DIR
 from v2realbot.utils.utils import json_serial
 from uuid import UUID, uuid4
-import json
+import orjson
 from datetime import datetime
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account
 from v2realbot.common.model import RunArchiveDetail
@@ -11,7 +11,7 @@ from tinydb import TinyDB, Query, where
 sqlite_db_file = DATA_DIR + "/v2trading.db"
 conn = sqlite3.connect(sqlite_db_file)
 #standardne vraci pole tuplů, kde clen tuplu jsou sloupce
-#conn.row_factory = lambda c, r: json.loads(r[0])
+#conn.row_factory = lambda c, r: orjson.loads(r[0])
 #conn.row_factory = lambda c, r: r[0]
 #conn.row_factory = sqlite3.Row
 
@@ -28,7 +28,7 @@ insert_list = [dict(time=datetime.now().timestamp(), side="ddd", rectype=RecordT
 
 def insert_log(runner_id: UUID, time: float, logdict: dict):
     c = conn.cursor()
-    json_string = json.dumps(logdict, default=json_serial)
+    json_string = orjson.dumps(logdict, default=json_serial, option=orjson.OPT_PASSTHROUGH_DATETIME)
     res = c.execute("INSERT INTO runner_logs VALUES (?,?,?)",[str(runner_id), time, json_string])
     conn.commit()
     return res.rowcount
@@ -37,14 +37,14 @@ def insert_log_multiple(runner_id: UUID, loglist: list):
     c = conn.cursor()
     insert_data = []
     for i in loglist:
-        row = (str(runner_id), i["time"], json.dumps(i, default=json_serial))
+        row = (str(runner_id), i["time"], orjson.dumps(i, default=json_serial, option=orjson.OPT_PASSTHROUGH_DATETIME))
         insert_data.append(row)
     c.executemany("INSERT INTO runner_logs VALUES (?,?,?)", insert_data)
     conn.commit()
     return c.rowcount
     
     # c = conn.cursor()
-    # json_string = json.dumps(logdict, default=json_serial)
+    # json_string = orjson.dumps(logdict, default=json_serial, option=orjson.OPT_PASSTHROUGH_DATETIME)
     # res = c.execute("INSERT INTO runner_logs VALUES (?,?,?)",[str(runner_id), time, json_string])
     # print(res)
     # conn.commit()
@@ -52,7 +52,7 @@ def insert_log_multiple(runner_id: UUID, loglist: list):
 
 #returns list of ilog jsons
 def read_log_window(runner_id: UUID, timestamp_from: float, timestamp_to: float):
-    conn.row_factory = lambda c, r: json.loads(r[0])
+    conn.row_factory = lambda c, r: orjson.loads(r[0])
     c = conn.cursor()
     res = c.execute(f"SELECT data FROM runner_logs WHERE runner_id='{str(runner_id)}' AND time >={ts_from} AND time <={ts_to}")
     return res.fetchall()
@@ -94,21 +94,21 @@ def delete_logs(runner_id: UUID):
 
 def insert_archive_detail(archdetail: RunArchiveDetail):
     c = conn.cursor()
-    json_string = json.dumps(archdetail, default=json_serial)
+    json_string = orjson.dumps(archdetail, default=json_serial, option=orjson.OPT_PASSTHROUGH_DATETIME)
     res = c.execute("INSERT INTO runner_detail VALUES (?,?)",[str(archdetail["id"]), json_string])
     conn.commit()
     return res.rowcount
 
 #returns list of details
 def get_all_archive_detail():
-    conn.row_factory = lambda c, r: json.loads(r[0])
+    conn.row_factory = lambda c, r: orjson.loads(r[0])
     c = conn.cursor()
     res = c.execute(f"SELECT data FROM runner_detail")
     return res.fetchall()
 
 #vrátí konkrétní
 def get_archive_detail_byID(runner_id: UUID):
-    conn.row_factory = lambda c, r: json.loads(r[0])
+    conn.row_factory = lambda c, r: orjson.loads(r[0])
     c = conn.cursor()
     res = c.execute(f"SELECT data FROM runner_detail WHERE runner_id='{str(runner_id)}'")
     return res.fetchone()
@@ -123,7 +123,7 @@ def delete_archive_detail(runner_id: UUID):
 
 def get_all_archived_runners_detail():
     arch_detail_file = DATA_DIR + "/arch_detail.json"
-    db_arch_d = TinyDB(arch_detail_file, default=json_serial)
+    db_arch_d = TinyDB(arch_detail_file, default=json_serial, option=orjson.OPT_PASSTHROUGH_DATETIME)
     res = db_arch_d.all()
     return 0, res
 

@@ -4,7 +4,7 @@ from keras.models import Sequential
 from keras.layers import LSTM, Dense
 from v2realbot.controller.services import get_archived_runner_details_byID
 from v2realbot.common.model import RunArchiveDetail
-import json
+import orjson
 
 runner_id = "838e918e-9be0-4251-a968-c13c83f3f173"
 result = None

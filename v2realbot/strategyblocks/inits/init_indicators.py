@@ -10,7 +10,7 @@ from v2realbot.config import KW, MODEL_DIR
 from uuid import uuid4
 from datetime import datetime
 #import random
-import json
+import orjson
 import numpy as np
 #from icecream import install, ic
 from rich import print as printanyway

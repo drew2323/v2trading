@@ -9,8 +9,8 @@ from v2realbot.strategyblocks.indicators.RSI import populate_dynamic_RSI_indicat
 from v2realbot.strategyblocks.indicators.natr import populate_dynamic_natr_indicator
 from v2realbot.strategyblocks.indicators.atr import populate_dynamic_atr_indicator
 import numpy as np
-from v2realbot.utils.utils import isrising, isfalling,zoneNY, price2dec, print, safe_get, is_still, is_window_open, eval_cond_dict, crossed_down, crossed_up, crossed, is_pivot, json_serial, pct_diff, create_new_bars, slice_dict_lists
-import json
+from v2realbot.utils.utils import isrising, isfalling,zoneNY, price2dec, print, safe_get, is_still, is_window_open, eval_cond_dict, crossed_down, crossed_up, crossed, is_pivot, json_serial, pct_diff, create_new_bars, slice_dict_lists, transform_data
+import orjson
 
 def populate_all_indicators(data, state: StrategyState):
 
@@ -55,7 +55,7 @@ def populate_all_indicators(data, state: StrategyState):
     #TODO tento lof patri spis do nextu classic SL - je poplatny typu stratefie
     #TODO na toto se podivam, nejak moc zajasonovani a zpatky -
     #PERF PROBLEM
-    state.ilog(lvl=1,e="ENTRY", msg=f"LP:{lp} P:{state.positions}/{round(float(state.avgp),3)} SL:{state.vars.activeTrade.stoploss_value if state.vars.activeTrade is not None else None} GP:{state.vars.activeTrade.goal_price if state.vars.activeTrade is not None else None} profit:{round(float(state.profit),2)} profit_rel:{round(np.sum(state.rel_profit_cum),6) if len(state.rel_profit_cum)>0 else 0} Trades:{len(state.tradeList)} pend:{state.vars.pending}", rel_profit_cum=str(state.rel_profit_cum), activeTrade=json.loads(json.dumps(state.vars.activeTrade, default=json_serial)), prescribedTrades=json.loads(json.dumps(state.vars.prescribedTrades, default=json_serial)), pending=str(state.vars.pending))
+    state.ilog(lvl=1,e="ENTRY", msg=f"LP:{lp} P:{state.positions}/{round(float(state.avgp),3)} SL:{state.vars.activeTrade.stoploss_value if state.vars.activeTrade is not None else None} GP:{state.vars.activeTrade.goal_price if state.vars.activeTrade is not None else None} profit:{round(float(state.profit),2)} profit_rel:{round(np.sum(state.rel_profit_cum),6) if len(state.rel_profit_cum)>0 else 0} Trades:{len(state.tradeList)} pend:{state.vars.pending}", rel_profit_cum=str(state.rel_profit_cum), activeTrade=transform_data(state.vars.activeTrade, json_serial), prescribedTrades=transform_data(state.vars.prescribedTrades, json_serial), pending=str(state.vars.pending))
     
     #kroky pro CONFIRMED BAR only
     if conf_bar == 1:

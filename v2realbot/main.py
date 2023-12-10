@@ -5,7 +5,7 @@ from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from datetime import datetime
 import os
 from rich import print
-from fastapi import FastAPI, Depends, HTTPException, status, File, UploadFile
+from fastapi import FastAPI, Depends, HTTPException, status, File, UploadFile, Response
 from fastapi.security import APIKeyHeader
 import uvicorn
 from uuid import UUID
@@ -20,7 +20,7 @@ from v2realbot.enums.enums import Env, Mode
 from typing import Annotated
 import os
 import uvicorn
-import json
+import orjson
 from queue import Queue, Empty
 from threading import Thread
 import asyncio
@@ -329,14 +329,14 @@ def migrate():
                     end_positions=row.get('end_positions'),
                     end_positions_avgp=row.get('end_positions_avgp'),
                     metrics=row.get('open_orders'),
-                    #metrics=json.loads(row.get('metrics')) if row.get('metrics') else None,
+                    #metrics=orjson.loads(row.get('metrics')) if row.get('metrics') else None,
                     stratvars_toml=row.get('stratvars_toml')
                 )
 
             def get_all_archived_runners():
                 conn = pool.get_connection()
                 try:
-                    conn.row_factory = lambda c, r: json.loads(r[0])
+                    conn.row_factory = lambda c, r: orjson.loads(r[0])
                     c = conn.cursor()
                     res = c.execute(f"SELECT data FROM runner_header")
                 finally:
@@ -381,7 +381,7 @@ def migrate():
                         SET strat_id=?, batch_id=?, symbol=?, name=?, note=?, started=?, stopped=?, mode=?, account=?, bt_from=?, bt_to=?, strat_json=?, settings=?, ilog_save=?, profit=?, trade_count=?, end_positions=?, end_positions_avgp=?, metrics=?, stratvars_toml=?
                         WHERE runner_id=?
                         ''',
-                        (str(ra.strat_id), ra.batch_id, ra.symbol, ra.name, ra.note, ra.started, ra.stopped, ra.mode, ra.account, ra.bt_from, ra.bt_to, json.dumps(ra.strat_json), json.dumps(ra.settings), ra.ilog_save, ra.profit, ra.trade_count, ra.end_positions, ra.end_positions_avgp, json.dumps(ra.metrics), ra.stratvars_toml, str(ra.id)))
+                        (str(ra.strat_id), ra.batch_id, ra.symbol, ra.name, ra.note, ra.started, ra.stopped, ra.mode, ra.account, ra.bt_from, ra.bt_to, orjson.dumps(ra.strat_json).decode('utf-8'), orjson.dumps(ra.settings).decode('utf-8'), ra.ilog_save, ra.profit, ra.trade_count, ra.end_positions, ra.end_positions_avgp, orjson.dumps(ra.metrics).decode('utf-8'), ra.stratvars_toml, str(ra.id)))
 
                     conn.commit()
                 finally:
@@ -524,13 +524,23 @@ def _get_all_archived_runners_detail() -> list[RunArchiveDetail]:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No data found")
 
 #get archived runners detail by id
+# @app.get("/archived_runners_detail/{runner_id}", dependencies=[Depends(api_key_auth)])
+# def _get_archived_runner_details_byID(runner_id) -> RunArchiveDetail:
+#     res, set = cs.get_archived_runner_details_byID(runner_id)
+#     if res == 0:
+#         return set
+#     else:
+#         raise HTTPException(status_code=404, detail=f"No runner with id: {runner_id} a {set}")
+
+#this is the variant of above that skips parsing of json and returns JSON string returned from db
 @app.get("/archived_runners_detail/{runner_id}", dependencies=[Depends(api_key_auth)])
-def _get_archived_runner_details_byID(runner_id) -> RunArchiveDetail:
-    res, set = cs.get_archived_runner_details_byID(runner_id)
+def _get_archived_runner_details_byID(runner_id: UUID):
+    res, data = cs.get_archived_runner_details_byID(id=runner_id, parsed=False)
     if res == 0:
-        return set
+        # Return the raw JSON string as a plain Response
+        return Response(content=data, media_type="application/json")
     else:
-        raise HTTPException(status_code=404, detail=f"No runner with id: {runner_id} a {set}")
+        raise HTTPException(status_code=404, detail=f"No runner with id: {runner_id}. {data}")
 
 #get archived runners detail by id
 @app.get("/archived_runners_log/{runner_id}", dependencies=[Depends(api_key_auth)])
@@ -647,7 +657,7 @@ def create_record(testlist: TestList):
     # Insert the record into the database
     conn = pool.get_connection()
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO test_list (id, name, dates) VALUES (?, ?, ?)", (testlist.id, testlist.name, json.dumps(testlist.dates, default=json_serial)))
+    cursor.execute("INSERT INTO test_list (id, name, dates) VALUES (?, ?, ?)", (testlist.id, testlist.name, orjson.dumps(testlist.dates, default=json_serial, option=orjson.OPT_PASSTHROUGH_DATETIME).decode('utf-8')))
     conn.commit()
     pool.release_connection(conn)
     return testlist
@@ -685,7 +695,7 @@ def update_testlist(record_id: str, testlist: TestList):
         raise HTTPException(status_code=404, detail='Record not found')
     
     # Update the record in the database
-    cursor.execute("UPDATE test_list SET name = ?, dates = ? WHERE id = ?", (testlist.name, json.dumps(testlist.dates, default=json_serial), record_id))
+    cursor.execute("UPDATE test_list SET name = ?, dates = ? WHERE id = ?", (testlist.name, orjson.dumps(testlist.dates, default=json_serial, option=orjson.OPT_PASSTHROUGH_DATETIME).decode('utf-8'), record_id))
     conn.commit()
     pool.release_connection(conn)
     
@@ -849,6 +859,11 @@ def get_metadata(model_name: str):
         model_instance = ml.load_model(file=model_name, directory=MODEL_DIR)
         try:
             metadata = model_instance.metadata
+        except AttributeError:
+            metadata = model_instance.__dict__
+            del metadata["scalerX"]
+            del metadata["scalerY"]
+            del metadata["model"]
         except Exception as e:
             metadata = "No Metada" + str(e) + format_exc()
         return metadata
@@ -879,7 +894,7 @@ def insert_queue2db():
             c = insert_conn.cursor()
             insert_data = []
             for i in loglist:
-                row = (str(runner_id), i["time"], json.dumps(i, default=json_serial))
+                row = (str(runner_id), i["time"], orjson.dumps(i, default=json_serial, option=orjson.OPT_PASSTHROUGH_DATETIME|orjson.OPT_NON_STR_KEYS).decode('utf-8'))
                 insert_data.append(row)
             c.executemany("INSERT INTO runner_logs VALUES (?,?,?)", insert_data)
             insert_conn.commit()
@@ -891,7 +906,10 @@ def insert_queue2db():
                 insert_queue.put(data)  # Put the data back into the queue for retry
                 sleep(1)  # You can adjust the sleep duration
             else:
-                raise  # If it's another error, raise it     
+                raise  # If it's another error, raise it
+        except Exception as e:
+            print("ERROR INSERT LOGQUEUE MODULE:" + str(e)+format_exc())
+            print(data)
 
 #join cekej na dokonceni vsech
 for i in cs.db.runners:

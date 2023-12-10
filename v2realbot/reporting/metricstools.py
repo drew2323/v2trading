@@ -1,4 +1,3 @@
-import json
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')  # Set the Matplotlib backend to 'Agg'

@@ -46,7 +46,7 @@ db.save()
 #     b = 2
 
 #     def toJson(self):
-#         return json.dumps(self, default=lambda o: o.__dict__)
+#         return orjson.dumps(self, default=lambda o: o.__dict__)
 
 # db.append(Neco.a)
 

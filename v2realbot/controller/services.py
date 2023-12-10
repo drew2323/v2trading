@@ -8,10 +8,11 @@ from alpaca.data.timeframe import TimeFrame
 from v2realbot.strategy.base import StrategyState
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, OrderSide
 from v2realbot.common.model import RunDay, StrategyInstance, Runner, RunRequest, RunArchive, RunArchiveView, RunArchiveViewPagination, RunArchiveDetail, RunArchiveChange, Bar, TradeEvent, TestList, Intervals, ConfigItem, InstantIndicator, DataTablesRequest
-from v2realbot.utils.utils import AttributeDict, zoneNY, zonePRG, safe_get, dict_replace_value, Store, parse_toml_string, json_serial, is_open_hours, send_to_telegram, concatenate_weekdays
+from v2realbot.utils.utils import AttributeDict, zoneNY, zonePRG, safe_get, dict_replace_value, Store, parse_toml_string, json_serial, is_open_hours, send_to_telegram, concatenate_weekdays, transform_data
 from v2realbot.utils.ilog import delete_logs
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
 from datetime import datetime
+from v2realbot.loader.trade_offline_streamer import Trade_Offline_Streamer
 from threading import Thread, current_thread, Event, enumerate
 from v2realbot.config import STRATVARS_UNCHANGEABLES, ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, ACCOUNT1_LIVE_API_KEY, ACCOUNT1_LIVE_SECRET_KEY, DATA_DIR,BT_FILL_CONS_TRADES_REQUIRED,BT_FILL_LOG_SURROUNDING_TRADES,BT_FILL_CONDITION_BUY_LIMIT,BT_FILL_CONDITION_SELL_LIMIT, GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN, MEDIA_DIRECTORY
 import importlib
@@ -21,7 +22,7 @@ from alpaca.trading.client import TradingClient
 from queue import Queue
 from tinydb import TinyDB, Query, where
 from tinydb.operations import set
-import json
+import orjson
 import numpy as np
 from numpy import ndarray
 from rich import print
@@ -45,8 +46,8 @@ lock = Lock()
 arch_header_file = DATA_DIR + "/arch_header.json"
 #arch_detail_file = DATA_DIR + "/arch_detail.json"
 #db layer to store runner archive
-db_arch_h = TinyDB(arch_header_file, default=json_serial)
-#db_arch_d = TinyDB(arch_detail_file, default=json_serial)
+db_arch_h = TinyDB(arch_header_file, default=json_serial, option=orjson.OPT_PASSTHROUGH_DATETIME)
+#db_arch_d = TinyDB(arch_detail_file, default=json_serial, option=orjson.OPT_PASSTHROUGH_DATETIME)
 
 #db layer to store stratins, TBD zmigrovat do TinyDB
 db = Store()
@@ -368,7 +369,7 @@ def get_testlist_byID(record_id: str):
     if row is None:
         return -2, "not found"
     else:
-        return 0, TestList(id=row[0], name=row[1], dates=json.loads(row[2]))
+        return 0, TestList(id=row[0], name=row[1], dates=orjson.loads(row[2]))
 
 
 ##TADY JSEM SKONCIL PROJIT - dodelat nastavni timezone
@@ -405,6 +406,11 @@ def run_batch_stratin(id: UUID, runReq: RunRequest):
 
             #u prvni polozky
             if day == cal_dates[0]:
+                #pokud je cas od po konci marketa, nedavame tento den
+                if datefrom > end_time:
+                    print("Cas od je po konci marketu, vynechavame tento den")
+                    continue
+
                 #pokud je cas od od vetsi nez open marketu prvniho dne, pouzijeme tento pozdejis cas
                 if datefrom > start_time:
                     start_time = datefrom
@@ -738,7 +744,7 @@ def populate_metrics_output_directory(strat: StrategyInstance, inter_batch_param
 
     res = dict(profit={})
     #filt = max_positions['side'] == 'OrderSide.BUY'
-    res["pos_cnt"] = dict(zip(max_positions['qty'], max_positions['count']))
+    res["pos_cnt"] = dict(zip(str(max_positions['qty']), max_positions['count']))
 
     #naplneni batch sum profitu
     if inter_batch_params is not None:
@@ -827,7 +833,7 @@ def populate_metrics_output_directory(strat: StrategyInstance, inter_batch_param
             res["profit"]["daily_rel_profit_list"] = strat.state.rel_profit_cum
 
             #vlozeni celeho listu
-            res["prescr_trades"]=json.loads(json.dumps(strat.state.vars.prescribedTrades, default=json_serial))
+            res["prescr_trades"]=transform_data(strat.state.vars.prescribedTrades, json_serial)
 
     except NameError:
         pass
@@ -852,10 +858,10 @@ def archive_runner(runner: Runner, strat: StrategyInstance, inter_batch_params: 
         #ulozime informace o nastavení
         # if self.mode in [Mode.BT, Mode.PREP]:
         #     str(self.dataloader.cache_used)
-
+        
         settings = dict(resolution=strat.state.resolution,
                         rectype=strat.state.rectype,
-                        cache_used=strat.dataloader.cache_used,
+                        cache_used=strat.dataloader.cache_used if isinstance(strat.dataloader, Trade_Offline_Streamer) else None,
                         configs=dict(
                             GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN=GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN,
                             BT_FILL_CONS_TRADES_REQUIRED=BT_FILL_CONS_TRADES_REQUIRED,
@@ -1076,7 +1082,7 @@ def get_all_archived_runners_p(request: DataTablesRequest) -> Tuple[int, RunArch
 # def get_all_archived_runners():
 #     conn = pool.get_connection()
 #     try:
-#         conn.row_factory = lambda c, r: json.loads(r[0])
+#         conn.row_factory = lambda c, r: orjson.loads(r[0])
 #         c = conn.cursor()
 #         res = c.execute(f"SELECT data FROM runner_header")
 #     finally:
@@ -1108,7 +1114,7 @@ def get_archived_runner_header_byID(id: UUID) -> RunArchive:
 # def get_archived_runner_header_byID(id: UUID):
 #     conn = pool.get_connection()
 #     try:
-#         conn.row_factory = lambda c, r: json.loads(r[0])
+#         conn.row_factory = lambda c, r: orjson.loads(r[0])
 #         c = conn.cursor()
 #         result = c.execute(f"SELECT data FROM runner_header WHERE runner_id='{str(id)}'")
 #         res= result.fetchone()
@@ -1135,7 +1141,7 @@ def insert_archive_header(archeader: RunArchive):
     conn = pool.get_connection()
     try:
         c = conn.cursor()
-        #json_string = json.dumps(archeader, default=json_serial)
+        #json_string = orjson.dumps(archeader, default=json_serial, option=orjson.OPT_PASSTHROUGH_DATETIME)
 
         res = c.execute("""
             INSERT INTO runner_header 
@@ -1143,7 +1149,7 @@ def insert_archive_header(archeader: RunArchive):
             VALUES
             (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (str(archeader.id), str(archeader.strat_id), archeader.batch_id, archeader.symbol, archeader.name, archeader.note, archeader.started, archeader.stopped, archeader.mode, archeader.account, archeader.bt_from, archeader.bt_to, json.dumps(archeader.strat_json), json.dumps(archeader.settings), archeader.ilog_save, archeader.profit, archeader.trade_count, archeader.end_positions, archeader.end_positions_avgp, json.dumps(archeader.metrics, default=json_serial), archeader.stratvars_toml))
+            (str(archeader.id), str(archeader.strat_id), archeader.batch_id, archeader.symbol, archeader.name, archeader.note, archeader.started, archeader.stopped, archeader.mode, archeader.account, archeader.bt_from, archeader.bt_to, orjson.dumps(archeader.strat_json).decode('utf-8'), orjson.dumps(archeader.settings).decode('utf-8'), archeader.ilog_save, archeader.profit, archeader.trade_count, archeader.end_positions, archeader.end_positions_avgp, orjson.dumps(archeader.metrics, default=json_serial, option=orjson.OPT_PASSTHROUGH_DATETIME).decode('utf-8'), archeader.stratvars_toml))
 
         #retry not yet supported for statement format above
         #res = execute_with_retry(c,statement)
@@ -1308,7 +1314,7 @@ def delete_archive_detail_byID(id: UUID):
 def get_all_archived_runners_detail():
     conn = pool.get_connection()
     try:
-        conn.row_factory = lambda c, r: json.loads(r[0])
+        conn.row_factory = lambda c, r: orjson.loads(r[0])
         c = conn.cursor()
         res = c.execute(f"SELECT data FROM runner_detail")
     finally:
@@ -1324,26 +1330,45 @@ def get_all_archived_runners_detail():
 #         return 0, res
 
 #vrátí konkrétní
-def get_archived_runner_details_byID(id: UUID):
+# def get_archived_runner_details_byID(id: UUID):
+#     conn = pool.get_connection()
+#     try:
+#         conn.row_factory = lambda c, r: orjson.loads(r[0])
+#         c = conn.cursor()
+#         result = c.execute(f"SELECT data FROM runner_detail WHERE runner_id='{str(id)}'")
+#         res= result.fetchone()
+#     finally:
+#         conn.row_factory = None
+#         pool.release_connection(conn)
+#     if res==None:
+#         return -2, "not found"
+#     else:
+#         return 0, res
+    
+#version allowing return of parsed(json) or json string  data
+def get_archived_runner_details_byID(id: UUID, parsed: bool = True):
     conn = pool.get_connection()
     try:
-        conn.row_factory = lambda c, r: json.loads(r[0])
         c = conn.cursor()
         result = c.execute(f"SELECT data FROM runner_detail WHERE runner_id='{str(id)}'")
-        res= result.fetchone()
+        res = result.fetchone()
     finally:
-        conn.row_factory = None
         pool.release_connection(conn)
-    if res==None:
+
+    if res is None:
         return -2, "not found"
     else:
-        return 0, res
+        # Return the JSON string directly
+        if parsed:
+            orjson.loads(res[0])
+        else:
+            return 0, res[0]    
 
 def update_archive_detail(id: UUID, archdetail: RunArchiveDetail):
     conn = pool.get_connection()
     try:
         c = conn.cursor()
-        json_string = json.dumps(archdetail, default=json_serial)
+        json_string = orjson.dumps(archdetail, default=json_serial, option=orjson.OPT_PASSTHROUGH_DATETIME).decode('utf-8')
         statement = "UPDATE runner_detail SET data = ? WHERE runner_id = ?"
         params = (json_string, str(id))
         ##statement = f"UPDATE runner_detail SET data = '{json_string}' WHERE runner_id='{str(id)}'"
@@ -1358,13 +1383,16 @@ def insert_archive_detail(archdetail: RunArchiveDetail):
     conn = pool.get_connection()
     try:
         c = conn.cursor()
-        json_string = json.dumps(archdetail, default=json_serial)
-        statement = f"INSERT INTO runner_detail VALUES ('{str(archdetail.id)}','{json_string}')"
-        res = execute_with_retry(c,statement)
+        json_string = orjson.dumps(archdetail, default=json_serial, option=orjson.OPT_PASSTHROUGH_DATETIME).decode('utf-8')
+        # Use parameterized queries instead of string formatting
+        statement = "INSERT INTO runner_detail VALUES (?, ?)"
+        params = (str(archdetail.id), json_string)
+        res = execute_with_retry(cursor=c, statement=statement, params=params)
         conn.commit()
     finally:
         pool.release_connection(conn)
     return res.rowcount
+
 # endregion
 
 # region TESTLISTS db services
@@ -1380,7 +1408,7 @@ def get_testlists():
     testlists = []
     for row in rows:
         #print(row)
-        testlist = TestList(id=row[0], name=row[1], dates=json.loads(row[2]))
+        testlist = TestList(id=row[0], name=row[1], dates=orjson.loads(row[2]))
         testlists.append(testlist)
     
     return 0, testlists    

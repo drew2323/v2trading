@@ -1,12 +1,12 @@
 import timeit
 setup = '''
 import msgpack
-import json
+import orjson
 from copy import deepcopy
 data = {'name':'John Doe','ranks':{'sports':13,'edu':34,'arts':45},'grade':5}'''
 print(timeit.timeit('deepcopy(data)', setup=setup))
 # 12.0860249996
-print(timeit.timeit('json.loads(json.dumps(data))', setup=setup))
+print(timeit.timeit('orjson.loads(orjson.dumps(data))', setup=setup))
 # 9.07182312012
 print(timeit.timeit('msgpack.unpackb(msgpack.packb(data))', setup=setup))
 # 1.42743492126

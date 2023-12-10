@@ -110,6 +110,7 @@ $(document).ready(function() {
             },
             error: function(xhr, status, error) {
                 $('#metadata-container').html('Error fetching metadata: ' + error + xhr.responseText + status);
+                show_metadata(xhr)
             }
         });
     }
@@ -124,14 +125,14 @@ $(document).ready(function() {
 
         require(["vs/editor/editor.main"], () => {
             model_editor_json = monaco.editor.create(document.getElementById('toml-editor-container'), {
-                value: response.cfg_toml,
+                value: response.cfg_toml ? response.cfg_toml : JSON.stringify(response,null,4),
                 language: 'toml',
                 theme: 'tomlTheme-dark',
                 automaticLayout: true,
                 readOnly: true
             });
             model_editor_python = monaco.editor.create(document.getElementById('python-editor-container'), {
-                value: response.arch_function,
+                value: response.arch_function ? response.arch_function : '',
                 language: 'python',
                 theme: 'tomlTheme-dark',
                 automaticLayout: true,

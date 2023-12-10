@@ -1,5 +1,5 @@
 from v2realbot.strategy.base import Strategy
-from v2realbot.utils.utils import parse_alpaca_timestamp, ltp, AttributeDict,trunc,price2dec, zoneNY, print, json_serial, safe_get, get_tick, send_to_telegram
+from v2realbot.utils.utils import parse_alpaca_timestamp, ltp, AttributeDict,trunc,price2dec, zoneNY, print, json_serial, safe_get, get_tick, send_to_telegram, transform_data
 from v2realbot.utils.tlog import tlog, tlog_exception
 from v2realbot.enums.enums import Mode, Order, Account, RecordType, Followup
 #from alpaca.trading.models import TradeUpdate
@@ -7,7 +7,7 @@ from  v2realbot.common.model import TradeUpdate
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus
 from alpaca.trading.enums import TradeEvent, OrderStatus
 from v2realbot.indicators.indicators import ema
-import json
+import orjson
 from datetime import datetime
 #from rich import print
 from random import randrange
@@ -90,7 +90,7 @@ class StrategyClassicSL(Strategy):
         o: Order = data.order
         signal_name = None
         ##nejak to vymyslet, aby se dal poslat cely Trade a serializoval se
-        self.state.ilog(e="Příchozí BUY notif", msg=o.status, trade=json.loads(json.dumps(data, default=json_serial)))
+        self.state.ilog(e="Příchozí BUY notif", msg=o.status, trade=transform_data(data, json_serial))
 
         if data.event == TradeEvent.FILL or data.event == TradeEvent.PARTIAL_FILL:
 
@@ -180,7 +180,7 @@ class StrategyClassicSL(Strategy):
                             setattr(tradeData, "profit_sum", self.state.profit)
                             setattr(tradeData, "signal_name", signal_name)
                             setattr(tradeData, "prescribed_trade_id", self.state.vars.pending)
-                            #self.state.ilog(f"updatnut tradeList o profit", tradeData=json.loads(json.dumps(tradeData, default=json_serial)))
+                            #self.state.ilog(f"updatnut tradeList o profit", tradeData=orjson.loads(orjson.dumps(tradeData, default=json_serial, option=orjson.OPT_PASSTHROUGH_DATETIME)))
                             setattr(tradeData, "rel_profit", rel_profit)
                             setattr(tradeData, "rel_profit_cum", rel_profit_cum_calculated)
 
@@ -233,8 +233,8 @@ class StrategyClassicSL(Strategy):
 
 
     async def orderUpdateSell(self, data: TradeUpdate): 
-
-        self.state.ilog(e="Příchozí SELL notif", msg=data.order.status, trade=json.loads(json.dumps(data, default=json_serial)))
+        
+        self.state.ilog(e="Příchozí SELL notif", msg=data.order.status, trade=transform_data(data, json_serial))
 
         #naklady vypocteme z prumerne ceny, kterou mame v pozicich
         if data.event == TradeEvent.FILL or data.event == TradeEvent.PARTIAL_FILL:            

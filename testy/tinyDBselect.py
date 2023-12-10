@@ -16,7 +16,7 @@ import importlib
 from queue import Queue
 from tinydb import TinyDB, Query, where
 from tinydb.operations import set
-import json
+import orjson
 from rich import print
 
 
@@ -29,7 +29,7 @@ class RunnerLogger:
     def __init__(self, runner_id: UUID) -> None:
         self.runner_id = runner_id
         runner_log_file = DATA_DIR + "/runner_log.json"
-        db_runner_log = TinyDB(runner_log_file, default=json_serial)
+        db_runner_log = TinyDB(runner_log_file, default=json_serial, option=orjson.OPT_PASSTHROUGH_DATETIME)
 
 def insert_log_multiple(runner_id: UUID, logList: list):
     runner_table = db_runner_log.table(str(runner_id))

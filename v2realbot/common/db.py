@@ -5,7 +5,7 @@ import threading
 import time
 from v2realbot.common.model import RunArchive, RunArchiveView
 from datetime import datetime
-import json
+import orjson
 
 sqlite_db_file = DATA_DIR + "/v2trading.db"
 # Define the connection pool
@@ -82,7 +82,7 @@ def row_to_runarchiveview(row: dict) -> RunArchiveView:
         trade_count=int(row['trade_count']),
         end_positions=int(row['end_positions']),
         end_positions_avgp=float(row['end_positions_avgp']),
-        metrics=json.loads(row['metrics']) if row['metrics'] else None
+        metrics=orjson.loads(row['metrics']) if row['metrics'] else None
     )
 
 #prevede dict radku zpatky na objekt vcetme retypizace
@@ -100,13 +100,13 @@ def row_to_runarchive(row: dict) -> RunArchive:
         account=row['account'],
         bt_from=datetime.fromisoformat(row['bt_from']) if row['bt_from'] else None,
         bt_to=datetime.fromisoformat(row['bt_to']) if row['bt_to'] else None,
-        strat_json=json.loads(row['strat_json']),
-        settings=json.loads(row['settings']),
+        strat_json=orjson.loads(row['strat_json']),
+        settings=orjson.loads(row['settings']),
         ilog_save=bool(row['ilog_save']),
         profit=float(row['profit']),
         trade_count=int(row['trade_count']),
         end_positions=int(row['end_positions']),
         end_positions_avgp=float(row['end_positions_avgp']),
-        metrics=json.loads(row['metrics']),
+        metrics=orjson.loads(row['metrics']),
         stratvars_toml=row['stratvars_toml']
     )

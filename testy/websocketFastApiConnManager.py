@@ -6,7 +6,7 @@ import secrets
 from typing import Annotated
 import os
 import uvicorn
-import json
+import orjson
 from datetime import datetime
 from v2realbot.utils.utils import zoneNY
 
@@ -101,7 +101,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
             #                     'close': 123,
             #                     'open': 123,
             #                     'time': "2019-05-25"}
-            await manager.send_personal_message(json.dumps(data), websocket)
+            await manager.send_personal_message(orjson.dumps(data), websocket)
             #await manager.broadcast(f"Client #{client_id} says: {data}")
     except WebSocketDisconnect:
         manager.disconnect(websocket)

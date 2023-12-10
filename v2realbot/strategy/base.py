@@ -23,7 +23,7 @@ from v2realbot.backtesting.backtester import Backtester
 from v2realbot.common.model import TradeUpdate
 from alpaca.trading.enums import TradeEvent, OrderStatus
 from threading import Event, current_thread
-import json
+import orjson
 from uuid import UUID
 from rich import print as printnow
 from collections import defaultdict
@@ -660,7 +660,7 @@ class Strategy:
             #send current values to Realtime display on frontend
             #all datetime values are converted to timestamp
             if self.rtqueue is not None:
-                self.rtqueue.put(json.dumps(rt_out, default=json_serial))
+                self.rtqueue.put(orjson.dumps(rt_out, default=json_serial, option=orjson.OPT_PASSTHROUGH_DATETIME))
                 print("RTQUEUE", self.rtqueue)
 
             #cleaning iterlog lsit

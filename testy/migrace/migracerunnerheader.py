@@ -2,7 +2,7 @@ import sqlite3
 from v2realbot.config import DATA_DIR
 from v2realbot.utils.utils import json_serial
 from uuid import UUID, uuid4
-import json
+import orjson
 from datetime import datetime
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account
 from v2realbot.common.model import RunArchiveDetail, RunArchive, RunArchiveView
@@ -35,14 +35,14 @@ def row_to_object(row: dict) -> RunArchive:
         end_positions=row.get('end_positions'),
         end_positions_avgp=row.get('end_positions_avgp'),
         metrics=row.get('open_orders'),
-        #metrics=json.loads(row.get('metrics')) if row.get('metrics') else None,
+        #metrics=orjson.loads(row.get('metrics')) if row.get('metrics') else None,
         stratvars_toml=row.get('stratvars_toml')
     )
 
 def get_all_archived_runners():
     conn = pool.get_connection()
     try:
-        conn.row_factory = lambda c, r: json.loads(r[0])
+        conn.row_factory = lambda c, r: orjson.loads(r[0])
         c = conn.cursor()
         res = c.execute(f"SELECT data FROM runner_header")
     finally:
@@ -54,7 +54,7 @@ def insert_archive_header(archeader: RunArchive):
     conn = pool.get_connection()
     try:
         c = conn.cursor()
-        json_string = json.dumps(archeader, default=json_serial)
+        json_string = orjson.dumps(archeader, default=json_serial, option=orjson.OPT_PASSTHROUGH_DATETIME)
         if archeader.batch_id is not None:
             statement = f"INSERT INTO runner_header (runner_id, batch_id, ra)  VALUES ('{str(archeader.id)}','{str(archeader.batch_id)}','{json_string}')"
         else:
@@ -103,7 +103,7 @@ def migrate_to_columns(ra: RunArchive):
             SET strat_id=?, batch_id=?, symbol=?, name=?, note=?, started=?, stopped=?, mode=?, account=?, bt_from=?, bt_to=?, strat_json=?, settings=?, ilog_save=?, profit=?, trade_count=?, end_positions=?, end_positions_avgp=?, metrics=?, stratvars_toml=?
             WHERE runner_id=?
             ''',
-            (str(ra.strat_id), ra.batch_id, ra.symbol, ra.name, ra.note, ra.started, ra.stopped, ra.mode, ra.account, ra.bt_from, ra.bt_to, json.dumps(ra.strat_json), json.dumps(ra.settings), ra.ilog_save, ra.profit, ra.trade_count, ra.end_positions, ra.end_positions_avgp, json.dumps(ra.metrics), ra.stratvars_toml, str(ra.id)))
+            (str(ra.strat_id), ra.batch_id, ra.symbol, ra.name, ra.note, ra.started, ra.stopped, ra.mode, ra.account, ra.bt_from, ra.bt_to, orjson.dumps(ra.strat_json), orjson.dumps(ra.settings), ra.ilog_save, ra.profit, ra.trade_count, ra.end_positions, ra.end_positions_avgp, orjson.dumps(ra.metrics), ra.stratvars_toml, str(ra.id)))
 
         conn.commit()
     finally:

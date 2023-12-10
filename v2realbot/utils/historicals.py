@@ -13,7 +13,7 @@ from collections import defaultdict
 from pandas import to_datetime
 from msgpack.ext import Timestamp
 
-def convert_daily_bars(daily_bars):
+def convert_historical_bars(daily_bars):
   """Converts a list of daily bars into a dictionary with the specified keys.
 
   Args:
@@ -89,4 +89,6 @@ def get_historical_bars(symbol: str, time_from: datetime, time_to: datetime, tim
     bar_request = StockBarsRequest(symbol_or_symbols=symbol,timeframe=timeframe, start=time_from, end=time_to, feed=DataFeed.SIP)
     bars: BarSet = stock_client.get_stock_bars(bar_request)
     #print("puvodni bars", bars["BAC"])
-    return convert_daily_bars(bars[symbol])
+    if bars[symbol][0] is None:
+       return None
+    return convert_historical_bars(bars[symbol])

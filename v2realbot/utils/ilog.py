@@ -1,7 +1,7 @@
 from v2realbot.config import DATA_DIR
 from v2realbot.utils.utils import json_serial
 from uuid import UUID, uuid4
-import json
+import orjson
 from datetime import datetime
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account
 from v2realbot.common.db import pool, insert_queue
@@ -9,7 +9,7 @@ import sqlite3
 
 
 #standardne vraci pole tuplů, kde clen tuplu jsou sloupce
-#conn.row_factory = lambda c, r: json.loads(r[0])
+#conn.row_factory = lambda c, r: orjson.loads(r[0])
 #conn.row_factory = lambda c, r: r[0]
 #conn.row_factory = sqlite3.Row
 
@@ -32,7 +32,7 @@ def insert_log(runner_id: UUID, time: float, logdict: dict):
     conn = pool.get_connection()
     try:
         c = conn.cursor()
-        json_string = json.dumps(logdict, default=json_serial)
+        json_string = orjson.dumps(logdict, default=json_serial, option=orjson.OPT_PASSTHROUGH_DATETIME).decode('utf-8')
         res = c.execute("INSERT INTO runner_logs VALUES (?,?,?)",[str(runner_id), time, json_string])
         conn.commit()
     finally:
@@ -49,7 +49,7 @@ def insert_log_multiple_queue(runner_id:UUID, loglist: list):
 #     c = conn.cursor()
 #     insert_data = []
 #     for i in loglist:
-#         row = (str(runner_id), i["time"], json.dumps(i, default=json_serial))
+#         row = (str(runner_id), i["time"], orjson.dumps(i, default=json_serial, option=orjson.OPT_PASSTHROUGH_DATETIME))
 #         insert_data.append(row)
 #     c.executemany("INSERT INTO runner_logs VALUES (?,?,?)", insert_data)
 #     conn.commit()
@@ -59,7 +59,7 @@ def insert_log_multiple_queue(runner_id:UUID, loglist: list):
 def get_log_window(runner_id: UUID, timestamp_from: float = 0, timestamp_to: float = 9682851459):
     conn = pool.get_connection()
     try:
-        conn.row_factory = lambda c, r: json.loads(r[0])
+        conn.row_factory = lambda c, r: orjson.loads(r[0])
         c = conn.cursor()
         res = c.execute(f"SELECT data FROM runner_logs WHERE runner_id='{str(runner_id)}' AND time >={timestamp_from} AND time <={timestamp_to} ORDER BY time")
     finally:

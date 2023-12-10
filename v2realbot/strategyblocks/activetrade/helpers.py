@@ -8,7 +8,7 @@ from uuid import uuid4
 from datetime import datetime
 from v2realbot.strategyblocks.indicators.helpers import value_or_indicator
 #import random
-import json
+import orjson
 import numpy as np
 #from icecream import install, ic
 from rich import print as printanyway

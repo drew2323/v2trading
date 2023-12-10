@@ -1360,7 +1360,7 @@ def get_archived_runner_details_byID(id: UUID, parsed: bool = True):
     else:
         # Return the JSON string directly
         if parsed:
-            orjson.loads(res[0])
+            return 0, orjson.loads(res[0])
         else:
             return 0, res[0]    
 

@@ -16,6 +16,7 @@ var slLine = []
 //input array object bars = { high: [1,2,3], time: [1,2,3], close: [2,2,2]...}
 //output array [{ time: 111, open: 11, high: 33, low: 333, close: 333},..]
 function transform_data(data) {
+    //console.log(data)
     var SHOW_SL_DIGITS = get_from_config("SHOW_SL_DIGITS", true)
     transformed = []
     //get basic bars, volume and vvwap
@@ -174,7 +175,9 @@ function transform_data(data) {
     data.trades.forEach((trade, index, array) => {
         obj = {};
         a_markers = {}
-        timestamp = Date.parse(trade.order.filled_at)/1000
+        //tady z predchozi verze muze byt string (pak je to date v iso) a nebo v novejsi uz mame timestamp
+
+        timestamp = (typeof trade.order.filled_at === 'string') ? Date.parse(trade.order.filled_at)/1000 : trade.order.filled_at
         //light chart neumi vice zaznamu ve stejny cas
         //protoze v BT se muze stat vice tradu v jeden cas, testujeme stejne hodnoty a pripadne pricteme jednu ms
         //tradu s jednim casem muze byt za sebou vic, proto iterator 
@@ -266,9 +269,10 @@ function transform_data(data) {
         markers.push(marker)
 
         //prevedeme iso data na timestampy
-        trade.order.submitted_at = Date.parse(trade.order.submitted_at)/1000
-        trade.order.filled_at = Date.parse(trade.order.filled_at)/1000
-        trade.timestamp = Date.parse(trade.order.timestamp)/1000
+        //open bud zde je iso string (predchozi verze) nebo rovnou float - podporime oboji
+        trade.order.submitted_at = (typeof trade.order.submitted_at === 'string') ? Date.parse(trade.order.submitted_at)/1000 : trade.order.submitted_at
+        trade.order.filled_at = (typeof trade.order.filled_at === 'string') ? Date.parse(trade.order.filled_at)/1000 : trade.order.filled_at
+        trade.timestamp = (typeof trade.timestamp  === 'string') ? Date.parse(trade.order.timestamp)/1000 : trade.order.timestamp
         tradeDetails.set(timestamp, trade)
 
         //line pro buy/sell markery

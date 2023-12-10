@@ -63,6 +63,10 @@ function get_detail_and_chart(row) {
             //console.log(JSON.stringify(data,null,2));
             //if lower res is required call prepare_data otherwise call chart_archived_run()
             //get other base resolutions
+
+            // console.log("received detail", data)
+            // data = JSON.parse(data)
+            // console.log("parsed detail", data)
             prepare_data(row, 1, "Min", data)
         },
         error: function(xhr, status, error) {

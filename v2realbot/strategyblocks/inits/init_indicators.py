@@ -23,13 +23,23 @@ def initialize_dynamic_indicators(state):
     ##ßprintanyway(state.vars, state)
     dict_copy = state.vars.indicators.copy()
     for indname, indsettings in dict_copy.items():
+        #inicializace indikatoru na dane urovni
+        output = safe_get(indsettings, 'output', "bar")
+        match output:
+                case "bar":
+                    indicators_dict = state.indicators
+                case "tick":
+                    indicators_dict = state.cbar_indicators
+                case _:
+                    raise(f"ind output must be bar or tick {indname}")
+
+        indicators_dict[indname] = []
+        #pokud ma MA_length incializujeme i MA variantu
+        if safe_get(indsettings, 'MA_length', False):
+            indicators_dict[indname+"MA"] = []
+
+        #Specifické Inicializace dle type
         for option,value in list(indsettings.items()):
-            #inicializujeme nejenom typizovane
-            #if option == "type":
-            state.indicators[indname] = []
-            #pokud ma MA_length incializujeme i MA variantu
-            if safe_get(indsettings, 'MA_length', False):
-                state.indicators[indname+"MA"] = []
             #specifika pro slope
             if option == "type":
                 if value == "slope":

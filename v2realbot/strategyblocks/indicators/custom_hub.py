@@ -27,6 +27,16 @@ def populate_dynamic_custom_indicator(data, state: StrategyState, name):
     #if MA is required
     MA_length = safe_get(options, "MA_length", None)
 
+    output = safe_get(options, "output", "bar")
+    match output:
+        case "bar":
+            indicators_dict = state.indicators
+        case "tick":
+            indicators_dict = state.cbar_indicators
+        case _:
+            state.ilog(lvl=1,e=f"Output must be bar or tick for {name} in stratvars")
+            return     
+       
     active = safe_get(options, 'active', True)
     if not active:
         return
@@ -121,7 +131,7 @@ def populate_dynamic_custom_indicator(data, state: StrategyState, name):
     if should_run:
         #TODO get custom params
         custom_params = safe_get(options, "cp", None)
-        #vyplnime last_run_time a last_run_index
+        #vyplnime last_run_time a last_run_index do stratvars
         state.vars.indicators[name]["last_run_time"] = datetime.fromtimestamp(data["updated"]).astimezone(zoneNY)
         state.vars.indicators[name]["last_run_index"] = data["index"]
 
@@ -135,14 +145,14 @@ def populate_dynamic_custom_indicator(data, state: StrategyState, name):
             custom_function = eval(subtype)
             res_code, new_val = custom_function(state, custom_params, name)
             if res_code == 0:
-                state.indicators[name][-1-save_to_past]=new_val
+                indicators_dict[name][-1-save_to_past]=new_val
                 state.ilog(lvl=1,e=f"IND {name} {subtype} VAL FROM FUNCTION: {new_val}", lastruntime=state.vars.indicators[name]["last_run_time"], lastrunindex=state.vars.indicators[name]["last_run_index"], save_to_past=save_to_past)
                 #prepocitame MA if required
                 if MA_length is not None:
-                    src = state.indicators[name][-MA_length:]
+                    src = indicators_dict[name][-MA_length:]
                     MA_res = ema(src, MA_length)
                     MA_value = round(MA_res[-1],7)
-                    state.indicators[name+"MA"][-1-save_to_past]=MA_value
+                    indicators_dict[name+"MA"][-1-save_to_past]=MA_value
                     state.ilog(lvl=0,e=f"IND {name}MA {subtype} {MA_value}",save_to_past=save_to_past)
 
             else:
@@ -150,20 +160,20 @@ def populate_dynamic_custom_indicator(data, state: StrategyState, name):
                 raise Exception(err)
             
         except Exception as e:
-            if len(state.indicators[name]) >= 2:
-                state.indicators[name][-1]=state.indicators[name][-2]
-            if MA_length is not None and len(state.indicators[name+"MA"])>=2:
-                state.indicators[name+"MA"][-1]=state.indicators[name+"MA"][-2]
+            if len(indicators_dict[name]) >= 2:
+                indicators_dict[name][-1]=indicators_dict[name][-2]
+            if MA_length is not None and len(indicators_dict[name+"MA"])>=2:
+                indicators_dict[name+"MA"][-1]=indicators_dict[name+"MA"][-2]
             state.ilog(lvl=1,e=f"IND ERROR {name} {subtype} necháváme původní", message=str(e)+format_exc())
     
     else:
         state.ilog(lvl=0,e=f"IND {name} {subtype} COND NOT READY: {msg}")
 
         #not time to run - copy last value
-        if len(state.indicators[name]) >= 2:
-            state.indicators[name][-1]=state.indicators[name][-2]
+        if len(indicators_dict[name]) >= 2:
+            indicators_dict[name][-1]=indicators_dict[name][-2]
 
-        if MA_length is not None and len(state.indicators[name+"MA"])>=2:
-            state.indicators[name+"MA"][-1]=state.indicators[name+"MA"][-2]
+        if MA_length is not None and len(indicators_dict[name+"MA"])>=2:
+            indicators_dict[name+"MA"][-1]=indicators_dict[name+"MA"][-2]
 
         state.ilog(lvl=0,e=f"IND {name} {subtype} NOT TIME TO RUN - value(and MA) still original")            

@@ -63,12 +63,11 @@ def populate_all_indicators(data, state: StrategyState):
     else:
         pass
 
+    #toto je spíše interní ukládání tick_price a tick_volume - s tím pak mohou pracovat jak bar based tak tick based indikatory
+    #TODO do budoucna prejmenovat state.cbar_indicators na state.tick_indicators
     populate_cbar_tick_price_indicator(data, state)
 
-        #TBD nize predelat na typizovane RSI (a to jak na urovni CBAR tak confirmed)
-        #populate_cbar_rsi_indicator()
-
-    #populate indicators, that have type in stratvars.indicators
+    #populate indicators, that have type in stratvars.indicators - pridana podpora i pro CBAR typu CUSTOM
     populate_dynamic_indicators(data, state)
 
     #vytiskneme si indikatory

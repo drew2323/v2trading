@@ -302,20 +302,33 @@ def eval_cond_dict(cond: dict) -> tuple[bool, str]:
 def Average(lst):
     return sum(lst) / len(lst)
 
+#OPTIMIZED by CHATGPT
 def safe_get(collection, key, default=None):
     """Get values from a collection without raising errors"""
-
-    try:
+    # Check if the collection supports the .get method (like dict)
+    if hasattr(collection, 'get'):
         return collection.get(key, default)
-    except TypeError:
-        pass
 
-    try:
+    # Check if the key is within the bounds for list-like collections
+    if isinstance(collection, (list, tuple)) and 0 <= key < len(collection):
         return collection[key]
-    except (IndexError, TypeError):
-        pass
 
     return default
+
+# def safe_get(collection, key, default=None):
+#     """Get values from a collection without raising errors"""
+
+#     try:
+#         return collection.get(key, default)
+#     except TypeError:
+#         pass
+
+#     try:
+#         return collection[key]
+#     except (IndexError, TypeError):
+#         pass
+
+#     return default
 
 def send_to_telegram(message):
     apiToken = '5836666362:AAGPuzwp03tczMQTwTBiHW6VsZZ-1RCMAEE'

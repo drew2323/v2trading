@@ -7,7 +7,8 @@ class CUSUM(IndicatorBase):
         self.cumulative_sum = 0
         self.previous_price = None
 
-    def next(self, new_price):
+    def next(self, close):
+        new_price = close[-1]
         if self.previous_price is None:
             # First data point, no previous price to compare with
             self.previous_price = new_price

@@ -60,6 +60,8 @@ def evaluate_directive_conditions(state, work_dict, cond_type):
 
     return eval_cond_dict(cond)
 
+#TODO toto pripadne sloucit s get_source_series - revidovat dopady
+
 def get_source_or_MA(state, indicator):
     #pokud ma, pouzije MAcko, pokud ne tak standardni indikator
     #pokud to jmeno neexistuje, tak pripadne bere z barů (close,open,hlcc4, vwap atp.)
@@ -69,7 +71,10 @@ def get_source_or_MA(state, indicator):
         try:
             return state.indicators[indicator]
         except KeyError:
-            return state.bars[indicator]
+            try:
+                return state.bars[indicator]
+            except KeyError:
+                return state.cbar_indicators[indicator]
 
 def get_source_series(state, source: str):
     """
@@ -85,7 +90,10 @@ def get_source_series(state, source: str):
             try:
                 return state.indicators[source]
             except KeyError:
-                return None
+                try:
+                    return state.cbar_indicators[source]
+                except KeyError:
+                    return None
     else:
         dict_name = source[:split_index]
         key = source[split_index + 1:]

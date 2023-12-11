@@ -657,24 +657,41 @@ function populate_indicator_buttons(def) {
   buttonElement.id = "indicatorsButtons"
 	buttonElement.classList.add('switcher');
 
+  //incializujeme i bar pro cbar indikator sekci
+	var tickButtonElement = document.createElement('div');
+  tickButtonElement.id = "tickIndicatorsButtons"
+	tickButtonElement.classList.add('tickButtons');
+
     //iterace nad indikatory a vytvareni buttonků
     indList.forEach(function (item, index) {
-    index_ind = index
-    active = false
+      index_ind = index
+      active = false
 
-    //console.log("activatedButtons", activatedButtons)
-    //console.log("obsahuje item.name", activatedButtons.includes(item.name), item.name)
-    //pokud existuje v aktivnich pak
-    //console.log("vytvarime button",item.name,activatedButtons)
-    if ((activatedButtons) && (activatedButtons.includes(item.name))) {
-      active = true
-    }
-    //vytvoreni buttonku
-    itemEl = create_indicator_button(item, index, def||active);
-    //prirazeni do divu
-    buttonElement.appendChild(itemEl); ;
-	});
+      //console.log("activatedButtons", activatedButtons)
+      //console.log("obsahuje item.name", activatedButtons.includes(item.name), item.name)
+      //pokud existuje v aktivnich pak
+      //console.log("vytvarime button",item.name,activatedButtons)
+      if ((activatedButtons) && (activatedButtons.includes(item.name))) {
+        active = true
+      }
+      //bar indikatory jsou serazeny na zacarku
+      if (item.type == 0) {
+        //vytvoreni buttonku
+        itemEl = create_indicator_button(item, index, def||active);
+        //prirazeni do divu
+        buttonElement.appendChild(itemEl);
+      }
+      //ted zbyvaji tick barové a ty dáme do separátního divu
+      else
+      {
+        //vytvoreni buttonku
+        itemEl = create_indicator_button(item, index, def||active);
+        tickButtonElement.appendChild(itemEl)
+      }
+	  });
 
+    //nakonec pripojime cely div s tick based indicatory
+    buttonElement.appendChild(tickButtonElement);
 
 	var funcButtonElement = document.createElement('div');
   funcButtonElement.id = "funcIndicatorsButtons"

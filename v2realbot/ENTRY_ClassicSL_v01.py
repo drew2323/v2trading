@@ -123,10 +123,11 @@ def init(state: StrategyState):
     intialize_directive_conditions(state)
 
     #intitialize indicator mapping (for use in operation) -  mozna presunout do samostatne funkce prip dat do base kdyz se osvedci
+    local_dict_cbar_inds = {key: state.cbar_indicators[key] for key in state.cbar_indicators.keys() if key != "time"}
     local_dict_inds = {key: state.indicators[key] for key in state.indicators.keys() if key != "time"}
     local_dict_bars = {key: state.bars[key] for key in state.bars.keys() if key != "time"}
 
-    state.ind_mapping = {**local_dict_inds, **local_dict_bars}
+    state.ind_mapping = {**local_dict_inds, **local_dict_bars, **local_dict_cbar_inds}
     print("IND MAPPING DONE:", state.ind_mapping)
 
     #30 DAYS historicall data fill - pridat do base pokud se osvedci

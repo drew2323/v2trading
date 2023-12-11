@@ -480,10 +480,11 @@ def _delete_archived_runners_byBatchID(batch_id: str):
         raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error not changed: {res}:{batch_id}:{id}")
 
 
-#WIP - TOM indicator preview from frontend
-#return indicator value for archived runner
+#WIP - TOM indicator preview from frontend f
+#return indicator value for archived runner, return values list0 - bar indicators, list1 - ticks indicators
+#TBD mozna predelat na dict pro prehlednost
 @app.put("/archived_runners/{runner_id}/previewindicator", dependencies=[Depends(api_key_auth)], status_code=status.HTTP_200_OK)
-def _preview_indicator_byTOML(runner_id: UUID, indicator: InstantIndicator) -> list[float]:
+def _preview_indicator_byTOML(runner_id: UUID, indicator: InstantIndicator) -> list[list[float]]:
     #mozna pak pridat name
     res, vals = cs.preview_indicator_byTOML(id=runner_id, indicator=indicator)
     if res == 0: return vals
@@ -927,10 +928,5 @@ if __name__ == "__main__":
         print("closing insert_conn connection")
         insert_conn.close()
         print("closed")
-##TODO pridat moznost behu na PAPER a LIVE per strategie
 
-# zjistit zda order notification websocket muze bezet na obou soucasne
-# pokud ne, mohl bych vyuzivat jen zive data
-# a pro paper trading(live interface) a notifications bych pouzival separatni paper ucet
-# to by asi slo
 

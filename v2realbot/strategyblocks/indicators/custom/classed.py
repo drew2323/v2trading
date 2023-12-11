@@ -30,12 +30,26 @@ def classed(state, params, name):
     init_params = safe_get(params, "init", None) #napr sekce obcahuje threshold = 1222, ktere jdou kwargs do initu fce
     #next_params = safe_get(params, "next", None)
 
-    source = safe_get(params, "source", None) #source, ktery jde do initu
-    source = get_source_series(state, source)
-    #lookback = int(value_or_indicator(state, lookback))
+    #List of sources, ktere jde do nextu (muze jit i vice serie)
+    #Do nextu jde ve stejnojmenném parametru
+    next_sources = safe_get(params, "next", []) #this will map to the sources_dict
+    next_mapping = safe_get(params, "next_mapping", next_sources) #this will dictate the final name of the key in sources_dict
 
-    #class_next_params = safe_get(params, "class_next_params", None)
-    
+    #ukládáme si do cache incializaci
+    cache = safe_get(params, "CACHE", None)
+    if cache is None:
+        if len(next_sources) != len(next_mapping):
+            return -2, "next and next_mapping length must be the same"
+        # Vytvorime dictionary pro kazdy source a priradime serii
+        #source_dict = {name: get_source_series(state, name) for name in next_sources}
+        #TBD toto optimalizovat aby se nevolalo pri kazde iteraci
+        source_dict = {new_key: get_source_series(state, name) 
+                for name, new_key in zip(next_sources, next_mapping)}
+        params["CACHE"] = {}
+        params["CACHE"]["source_dict"] = source_dict
+    else:
+        source_dict = params["CACHE"]["source_dict"]
+
     try:
         if name not in state.classed_indicators:
             classname = name
@@ -46,8 +60,8 @@ def classed(state, params, name):
             state.classed_indicators[name] = instance
             state.ilog(lvl=1,e=f"IND CLASS {name} INITIALIZED", **params)
 
-        if source is not None:
-            val = state.classed_indicators[name].next(source[-1])
+        if len(source_dict) >0:
+            val = state.classed_indicators[name].next(**source_dict)
         else:
             val = state.classed_indicators[name].next()
 
@@ -57,4 +71,3 @@ def classed(state, params, name):
     except Exception as e:
         printanyway(str(e)+format_exc())
         return -2, str(e)+format_exc()        
-

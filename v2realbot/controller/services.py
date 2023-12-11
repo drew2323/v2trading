@@ -1453,6 +1453,10 @@ def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator, save: bool =
         subtype = safe_get(toml_parsed, 'subtype', False)
         if subtype is None:
             return (-2, "subtype invalid")
+        
+        output = safe_get(toml_parsed, 'output', "bar")
+        if output is None:
+            return (-2, "output invalid (bar/tick)")
 
         custom_params = safe_get(toml_parsed, "cp", None)
         print("custom params",custom_params)
@@ -1466,8 +1470,12 @@ def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator, save: bool =
         #print("toto jsme si dotahnuli", detail.bars)
 
         #pokud tento indikator jiz je v detailu, tak ho odmazeme
+        #BAR indikatory
         if indicator.name in detail.indicators[0]:
             del detail.indicators[0][indicator.name]
+        #CBAR indikatory
+        elif indicator.name in detail.indicators[1]:
+            del detail.indicators[1][indicator.name]
 
 
         #new dicts
@@ -1477,6 +1485,8 @@ def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator, save: bool =
         new_data= AttributeDict(**new_data)
         new_inds = {key: [] for key in detail.indicators[0].keys()}
         new_inds = AttributeDict(**new_inds)
+        new_tick_inds = {key: [] for key in detail.indicators[1].keys()}
+        new_tick_inds = AttributeDict(**new_tick_inds)
         interface = BacktestInterface(symbol="X", bt=None)
 
         ##dame nastaveni indikatoru do tvaru, ktery stratvars ocekava (pro dynmaicke inicializace)
@@ -1485,12 +1495,20 @@ def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator, save: bool =
 
         state = StrategyState(name="XX", symbol = "X", stratvars = AttributeDict(**stratvars), interface=interface)
 
-        #inicializujeme novy indikator v cilovem dict a stavovem inds.
-        new_inds[indicator.name] = []
-        new_inds[indicator.name] = []
-
-        state.bars = new_bars
-        state.indicators = new_inds
+        #inicializujeme stavove promenne a novy indikator v cilovem dict
+        if output == "bar":
+            state.bars = new_bars
+            state.indicators = new_inds
+            state.cbar_indicators = detail.indicators[1] #mozna toto vubec neopotrebujeme
+            new_inds[indicator.name] = []
+            new_inds[indicator.name] = []
+        #pro tick, nechavame bary a nechavame volne pouze tickbary, nad kterymi iterujeme
+        else:
+            state.bars = new_bars
+            state.indicators = new_inds
+            state.cbar_indicators = new_tick_inds
+            new_tick_inds[indicator.name] = []
+            new_tick_inds[indicator.name] = []
 
         #pridavame dailyBars z extData
         if hasattr(detail, "ext_data") and "dailyBars" in detail.ext_data:
@@ -1499,9 +1517,10 @@ def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator, save: bool =
         print("delka",len(detail.bars["close"]))
 
         #intitialize indicator mapping - in order to use eval in expression
+        local_dict_cbar_inds = {key: state.cbar_indicators[key] for key in state.cbar_indicators.keys() if key != "time"}
         local_dict_inds = {key: state.indicators[key] for key in state.indicators.keys() if key != "time"}
         local_dict_bars = {key: state.bars[key] for key in state.bars.keys() if key != "time"}
-        state.ind_mapping = {**local_dict_inds, **local_dict_bars}
+        state.ind_mapping = {**local_dict_inds, **local_dict_bars, **local_dict_cbar_inds}
         print("IND MAPPING DONE:", state.ind_mapping)
 
         ##intialize dynamic indicators
@@ -1513,34 +1532,81 @@ def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator, save: bool =
         # print("funkce", function)
         # custom_function = eval(function)
         
-        #iterujeme nad bary a on the fly pridavame novou hodnotu do vsech indikatoru a nakonec nad tim spustime indikator
-        #tak muzeme v toml pouzit i hodnoty ostatnich indikatoru
-        for i in range(len(detail.bars["close"])):
-            for key in detail.bars:
-                state.bars[key].append(detail.bars[key][i])
-                #naplnime i data aktualne
-                new_data[key] = state.bars[key][-1]
-            for key in detail.indicators[0]:
-                state.indicators[key].append(detail.indicators[0][key][i])
+        #pokud jde o bar, tak cbary nemennime, nechavame je inicializovane plnou hodnotou pro pripadne dotazeni
+        if output == "bar":
+            #iterujeme nad bary a on the fly pridavame novou hodnotu do vsech indikatoru a nakonec nad tim spustime indikator
+            #tak muzeme v toml pouzit i hodnoty ostatnich indikatoru
+            for i in range(len(detail.bars["close"])):
+                for key in detail.bars:
+                    state.bars[key].append(detail.bars[key][i])
+                    #naplnime i data aktualne
+                    new_data[key] = state.bars[key][-1]
+                for key in detail.indicators[0]:
+                    state.indicators[key].append(detail.indicators[0][key][i])
 
-            #inicializujeme 0 v novém indikatoru
-            state.indicators[indicator.name].append(0)
+                #inicializujeme 0 v novém indikatoru
+                state.indicators[indicator.name].append(0)
 
-            try:
-                populate_dynamic_indicators(new_data, state)
-                # res_code, new_val = custom_function(state, custom_params)
-                # if res_code == 0:
-                #     new_inds[indicator.name][-1]=new_val
-            except Exception as e:
-                print(str(e) + format_exc())
+                try:
+                    populate_dynamic_indicators(new_data, state)
+                    # res_code, new_val = custom_function(state, custom_params)
+                    # if res_code == 0:
+                    #     new_inds[indicator.name][-1]=new_val
+                except Exception as e:
+                    print(str(e) + format_exc())
 
 
-        #print("Done", state.indicators[indicator.name])
-       
-        new_inds[indicator.name] = state.indicators[indicator.name]
+            #print("Done", state.indicators[indicator.name])
         
-        #ukládáme do ArchRunneru
-        detail.indicators[0][indicator.name] = new_inds[indicator.name]
+            new_inds[indicator.name] = state.indicators[indicator.name]
+            
+            #ukládáme do ArchRunneru
+            detail.indicators[0][indicator.name] = new_inds[indicator.name]
+
+        #TOTOZNE PRO TICK INDICATOR
+        else:
+            #iterujeme nad bary a on the fly pridavame novou hodnotu do vsech indikatoru a nakonec nad tim spustime indikator
+            #OMEZENI ZATIM pro preview jde velmi omezeně používat bary - OTESTOVAT poradne
+            new_data = dict(close=0,confirmed=0,high=0,hlcc4=0,index=0,low=0,open=0,resolution=0,time=0,trades=0,updated=0,volume=0,vwap=0)
+            bar_idx = 0
+            max_bar_idx = len(detail.bars["time"])
+            for i in range(len(detail.indicators[1]["time"])):
+                for key in detail.indicators[1]:
+                    state.cbar_indicators[key].append(detail.indicators[1][key][i])
+                    match key:
+                        case "time":
+                            #pokud existuje bar a indikator s mensim casem vkladame je
+                            if bar_idx < max_bar_idx and detail.indicators[1][key][i] >= detail.bars[key][bar_idx]:
+                                for bar_key in detail.bars:
+                                    state.bars[bar_key].append(detail.bars[bar_key][bar_idx])
+                                    #naplnime i data aktualne
+                                    new_data[bar_key] = state.bars[bar_key][-1]
+                                for ind_key in detail.indicators[0]:
+                                    state.indicators[ind_key].append(detail.indicators[0][ind_key][bar_idx])
+                                bar_idx += 1                    
+                        case "tick_price":
+                            new_data['close'] = detail.indicators[1][key][i]
+                        # case "tick_volume":
+                        #     new_data['volume'] = detail.indicators[1][key][i]
+
+                #inicializujeme 0 v novém indikatoru
+                state.cbar_indicators[indicator.name].append(0)
+
+                try:
+                    populate_dynamic_indicators(new_data, state)
+                    # res_code, new_val = custom_function(state, custom_params)
+                    # if res_code == 0:
+                    #     new_inds[indicator.name][-1]=new_val
+                except Exception as e:
+                    print(str(e) + format_exc())
+
+            #print("Done", state.indicators[indicator.name])
+        
+            new_tick_inds[indicator.name] = state.cbar_indicators[indicator.name]
+            
+            #ukládáme do ArchRunneru
+            detail.indicators[1][indicator.name] = new_tick_inds[indicator.name]
+
 
         #do ext dat ukladame jmeno indikatoru (podle toho oznacuje jako zmenene)
 
@@ -1565,7 +1631,11 @@ def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator, save: bool =
         if res == 0:
             print(f"arch runner {id} updated")
 
-        return 0, new_inds[indicator.name]
+        #vracime list, kde pozice 0 je bar indicators, pozice 1 je ticks indicators
+        if output == "bar":
+            return 0, [new_inds[indicator.name], []]
+        else:
+            return 0, [[], new_tick_inds[indicator.name]]
 
     except Exception as e:
         print(str(e) + format_exc())

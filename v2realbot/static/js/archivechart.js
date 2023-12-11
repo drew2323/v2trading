@@ -367,6 +367,7 @@ function prepare_data(archRunner, timeframe_amount, timeframe_unit, archivedRunn
 
 //pomocna sluzba pro naplneni indListu a charting indikatoru
 function chart_indicators(data, visible, offset) {
+    console.log(data)
     //console.log("indikatory", JSON.stringify(data.indicators,null,2))
     //podobne v livewebsokcets.js - dat do jedne funkce
     if (data.hasOwnProperty("indicators")) { 
@@ -389,6 +390,8 @@ function chart_indicators(data, visible, offset) {
         indicatorList.forEach((indicators, index, array) => {
 
             //var indicators = data.indicators
+            //index 0 - bar indikatory
+            //index 1 - tick based indikatory
             //if there are indicators it means there must be at least two keys (time which is always present)
             if (Object.keys(indicators).length > 1) {
                 for (const [key, value] of Object.entries(indicators)) {
@@ -435,7 +438,7 @@ function chart_indicators(data, visible, offset) {
                             // } 
 
                             //initialize indicator and store reference to array
-                            var obj = {name: key, series: null, cnf:cnf, instant: instant}
+                            var obj = {name: key, type: index, series: null, cnf:cnf, instant: instant}
     
                             //start
                             //console.log(key)
@@ -619,19 +622,38 @@ function chart_indicators(data, visible, offset) {
         })
     }
 
+    //sort by type first (0-bar,1-cbar inds) and then alphabetically
     indList.sort((a, b) => {
-        const nameA = a.name.toUpperCase(); // ignore upper and lowercase
-        const nameB = b.name.toUpperCase(); // ignore upper and lowercase
-        if (nameA < nameB) {
-            return -1;
+        if (a.type !== b.type) {
+            return a.type - b.type;
+        } else {
+            let nameA = a.name.toUpperCase();
+            let nameB = b.name.toUpperCase();
+            if (nameA < nameB) {
+                return -1;
+            } else if (nameA > nameB) {
+                return 1;
+            } else {
+                // If uppercase names are equal, compare original names to prioritize uppercase
+                return a.name < b.name ? -1 : 1;
+            }
         }
-        if (nameA > nameB) {
-            return 1;
-        }
-        // names must be equal
-        return 0;
-
     });
+
+    //puvodni funkce
+    // indList.sort((a, b) => {
+    //     const nameA = a.name.toUpperCase(); // ignore upper and lowercase
+    //     const nameB = b.name.toUpperCase(); // ignore upper and lowercase
+    //     if (nameA < nameB) {
+    //         return -1;
+    //     }
+    //     if (nameA > nameB) {
+    //         return 1;
+    //     }
+    //     // names must be equal
+    //     return 0;
+
+    // });
     //vwap a volume zatim jen v detailnim zobrazeni
     if (!offset) {
         //display vwap and volume

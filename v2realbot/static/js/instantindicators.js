@@ -56,13 +56,16 @@ $(document).ready(function () {
                 
                 if (archData.indicators[0][indname]) {
                     delete archData.indicators[0][indname]
-                    //delete addedInds[indname]
-                    //get active resolution
-                    const element = document.querySelector('.switcher-active-item');
-                    resolution = element.textContent
-                    //console.log("aktivni rozliseni", resolution)
-                    switch_to_interval(resolution, archData)
                 }
+                else if (archData.indicators[1][indname]) {
+                    delete archData.indicators[1][indname]
+                }
+                //delete addedInds[indname]
+                //get active resolution
+                const element = document.querySelector('.switcher-active-item');
+                resolution = element.textContent
+                //console.log("aktivni rozliseni", resolution)
+                switch_to_interval(resolution, archData)
             },
             error: function(xhr, status, error) {
                 var err = eval("(" + xhr.responseText + ")");
@@ -142,11 +145,18 @@ $(document).ready(function () {
             success:function(data){
                 //kod pro update/vytvoreni je zde stejny - updatujeme jen zdrojove dictionary
                 window.$('#indicatorModal').modal('hide');
-                //console.log(data)
+                console.log("navrat",data)
                 //indName = $('#indicatorName').val()
                 //updatneme/vytvorime klic v globalni promennou obsahujici vsechny arch data
                 //TBD nebude fungovat az budu mit vic chartů otevřených - předělat
-                archData.indicators[0][indName] = data
+                if (data[0].length > 0) {
+                    archData.indicators[0][indName] = data[0]
+                } else if (data[1].length > 0) {
+                    archData.indicators[1][indName] = data[1]
+                }
+                else {
+                    alert("neco spatne s response ", data)
+                }
                 
                 //pridame pripadne upatneme v ext_data
 

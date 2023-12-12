@@ -162,7 +162,7 @@ class LiveInterface(GeneralInterface):
             return a.avg_entry_price, a.qty
         except (APIError, Exception) as e:
             #no position
-            if e.code == 40410000: return 0,0
+            if hasattr(e, 'code') and e.code == 40410000: return 0,0
             else:
                 reason = "Exception when calling LIVE interface pos, REPEATING:" + str(e) + format_exc()
                 print("API ERROR: Nepodarilo se ziskat pozici.", reason)

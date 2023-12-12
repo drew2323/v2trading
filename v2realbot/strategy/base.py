@@ -435,7 +435,8 @@ class Strategy:
                     if self.signal_stop:
                         print(current_thread().name, "Stopping signal - internal")
                         break     
-                    if self.state.time is not None and self.state.today_market_close is not None and self.state.time > self.state.today_market_close:
+                    
+                    if self.state.time is not None and self.state.today_market_close is not None and datetime.fromtimestamp(self.state.time).astimezone(zoneNY) > self.state.today_market_close:
                         print(current_thread().name, "MARKET CLOSE - Stopping signal - internal")
                         break                                
                     #check signals - external signal stops also batch

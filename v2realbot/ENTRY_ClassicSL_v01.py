@@ -171,8 +171,7 @@ def init(state: StrategyState):
     #ulozime si dnesni market close
     #pro automaticke ukonceni
     #TODO pripadne enablovat na parametr
-    state.today_market_close = cal_dates[-1].close
-
+    state.today_market_close = zoneNY.localize(cal_dates[-1].close)
 
     # Find the previous market day
     history_datetime_to = None

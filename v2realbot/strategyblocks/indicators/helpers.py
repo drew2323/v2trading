@@ -2,6 +2,28 @@ from v2realbot.utils.utils import isrising, isfalling,isfallingc, isrisingc, zon
 #from v2realbot.strategy.base import StrategyState
 from traceback import format_exc
 
+
+"""
+TODO pripadne dat do 
+Finds index of first value less than X seconds
+This version assumes:
+time_list is always non-empty and sorted.
+There's always a timestamp at least 5 seconds before the current time.
+"""
+def find_index_optimized(time_list, seconds):
+    current_time = time_list[-1]
+    threshold = current_time - seconds
+    left, right = 0, len(time_list) - 1
+
+    while left < right:
+        mid = (left + right) // 2
+        if time_list[mid] < threshold:
+            left = mid + 1
+        else:
+            right = mid
+
+    return left if time_list[left] >= threshold else None
+
 #ZATIM tyto zkopirovany SEM DO HELPERS
 #podle toho jak se osvedci se zakl.indikatory to s state
 #zatim se mi to moc nezda

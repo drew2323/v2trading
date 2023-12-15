@@ -125,7 +125,7 @@ $(document).ready(function() {
 
         require(["vs/editor/editor.main"], () => {
             model_editor_json = monaco.editor.create(document.getElementById('toml-editor-container'), {
-                value: response.cfg_toml ? response.cfg_toml : JSON.stringify(response,null,4),
+                value: response.cfg_toml ? response.cfg_toml +  ((response.history) ? "\nHISTORY:\n" + JSON.stringify(response.history,null,4) : "") : JSON.stringify(response,null,4),
                 language: 'toml',
                 theme: 'tomlTheme-dark',
                 automaticLayout: true,

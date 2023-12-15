@@ -23,8 +23,8 @@ def divergence(state, params, name):
         val =  round((abs(float(source1_series[-1]) - float(source2_series[-1])))/float(source1_series[-1]),4)
     elif mode == "rel":
         val =  round(float(source1_series[-1]) - float(source2_series[-1]),4)
-    elif mode == "reln":
-        val =  round((float(source1_series[-1]) - float(source2_series[-1]))/float(source1_series[-1]),4)
+    elif mode == "reln": #div = a+b   /   a-b  will give value between -1 and 1
+        val =  round((float(source1_series[-1]) - float(source2_series[-1]))/(float(source1_series[-1])+float(source2_series[-1])),4)
     elif mode == "pctabs":
         val = pct_diff(num1=float(source1_series[-1]),num2=float(source2_series[-1]), absolute=True)
     elif mode == "pct":

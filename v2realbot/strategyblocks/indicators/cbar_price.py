@@ -9,20 +9,24 @@ def populate_cbar_tick_price_indicator(data, state: StrategyState):
         try:
             tick_price = data['close']
             tick_delta_volume = data['volume'] - state.vars.last_tick_volume
+            tick_delta_trades = data['trades'] - state.vars.last_tick_trades
 
             state.cbar_indicators.tick_price[-1] = tick_price
             state.cbar_indicators.tick_volume[-1] = tick_delta_volume
+            state.cbar_indicators.tick_trades[-1] = tick_delta_trades
         except:
             pass
 
-        state.ilog(lvl=0,e=f"TICK PRICE CBARV {tick_price} VOLUME {tick_delta_volume} {data['confirmed']=}", prev_price=state.vars.last_tick_price, prev_volume=state.vars.last_tick_volume)
+        state.ilog(lvl=0,e=f"TICK PRICE CBARV {tick_price} VOLUME {tick_delta_volume} TRADES {tick_delta_trades} {data['confirmed']=}", prev_price=state.vars.last_tick_price, prev_volume=state.vars.last_tick_volume, prev_trades=state.vars.last_tick_trades)
 
         state.vars.last_tick_price = tick_price
         state.vars.last_tick_volume = data['volume']
+        state.vars.last_tick_trades = data['trades']
 
         if conf_bar == 1:
             #pri potvrzem CBARu nulujeme counter volume pro tick based indicator
             state.vars.last_tick_volume = 0
+            state.vars.last_tick_trades = 0
             state.vars.next_new = 1
 
     #pro standardní CBARy
@@ -30,6 +34,7 @@ def populate_cbar_tick_price_indicator(data, state: StrategyState):
         if conf_bar == 1:
             #pri potvrzem CBARu nulujeme counter volume pro tick based indicator
             state.vars.last_tick_volume = 0
+            state.vars.last_tick_trades = 0
             state.vars.next_new = 1
 
 
@@ -45,13 +50,16 @@ def populate_cbar_tick_price_indicator(data, state: StrategyState):
                 #tick_price = round2five(data['close'])
                 tick_price = data['close']
                 tick_delta_volume = data['volume'] - state.vars.last_tick_volume
+                tick_delta_trades = data['trades'] - state.vars.last_tick_trades
 
                 state.cbar_indicators.tick_price[-1] = tick_price
                 state.cbar_indicators.tick_volume[-1] = tick_delta_volume
+                state.cbar_indicators.tick_trades[-1] = tick_delta_trades
             except:
                 pass
 
-            state.ilog(lvl=0,e=f"TICK PRICE CBAR {tick_price} VOLUME {tick_delta_volume} {data['confirmed']=}", prev_price=state.vars.last_tick_price, prev_volume=state.vars.last_tick_volume)
+            state.ilog(lvl=0,e=f"TICK PRICE CBAR {tick_price} VOLUME {tick_delta_volume} {data['confirmed']=}", prev_price=state.vars.last_tick_price, prev_volume=state.vars.last_tick_volume, prev_trades=state.vars.last_tick_trades)
 
             state.vars.last_tick_price = tick_price
             state.vars.last_tick_volume = data['volume']
+            state.vars.last_tick_trades = data['trades']

@@ -6,6 +6,7 @@ from v2realbot.indicators.indicators import ema
 from traceback import format_exc
 import importlib
 import v2realbot.strategyblocks.indicators.custom as ci
+from v2realbot.strategyblocks.indicators.helpers import find_index_optimized
 
 
 def populate_dynamic_custom_indicator(data, state: StrategyState, name):
@@ -43,6 +44,8 @@ def populate_dynamic_custom_indicator(data, state: StrategyState, name):
 
     # např.  5 - znamená ulož hodnotu indikatoru 5 barů dozadu namísto posledni hodnoty - hodí se pro vytvareni targetu pro ML trening
     save_to_past = int(safe_get(options, "save_to_past", 0))
+    save_to_past_unit = safe_get(options, "save_to_past_unit", "position")
+
 
     def is_time_to_run():
         # on_confirmed_only = true (def. False)
@@ -135,6 +138,17 @@ def populate_dynamic_custom_indicator(data, state: StrategyState, name):
         state.vars.indicators[name]["last_run_time"] = datetime.fromtimestamp(data["updated"]).astimezone(zoneNY)
         state.vars.indicators[name]["last_run_index"] = data["index"]
 
+
+        #pomocna funkce
+        def save_to_past_func(indicators_dict,name,save_to_past_unit, steps, new_val):
+            if save_to_past_unit == "position":
+                indicators_dict[name][-1-steps]=new_val
+            #time
+            else:
+                ##find index X seconds ago
+                lookback_idx = find_index_optimized(time_list=indicators_dict["time"], seconds=steps)
+                indicators_dict[name][lookback_idx]=new_val  
+
         # - volame custom funkci pro ziskani hodnoty indikatoru
         #        - tu ulozime jako novou hodnotu indikatoru a prepocteme MAcka pokud je pozadovane
         # - pokud cas neni, nechavame puvodni, vcetna pripadneho MAcka
@@ -145,15 +159,18 @@ def populate_dynamic_custom_indicator(data, state: StrategyState, name):
             custom_function = eval(subtype)
             res_code, new_val = custom_function(state, custom_params, name)
             if res_code == 0:
-                indicators_dict[name][-1-save_to_past]=new_val
+                save_to_past_func(indicators_dict,name,save_to_past_unit, save_to_past, new_val)
                 state.ilog(lvl=1,e=f"IND {name} {subtype} VAL FROM FUNCTION: {new_val}", lastruntime=state.vars.indicators[name]["last_run_time"], lastrunindex=state.vars.indicators[name]["last_run_index"], save_to_past=save_to_past)
                 #prepocitame MA if required
                 if MA_length is not None:
                     src = indicators_dict[name][-MA_length:]
                     MA_res = ema(src, MA_length)
                     MA_value = round(MA_res[-1],7)
-                    indicators_dict[name+"MA"][-1-save_to_past]=MA_value
+                    
+                    save_to_past_func(indicators_dict,name+"MA",save_to_past_unit, save_to_past, MA_value)
                     state.ilog(lvl=0,e=f"IND {name}MA {subtype} {MA_value}",save_to_past=save_to_past)
+                
+                return
 
             else:
                 err = f"IND  ERROR {name} {subtype}Funkce {custom_function} vratila {res_code} {new_val}."

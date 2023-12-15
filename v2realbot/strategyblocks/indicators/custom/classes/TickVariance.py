@@ -1,9 +1,9 @@
 import numpy as np
 from v2realbot.strategyblocks.indicators.custom.classes.indicatorbase import IndicatorBase
 
-#usecase - pocitat variance ticku
-# v ramci BARu - posilame sem index a resetujeme pri naslednem indxu
-# do budoucna mo
+#TOTO predelat - jsou tu dva UC - na ticku (per position and time), uvnitr baru (per index baru)
+#rozdelit tyto a predelat
+
 class TickVariance(IndicatorBase):
     def __init__(self, state, window_size=1):
         """

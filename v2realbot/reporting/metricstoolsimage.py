@@ -348,7 +348,7 @@ def generate_trading_report_image(runner_ids: list = None, batch_id: str = None,
 
     #Plot 8 Cumulative profit - bud 1 den nebo vice dni + pridame pod to vyvoj ceny
     # Extract the closing prices and times
-    closing_prices = bars.get('close',[])
+    closing_prices = bars.get('close',[]) if bars is not None else [] 
     #times = bars['time']  # Assuming this is a list of pandas Timestamp objects
     times = pd.to_datetime(bars['time']) if bars is not None else []  # Ensure this is a Pandas datetime series
     # # Plot the closing prices over time
@@ -372,7 +372,8 @@ def generate_trading_report_image(runner_ids: list = None, batch_id: str = None,
             ax2.tick_params(axis='y', labelcolor='orange')
             
             # Set the limits for the x-axis to cover the full range of 'times'
-            axs[1, 3].set_xlim(times.min(), times.max())
+            if isinstance(times, pd.DatetimeIndex):
+                axs[1, 3].set_xlim(times.min(), times.max())
             sns.lineplot(x=exit_times, y=cumulative_profits, ax=axs[1, 3], color='limegreen')
             axs[1, 3].scatter(max_profit_time, max_profit, color='green', label='Max Profit')
             axs[1, 3].scatter(min_profit_time, min_profit, color='red', label='Min Profit')

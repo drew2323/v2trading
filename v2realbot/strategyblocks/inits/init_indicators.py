@@ -58,7 +58,7 @@ def initialize_dynamic_indicators(state):
                     modelname = safe_get(indsettings["cp"], 'name', None)
                     modelversion = safe_get(indsettings["cp"], 'version', "1")
                     if modelname is not None:
-                        state.vars.loaded_models[modelname] =  ml.load_model(modelname, modelversion, MODEL_DIR)
+                        state.vars.loaded_models[modelname] =  ml.load_model(modelname, modelversion, None, MODEL_DIR)
                         if state.vars.loaded_models[modelname] is not None:
                             printanyway(f"model {modelname} loaded")
                         else:

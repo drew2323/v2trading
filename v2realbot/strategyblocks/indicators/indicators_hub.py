@@ -63,7 +63,7 @@ def populate_all_indicators(data, state: StrategyState):
     else:
         pass
 
-    #toto je spíše interní ukládání tick_price a tick_volume - s tím pak mohou pracovat jak bar based tak tick based indikatory
+    #toto je spíše interní ukládání tick_price a tick_volume a tick_tradenct - s tím pak mohou pracovat jak bar based tak tick based indikatory
     #TODO do budoucna prejmenovat state.cbar_indicators na state.tick_indicators
     populate_cbar_tick_price_indicator(data, state)
 

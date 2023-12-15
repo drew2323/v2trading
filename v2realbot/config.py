@@ -5,6 +5,7 @@ from pathlib import Path
 
 #directory for generated images and basic reports
 MEDIA_DIRECTORY = Path(__file__).parent.parent.parent / "media"
+RUNNER_DETAIL_DIRECTORY = Path(__file__).parent.parent.parent / "runner_detail"
 
 #location of strat.log - it is used to fetch by gui
 LOG_FILE = Path(__file__).parent.parent / "strat.log"

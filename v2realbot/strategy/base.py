@@ -744,6 +744,7 @@ class StrategyState:
         self.ilog_save = ilog_save
         self.sl_optimizer_short = optimsl.SLOptimizer(ptm.TradeDirection.SHORT)
         self.sl_optimizer_long = optimsl.SLOptimizer(ptm.TradeDirection.LONG)
+        self.cache = defaultdict(dict)
 
         bars = {'high': [], 
                                 'low': [],

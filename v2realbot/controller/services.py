@@ -14,7 +14,7 @@ from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeSt
 from datetime import datetime
 from v2realbot.loader.trade_offline_streamer import Trade_Offline_Streamer
 from threading import Thread, current_thread, Event, enumerate
-from v2realbot.config import STRATVARS_UNCHANGEABLES, ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, ACCOUNT1_LIVE_API_KEY, ACCOUNT1_LIVE_SECRET_KEY, DATA_DIR,BT_FILL_CONS_TRADES_REQUIRED,BT_FILL_LOG_SURROUNDING_TRADES,BT_FILL_CONDITION_BUY_LIMIT,BT_FILL_CONDITION_SELL_LIMIT, GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN, MEDIA_DIRECTORY
+from v2realbot.config import STRATVARS_UNCHANGEABLES, ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, ACCOUNT1_LIVE_API_KEY, ACCOUNT1_LIVE_SECRET_KEY, DATA_DIR,BT_FILL_CONS_TRADES_REQUIRED,BT_FILL_LOG_SURROUNDING_TRADES,BT_FILL_CONDITION_BUY_LIMIT,BT_FILL_CONDITION_SELL_LIMIT, GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN, MEDIA_DIRECTORY, RUNNER_DETAIL_DIRECTORY
 import importlib
 from alpaca.trading.requests import GetCalendarRequest
 from alpaca.trading.client import TradingClient
@@ -38,6 +38,9 @@ from v2realbot.strategyblocks.indicators.indicators_hub import populate_dynamic_
 from v2realbot.interfaces.backtest_interface import BacktestInterface
 import os
 from v2realbot.reporting.metricstoolsimage import generate_trading_report_image
+import msgpack
+import gzip
+import os
 #import gc
 #from pyinstrument import Profiler
 #adding lock to ensure thread safety of TinyDB (in future will be migrated to proper db)
@@ -1227,6 +1230,7 @@ def delete_archived_runners_byBatchID(batch_id: str):
             print(f"error delete")
             return res, f"ERROR deleting {batch_id} : {val}"
 
+
 #delete runner in archive and archive detail and runner logs
 #predelano do JEDNE TRANSAKCE
 def delete_archived_runners_byIDs(ids: list[UUID]):
@@ -1296,6 +1300,32 @@ def delete_archive_header_byID(id: UUID):
 # endregion
 
 # region ARCHIVE DETAIL
+
+#FILE SERVICES
+#during runner_detail refactoring to file here https://chat.openai.com/c/b18eab9d-1e1c-413b-b25c-ccc180f3b3c2
+#vcetne migrace
+def get_rd_fn(runner_id):
+    return str(RUNNER_DETAIL_DIRECTORY / f"{runner_id}.msgpack.gz")
+
+# Helper functions for file operations
+def save_to_file(runner_id, data):
+    file_path = get_rd_fn(runner_id)
+    with gzip.open(file_path, "wb") as f:
+        f.write(msgpack.packb(data))
+
+def read_from_file(runner_id):
+    file_path = get_rd_fn(runner_id)
+    if os.path.exists(file_path):
+        with gzip.open(file_path, "rb") as f:
+            return msgpack.unpackb(f.read())
+    return None
+
+def delete_file(runner_id):
+    file_path = get_rd_fn(runner_id)
+    if os.path.exists(file_path):
+        os.remove(file_path)
+        return True
+    return False
 
 #returns number of deleted elements
 def delete_archive_detail_byID(id: UUID):

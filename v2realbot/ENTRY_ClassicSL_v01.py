@@ -97,9 +97,7 @@ def init(state: StrategyState):
     #pripadne udelat refresh kazdych x-iterací
     state.vars['sell_in_progress'] = False
     state.vars.mode = None
-    state.vars.last_tick_price = 0
     state.vars.last_50_deltas = []
-    state.vars.last_tick_volume = 0
     state.vars.next_new = 0
     state.vars.last_buy_index = None
     state.vars.last_exit_index = None
@@ -114,9 +112,15 @@ def init(state: StrategyState):
     state.vars.blockbuy = 0
     #models
     state.vars.loaded_models = {}
+
+    #INITIALIZE CBAR INDICATORS - do vlastni funkce
     #state.cbar_indicators['ivwap'] = []
+    state.vars.last_tick_price = 0
+    state.vars.last_tick_volume = 0
+    state.vars.last_tick_trades = 0
     state.cbar_indicators['tick_price'] = []
     state.cbar_indicators['tick_volume'] = []
+    state.cbar_indicators['tick_trades'] = []
     state.cbar_indicators['CRSI'] = []
 
     initialize_dynamic_indicators(state)

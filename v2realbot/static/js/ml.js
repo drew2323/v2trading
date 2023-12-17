@@ -106,16 +106,17 @@ $(document).ready(function() {
                 xhr.setRequestHeader('X-API-Key', API_KEY);
             },
             success: function(response) {
+                $('#metadata-container-info').html("");
                 show_metadata(response, modelName)
             },
             error: function(xhr, status, error) {
-                $('#metadata-container').html('Error fetching metadata: ' + error + xhr.responseText + status);
-                show_metadata(xhr)
+                $('#metadata-container-info').html('Error fetching metadata: ' + error + xhr.responseText + status);
+                show_metadata(xhr, modelName, true)
             }
         });
     }
 
-    function show_metadata(response, name) {
+    function show_metadata(response, name, error = false) {
         // var formattedMetadata = '<pre>cfg:' + JSON.stringify(response.cfg, null, 4) + '</pre>';
         // formattedMetadata += '<pre>arch_function:' + response.arch_function + '</pre>';
         // $('#metadata-container').html(formattedMetadata);
@@ -123,22 +124,25 @@ $(document).ready(function() {
         console.log(JSON.stringify(response,null,4))
         $('#metadata_label').html(name);
 
-        require(["vs/editor/editor.main"], () => {
-            model_editor_json = monaco.editor.create(document.getElementById('toml-editor-container'), {
-                value: response.cfg_toml ? response.cfg_toml +  ((response.history) ? "\nHISTORY:\n" + JSON.stringify(response.history,null,4) : "") : JSON.stringify(response,null,4),
-                language: 'toml',
-                theme: 'tomlTheme-dark',
-                automaticLayout: true,
-                readOnly: true
-            });
-            model_editor_python = monaco.editor.create(document.getElementById('python-editor-container'), {
-                value: response.arch_function ? response.arch_function : '',
-                language: 'python',
-                theme: 'tomlTheme-dark',
-                automaticLayout: true,
-                readOnly: true
-            });
-            });
+        if (!error) {
+            console.log("init editoru", error)
+            require(["vs/editor/editor.main"], () => {
+                model_editor_json = monaco.editor.create(document.getElementById('toml-editor-container'), {
+                    value: response.cfg_toml ? response.cfg_toml +  ((response.history) ? "\nHISTORY:\n" + JSON.stringify(response.history,null,4) : "") : JSON.stringify(response,null,4),
+                    language: 'toml',
+                    theme: 'tomlTheme-dark',
+                    automaticLayout: true,
+                    readOnly: true
+                });
+                model_editor_python = monaco.editor.create(document.getElementById('python-editor-container'), {
+                    value: response.arch_function ? response.arch_function : '',
+                    language: 'python',
+                    theme: 'tomlTheme-dark',
+                    automaticLayout: true,
+                    readOnly: true
+                });
+                });
+        }
     }
 
     // Fetch models on page load

@@ -17,7 +17,7 @@ TEST_SERVER_HOSTNAMES = ['tradingtest']
 
 #TODO vybrane dat do config db a managovat pres GUI
 
-#AGGREGATOR filter trades
+#DEFAULT AGGREGATOR filter trades
 #NOTE pridana F - Inter Market Sweep Order - obcas vytvarela spajky
 AGG_EXCLUDED_TRADES = ['C','O','4','B','7','V','P','W','U','Z','F']
 

@@ -791,7 +791,7 @@ def delete_item(item_id: int) -> dict:
 #model section
 #UPLOAD MODEL
 @app.post("/model/upload_model", dependencies=[Depends(api_key_auth)])
-async def upload_model(file: UploadFile = File(...)):
+async def _upload_model(file: UploadFile = File(...)):
     # Specify the directory to save the file
     #save_directory = DATA_DIR+'/models/'
     save_directory = MODEL_DIR
@@ -857,7 +857,8 @@ def download_model(model_name: str):
 @app.get("/model/metadata/{model_name}", dependencies=[Depends(api_key_auth)])
 def get_metadata(model_name: str):
     try:
-        model_instance = ml.load_model(file=model_name, directory=MODEL_DIR)
+        #loadujeme pouze v modu cfg only
+        model_instance = ml.load_model(file=model_name, directory=MODEL_DIR, cfg_only = True)
         try:
             metadata = model_instance.metadata
         except AttributeError:

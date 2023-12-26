@@ -1,3 +1,5 @@
+import os
+os.environ["KERAS_BACKEND"] = "jax"
 from v2realbot.strategy.base import StrategyState
 from v2realbot.strategy.StrategyOrderLimitVykladaciNormalizedMYSELL import StrategyOrderLimitVykladaciNormalizedMYSELL
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, Followup
@@ -15,7 +17,6 @@ import numpy as np
 #from icecream import install, ic
 from rich import print as printanyway
 from threading import Event
-import os
 from traceback import format_exc
 
 def initialize_dynamic_indicators(state):

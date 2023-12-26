@@ -71,29 +71,66 @@ $(document).ready(function() {
         });
     }
 
+    // function downloadModel(modelName) {
+    //     $.ajax({
+    //         url: '/model/download-model/' + modelName,
+    //         type: 'GET',
+    //         processData: false,
+    //         contentType: false,
+    //         responseType: 'blob', // This is important
+    //         beforeSend: function (xhr) {
+    //             xhr.setRequestHeader('X-API-Key', API_KEY);
+    //         },
+    //         success: function(data, status, xhr) {
+    //             // Get a URL for the blob to download
+    //             var blob = new Blob([data], { type: 'application/octet-stream' });
+    //             //var blob = new Blob([data], { type: xhr.getResponseHeader('Content-Type') });
+    //             var downloadUrl = URL.createObjectURL(blob);
+    //             var a = document.createElement('a');
+    //             a.href = downloadUrl;
+    //             a.download = modelName;
+    //             document.body.appendChild(a);
+    //             a.click();
+    //             // Clean up
+    //             window.URL.revokeObjectURL(downloadUrl);
+    //             a.remove();
+    //         },
+    //         error: function(xhr, status, error) {
+    //             alert('Error downloading model: ' + error + xhr.responseText + status);
+    //         }
+    //     });
+    // }
+
     function downloadModel(modelName) {
-        $.ajax({
-            url: '/model/download-model/' + modelName,
-            type: 'GET',
-            beforeSend: function (xhr) {
-                xhr.setRequestHeader('X-API-Key', API_KEY);
-            },
-            success: function(data, status, xhr) {
-                // Get a URL for the blob to download
-                var blob = new Blob([data], { type: xhr.getResponseHeader('Content-Type') });
-                var downloadUrl = URL.createObjectURL(blob);
-                var a = document.createElement('a');
-                a.href = downloadUrl;
-                a.download = modelName;
-                document.body.appendChild(a);
-                a.click();
-                // Clean up
-                window.URL.revokeObjectURL(downloadUrl);
-                a.remove();
-            },
-            error: function(xhr, status, error) {
-                alert('Error downloading model: ' + error + xhr.responseText + status);
+        fetch('/model/download-model/' + modelName, {
+            method: 'GET', // GET is the default method, but it's good to be explicit
+            headers: {
+                'X-API-Key': API_KEY
             }
+        })
+        .then(response => {
+            if (response.ok) return response.blob();
+            throw new Error('Network response was not ok.');
+        })
+        .then(blob => {
+            // Check the size of the blob here; it should match the Content-Length from the server
+            console.log('Size of downloaded blob:', blob.size);
+    
+            // Create a link element, use it for download, and remove it
+            let url = window.URL.createObjectURL(blob);
+            let a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = modelName;
+            document.body.appendChild(a);
+            a.click();
+            window.setTimeout(() => {
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }, 100); // Cleanup after a small delay
+        })
+        .catch(error => {
+            console.error('Download error:', error);
         });
     }
 

@@ -8,7 +8,7 @@ import numpy as np
 from collections import defaultdict
 
 """
-Předpokladm, že buď používáme 1) bar+standard indikator 2) cbars indicators - zatim nepodporovano spolecne (jine time rozliseni)
+
 """
 def model(state, params, ind_name):
     funcName = "model"
@@ -32,25 +32,28 @@ def model(state, params, ind_name):
     try:
         mdl = state.vars.loaded_models[name]
 
-        #Optimalizovano, aby se v kazde iteraci nemusel volat len
-        if state.cache.get(name, {}).get("skip_init", False) is False:
-            if mdl.use_cbars is False:
-                if len(state.bars["close"]) < mdl.input_sequences:
-                    return 0, 0
-                else:
-                    state.cache[name]["skip_init"] = True
-                    state.cache[name]["indicators"] = state.indicators
-                    state.cache[name]["bars"] = state.bars if mdl.use_bars else {}
-                    #return -2, f"too soon - not enough data for seq {seq=}"
-            else:
-                if len(state.cbar_indicators["time"]) < mdl.input_sequences:
-                    return 0, 0
-                else:
-                    state.cache[name]["skip_init"] = True
-                    state.cache[name]["indicators"] = state.cbar_indicators   
-                    state.cache[name]["bars"] = state.bars if mdl.use_bars else {}  
+        # #Optimalizovano, aby se v kazde iteraci nemusel volat len
+        # if state.cache.get(name, {}).get("skip_init", False) is False:
+        #     if mdl.use_cbars is False:
+        #         if len(state.bars["close"]) < mdl.input_sequences:
+        #             return 0, 0
+        #         else:
+        #             state.cache[name]["skip_init"] = True
+        #             state.cache[name]["indicators"] = state.indicators
+        #             state.cache[name]["bars"] = state.bars if mdl.use_bars else {}
+        #             #return -2, f"too soon - not enough data for seq {seq=}"
+        #     else:
+        #         if len(state.cbar_indicators["time"]) < mdl.input_sequences:
+        #             return 0, 0
+        #         else:
+        #             state.cache[name]["skip_init"] = True
+        #             state.cache[name]["indicators"] = state.cbar_indicators   
+        #             state.cache[name]["bars"] = state.bars if mdl.use_bars else {}  
         
-        value = mdl.predict(state.cache[name]["bars"], state.cache[name]["indicators"])
+        # value = mdl.predict(state.cache[name]["bars"], state.cache[name]["indicators"])
+
+        value = mdl.predict(state)
+
         return 0, value
     except Exception as e:
         printanyway(str(e)+format_exc())

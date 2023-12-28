@@ -20,6 +20,9 @@ from alpaca.trading.requests import GetCalendarRequest
 from alpaca.trading.client import TradingClient
 from v2realbot.config import ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, DATA_DIR, OFFLINE_MODE
 from alpaca.trading.models import Calendar
+from v2realbot.indicators.oscillators import rsi
+from v2realbot.indicators.moving_averages import sma
+import numpy as np
 
 print(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 """"
@@ -161,7 +164,7 @@ def init(state: StrategyState):
     #time_to = time_to.date()
 
     today = time_to.date()
-    several_days_ago = today - timedelta(days=40)
+    several_days_ago = today - timedelta(days=60)
     #printanyway(f"{today=}",f"{several_days_ago=}")
     clientTrading = TradingClient(ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, raw_data=False)
     #get all market days from here to 40days ago
@@ -190,6 +193,30 @@ def init(state: StrategyState):
     #printanyway(history_datetime_from, history_datetime_to)
     #az do predchziho market dne dne
     state.dailyBars = get_historical_bars(state.symbol, history_datetime_from, history_datetime_to, TimeFrame.Day)
+
+    #NOTE zatim pridano takto do baru dalsi indikatory
+    #BUDE PREDELANO - v rámci custom rozliseni a static indikátoru
+
+    #RSI vraci pouze pro vsechny + prepend with zeros nepocita prvnich N (dle rsi length)
+    rsi_calculated = rsi(state.dailyBars["vwap"], 14).tolist()
+    num_zeros_to_prepend = len(state.dailyBars["vwap"]) - len(rsi_calculated)
+    state.dailyBars["rsi"] = [0]*num_zeros_to_prepend + rsi_calculated
+    
+    #VOLUME
+    volume_sma = sma(state.dailyBars["volume"], 10) #vraci celkovy pocet - 10
+    items_to_prepend = len(state.dailyBars["volume"]) - len(volume_sma)
+
+    volume_sma = np.hstack((np.full(items_to_prepend, np.nan), volume_sma))
+
+    #normalized divergence currvol-smavolume/currvol+smavolume
+    volume_data = np.array(state.dailyBars["volume"])
+    normalized_divergence = (volume_data - volume_sma) / (volume_data + volume_sma)
+    # Replace NaN values with 0 or some other placeholder if needed
+    normalized_divergence = np.nan_to_num(normalized_divergence)
+    volume_sma = np.nan_to_num(volume_sma)
+    state.dailyBars["volume_sma_divergence"] = normalized_divergence.tolist()
+    state.dailyBars["volume_sma"] = volume_sma.tolist()
+
     #printanyway("daily bars FILLED", state.dailyBars)
     #zatim ukladame do extData - pro instant indicatory a gui
     state.extData["dailyBars"] = state.dailyBars

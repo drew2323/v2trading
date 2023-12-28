@@ -1551,7 +1551,7 @@ def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator, save: bool =
         local_dict_inds = {key: state.indicators[key] for key in state.indicators.keys() if key != "time"}
         local_dict_bars = {key: state.bars[key] for key in state.bars.keys() if key != "time"}
         state.ind_mapping = {**local_dict_inds, **local_dict_bars, **local_dict_cbar_inds}
-        print("IND MAPPING DONE:", state.ind_mapping)
+        #print("IND MAPPING DONE:", state.ind_mapping)
 
         ##intialize dynamic indicators
         initialize_dynamic_indicators(state)

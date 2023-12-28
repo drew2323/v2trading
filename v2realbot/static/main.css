@@ -194,15 +194,16 @@ strong {
 [data-bs-theme=dark] {
   --bs-font-sans-serif: Söhne, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --bs-body-line-height: 1.3;
-  --bs-body-font-size: 1.0rem;
+  --bs-body-font-size: 1.125rem;
   --bs-body-font-weight: 300;
   color-scheme: dark;
-  --bs-body-color: #787b86;
+  --bs-body-color: #a1a1a1;
+  /* --bs-body-color: #787b86; */
   --bs-body-color-rgb: 173,181,189;
   /* --bs-body-bg: #2a2e39; */
   --bs-body-bg: #121722;
   --bs-body-bg-rgb: 33,37,41;
-  --bs-emphasis-color: #adb5bd;
+  --bs-emphasis-color: #c8c8c8;
   --bs-emphasis-color-rgb: 255,255,255;
   --bs-secondary-color: rgba(173, 181, 189, 0.75);
   --bs-secondary-color-rgb: 173,181,189;
@@ -337,7 +338,7 @@ table.dataTable thead>tr>th.sorting_asc:before, table.dataTable thead>tr>th.sort
 /* #128faf; */
 
 .btn-outline-success {
-  --bs-btn-color: #75a9ac;
+  --bs-btn-color: #94b1b3;
   --bs-btn-border-color: #8b8b8b;
   --bs-btn-hover-color: #fff;
   --bs-btn-hover-bg: #3996a4;

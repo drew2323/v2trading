@@ -636,7 +636,7 @@ $(document).ready(function () {
         $('#bt_to').val(localStorage.getItem("bt_to"));
         //console.log(localStorage.getItem("bt_to"))
         $('#test_batch_id').val(localStorage.getItem("test_batch_id"));
-        $('#mode').val(localStorage.getItem("mode"));
+        $('#runmode').val(localStorage.getItem("runmode"));
         $('#account').val(localStorage.getItem("account"));
         $('#debug').val(localStorage.getItem("debug"));
         $('#ilog_save').val(localStorage.getItem("ilog_save"));
@@ -965,7 +965,9 @@ $("#runModal").on('submit','#runForm', function(event){
     localStorage.setItem("bt_from", $('#bt_from').val());
     localStorage.setItem("bt_to", $('#bt_to').val());
     localStorage.setItem("test_batch_id", $('#test_batch_id').val());
-    localStorage.setItem("mode", $('#mode').val());
+    localStorage.setItem("runmode", $('#runmode').val());
+    console.log("mode set to", $('#runmode').val())
+    console.log("mode loaded value", localStorage.getItem("runmode"))
     localStorage.setItem("account", $('#account').val());
     localStorage.setItem("debug", $('#debug').val());
     localStorage.setItem("ilog_save", $('#ilog_save').val());

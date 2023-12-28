@@ -61,7 +61,11 @@ def target(state, params, name):
             if split_index == -1:
                 return -2, "for second based window length, source is required in format bars|close"
             dict_name = source[:split_index]
-            time_series = getattr(state, dict_name)["time"]
+            if dict_name == "bars":
+                #u baru je time v datetime, proto bereme udpated
+                time_series = getattr(state, dict_name)["updated"]
+            else:
+                time_series = getattr(state, dict_name)["time"]
             state.cache[name]["time_series"] = time_series
         else:
             time_series = state.cache[name]["time_series"]

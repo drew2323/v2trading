@@ -159,7 +159,8 @@ def pct_delta(base, second_number):
 def add_pct(pct, value):
     """
     Add a percentage to a value. If pct is negative it is subtracted.
-
+    print(add_pct(1,100))
+    
     Parameters:
     pct (float): The percentage to add (e.g., 10 for 10%).
     value (float): The original value.

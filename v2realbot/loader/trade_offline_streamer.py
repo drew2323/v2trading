@@ -169,7 +169,7 @@ class Trade_Offline_Streamer(Thread):
 
             #cache resime jen kdyz backtestujeme cely den
             #pokud ne tak ani necteme, ani nezapisujeme do cache
-            if self.time_to >= day.close:
+            if self.time_to >= day.close and self.time_from <= day.open:
                 #tento odstavec obchazime pokud je nastaveno "dont_use_cache"
                 stream_btdata = self.to_run[symbpole[0]][0]
                 cache_btdata, file_btdata = stream_btdata.get_cache(day.open, day.close)

@@ -1,7 +1,7 @@
 from v2realbot.utils.utils import isrising, isfalling,isfallingc, isrisingc, zoneNY, price2dec, print, safe_get, is_still, is_window_open, eval_cond_dict, crossed_down, crossed_up, crossed, is_pivot, json_serial, pct_diff, create_new_bars, slice_dict_lists
 #from v2realbot.strategy.base import StrategyState
 from traceback import format_exc
-
+import numpy as np
 
 """
 TODO pripadne dat do 
@@ -98,28 +98,33 @@ def get_source_or_MA(state, indicator):
             except KeyError:
                 return state.cbar_indicators[indicator]
 
-def get_source_series(state, source: str):
+def get_source_series(state, source: str, numpy: bool = False):
     """
     Podporujeme krome klice v bar a indikatoru a dalsi doplnujici, oddelene _ napr. dailyBars_close
     vezme serii static.dailyBars[close]
     """
-
+    ret_list = None
     split_index = source.find("|")
     if split_index == -1:
         try:
-            return state.bars[source]
+            ret_list = state.bars[source]
         except KeyError:
             try:
-                return state.indicators[source]
+                ret_list = state.indicators[source]
             except KeyError:
                 try:
-                    return state.cbar_indicators[source]
+                    ret_list = state.cbar_indicators[source]
                 except KeyError:
-                    return None
+                    pass
     else:
         dict_name = source[:split_index]
         key = source[split_index + 1:]
-        return getattr(state, dict_name)[key]
+        ret_list = getattr(state, dict_name)[key]
+    
+    if ret_list is not None and numpy:
+        ret_list = np.array(ret_list)
+    
+    return ret_list
 
 #TYTO NEJSPIS DAT do util
 #vrati true pokud dany indikator prekrocil threshold dolu

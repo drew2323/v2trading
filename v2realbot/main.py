@@ -1,9 +1,9 @@
 import os,sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+os.environ["KERAS_BACKEND"] = "jax"
 from v2realbot.config import WEB_API_KEY, DATA_DIR, MEDIA_DIRECTORY, LOG_FILE, MODEL_DIR
 from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from datetime import datetime
-import os
 from rich import print
 from fastapi import FastAPI, Depends, HTTPException, status, File, UploadFile, Response
 from fastapi.security import APIKeyHeader

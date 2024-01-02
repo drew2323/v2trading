@@ -22,6 +22,7 @@ def targetema(state, params, name):
     window_length_value = safe_get(params, "window_length_value", None)
     window_length_unit= safe_get(params, "window_length_unit", "position")
 
+    downtrend, notrend, uptrend = safe_get(params, "output_vals", [-1,0,1])
     source = safe_get(params, "source", None)
     source_series = get_source_series(state, source, True)
     ema_slow = safe_get(params, "ema_slow", None)
@@ -33,7 +34,8 @@ def targetema(state, params, name):
     #mezi start a end price musi byt tento threshold
     req_min_pct_chng = float(safe_get(params, "req_min_pct_chng", 0.04))   #required PCT chng
 
-    if div_pos_threshold is not None and ema_div_series[-1] > div_pos_threshold:
+    #kvalifikuji divergence s cenou jen vyssi nez posledni (pozor pri reverse trendu musime resetovat)
+    if div_pos_threshold is not None and ema_div_series[-1] > div_pos_threshold and float(source_series[-1])>params.get("last_pos",0): 
 
         # Finding first index where vwap is smaller than ema_slow (last cross)
         idx = np.where(source_series < ema_slow_series)[0]
@@ -45,9 +47,10 @@ def targetema(state, params, name):
                 first_idx = -len(source_series) + idx[-1]
                 #fill target list with 1 from crossed point until last
                 target_list = get_source_series(state, name)
-                target_list[first_idx:] = [1] * abs(first_idx)
-            return 0, 0
-    elif div_neg_threshold is not None and ema_div_series[-1] < div_neg_threshold:
+                target_list[first_idx:] = [uptrend] * abs(first_idx)
+                params["last_pos"] = float(source_series[-1])
+            return 0, notrend
+    elif div_neg_threshold is not None and ema_div_series[-1] < div_neg_threshold and float(source_series[-1])<params.get("last_neg",99999999): 
 
         # Finding first index where vwap is smaller than ema_slow (last cross) and price at cross must respect min PCT threshold
         idx = np.where(source_series > ema_slow_series)[0]
@@ -59,10 +62,21 @@ def targetema(state, params, name):
                 first_idx = -len(source_series) + idx[-1]
                 #fill target list with 1 from crossed point until last
                 target_list = get_source_series(state, name)
-                target_list[first_idx:] = [-1] * abs(first_idx)
-            return 0, 0
+                target_list[first_idx:] = [downtrend] * abs(first_idx)
+                params["last_neg"] = float(source_series[-1])
+            return 0, notrend
+        
+    #test resetujeme nejvyssi body po uplynuti 20 pozic od trendu (tim konci ochranne okno)
+    # Finding the first 1 from backwards and its position
+    target_numpy = get_source_series(state, name, True)
+    position = np.where(target_numpy[::-1] == uptrend)[0][0] + 1
+    if position % 20 == 0:
+        params["last_pos"] = 0
+    position = np.where(target_numpy[::-1] == downtrend)[0][0] + 1
+    if position % 20 == 0:
+        params["last_neg"] = 99999999
 
-    return 0, 0
+    return 0, notrend
 
 def add_pct(pct, value):
     """

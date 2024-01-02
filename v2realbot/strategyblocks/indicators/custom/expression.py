@@ -1,5 +1,6 @@
 from v2realbot.strategy.base import StrategyState
 import numpy as np
+import math
 from rich import print as printanyway
 from traceback import format_exc
 import v2realbot.utils.utils as utls
@@ -52,7 +53,7 @@ def expression(state: StrategyState, params, name):
         #     temp_ind_mapping = state.ind_mapping
 
         #pro zacatek eval
-        val = eval(operation, {'state': state, 'np': np, 'utls': utls}, temp_ind_mapping)
+        val = eval(operation, {'state': state, 'np': np, 'utls': utls, 'math' : math}, temp_ind_mapping)
 
         #printanyway(val)
         val = 0 if not np.isfinite(val) else val

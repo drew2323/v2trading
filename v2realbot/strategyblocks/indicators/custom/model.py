@@ -16,6 +16,7 @@ def model(state, params, ind_name):
         return -2, "params required"
     name = safe_get(params, "name", None)
     version = safe_get(params, "version", None)
+    output = safe_get(params, "output", "single")
 
     #TBD co s temito, kdyz se budou brat z uloženého modelu?
     #mozna jen na TRAIN?
@@ -53,6 +54,13 @@ def model(state, params, ind_name):
         # value = mdl.predict(state.cache[name]["bars"], state.cache[name]["indicators"])
 
         value = mdl.predict(state)
+
+        #zatim podpora podle shapu (tzn. single value a categorical) - v budoucna pracovat s parametrem output
+        if value.shape == (1,1):
+            value = float(value)
+        else:
+            #printanyway(value)
+            value = int(np.argmax(value, axis=1))
 
         return 0, value
     except Exception as e:

@@ -824,7 +824,7 @@ def list_models():
         return {"error": "Models directory does not exist."}
 
     # List all files in the directory
-    model_files = os.listdir(models_directory)
+    model_files = sorted(os.listdir(models_directory))
     return {"models": model_files}
 
 @app.post("/model/upload-model", dependencies=[Depends(api_key_auth)])

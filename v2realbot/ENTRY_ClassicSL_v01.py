@@ -152,7 +152,8 @@ def init(state: StrategyState):
         time_to = state.bt.bp_from
 
 
-    #TBD pridat i hour data - pro pocitani RSI na hodine
+    #TBD NASLEDUJICI SEKCE BUDE PREDELANA, ABY UMOZNOVALA LIBOVOLNE ROZLISENI
+    #INDIKATORY SE BUDOU TAKE BRAT Z KONFIGURACE
     #get 30 days (history_datetime_from musí být alespoň -2 aby to bralo i vcerejsek)
     #history_datetime_from = time_to - timedelta(days=40)
     #get previous market day
@@ -216,6 +217,24 @@ def init(state: StrategyState):
     volume_sma = np.nan_to_num(volume_sma)
     state.dailyBars["volume_sma_divergence"] = normalized_divergence.tolist()
     state.dailyBars["volume_sma"] = volume_sma.tolist()
+
+    #vwap_cum and divergence
+    volume_np = np.array(state.dailyBars["volume"])
+    close_np = np.array(state.dailyBars["close"])
+    high_np = np.array(state.dailyBars["high"])
+    low_np = np.array(state.dailyBars["low"])
+    vwap_cum_np = np.cumsum(((high_np + low_np + close_np) / 3) * volume_np) / np.cumsum(volume_np)
+    state.dailyBars["vwap_cum"] = vwap_cum_np.tolist()
+    normalized_divergence = (close_np - vwap_cum_np) / (close_np + vwap_cum_np)
+    #divergence close ceny a cumulativniho vwapu
+    state.dailyBars["div_vwap_cum"] = normalized_divergence.tolist()
+
+    #creates log returns for open, close, high and lows
+    open_np = np.array(state.dailyBars["open"])
+    state.dailyBars["open_log_return"] = np.log(open_np[1:] / open_np[:-1]).tolist()
+    state.dailyBars["close_log_return"] = np.log(close_np[1:] / close_np[:-1]).tolist()
+    state.dailyBars["high_log_return"] = np.log(high_np[1:] / high_np[:-1]).tolist()
+    state.dailyBars["low_log_return"] = np.log(low_np[1:] / low_np[:-1]).tolist()
 
     #printanyway("daily bars FILLED", state.dailyBars)
     #zatim ukladame do extData - pro instant indicatory a gui

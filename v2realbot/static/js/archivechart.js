@@ -443,7 +443,7 @@ function chart_indicators(data, visible, offset) {
                             //start
                             //console.log(key)
                             //get configuation of indicator to display
-                            conf = get_ind_config(key)
+                            conf = get_ind_config(key, index)
 
                             //pokud neni v configuraci - zobrazujeme defaultne
 

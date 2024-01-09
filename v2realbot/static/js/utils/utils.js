@@ -206,10 +206,24 @@ function initialize_statusheader() {
 
 }
 
-//pokud neni v configuraci vracime default
-function get_ind_config(indName) {
+//pokud neni v configuraci vracime default, pro tickbased (1) vracime embed false pokud je globalni ()
+function get_ind_config(indName, tick_based = 0) {
 
+    //def settings
     def = {name: "ema", titlevisible: false, embed: true, display: true, priceScaleId: "middle", lastValueVisible: false}
+
+
+    //WORKAROUND to DISABLE TICK INDS - skip config
+    var hideTickIndicators = localStorage.getItem('hideTickIndicators');
+    console.log("jsme v IND CONFIG. hodnota hideTickIndicators =",hideTickIndicators)
+    //pokud jde tick_based a mam v local storage nastaveno hideTickInds pak nastavuju embed na false - coz nezobrazi tickindikatory
+   
+    if ((tick_based == 1) && hideTickIndicators && hideTickIndicators == "true") {
+      def.embed = false
+      console.log("pro",indName,"vracime embed false")
+      return def
+    }
+    //END WORKAROUND    
 
     if (indConfig == null) {
       indConfig = get_from_config("indConfig", indConfig_default)
@@ -600,6 +614,27 @@ function toggleVolume() {
 }
 
 //togle profit line
+function toggleTick() {
+  const elem = document.getElementById("tickToggle");
+  if (elem.classList.contains("switcher-active-item")) {
+    localStorage.setItem('hideTickIndicators', 'false');
+  }
+  else {
+    localStorage.setItem('hideTickIndicators', 'true');
+  }     
+  elem.classList.toggle("switcher-active-item");
+
+  //toggle repaint - click on change resolution
+  var activeButton = document.querySelector('#changeResolution .switcher-active-item');
+
+  // Click the button programmatically
+  if (activeButton) {
+      activeButton.click();
+  }
+
+}
+
+//togle profit line
 function mrkLineToggle() {
   vis = true;
   const elem = document.getElementById("mrkLine");
@@ -744,6 +779,22 @@ function populate_indicator_buttons(def) {
     });
     funcButtonElement.appendChild(itemEl);
 
+    //button pro disable tickIndicatoru
+    var itemEl = document.createElement('button');
+    itemEl.innerText = "ticks off"
+    itemEl.classList.add('switcher-item');
+    var hideTickIndicators = localStorage.getItem('hideTickIndicators');
+    console.log("init button, hodnota hideTickIndicators", hideTickIndicators)
+    if (hideTickIndicators && hideTickIndicators == "true") {
+      itemEl.classList.add('switcher-active-item');
+    }
+    itemEl.style.color = "#99912b"
+    itemEl.id = "tickToggle"
+    itemEl.addEventListener('click', function(e) {
+      toggleTick();
+    });
+    funcButtonElement.appendChild(itemEl);
+
   // //button pro toggle markeru nakupu/prodeju
   var itemEl = document.createElement('button');
   itemEl.innerText = "mrk"
@@ -807,7 +858,7 @@ function populate_indicator_buttons(def) {
 function createSimpleSwitcher(items, activeItem, activeItemChangedCallback, data) {
 	var switcherElement = document.createElement('div');
 	switcherElement.classList.add('switcher');
-
+  switcherElement.id = "changeResolution"
 	var intervalElements = items.map(function(item) {
 		var itemEl = document.createElement('button');
 		itemEl.innerText = item;
@@ -821,9 +872,9 @@ function createSimpleSwitcher(items, activeItem, activeItemChangedCallback, data
 	});
 
 	function onItemClicked(item) {
-		if (item === activeItem) {
-			return;
-		}
+		// if (item === activeItem) {
+		// 	return;
+		// }
 
 		intervalElements.forEach(function(element, index) {
 			element.classList.toggle('switcher-active-item', items[index] === item);

@@ -236,6 +236,27 @@ def init(state: StrategyState):
     state.dailyBars["high_log_return"] = np.log(high_np[1:] / high_np[:-1]).tolist()
     state.dailyBars["low_log_return"] = np.log(low_np[1:] / low_np[:-1]).tolist()
 
+
+    #Features to emphasize the shape characteristics of each candlestick. For use in ML https://chat.openai.com/c/c1a22550-643b-4037-bace-3e810dbce087
+    # Calculate the ratios of 
+    total_range = high_np - low_np
+    upper_shadow = (high_np - np.maximum(open_np, close_np)) / total_range
+    lower_shadow = (np.minimum(open_np, close_np) - low_np) / total_range
+    body_size = np.abs(close_np - open_np) / total_range
+    body_position = np.where(close_np >= open_np,
+                            (close_np - low_np) / total_range,
+                            (open_np - low_np) / total_range)
+
+    #other possibilities
+    # Open to Close Change: (close[-1] - open[-1]) / open[-1]
+    # High to Low Range: (high[-1] - low[-1]) / low[-1]
+
+    # Store the ratios in the bars dictionary
+    state.dailyBars['upper_shadow_ratio'] = upper_shadow
+    state.dailyBars['lower_shadow_ratio'] = lower_shadow
+    state.dailyBars['body_size_ratio'] = body_size
+    state.dailyBars['body_position_ratio'] = body_position    
+
     #printanyway("daily bars FILLED", state.dailyBars)
     #zatim ukladame do extData - pro instant indicatory a gui
     state.extData["dailyBars"] = state.dailyBars

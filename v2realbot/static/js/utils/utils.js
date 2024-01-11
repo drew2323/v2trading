@@ -788,7 +788,7 @@ function populate_indicator_buttons(def) {
     if (hideTickIndicators && hideTickIndicators == "true") {
       itemEl.classList.add('switcher-active-item');
     }
-    itemEl.style.color = "#99912b"
+    itemEl.style.color = "#e0676e"
     itemEl.id = "tickToggle"
     itemEl.addEventListener('click', function(e) {
       toggleTick();

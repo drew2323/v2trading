@@ -15,7 +15,7 @@ from copy import deepcopy
 #eval nyni umi i user-defined function, string operation and control statements
 
 #teroeticky se dá pouzit i SYMPY - kde se daji vytvorit jednotlive symboly s urcitou funkcni
-def expression(state: StrategyState, params, name):
+def expression(state: StrategyState, params, name, returns):
     try:
         funcName = "expression"
         #indicator name
@@ -56,7 +56,17 @@ def expression(state: StrategyState, params, name):
         val = eval(operation, {'state': state, 'np': np, 'utls': utls, 'math' : math}, temp_ind_mapping)
 
         #printanyway(val)
-        val = 0 if not np.isfinite(val) else val
+
+        #toto dát nejspíš do custom_hubu asi te automaticky aplikovalo na vše
+        if isinstance(val, list):
+            for index, value in enumerate(val):
+                val[index] = 0 if not np.isfinite(value) else value
+        elif isinstance(val, dict):
+            for key, value in val.items():
+                val[key] = 0 if not np.isfinite(value) else value
+        else:
+            val = 0 if not np.isfinite(val) else val
+
         #val = ne.evaluate(operation, state.ind_mapping)
 
         state.ilog(lvl=1,e=f"IND {name}:{funcName} {operation=} res:{val}", **params)

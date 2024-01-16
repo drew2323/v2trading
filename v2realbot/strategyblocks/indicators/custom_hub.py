@@ -46,6 +46,8 @@ def populate_dynamic_custom_indicator(data, state: StrategyState, name):
     save_to_past = int(safe_get(options, "save_to_past", 0))
     save_to_past_unit = safe_get(options, "save_to_past_unit", "position")
 
+    #pokud neni multioutput, davame vystup do stejnojmenne serie
+    returns = safe_get(options, 'returns', [name])
 
     def is_time_to_run():
         # on_confirmed_only = true (def. False)
@@ -139,15 +141,17 @@ def populate_dynamic_custom_indicator(data, state: StrategyState, name):
         state.vars.indicators[name]["last_run_index"] = data["index"]
 
 
-        #pomocna funkce
-        def save_to_past_func(indicators_dict,name,save_to_past_unit, steps, new_val):
+        #pomocna funkce (returns je pole toho , co indikator vraci a ret_val je dictionary, kde key je item z pole a val hodnota)
+        def save_to_past_func(indicators_dict,name,save_to_past_unit, steps, ret_val):
             if save_to_past_unit == "position":
-                indicators_dict[name][-1-steps]=new_val
+                for ind_name, ind_value in ret_val.items():
+                    indicators_dict[ind_name][-1-steps]=ind_value
             #time
             else:
                 ##find index X seconds ago
                 lookback_idx = find_index_optimized(time_list=indicators_dict["time"], seconds=steps)
-                indicators_dict[name][lookback_idx]=new_val  
+                for ind_name, ind_value in ret_val.items():
+                    indicators_dict[ind_name][lookback_idx]=ind_value  
 
         # - volame custom funkci pro ziskani hodnoty indikatoru
         #        - tu ulozime jako novou hodnotu indikatoru a prepocteme MAcka pokud je pozadovane
@@ -157,40 +161,61 @@ def populate_dynamic_custom_indicator(data, state: StrategyState, name):
     
             subtype = "ci."+subtype+"."+subtype
             custom_function = eval(subtype)
-            res_code, new_val = custom_function(state, custom_params, name)
+            res_code, ret_val = custom_function(state, custom_params, name, returns)
             if res_code == 0:
-                save_to_past_func(indicators_dict,name,save_to_past_unit, save_to_past, new_val)
-                state.ilog(lvl=1,e=f"IND {name} {subtype} VAL FROM FUNCTION: {new_val}", lastruntime=state.vars.indicators[name]["last_run_time"], lastrunindex=state.vars.indicators[name]["last_run_index"], save_to_past=save_to_past)
-                #prepocitame MA if required
-                if MA_length is not None:
-                    src = indicators_dict[name][-MA_length:]
-                    MA_res = ema(src, MA_length)
-                    MA_value = round(MA_res[-1],7)
+                #ret_val byl puvodne jedna hodnota
+                #nyni podporujeme multi output ve format dict(indName:value, indName2:value2...)
+               
+                #podporujeme vystup (list, dict a single value) - vse se transformuje do dict formatu
+                # pri listu zipneme s return) a vytvorime dict (v pripade mismatch sizes se matchnou jen kratsi)
+                if isinstance(ret_val, list):
+                    ret_val = dict(zip(returns, ret_val))
+                #pokud je to neco jineho nez dict (float,int..) jde o puvodni single output udelame z toho dict s hlavnim jmenem as key
+                elif not isinstance(ret_val, dict):
+                    ret_val = {name: ret_val}
+                #v ostatnich pripadech predpokladame jiz dict
                     
-                    save_to_past_func(indicators_dict,name+"MA",save_to_past_unit, save_to_past, MA_value)
-                    state.ilog(lvl=0,e=f"IND {name}MA {subtype} {MA_value}",save_to_past=save_to_past)
+                save_to_past_func(indicators_dict,name,save_to_past_unit, save_to_past, ret_val)
+                state.ilog(lvl=1,e=f"IND {name} {subtype} VAL FROM FUNCTION: {ret_val}", lastruntime=state.vars.indicators[name]["last_run_time"], lastrunindex=state.vars.indicators[name]["last_run_index"], save_to_past=save_to_past)
+                #prepocitame MA if required
+                #pokud je MA nastaveno, tak pocitame MAcka pro vsechny multiouputy, tzn. vytvorime novem multioutput dict (ma_val)
+                if MA_length is not None:
+                    ma_val = {}
+                    for ind_name, ind_val in ret_val.items():
+                        src = indicators_dict[ind_name][-MA_length:]
+                        MA_res = ema(src, MA_length)
+                        MA_value = round(MA_res[-1],7)
+                        ma_val[ind_name+"MA"] = MA_value
+                    
+                    save_to_past_func(indicators_dict,name+"MA",save_to_past_unit, save_to_past, ma_val)
+                    state.ilog(lvl=0,e=f"IND {name}MA {subtype} {ma_val}",save_to_past=save_to_past)
                 
                 return
 
             else:
-                err = f"IND  ERROR {name} {subtype}Funkce {custom_function} vratila {res_code} {new_val}."
+                err = f"IND  ERROR {name} {subtype}Funkce {custom_function} vratila {res_code} {ret_val}."
                 raise Exception(err)
             
         except Exception as e:
-            if len(indicators_dict[name]) >= 2:
-                indicators_dict[name][-1]=indicators_dict[name][-2]
-            if MA_length is not None and len(indicators_dict[name+"MA"])>=2:
-                indicators_dict[name+"MA"][-1]=indicators_dict[name+"MA"][-2]
-            state.ilog(lvl=1,e=f"IND ERROR {name} {subtype} necháváme původní", message=str(e)+format_exc())
+            use_last_values(indicators_dict, name, returns, MA_length)
+            state.ilog(lvl=1,e=f"IND ERROR {name} {subtype} necháváme původní u vsech z returns", returns=str(returns), message=str(e)+format_exc())
     
     else:
-        state.ilog(lvl=0,e=f"IND {name} {subtype} COND NOT READY: {msg}")
-
+        state.ilog(lvl=0,e=f"IND {name} {subtype} COND NOT READY: {msg}", returns=returns)
         #not time to run - copy last value
+        use_last_values(indicators_dict, name, returns, MA_length)
+        state.ilog(lvl=0,e=f"IND {name} {subtype} NOT TIME TO RUN - value(and MA) still original", returns=returns)            
+
+#zde nechavame puvodni (pri multiinputu nastavime predchozi hodnoty u vsech vystupu v defaultnim returns)
+def use_last_values(indicators_dict, name, returns, MA_length):
+    def use_last_values_(indicators_dict, name, MA_length):
         if len(indicators_dict[name]) >= 2:
             indicators_dict[name][-1]=indicators_dict[name][-2]
-
         if MA_length is not None and len(indicators_dict[name+"MA"])>=2:
             indicators_dict[name+"MA"][-1]=indicators_dict[name+"MA"][-2]
-
-        state.ilog(lvl=0,e=f"IND {name} {subtype} NOT TIME TO RUN - value(and MA) still original")            
+    
+    if returns is not None and len(returns)>0:
+        for ind_name in returns:
+            use_last_values_(indicators_dict, ind_name, MA_length)
+    else:
+       use_last_values_(indicators_dict, name, MA_length) 

@@ -20,7 +20,7 @@ pct_change_full_scale = #pct change that is considered 1, used in scaler to dete
 
 TODO musi se signal trochu tahnout az kde se opravdu rozjede, aby si to model spojil
 """""
-def target(state, params, name):
+def target(state, params, name, returns):
     funcName = "target"
     source = safe_get(params, "source", "vwap")
     source_series = get_source_series(state, source)

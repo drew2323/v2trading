@@ -10,7 +10,7 @@ from collections import defaultdict
 from v2realbot.strategyblocks.indicators.helpers import value_or_indicator
 #strength, absolute change of parameter between current value and lookback value (n-past)
 #used for example to measure unusual peaks
-def rsi(state, params, name):
+def rsi(state, params, name, returns):
     req_source = safe_get(params, "source", "vwap")
     rsi_length = safe_get(params, "length",14)
     start = safe_get(params, "start","linear") #linear/sharp

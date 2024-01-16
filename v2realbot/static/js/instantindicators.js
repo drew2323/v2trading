@@ -149,10 +149,27 @@ $(document).ready(function () {
                 //indName = $('#indicatorName').val()
                 //updatneme/vytvorime klic v globalni promennou obsahujici vsechny arch data
                 //TBD nebude fungovat az budu mit vic chartů otevřených - předělat
-                if (data[0].length > 0) {
-                    archData.indicators[0][indName] = data[0]
-                } else if (data[1].length > 0) {
-                    archData.indicators[1][indName] = data[1]
+
+                //v ramci podpory multioutputu je navrat  nazevind:timeserie a to 
+                //pro indicators [0] nebo cbar_indicators [1] list
+                if (Object.keys(data[0]).length > 0) {
+                    for (let key in data[0]) {
+                        if (data[0].hasOwnProperty(key)) {
+                            archData.indicators[0][key] = data[0][key]
+                            console.log("barind updatovan " + key)
+                            //console.log(data[0][key]);
+                        }
+                    }
+                    //archData.indicators[0][indName] = data[0]
+                } else if (Object.keys(data[1]).length > 0) {
+                    for (let key in data[1]) {
+                        if (data[1].hasOwnProperty(key)) {
+                            archData.indicators[1][key] = data[1][key]
+                            console.log("cbarind updatovan " + key)
+                            //console.log(data[1][key]);
+                        }
+                    }
+                    //archData.indicators[1][indName] = data[1]
                 }
                 else {
                     alert("neco spatne s response ", data)

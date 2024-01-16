@@ -23,7 +23,7 @@ from collections import defaultdict
 #novy podminkovy indikator, muze obsahovat az N podminek ve stejne syntaxy jako u signalu
 #u kazde podminky je hodnota, ktera se vraci pokud je true
 #hodi se pro vytvareni binarnich targetu pro ML
-def conditional(state, params, name):
+def conditional(state, params, name, returns):
     funcName = "conditional"
     if params is None:
         return -2, "params required"

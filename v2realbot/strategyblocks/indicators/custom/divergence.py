@@ -8,7 +8,7 @@ import numpy as np
 from collections import defaultdict
 
 #abs/rel divergence of two indicators
-def divergence(state, params, name):
+def divergence(state, params, name, returns):
     funcName = "indicatorDivergence"
     source1 = safe_get(params, "source1", None)
     source1_series = get_source_series(state, source1)

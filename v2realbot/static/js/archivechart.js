@@ -386,7 +386,7 @@ function chart_indicators(data, visible, offset) {
         //console.log("ZPETNE STRINGIFIED", TOML.stringify(TOML.parse(data.archRecord.stratvars_toml), {newline: '\n'}))
         //indicatory
         //console.log("indicatory TOML", stratvars_toml.stratvars.indicators)
-
+        indId = 1
         indicatorList.forEach((indicators, index, array) => {
 
             //var indicators = data.indicators
@@ -401,6 +401,7 @@ function chart_indicators(data, visible, offset) {
                             //pokud je v nastaveni scale, pouzijeme tu
                             var scale = null
                             var instant = null
+                            var returns = null
                             //console.log(key)
                             //zkusime zda nejde o instantni indikator z arch runneru
                             if ((data.ext_data !== null) && (data.ext_data.instantindicators)) {
@@ -410,6 +411,7 @@ function chart_indicators(data, visible, offset) {
                                     cnf = instantIndicator.toml
                                     scale = TOML.parse(cnf).scale
                                     instant = 1
+                                    returns = TOML.parse(cnf).returns
                                 }
                             }
                             //pokud nenalezeno, pak bereme standard
@@ -418,6 +420,7 @@ function chart_indicators(data, visible, offset) {
                                 if (stratvars_toml.stratvars.indicators[key]) {
                                     cnf = "#[stratvars.indicators."+key+"]"+TOML.stringify(stratvars_toml.stratvars.indicators[key], {newline: '\n'})
                                     scale = stratvars_toml.stratvars.indicators[key].scale
+                                    returns = stratvars_toml.stratvars.indicators[key].returns
                                     }
                                 }
                             //     //kontriolujeme v addedInds
@@ -438,7 +441,7 @@ function chart_indicators(data, visible, offset) {
                             // } 
 
                             //initialize indicator and store reference to array
-                            var obj = {name: key, type: index, series: null, cnf:cnf, instant: instant}
+                            var obj = {name: key, type: index, series: null, cnf:cnf, instant: instant, returns: returns, indId:indId++}
     
                             //start
                             //console.log(key)
@@ -623,22 +626,51 @@ function chart_indicators(data, visible, offset) {
     }
 
     //sort by type first (0-bar,1-cbar inds) and then alphabetically
-    indList.sort((a, b) => {
-        if (a.type !== b.type) {
-            return a.type - b.type;
-        } else {
-            let nameA = a.name.toUpperCase();
-            let nameB = b.name.toUpperCase();
-            if (nameA < nameB) {
-                return -1;
-            } else if (nameA > nameB) {
-                return 1;
-            } else {
-                // If uppercase names are equal, compare original names to prioritize uppercase
-                return a.name < b.name ? -1 : 1;
-            }
-        }
+    // indList.sort((a, b) => {
+    //     if (a.type !== b.type) {
+    //         return a.type - b.type;
+    //     } else {
+    //         let nameA = a.name.toUpperCase();
+    //         let nameB = b.name.toUpperCase();
+    //         if (nameA < nameB) {
+    //             return -1;
+    //         } else if (nameA > nameB) {
+    //             return 1;
+    //         } else {
+    //             // If uppercase names are equal, compare original names to prioritize uppercase
+    //             return a.name < b.name ? -1 : 1;
+    //         }
+    //     }
+    // });
+
+    //SORTING tak, aby multioutputs atributy byly vzdy na konci dane skupiny (tzn. v zobrazeni jsou zpracovany svými rodiči)
+    // Step 1: Create a Set of all names in 'returns' arrays
+    const namesInReturns = new Set();
+    indList.forEach(item => {
+    if (Array.isArray(item.returns)) {
+        item.returns.forEach(name => namesInReturns.add(name));
+    }
     });
+
+    // Step 2: Custom sort function
+    indList.sort((a, b) => {
+    // First, sort by 'type'
+    if (a.type !== b.type) {
+        return a.type - b.type;
+    }
+
+    // For items with the same 'type', apply secondary sorting
+    const aInReturns = namesInReturns.has(a.name);
+    const bInReturns = namesInReturns.has(b.name);
+
+    if (aInReturns && !bInReturns) return 1;  // 'a' goes after 'b'
+    if (!aInReturns && bInReturns) return -1; // 'a' goes before 'b'
+
+    // If both or neither are in 'returns', sort alphabetically by 'name'
+    return a.name.localeCompare(b.name);
+    });
+
+
 
     //puvodni funkce
     // indList.sort((a, b) => {

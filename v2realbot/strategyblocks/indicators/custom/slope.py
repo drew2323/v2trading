@@ -8,7 +8,7 @@ import numpy as np
 from collections import defaultdict
 
 #rate of change - last value of source indicator vs lookback value of lookback_priceline indicator
-def slope(state, params, name):
+def slope(state, params, name, returns):
     funcName = "slope"
     source = safe_get(params, "source", None)
     source_series = get_source_series(state, source) 

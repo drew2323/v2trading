@@ -9,7 +9,7 @@ from collections import defaultdict
 
 #WIP - 
 #testing custom indicator CODE
-def opengap(state, params, name):
+def opengap(state, params, name, returns):
     funcName = "opengap"
     param1 = safe_get(params, "param1")
     param2 = safe_get(params, "param2")

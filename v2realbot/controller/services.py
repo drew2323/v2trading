@@ -1488,6 +1488,8 @@ def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator, save: bool =
         if output is None:
             return (-2, "output invalid (bar/tick)")
 
+        returns = safe_get(toml_parsed, 'returns', [])
+
         custom_params = safe_get(toml_parsed, "cp", None)
         print("custom params",custom_params)
 
@@ -1499,7 +1501,7 @@ def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator, save: bool =
         detail = RunArchiveDetail(**val)
         #print("toto jsme si dotahnuli", detail.bars)
 
-        #pokud tento indikator jiz je v detailu, tak ho odmazeme
+        #pokud tento indikator jiz je v detailu, tak ho odmazeme - jde o main
         #BAR indikatory
         if indicator.name in detail.indicators[0]:
             del detail.indicators[0][indicator.name]
@@ -1507,6 +1509,14 @@ def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator, save: bool =
         elif indicator.name in detail.indicators[1]:
             del detail.indicators[1][indicator.name]
 
+        #to same i s pripdadnymi multivystupy
+        if len(returns)>0:
+            for ind_name in returns:
+                if ind_name in detail.indicators[0]:
+                    del detail.indicators[0][ind_name]
+                #CBAR indikatory
+                elif ind_name in detail.indicators[1]:
+                    del detail.indicators[1][ind_name]                
 
         #new dicts
         new_bars = {key: [] for key in detail.bars.keys()}
@@ -1532,6 +1542,10 @@ def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator, save: bool =
             state.cbar_indicators = detail.indicators[1] #mozna toto vubec neopotrebujeme
             new_inds[indicator.name] = []
             new_inds[indicator.name] = []
+            #init multiinputu
+            if len(returns)>0:
+                for ind_name in returns:
+                    new_inds[ind_name] = []
         #pro tick, nechavame bary a nechavame volne pouze tickbary, nad kterymi iterujeme
         else:
             state.bars = new_bars
@@ -1539,6 +1553,10 @@ def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator, save: bool =
             state.cbar_indicators = new_tick_inds
             new_tick_inds[indicator.name] = []
             new_tick_inds[indicator.name] = []
+            #init multiinputu
+            if len(returns)>0:
+                for ind_name in returns:
+                    new_tick_inds[ind_name] = []
 
         #pridavame dailyBars z extData
         if hasattr(detail, "ext_data") and "dailyBars" in detail.ext_data:
@@ -1577,6 +1595,10 @@ def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator, save: bool =
                 #inicializujeme 0 v novém indikatoru
                 state.indicators[indicator.name].append(0)
 
+                #init pro multipuput
+                for ind_name in returns:
+                    state.indicators[ind_name].append(0)
+
                 try:
                     populate_dynamic_indicators(new_data, state)
                     # res_code, new_val = custom_function(state, custom_params)
@@ -1587,11 +1609,19 @@ def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator, save: bool =
 
 
             #print("Done", state.indicators[indicator.name])
-        
+            output_dict = {}
             new_inds[indicator.name] = state.indicators[indicator.name]
             
             #ukládáme do ArchRunneru
             detail.indicators[0][indicator.name] = new_inds[indicator.name]
+            output_dict[indicator.name] = new_inds[indicator.name]
+
+            #to same s multiinputy:
+            if len(returns)>0:
+                for ind_name in returns:
+                    new_inds[ind_name] = state.indicators[ind_name]
+                    detail.indicators[0][ind_name] = new_inds[ind_name]
+                    output_dict[ind_name] = new_inds[ind_name]                  
 
         #TOTOZNE PRO TICK INDICATOR
         else:
@@ -1622,6 +1652,10 @@ def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator, save: bool =
                 #inicializujeme 0 v novém indikatoru
                 state.cbar_indicators[indicator.name].append(0)
 
+                #init pro multipuput
+                for ind_name in returns:
+                    state.cbar_indicators[ind_name].append(0)
+
                 try:
                     populate_dynamic_indicators(new_data, state)
                     # res_code, new_val = custom_function(state, custom_params)
@@ -1631,12 +1665,19 @@ def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator, save: bool =
                     print(str(e) + format_exc())
 
             #print("Done", state.indicators[indicator.name])
-        
+            output_dict = {}
             new_tick_inds[indicator.name] = state.cbar_indicators[indicator.name]
             
             #ukládáme do ArchRunneru
             detail.indicators[1][indicator.name] = new_tick_inds[indicator.name]
+            output_dict[indicator.name] = new_tick_inds[indicator.name] 
 
+            #to same s multiinputy:
+            if len(returns)>0:
+                for ind_name in returns:
+                    new_tick_inds[ind_name] = state.cbar_indicators[ind_name]
+                    detail.indicators[1][ind_name] = new_tick_inds[ind_name]
+                    output_dict[ind_name] = new_tick_inds[ind_name]       
 
         #do ext dat ukladame jmeno indikatoru (podle toho oznacuje jako zmenene)
 
@@ -1653,19 +1694,26 @@ def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator, save: bool =
                 detail.ext_data["instantindicators"].remove(ind)
                 print("removed old from EXT_DATA")
 
-        #a pridame aktualni
+        #a pridame aktualni 
+        #NOTE - multivystupy tedy nebudou oznacene na GUI
         detail.ext_data["instantindicators"].append(indicator)
         print("added to EXT_DATA")
+        
         #updatneme ArchRunner
         res, val = update_archive_detail(id, detail)
         if res == 0:
             print(f"arch runner {id} updated")
 
+
+        #output bude nyni ve formatu {key:list}
+
         #vracime list, kde pozice 0 je bar indicators, pozice 1 je ticks indicators
         if output == "bar":
-            return 0, [new_inds[indicator.name], []]
+            return 0, [output_dict, []]
+            #return 0, [new_inds[indicator.name], []]
         else:
-            return 0, [[], new_tick_inds[indicator.name]]
+            return 0, [[], output_dict]
+            #return 0, [[], new_tick_inds[indicator.name]]
 
     except Exception as e:
         print(str(e) + format_exc())

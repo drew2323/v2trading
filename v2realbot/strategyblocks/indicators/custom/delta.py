@@ -9,7 +9,7 @@ from collections import defaultdict
 
 #strength, absolute change of parameter between current value and lookback value (n-past)
 #used for example to measure unusual peaks
-def delta(state, params, name):
+def delta(state, params, name, returns):
     funcName = "delta"
     source = safe_get(params, "source", None)
     lookback = safe_get(params, "lookback",1)

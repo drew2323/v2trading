@@ -17,7 +17,7 @@ Where
 - start is last crossing of source with ema and 
 - end is the current position -1
 """""
-def targetema(state, params, name):
+def targetema(state, params, name, returns):
     try:
         funcName = "targetema"
         window_length_value = safe_get(params, "window_length_value", None)

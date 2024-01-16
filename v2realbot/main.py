@@ -484,7 +484,7 @@ def _delete_archived_runners_byBatchID(batch_id: str):
 #return indicator value for archived runner, return values list0 - bar indicators, list1 - ticks indicators
 #TBD mozna predelat na dict pro prehlednost
 @app.put("/archived_runners/{runner_id}/previewindicator", dependencies=[Depends(api_key_auth)], status_code=status.HTTP_200_OK)
-def _preview_indicator_byTOML(runner_id: UUID, indicator: InstantIndicator) -> list[list[float]]:
+def _preview_indicator_byTOML(runner_id: UUID, indicator: InstantIndicator) -> list[dict]:
     #mozna pak pridat name
     res, vals = cs.preview_indicator_byTOML(id=runner_id, indicator=indicator)
     if res == 0: return vals

@@ -10,7 +10,7 @@ import bisect
 
 #strength, absolute change of parameter between current value and lookback value (n-past)
 #used for example to measure unusual peaks
-def sameprice(state, params, name):
+def sameprice(state, params, name, returns):
     funcName = "sameprice"
     typ = safe_get(params, "type", None)
 

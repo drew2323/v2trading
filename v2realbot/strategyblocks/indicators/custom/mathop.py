@@ -4,7 +4,7 @@ from v2realbot.strategyblocks.indicators.helpers import get_source_series, value
 
 #allows basic mathematical operators to one or more indicators (add two indicator, add value to a indicator etc.)
 #REPLACED by EXPRESSION
-def mathop(state, params, name):
+def mathop(state, params, name, returns):
     funcName = "mathop"
     #indicator name
     source1 = safe_get(params, "source1", None)

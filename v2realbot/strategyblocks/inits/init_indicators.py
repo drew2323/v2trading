@@ -32,10 +32,21 @@ def initialize_dynamic_indicators(state):
                 case _:
                     raise(f"ind output must be bar or tick {indname}")
 
+        #inicializujeme vzdy main
         indicators_dict[indname] = []
+        #inicializujeme multioutputs
+        returns = safe_get(indsettings, 'returns', [])
+        for ind_name in returns:
+            indicators_dict[ind_name] = []
         #pokud ma MA_length incializujeme i MA variantu
         if safe_get(indsettings, 'MA_length', False):
-            indicators_dict[indname+"MA"] = []
+            #inicializujeme bud v hlavni serii
+            if len(returns)==0:
+                indicators_dict[indname+"MA"] = []
+            #nebo v multivystupech
+            else:
+                for ind_name in returns:
+                    indicators_dict[ind_name+"MA"] = []
 
         #Specifické Inicializace dle type
         for option,value in list(indsettings.items()):

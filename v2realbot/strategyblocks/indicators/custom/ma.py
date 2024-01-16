@@ -8,10 +8,11 @@ import numpy as np
 from collections import defaultdict
 from v2realbot.strategyblocks.indicators.helpers import value_or_indicator
 # from talib import BBANDS, MACD, RSI, MA_Type
+from talib import BBANDS
 
 
 #IMPLEMENTS different types of moving averages in package v2realbot.indicators.moving_averages
-def ma(state, params, name):
+def ma(state, params, name, returns):
     funcName = "ma"
     type = safe_get(params, "type", "ema")
     source = safe_get(params, "source", None)

@@ -828,6 +828,53 @@ pre {
   background-color: #e1eff94d;;
 }
 
+.multiOut {
+  height: 20px;
+  position: relative;
+  /* background-color: rgb(174, 170, 163); */
+  padding: 0px 0px 0px 0px;
+  margin-right: 6px;
+  margin-bottom: -6px;
+  /* position: relative; */
+  z-index: 1;
+  /* cursor: pointer; */
+  text-decoration: double;
+  display: inline-block;
+  /* padding: 1px 6px; */
+  /* font-size: 14px; */
+  /* color: #262b3e; */
+  /* background-color: #818581; */
+  background-color: #0202022e;
+  margin-right: 8px;
+  /* margin-bottom: 6px; */
+  /* border: 1px; */
+  border-radius: 4px;
+  /* outline: solid 1px;
+  outline-color: #323232; */
+  /* outline-width: 1px; */
+  border-style: none;
+  outline-width: thin;
+  outline-color: #5a5a5a;
+}
+
+.multiOut.switcher-item::after {
+  content: '';
+  display: inline-block;
+  margin-left: 5px;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 5px solid; /* Arrow pointing right for collapsed state */
+}
+
+.multiOut.switcher-item[aria-expanded="true"]::after {
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-right: 5px solid; /* Arrow pointing left for expanded state */
+  border-left: none;
+}
+
+
+
 .material-symbols-outlined {
   font-variation-settings:
   'FILL' 0,

@@ -419,14 +419,16 @@ function remove_indicator_buttons() {
 }
 
 //pomocna funkce pro vytvoreni buttonu indiaktoru
-function create_indicator_button(item, index, def) {
+function create_indicator_button(item, def, noaction = false) {
       // //div pro kazdy button
       // var buttonContainer = document.createElement('div');
       // buttonContainer.classList.add('button-container');
   
+      index = item.indId
+
       var itemEl = document.createElement('button');
       itemEl.innerText = item.name;
-          itemEl.id = "IND"+index;
+          itemEl.id = "IND"+item.indId;
           itemEl.title = item.cnf
           itemEl.style.color = item.series.options().color;
           //pokud jde o pridanou on the fly - vybarvime jinak
@@ -450,9 +452,12 @@ function create_indicator_button(item, index, def) {
       // actionShow.id = "actionShow";
       // actionShow.textContent = "Show";
   
-      itemEl.addEventListener('click', function() {
-        onItemClickedToggle(index);
-      });
+      //nepouzivat pro urcite pripady (napr. u hlavnich multioutputu indikatoru) - pouze nese predpis(right click) a left clickem zobrazi outputy
+      if (!noaction) {
+        itemEl.addEventListener('click', function() {
+          onItemClickedToggle(item.indId);
+        });
+      }
   
       // const actionEdit = document.createElement("div");
       // actionEdit.id = "actionEdit";
@@ -460,7 +465,7 @@ function create_indicator_button(item, index, def) {
   
       itemEl.addEventListener('contextmenu', function(e) {
         //edit modal zatim nemame
-        onItemClickedEdit(e, index);
+        onItemClickedEdit(e, item.indId);
       });
   
       // // Append the action buttons to the overlay.
@@ -480,13 +485,13 @@ function create_indicator_button(item, index, def) {
 function onResetClicked() {
   indList.forEach(function (item, index) {
     vis = true;
-    const elem = document.getElementById("IND"+index);
+    const elem = document.getElementById("IND"+item.indId);
     if (elem.classList.contains("switcher-active-item")) {
         vis = false;
     }      
     elem.classList.toggle("switcher-active-item");
-    if (indList[index].series) {
-    indList[index].series.applyOptions({
+    if (obj.series) {
+    obj.series.applyOptions({
         visible: vis });
     }
   })
@@ -656,6 +661,10 @@ function mrkLineToggle() {
 }
 
 
+function get_ind_by_id(indId) {
+  return indList.find(obj => obj.indId === indId);
+}
+
 //toggle indiktoru
 function onItemClickedToggle(index) {
       vis = true;
@@ -665,23 +674,78 @@ function onItemClickedToggle(index) {
       }      
       elem.classList.toggle("switcher-active-item");
       //v ifu kvuli workaroundu
-      if (indList[index].series) {
-        //console.log(indList[index].name, indList[index].series)
-        indList[index].series.applyOptions({
+      obj = get_ind_by_id(index)
+      if (obj.series) {
+        //console.log(obj.name, obj.series)
+        obj.series.applyOptions({
             visible: vis });
       }
       //zatim takto workaround, pak vymyslet systemove pro vsechny tickbased indikatory
       tickIndicatorList = ["tick_price", "tick_volume"]
-      if (tickIndicatorList.includes(indList[index].name)) {
-        if (!vis && indList[index].series) {
-          //console.log("pred", indList[index].name, indList[index].series)
-          chart.removeSeries(indList[index].series)
+      if (tickIndicatorList.includes(obj.name)) {
+        if (!vis && obj.series) {
+          //console.log("pred", obj.name, obj.series)
+          chart.removeSeries(obj.series)
           chart.timeScale().fitContent();
-          indList[index].series = null
-          //console.log("po", indList[index].name, indList[index].series)
+          obj.series = null
+          //console.log("po", obj.name, obj.series)
         }
       }
 
+}
+
+//obalka pro collapsovatelny multioutput indicator button
+function create_multioutput_button(item, def, active) {
+  //encapsulating dic
+  var multiOutEl = document.createElement('div');
+  //multiOutEl.id = "tickIndicatorsButtons"
+  multiOutEl.classList.add('multiOut');
+  multiOutEl.classList.add('switcher-item');
+  //pouze def - u main indikatoru nepamatujeme stav a pozadujeme noaction pro leftclick
+  itemEl = create_indicator_button(item, def, true);
+  //hlavni button ridi expand/collapse
+  itemEl.setAttribute('data-bs-toggle', 'collapse');
+  itemEl.setAttribute('data-bs-target', '.'+item.name);
+  itemEl.setAttribute('aria-expanded', 'true');
+  itemEl.setAttribute('role', 'button');
+  //itemEl.setAttribute('aria-controls', 'IND6 IND7 IND8');            
+  //itemEl.style.outline = 'dotted';
+  itemEl.style.marginRight = '0px'
+
+  //prirazeni mainu do divu
+  multiOutEl.appendChild(itemEl); 
+  
+  //pokud nektery z multivstupu je aktivni, pak nastavuju vse expanded
+  const isAnyActive = activatedButtons.some(element => item.returns.includes(element));
+
+  item.returns.forEach(function (output_name,index) {
+    active = false
+    //find and process multioutput parameters
+    const foundObject = indList.find(obj => obj.name == output_name);
+    if (foundObject) {
+
+      //aplikujeme remembered state
+      if ((activatedButtons) && (activatedButtons.includes(output_name))) {
+        active = true
+      }
+
+      console.log(foundObject.content); // Access and use the content
+      itemEl = create_indicator_button(foundObject, def||active);
+
+      itemEl.classList.add('collapse')
+      //pokud je aktivni jakykoliv, expandujeme vsechny
+      if (active || isAnyActive) {
+        itemEl.classList.add('show')
+      }
+      itemEl.classList.add(item.name)
+      itemEl.style.marginRight = '0px'
+
+      multiOutEl.appendChild(itemEl);  
+    }
+  });
+
+
+  return multiOutEl
 }
 
 //funkce pro vytvoreni buttonku indikatoru
@@ -692,37 +756,58 @@ function populate_indicator_buttons(def) {
   buttonElement.id = "indicatorsButtons"
 	buttonElement.classList.add('switcher');
 
-  //incializujeme i bar pro cbar indikator sekci
+  //incializujeme i div pro cbar indikator sekci
 	var tickButtonElement = document.createElement('div');
   tickButtonElement.id = "tickIndicatorsButtons"
 	tickButtonElement.classList.add('tickButtons');
 
+    already_processed = [];
     //iterace nad indikatory a vytvareni buttonků
     indList.forEach(function (item, index) {
-      index_ind = index
-      active = false
+      index_ind = item.indId
+      if (!already_processed.includes(item.name)) {
+        active = false
 
-      //console.log("activatedButtons", activatedButtons)
-      //console.log("obsahuje item.name", activatedButtons.includes(item.name), item.name)
-      //pokud existuje v aktivnich pak
-      //console.log("vytvarime button",item.name,activatedButtons)
-      if ((activatedButtons) && (activatedButtons.includes(item.name))) {
-        active = true
+        if ((activatedButtons) && (activatedButtons.includes(item.name))) {
+          active = true
+        }
+        //bar indikatory jsou serazeny na zacarku
+        if (item.type == 0) {
+          //pokud jde o multiinput, pridame ihned souvisejici mutiinputy a vse dame do stejneho divu
+          //(Object.keys(data[0]).length > 0)
+          if (item.returns && item.returns.length > 0) {
+            //prirazeni multiOut do buttonu
+            multiOutEl = create_multioutput_button(item, def, active)
+
+            buttonElement.appendChild(multiOutEl);  
+            already_processed = already_processed.concat(item.returns)
+          }
+          else {
+            //vytvoreni buttonku
+            itemEl = create_indicator_button(item, def||active);
+            //prirazeni do divu
+            buttonElement.appendChild(itemEl);
+          }
+        }
+        //ted zbyvaji tick barové a ty dáme do separátního divu
+        else
+        {
+          //oper nejdriv multiinput
+          if (item.returns && item.returns.length > 0) {
+
+            //prirazeni multiOut do buttonu
+            multiOutEl = create_multioutput_button(item, def, active)
+            tickButtonElement.appendChild(multiOutEl);  
+            already_processed = already_processed.concat(item.returns)
+          }
+          //standardni non multiinput
+          else {
+          //vytvoreni buttonku
+          itemEl = create_indicator_button(item, def||active);
+          tickButtonElement.appendChild(itemEl)
+        }
       }
-      //bar indikatory jsou serazeny na zacarku
-      if (item.type == 0) {
-        //vytvoreni buttonku
-        itemEl = create_indicator_button(item, index, def||active);
-        //prirazeni do divu
-        buttonElement.appendChild(itemEl);
-      }
-      //ted zbyvaji tick barové a ty dáme do separátního divu
-      else
-      {
-        //vytvoreni buttonku
-        itemEl = create_indicator_button(item, index, def||active);
-        tickButtonElement.appendChild(itemEl)
-      }
+    }
 	  });
 
     //nakonec pripojime cely div s tick based indicatory

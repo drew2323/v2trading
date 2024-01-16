@@ -10,7 +10,7 @@ from collections import defaultdict
 """
 
 """
-def model(state, params, ind_name):
+def model(state, params, ind_name, returns):
     funcName = "model"
     if params is None:
         return -2, "params required"

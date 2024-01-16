@@ -10,7 +10,7 @@ from collections import defaultdict
 from v2realbot.strategyblocks.indicators.helpers import value_or_indicator
 
 # Volume(or reference_source) Weighted moving Average
-def vwma(state, params, name):
+def vwma(state, params, name, returns):
     funcName = "vwma"
     source = safe_get(params, "source", None)
     ref_source = safe_get(params, "ref_source", "volume")

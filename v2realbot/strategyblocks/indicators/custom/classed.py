@@ -22,7 +22,7 @@ import importlib
 
 #OBECNA trida pro statefull indicators - realized by class with the same name,  deriving from parent IndicatorBase class
 #todo v initu inicializovat state.classed_indicators a ve stopu uklidit - resetovat
-def classed(state, params, name):
+def classed(state, params, name, returns):
     try:
         funcName = "classed"
         if params is None:

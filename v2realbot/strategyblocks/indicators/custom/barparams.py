@@ -10,7 +10,7 @@ import math
 from collections import defaultdict
 
 #indicator allowing to be based on any bar parameter (index, high,open,close,trades,volume, etc.)
-def barparams(state, params, name):
+def barparams(state, params, name, returns):
     funcName = "barparams"
     if params is None:
         return -2, "params required"

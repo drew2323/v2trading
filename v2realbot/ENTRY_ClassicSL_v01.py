@@ -252,10 +252,10 @@ def init(state: StrategyState):
     # High to Low Range: (high[-1] - low[-1]) / low[-1]
 
     # Store the ratios in the bars dictionary
-    state.dailyBars['upper_shadow_ratio'] = upper_shadow
-    state.dailyBars['lower_shadow_ratio'] = lower_shadow
-    state.dailyBars['body_size_ratio'] = body_size
-    state.dailyBars['body_position_ratio'] = body_position    
+    state.dailyBars['upper_shadow_ratio'] = upper_shadow.tolist()
+    state.dailyBars['lower_shadow_ratio'] = lower_shadow.tolist()
+    state.dailyBars['body_size_ratio'] = body_size.tolist()
+    state.dailyBars['body_position_ratio'] = body_position.tolist()  
 
     #printanyway("daily bars FILLED", state.dailyBars)
     #zatim ukladame do extData - pro instant indicatory a gui

@@ -9,7 +9,7 @@ from collections import defaultdict
 from v2realbot.strategyblocks.indicators.helpers import value_or_indicator
 #strength, absolute change of parameter between current value and lookback value (n-past)
 #used for example to measure unusual peaks
-def ema(state, params, name):
+def ema(state, params, name, returns):
     funcName = "ema"
     source = safe_get(params, "source", None)
     lookback = safe_get(params, "lookback",14)

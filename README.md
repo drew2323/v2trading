@@ -6,7 +6,7 @@ Custom-built algorithmic trading platform for research, backtesting and automate
 **Key Features**
 - **Trading Engine**: At the core of the platform is a trading engine that processes tick data in real time. This engine is responsible for aggregating data and managing the execution of trades, ensuring precision and speed in trade placement and execution.
 
-- **High-Fidelity Backtesting Environment**: A distinctive feature of this platform is its ability to backtest strategies with 1:1 precision - meaning a tick-by-tick analysis without any data aggregation that might skew results. This level of precision in backtesting, down to millisecond accuracy, mirrors live trading environments and is vital for developing and testing high-frequency trading strategies.
+- **High-Fidelity Backtesting Environment**: ability to backtest strategies with 1:1 precision - meaning a tick-by-tick backtesting. This level of precision in backtesting, down to millisecond accuracy, mirrors live trading environments and is vital for developing and testing high-frequency trading strategies.
 
 - **Custom Data Aggregation:** The platform includes a data aggregator that allows for custom aggregation rules. This flexibility supports a variety of data analysis approaches, including non-time based bars and other unique criteria.
 

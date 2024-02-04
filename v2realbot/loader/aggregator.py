@@ -3,7 +3,7 @@
 """
 from v2realbot.enums.enums import RecordType, StartBarAlign
 from datetime import datetime, timedelta
-from v2realbot.utils.utils import parse_alpaca_timestamp, ltp, Queue,is_open_hours,zoneNY
+from v2realbot.utils.utils import parse_alpaca_timestamp, ltp, Queue,is_open_hours,zoneNY, zoneUTC
 from queue import Queue
 from rich import print
 from v2realbot.enums.enums import Mode
@@ -14,6 +14,7 @@ import os
 from v2realbot.config import DATA_DIR, GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN, AGG_EXCLUDED_TRADES
 import pickle
 import dill
+import gzip
 
 class TradeAggregator:  
     def __init__(self,
@@ -149,7 +150,7 @@ class TradeAggregator:
         # else:
         data['t'] = parse_alpaca_timestamp(data['t'])
 
-        if not is_open_hours(datetime.fromtimestamp(data['t'])) and self.exthours is False:
+        if not is_open_hours(datetime.fromtimestamp(data['t'], tz=zoneUTC)) and self.exthours is False:
             #print("AGG: trade not in open hours skipping", datetime.fromtimestamp(data['t']).astimezone(zoneNY))
             return []
 
@@ -442,7 +443,7 @@ class TradeAggregator:
                     "trades": 1,
                     "hlcc4": data['p'],
                     "confirmed": 0,
-                    "time": datetime.fromtimestamp(data['t']),
+                    "time": datetime.fromtimestamp(data['t'], tz=zoneUTC),
                     "updated": data['t'],
                     "vwap": data['p'],
                     "index": self.barindex,
@@ -476,7 +477,7 @@ class TradeAggregator:
                     "trades": 1,
                     "hlcc4":data['p'],
                     "confirmed": 1,
-                    "time": datetime.fromtimestamp(data['t']),
+                    "time": datetime.fromtimestamp(data['t'], tz=zoneUTC),
                     "updated": data['t'],
                     "vwap": data['p'],
                     "index": self.barindex,
@@ -608,7 +609,7 @@ class TradeAggregator:
                     "trades": 1,
                     "hlcc4": data['p'],
                     "confirmed": 0,
-                    "time": datetime.fromtimestamp(data['t']),
+                    "time": datetime.fromtimestamp(data['t'], tz=zoneUTC),
                     "updated": data['t'],
                     "vwap": data['p'],
                     "index": self.barindex,
@@ -642,7 +643,7 @@ class TradeAggregator:
                     "trades": 1,
                     "hlcc4":data['p'],
                     "confirmed": 1,
-                    "time": datetime.fromtimestamp(data['t']),
+                    "time": datetime.fromtimestamp(data['t'], tz=zoneUTC),
                     "updated": data['t'],
                     "vwap": data['p'],
                     "index": self.barindex,
@@ -787,7 +788,7 @@ class TradeAggregator:
                     "trades": 1,
                     "hlcc4": data['p'],
                     "confirmed": 0,
-                    "time": datetime.fromtimestamp(data['t']),
+                    "time": datetime.fromtimestamp(data['t'], tz=zoneUTC),
                     "updated": data['t'],
                     "vwap": data['p'],
                     "index": self.barindex,
@@ -822,7 +823,7 @@ class TradeAggregator:
                     "trades": 1,
                     "hlcc4":data['p'],
                     "confirmed": 1,
-                    "time": datetime.fromtimestamp(data['t']),
+                    "time": datetime.fromtimestamp(data['t'], tz=zoneUTC),
                     "updated": data['t'],
                     "vwap": data['p'],
                     "index": self.barindex,
@@ -898,7 +899,7 @@ class TradeAggregator:
         #a take excludes result = ''.join(self.excludes.sort())
         self.excludes.sort()  # Sorts the list in place
         excludes_str = ''.join(map(str, self.excludes))  # Joins the sorted elements after converting them to strings
-        cache_file = self.__class__.__name__ + '-' + self.symbol + '-' + str(int(date_from.timestamp())) + '-' + str(int(date_to.timestamp())) + '-' + str(self.rectype) + "-" + str(self.resolution) + "-" + str(self.minsize) + "-" + str(self.align) + '-' + str(self.mintick) + str(self.exthours) + excludes_str + '.cache'
+        cache_file = self.__class__.__name__ + '-' + self.symbol + '-' + str(int(date_from.timestamp())) + '-' + str(int(date_to.timestamp())) + '-' + str(self.rectype) + "-" + str(self.resolution) + "-" + str(self.minsize) + "-" + str(self.align) + '-' + str(self.mintick) + str(self.exthours) + excludes_str + '.cache.gz'
         file_path = DATA_DIR + "/aggcache/" + cache_file
         #print(file_path)
         return file_path
@@ -908,7 +909,7 @@ class TradeAggregator:
         file_path = self.populate_file_name(date_from, date_to)
         if self.skip_cache is False and os.path.exists(file_path):
             ##daily aggregated file exists
-            with open (file_path, 'rb') as fp:
+            with gzip.open (file_path, 'rb') as fp:
                 cachedobject = dill.load(fp)
                 print("AGG CACHE loaded ", file_path)
 
@@ -941,7 +942,7 @@ class TradeAggregator:
         
         file_path = self.populate_file_name(self.cache_from, self.cache_to)
 
-        with open(file_path, 'wb') as fp:
+        with gzip.open(file_path, 'wb') as fp:
             dill.dump(self.cached_object, fp)
         print(f"AGG CACHE stored ({num}) :{file_path}")
         print(f"DATES from:{self.cache_from.strftime('%d.%m.%Y %H:%M')} to:{self.cache_to.strftime('%d.%m.%Y %H:%M')}")

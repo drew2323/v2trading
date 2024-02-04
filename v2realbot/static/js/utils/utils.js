@@ -702,7 +702,8 @@ function create_multioutput_button(item, def, active) {
   multiOutEl.classList.add('multiOut');
   multiOutEl.classList.add('switcher-item');
   //pouze def - u main indikatoru nepamatujeme stav a pozadujeme noaction pro leftclick
-  itemEl = create_indicator_button(item, def, true);
+  //def||active - ani def
+  itemEl = create_indicator_button(item, false, true);
   //hlavni button ridi expand/collapse
   itemEl.setAttribute('data-bs-toggle', 'collapse');
   itemEl.setAttribute('data-bs-target', '.'+item.name);
@@ -743,7 +744,6 @@ function create_multioutput_button(item, def, active) {
       multiOutEl.appendChild(itemEl);  
     }
   });
-
 
   return multiOutEl
 }

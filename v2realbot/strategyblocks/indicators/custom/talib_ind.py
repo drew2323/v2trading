@@ -11,36 +11,30 @@ from v2realbot.strategyblocks.indicators.helpers import value_or_indicator
 import talib
 
 
-# příklad toml pro indikátor ATR(high, low, close, timeperiod=14)
-# POSITION MATTERS
-# params.series.high = "high"   //series key určuje, že jde o série
-# params.series.low = "low"
-# params.series.low = "close"
-# params.val.timeperiod = 14  //val key určuje, že jde o konkrétní hodnotu, tzn. buď hodnotu nebo název série, ze které vezmu poslední hodnotu (v tom případě by to byl string)
-
-
+# příklad toml pro indikátor ATR(high, low, close, timeperiod=14) -
 # params.series = ["high","low","close"] #pozicni parametry
 # params.keys.timeperiod = 14 #keyword argumenty
-
 #TA-lib prijma positional arguments (zejmena teda ty series)m tzn. series musi byt pozicni
-
-# lookback se aplikuje na vsechy ?
+# lookback se aplikuje na vsechy
 
 
 #IMPLEMENTS usiong of any indicator from TA-lib library
 def talib_ind(state, params, name, returns):
-    funcName = "ma"
-    type = safe_get(params, "type", "SMA")
+    funcName = "talib_ind"
+    type = safe_get(params, "type", None)
+    if type is None:
+        return -2, "type is required"
     #ßsource = safe_get(params, "source", None)
     lookback = safe_get(params, "lookback",None) #celkovy lookback pro vsechny vstupni serie
+    if lookback is not None:
+        #lookback muze byt odkaz na indikator, pak berem jeho hodnotu
+        lookback = int(value_or_indicator(state, lookback))  
+
     start = safe_get(params, "start","linear") #linear/sharp
     defval = safe_get(params, "defval",0)
 
     params = safe_get(params, "params", dict(series=[], keys=[]))
-    #lookback muze byt odkaz na indikator, pak berem jeho hodnotu
-    lookback = int(value_or_indicator(state, lookback))
-    defval = int(value_or_indicator(state, defval))
-
+    defval = float(value_or_indicator(state, defval))
 
     #TODO dopracovat caching, tzn. jen jednou pri inicializaci (linkuje se list) nicmene pri kazde iteraci musime prevest na numpy
     #NOTE doresit, kdyz je val indiaktor, aby se i po inicializaci bral z indikatoru (doresit az pokud bude treba)
@@ -55,7 +49,7 @@ def talib_ind(state, params, name, returns):
             if akt_pocet < lookback and start == "linear":
                 lookback = akt_pocet
 
-        series_list.append(np.array(source_series[-lookback:] if lookback is not None else source_series))
+        series_list.append(np.array(source_series[-lookback:] if lookback is not None else source_series, dtype=np.float64))
 
     for key, val in params.get("keys",{}).items():
          keyArgs[key] = int(value_or_indicator(state, val))
@@ -65,13 +59,28 @@ def talib_ind(state, params, name, returns):
 
     ma_value = talib_function(*series_list, **keyArgs)
 
-    if not np.isfinite(ma_value[-1]):
-        val = defval
+    #jde o multioutput, dostavame tuple a prevedeme na list (odpovida poradi v returns)
+    #TODO zapracovat sem def val a isfinite
+    if isinstance(ma_value, tuple):
+        ma_value = list(ma_value)
+        for index, res in enumerate(ma_value):
+            if not np.isfinite(res[-1]):
+                ma_value[index] = defval
+            else:
+                ma_value[index] = round(res[-1],5)
+
+            if res[-1] == 0:
+                ma_value[index] = defval 
+        val = ma_value           
+    #single output
     else:
-        val = round(ma_value[-1],4)
+        if not np.isfinite(ma_value[-1]):
+            val = defval
+        else:
+            val = round(ma_value[-1],4)
 
-    if val == 0:
-        val = defval
+        if val == 0:
+            val = defval
 
-    state.ilog(lvl=1,e=f"INSIDE {name}:{funcName} {val} {type=} {lookback=}", **params)
+    state.ilog(lvl=1,e=f"INSIDE {name}:{funcName} {str(val)} {type=} {lookback=}", **params)
     return 0, val

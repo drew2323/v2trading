@@ -28,6 +28,7 @@ def find_index_optimized(time_list, seconds):
 #podle toho jak se osvedci se zakl.indikatory to s state
 #zatim se mi to moc nezda
 
+#vraci skalar nebo posledni hodnoty indikatoru
 def value_or_indicator(state,value):
     #preklad direktivy podle typu, pokud je int anebo float - je to primo hodnota
     #pokud je str, jde o indikator a dotahujeme posledni hodnotu z nej
@@ -45,7 +46,28 @@ def value_or_indicator(state,value):
                 ret = 0
                 state.ilog(lvl=1,e=f"Neexistuje indikator s nazvem {value} vracime 0" + str(e) + format_exc())
             return ret
-        
+
+#vraci skalar nebo pokud je indikator tak cely list indikatoru
+def value_or_indicator_list(state,value):
+    #preklad direktivy podle typu, pokud je int anebo float - je to primo hodnota
+    #pokud je str, jde o indikator a dotahujeme posledni hodnotu z nej
+        if isinstance(value, (float, int)):
+            return value
+        elif isinstance(value, str):
+            try:
+                #pokud existuje v indikatoru MA bereme MA jinak indikator, pokud neexistuje bereme bar 
+                ret = get_source_or_MA(state, indicator=value)
+                lvl = 0
+                #TODO tento len dat pryc po overeni
+                delka = len(ret)
+                if delka == 0:
+                    lvl = 1
+                state.ilog(lvl=1,e=f"Pro porovnani bereme cely list s delkou {delka} z indikatoru {value}")
+            except Exception as e   :
+                ret = 0
+                state.ilog(lvl=1,e=f"Neexistuje indikator s nazvem {value} vracime 0" + str(e) + format_exc())
+            return ret
+
 #OPTIMALIZOVANO CHATGPT
 #funkce vytvori podminky (bud pro AND/OR) z pracovniho dict
 def evaluate_directive_conditions(state, work_dict, cond_type):
@@ -67,9 +89,9 @@ def evaluate_directive_conditions(state, work_dict, cond_type):
         "risingc": lambda ind, val: isrisingc(get_source_or_MA(state, ind), val),
         "falling": lambda ind, val: isfalling(get_source_or_MA(state, ind), val),
         "rising": lambda ind, val: isrising(get_source_or_MA(state, ind), val),
-        "crossed_down": lambda ind, val: buy_if_crossed_down(state, ind, value_or_indicator(state,val)),
-        "crossed_up": lambda ind, val: buy_if_crossed_up(state, ind, value_or_indicator(state,val)),
-        "crossed": lambda ind, val: buy_if_crossed_down(state, ind, value_or_indicator(state,val)) or buy_if_crossed_up(state, ind, value_or_indicator(state,val)),
+        "crossed_down": lambda ind, val: buy_if_crossed_down(state, ind, value_or_indicator_list(state,val)),
+        "crossed_up": lambda ind, val: buy_if_crossed_up(state, ind, value_or_indicator_list(state,val)),
+        "crossed": lambda ind, val: buy_if_crossed_down(state, ind, value_or_indicator_list(state,val)) or buy_if_crossed_up(state, ind, value_or_indicator_list(state,val)),
         "pivot_a": lambda ind, val: is_pivot(source=get_source_or_MA(state, ind), leg_number=val, type="A"),
         "pivot_v": lambda ind, val: is_pivot(source=get_source_or_MA(state, ind), leg_number=val, type="V"),
         "still_for": lambda ind, val: is_still(get_source_or_MA(state, ind), val, 2),
@@ -129,13 +151,13 @@ def get_source_series(state, source: str, numpy: bool = False):
 #TYTO NEJSPIS DAT do util
 #vrati true pokud dany indikator prekrocil threshold dolu
 def buy_if_crossed_down(state, indicator, value):
-    res = crossed_down(threshold=value, list=get_source_or_MA(state, indicator))
+    res = crossed_down(value=value, primary_line=get_source_or_MA(state, indicator))
     #state.ilog(lvl=0,e=f"signal_if_crossed_down {indicator} {value} {res}")
     return res
 
 #vrati true pokud dany indikator prekrocil threshold nahoru
 def buy_if_crossed_up(state, indicator, value):
-    res = crossed_up(threshold=value, list=get_source_or_MA(state, indicator))
+    res = crossed_up(value=value, primary_line=get_source_or_MA(state, indicator))
     #state.ilog(lvl=0,e=f"signal_if_crossed_up {indicator} {value} {res}")
     return res    
    

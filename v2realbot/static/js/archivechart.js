@@ -387,6 +387,7 @@ function chart_indicators(data, visible, offset) {
         //indicatory
         //console.log("indicatory TOML", stratvars_toml.stratvars.indicators)
         indId = 1
+        var multiOutsCnf = {}
         indicatorList.forEach((indicators, index, array) => {
 
             //var indicators = data.indicators
@@ -440,10 +441,28 @@ function chart_indicators(data, visible, offset) {
                             //       }
                             // } 
 
+                            //pro multioutput childs dotahneme scale z parenta
+                            if (multiOutsCnf.hasOwnProperty(key)) {
+                                scale = multiOutsCnf[key];
+                            }
+
                             //initialize indicator and store reference to array
                             var obj = {name: key, type: index, series: null, cnf:cnf, instant: instant, returns: returns, indId:indId++}
     
-                            //start
+                            //pokud jde o multioutput parenta ukladam scale parenta pro children
+                            //varianty -  scale je jeden, ukladam jako scale pro vsechny parenty
+                            //         -  scale je list - pouzijeme pro kazdy output scale v listu na stejnem indexu jako output
+                            if (returns) {
+                                returns.forEach((returned, index, array) => {
+                                    //
+                                    if (Array.isArray(scale)) {
+                                        multiOutsCnf[returned] = scale[index]
+                                    }
+                                    else {
+                                        multiOutsCnf[returned] = scale
+                                    }
+                                })
+                            }                        //start
                             //console.log(key)
                             //get configuation of indicator to display
                             conf = get_ind_config(key, index)
@@ -601,7 +620,12 @@ function chart_indicators(data, visible, offset) {
                                 //console.log("true",active?active:conf.display)
                                 active = true
                             }
-                            else {active = false}      
+                            else {active = false}
+                            
+                            //pro main s multioutputem nezobrazujeme
+                            if (returns) {
+                                active = false
+                            }
                             //add options
                             obj.series.applyOptions({
                                 visible: active?active:visible,

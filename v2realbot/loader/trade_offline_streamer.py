@@ -16,6 +16,7 @@ import asyncio
 from msgpack.ext import Timestamp
 from msgpack import packb
 from pandas import to_datetime
+import gzip
 import pickle
 import os
 from rich import print
@@ -197,7 +198,7 @@ class Trade_Offline_Streamer(Thread):
                         stream_main.enable_cache_output(day.open, day.close)
 
             #trade daily file
-            daily_file = str(symbpole[0]) + '-' + str(int(day.open.timestamp())) + '-' + str(int(day.close.timestamp())) + '.cache'
+            daily_file = str(symbpole[0]) + '-' + str(int(day.open.timestamp())) + '-' + str(int(day.close.timestamp())) + '.cache.gz'
             print(daily_file)
             file_path = DATA_DIR + "/tradecache/"+daily_file
         
@@ -207,7 +208,7 @@ class Trade_Offline_Streamer(Thread):
                 #pokud je start_time < trade < end_time 
                     #odesíláme do queue
                     #jinak pass
-                with open (file_path, 'rb') as fp:
+                with gzip.open (file_path, 'rb') as fp:
                     tradesResponse = pickle.load(fp)
                     print("Loading from Trade CACHE", file_path)
             #daily file doesnt exist
@@ -223,7 +224,7 @@ class Trade_Offline_Streamer(Thread):
                     #ic(datetime.now().astimezone(zoneNY))
                     #ic(day.open, day.close)
                 else:
-                    with open(file_path, 'wb') as fp:
+                    with gzip.open(file_path, 'wb') as fp:
                         pickle.dump(tradesResponse, fp)
 
             #zde už máme daily data

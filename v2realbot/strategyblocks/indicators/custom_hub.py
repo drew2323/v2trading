@@ -7,6 +7,7 @@ from traceback import format_exc
 import importlib
 import v2realbot.strategyblocks.indicators.custom as ci
 from v2realbot.strategyblocks.indicators.helpers import find_index_optimized
+import numpy as np
 
 
 def populate_dynamic_custom_indicator(data, state: StrategyState, name):
@@ -172,6 +173,9 @@ def populate_dynamic_custom_indicator(data, state: StrategyState, name):
                     ret_val = dict(zip(returns, ret_val))
                 #pokud je to neco jineho nez dict (float,int..) jde o puvodni single output udelame z toho dict s hlavnim jmenem as key
                 elif not isinstance(ret_val, dict):
+                    #checkneme jestli nejde o numpy typ (napr. posledni clen z numpy), prevedem na python basic typ 
+                    if isinstance(ret_val, (np.ndarray, np.generic)):
+                        ret_val = ret_val.item()
                     ret_val = {name: ret_val}
                 #v ostatnich pripadech predpokladame jiz dict
                     

@@ -14,7 +14,7 @@ from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeSt
 from datetime import datetime
 from v2realbot.loader.trade_offline_streamer import Trade_Offline_Streamer
 from threading import Thread, current_thread, Event, enumerate
-from v2realbot.config import STRATVARS_UNCHANGEABLES, ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, ACCOUNT1_LIVE_API_KEY, ACCOUNT1_LIVE_SECRET_KEY, DATA_DIR,BT_FILL_CONS_TRADES_REQUIRED,BT_FILL_LOG_SURROUNDING_TRADES,BT_FILL_CONDITION_BUY_LIMIT,BT_FILL_CONDITION_SELL_LIMIT, GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN, MEDIA_DIRECTORY, RUNNER_DETAIL_DIRECTORY
+from v2realbot.config import STRATVARS_UNCHANGEABLES, ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, ACCOUNT1_LIVE_API_KEY, ACCOUNT1_LIVE_SECRET_KEY, DATA_DIR,BT_FILL_CONS_TRADES_REQUIRED,BT_FILL_LOG_SURROUNDING_TRADES,BT_FILL_CONDITION_BUY_LIMIT,BT_FILL_CONDITION_SELL_LIMIT, GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN, MEDIA_DIRECTORY, RUNNER_DETAIL_DIRECTORY, OFFLINE_MODE
 import importlib
 from alpaca.trading.requests import GetCalendarRequest
 from alpaca.trading.client import TradingClient
@@ -1609,6 +1609,11 @@ def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator, save: bool =
 
 
             #print("Done", state.indicators[indicator.name])
+
+            #print pro multioutput
+            for ind_name in returns:
+                print("Done",ind_name, state.indicators[indicator.name])                
+
             output_dict = {}
             new_inds[indicator.name] = state.indicators[indicator.name]
             
@@ -1664,7 +1669,7 @@ def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator, save: bool =
                 except Exception as e:
                     print(str(e) + format_exc())
 
-            #print("Done", state.indicators[indicator.name])
+            #print("Done", state.cbar_indicators[indicator.name])
             output_dict = {}
             new_tick_inds[indicator.name] = state.cbar_indicators[indicator.name]
             
@@ -1884,8 +1889,10 @@ def get_alpaca_history_bars(symbol: str, datetime_object_from: datetime, datetim
         return 0, result
     except Exception as e:
         print(str(e) + format_exc())
-        return -2, str(e)
-
+        if OFFLINE_MODE:
+            print("OFFLINE MODE ENABLED")
+            return 0, []
+        return -2, str(e)    
 # change_archived_runner
 # delete_archived_runner_details
 

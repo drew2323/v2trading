@@ -271,6 +271,9 @@ class Trade_Offline_Streamer(Thread):
                     #tmp = to_datetime(t['t'], utc=True).timestamp()
                     
 
+                    #obcas se v response objevoval None radek
+                    if t is None:
+                        continue
 
                     datum = to_datetime(t['t'], utc=True)
 

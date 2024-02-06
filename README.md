@@ -10,6 +10,8 @@ Custom-built algorithmic trading platform for research, backtesting and automate
 
 - **Custom Data Aggregation:** The platform includes a data aggregator that allows for custom aggregation rules. This flexibility supports a variety of data analysis approaches, including non-time based bars and other unique criteria.
 
+- **Indicators** Contains inbuild [tulipy](https://tulipindicators.org/list) [ta-lib](https://ta-lib.github.io/ta-lib-python/) and templates for custom build multioutputs stateful indicators.
+
 - **Machine Learning Integration:** Recently, the platform has expanded to incorporate machine learning capabilities. This includes modules for both training and inference, supporting the complete ML lifecycle. These ML models can be utilized within trading strategies for classification and exploiting statistical advantages.
 
 **Technology Stack**
@@ -23,9 +25,29 @@ Contributions to this project are welcome. Whether it's improving the frontend, 
 
 This repository represents a sophisticated and evolving tool for algorithmic traders, offering precision, speed, and a level of customization that is unparalleled in open-source systems. Join us in shaping the future of algorithmic trading.
 
-**Screenshots**
+<p align="center">
+  Main screen with entry/exit points and stoploss lines<br>
+  <img width="700" alt="Main screen with entry/exit points and stoploss lines" src="https://github.com/drew2323/v2trading/assets/28433232/751d5b0e-ef64-453f-8e76-89a39db679c5">
+</p>
 
-<img width="700" alt="image" src="https://github.com/drew2323/v2trading/assets/28433232/751d5b0e-ef64-453f-8e76-89a39db679c5">
+<p align="center">
+  Main screen with tick based indicators<br>
+  <img width="700" alt="Main screen with tick based indicators" src="https://github.com/drew2323/v2trading/assets/28433232/4bf6128c-9b36-4e88-9da1-5a33319976a1">
+</p>
 
-<img width="700" alt="image" src="https://github.com/drew2323/v2trading/assets/28433232/4bf6128c-9b36-4e88-9da1-5a33319976a1">
+<p align="center">
+  Indicator editor<br>
+  <img width="700" alt="Indicator editor" src="https://github.com/drew2323/v2trading/assets/28433232/cc417393-7b88-4eea-afcb-3a00402d0a8d">
+</p>
+
+<p align="center">
+  Strategy editor<br>
+  <img width="700" alt="Strategy editor" src="https://github.com/drew2323/v2trading/assets/28433232/74f67e7a-1efc-4f63-b763-7827b2337b6a">
+</p>
+
+<p align="center">
+  Strategy analytical tools<br>
+  <img width="700" alt="Strategy analytical tools" src="https://github.com/drew2323/v2trading/assets/28433232/4bf8b3c3-e430-4250-831a-e5876bb6b743">
+</p>
+
 

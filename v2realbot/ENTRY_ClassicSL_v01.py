@@ -3,7 +3,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from v2realbot.strategy.base import StrategyState
 from v2realbot.strategy.StrategyOrderLimitVykladaciNormalizedMYSELL import StrategyOrderLimitVykladaciNormalizedMYSELL
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account
-from v2realbot.utils.utils import zoneNY, print
+from v2realbot.utils.utils import zoneNY, print, fetch_calendar_data
 from v2realbot.utils.historicals import get_historical_bars
 from datetime import datetime, timedelta
 from rich import print as printanyway
@@ -16,7 +16,6 @@ from v2realbot.strategyblocks.newtrade.signals import signal_search
 from v2realbot.strategyblocks.activetrade.activetrade_hub import manage_active_trade
 from v2realbot.strategyblocks.inits.init_indicators import initialize_dynamic_indicators
 from v2realbot.strategyblocks.inits.init_directives import intialize_directive_conditions
-from alpaca.trading.requests import GetCalendarRequest
 from alpaca.trading.client import TradingClient
 from v2realbot.config import ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, DATA_DIR, OFFLINE_MODE
 from alpaca.trading.models import Calendar
@@ -167,10 +166,13 @@ def init(state: StrategyState):
     today = time_to.date()
     several_days_ago = today - timedelta(days=60)
     #printanyway(f"{today=}",f"{several_days_ago=}")
-    clientTrading = TradingClient(ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, raw_data=False)
+    #clientTrading = TradingClient(ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, raw_data=False)
     #get all market days from here to 40days ago
-    calendar_request = GetCalendarRequest(start=several_days_ago,end=today)
-    cal_dates = clientTrading.get_calendar(calendar_request)
+
+    #calendar_request = GetCalendarRequest(start=several_days_ago,end=today)
+
+    cal_dates = fetch_calendar_data(several_days_ago, today)
+    #cal_dates = clientTrading.get_calendar(calendar_request)
 
     #find the first market day - 40days ago
     #history_datetime_from = zoneNY.localize(cal_dates[0].open)

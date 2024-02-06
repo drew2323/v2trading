@@ -1,14 +1,13 @@
 from v2realbot.loader.aggregator import TradeAggregator, TradeAggregator2List, TradeAggregator2Queue
 #from v2realbot.loader.cacher import get_cached_agg_data
 from alpaca.trading.requests import GetCalendarRequest
-from alpaca.trading.client import TradingClient
 from alpaca.data.live import StockDataStream
 from v2realbot.config import ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, DATA_DIR, OFFLINE_MODE
 from alpaca.data.enums import DataFeed
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockLatestQuoteRequest, StockBarsRequest, StockTradesRequest
 from threading import Thread, current_thread
-from v2realbot.utils.utils import parse_alpaca_timestamp, ltp, zoneNY
+from v2realbot.utils.utils import parse_alpaca_timestamp, ltp, zoneNY, send_to_telegram, fetch_calendar_data
 from v2realbot.utils.tlog import tlog
 from datetime import datetime, timedelta, date
 from threading import Thread
@@ -26,13 +25,14 @@ from tqdm import tqdm
 import time
 from traceback import format_exc
 from collections import defaultdict
+import requests
 """
     Trade offline data streamer, based on Alpaca historical data.
 """
 class Trade_Offline_Streamer(Thread):
     #pro BT se pripojujeme vzdy k primarnimu uctu - pouze tahame historicka data + calendar
     client =  StockHistoricalDataClient(ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, raw_data=True)
-    clientTrading = TradingClient(ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, raw_data=False)
+    #clientTrading = TradingClient(ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, raw_data=False)
     def __init__(self, time_from: datetime, time_to: datetime, btdata) -> None:
        # Call the Thread class's init function
        Thread.__init__(self)
@@ -63,6 +63,35 @@ class Trade_Offline_Streamer(Thread):
 
     def stop(self):
         pass
+
+    def fetch_stock_trades(self, symbol, start, end, max_retries=5, backoff_factor=1):
+        """
+        Attempts to fetch stock trades with exponential backoff. Raises an exception if all retries fail.
+
+        :param symbol: The stock symbol to fetch trades for.
+        :param start: The start time for the trade data.
+        :param end: The end time for the trade data.
+        :param max_retries: Maximum number of retries.
+        :param backoff_factor: Factor to determine the next sleep time.
+        :return: TradesResponse object.
+        :raises: ConnectionError if all retries fail.
+        """
+        stockTradeRequest = StockTradesRequest(symbol_or_symbols=symbol, start=start, end=end)
+        last_exception = None
+
+        for attempt in range(max_retries):
+            try:
+                tradesResponse = self.client.get_stock_trades(stockTradeRequest)
+                print("Remote Fetch DAY DATA Complete", start, end)
+                return tradesResponse
+            except Exception as e:
+                print(f"Attempt {attempt + 1} failed: {e}")
+                last_exception = e
+                time.sleep(backoff_factor * (2 ** attempt))
+
+        print("All attempts to fetch data failed.")
+        send_to_telegram(f"Failed to fetch stock trades after {max_retries} retries. Last exception: {last_exception}")
+        raise ConnectionError(f"Failed to fetch stock trades after {max_retries} retries. Last exception: {last_exception}")
 
    # Override the run() function of Thread class
    #odebrano async
@@ -114,15 +143,9 @@ class Trade_Offline_Streamer(Thread):
             bt_day = Calendar(date=den,open="9:30",close="16:00")
             cal_dates = [bt_day]
         else:
-            calendar_request = GetCalendarRequest(start=self.time_from,end=self.time_to)
-
-            #toto zatim workaround - dat do retry funkce a obecne vymyslet exception handling, abych byl notifikovan a bylo videt okamzite v logu a na frontendu
-            try:
-                cal_dates = self.clientTrading.get_calendar(calendar_request)
-            except Exception as e:
-                print("CHYBA - retrying in 4s: " + str(e) + format_exc())
-                time.sleep(5)
-                cal_dates = self.clientTrading.get_calendar(calendar_request)
+            start_date = self.time_from  # Assuming this is your start date
+            end_date = self.time_to  # Assuming this is your end date
+            cal_dates = fetch_calendar_data(start_date, end_date)
 
             #zatim podpora pouze main session
         
@@ -213,9 +236,17 @@ class Trade_Offline_Streamer(Thread):
                     print("Loading from Trade CACHE", file_path)
             #daily file doesnt exist
             else:
-                # TODO refactor pro zpracovani vice symbolu najednou(multithreads), nyni predpokladame pouze 1 
-                stockTradeRequest = StockTradesRequest(symbol_or_symbols=symbpole[0], start=day.open,end=day.close)
-                tradesResponse = self.client.get_stock_trades(stockTradeRequest)
+
+                #implement retry mechanism
+                symbol = symbpole[0]  # Assuming symbpole[0] is your target symbol
+                day_open = day.open  # Assuming day.open is the start time
+                day_close = day.close  # Assuming day.close is the end time
+
+                tradesResponse = self.fetch_stock_trades(symbol, day_open, day_close)
+
+                # # TODO refactor pro zpracovani vice symbolu najednou(multithreads), nyni predpokladame pouze 1 
+                # stockTradeRequest = StockTradesRequest(symbol_or_symbols=symbpole[0], start=day.open,end=day.close)
+                # tradesResponse = self.client.get_stock_trades(stockTradeRequest)
                 print("Remote Fetch DAY DATA Complete", day.open, day.close)
 
                 #pokud jde o dnešní den a nebyl konec trhu tak cache neukládáme

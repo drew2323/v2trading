@@ -3,7 +3,7 @@ from alpaca.data.requests import StockLatestQuoteRequest, StockBarsRequest, Stoc
 from alpaca.data import Quote, Trade, Snapshot, Bar
 from alpaca.data.models import BarSet, QuoteSet, TradeSet
 from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
-from v2realbot.utils.utils import zoneNY
+from v2realbot.utils.utils import zoneNY, send_to_telegram
 from v2realbot.config import ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY
 from alpaca.data.enums import DataFeed
 from datetime import datetime, timedelta
@@ -12,6 +12,7 @@ from rich import print
 from collections import defaultdict
 from pandas import to_datetime
 from msgpack.ext import Timestamp
+import time
 
 def convert_historical_bars(daily_bars):
   """Converts a list of daily bars into a dictionary with the specified keys.
@@ -80,15 +81,48 @@ def get_todays_open():
     pass
 
 ##vrati historicke bary v nasem formatu
-def get_historical_bars(symbol: str, time_from: datetime, time_to: datetime, timeframe: TimeFrame):
-    stock_client = StockHistoricalDataClient(ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, raw_data=True)
-    # snapshotRequest = StockSnapshotRequest(symbol_or_symbols=[symbol], feed=DataFeed.SIP)
-    # snapshotResponse = stock_client.get_stock_snapshot(snapshotRequest)
-    # print("snapshot", snapshotResponse)
+# def get_historical_bars(symbol: str, time_from: datetime, time_to: datetime, timeframe: TimeFrame):
+#     stock_client = StockHistoricalDataClient(ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, raw_data=True)
+#     # snapshotRequest = StockSnapshotRequest(symbol_or_symbols=[symbol], feed=DataFeed.SIP)
+#     # snapshotResponse = stock_client.get_stock_snapshot(snapshotRequest)
+#     # print("snapshot", snapshotResponse)
 
-    bar_request = StockBarsRequest(symbol_or_symbols=symbol,timeframe=timeframe, start=time_from, end=time_to, feed=DataFeed.SIP)
-    bars: BarSet = stock_client.get_stock_bars(bar_request)
-    #print("puvodni bars", bars["BAC"])
-    if bars[symbol][0] is None:
-       return None
-    return convert_historical_bars(bars[symbol])
+#     bar_request = StockBarsRequest(symbol_or_symbols=symbol,timeframe=timeframe, start=time_from, end=time_to, feed=DataFeed.SIP)
+#     bars: BarSet = stock_client.get_stock_bars(bar_request)
+#     #print("puvodni bars", bars["BAC"])
+#     if bars[symbol][0] is None:
+#        return None
+#     return convert_historical_bars(bars[symbol])
+
+def get_historical_bars(symbol: str, time_from: datetime, time_to: datetime, timeframe: TimeFrame, max_retries=5, backoff_factor=1):
+    """
+    Fetches historical bar data with retries on failure.
+
+    :param symbol: Stock symbol.
+    :param time_from: Start time for the data.
+    :param time_to: End time for the data.
+    :param timeframe: Timeframe for the data.
+    :param max_retries: Maximum number of retries.
+    :param backoff_factor: Factor to determine the next sleep time.
+    :return: Converted historical bar data.
+    :raises: Exception if all retries fail.
+    """
+    stock_client = StockHistoricalDataClient(ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, raw_data=True)
+    bar_request = StockBarsRequest(symbol_or_symbols=symbol, timeframe=timeframe, start=time_from, end=time_to, feed=DataFeed.SIP)
+    
+    last_exception = None
+
+    for attempt in range(max_retries):
+        try:
+            bars = stock_client.get_stock_bars(bar_request)
+            if bars[symbol][0] is None:
+                return None
+            return convert_historical_bars(bars[symbol])
+        except Exception as e:
+            print(f"Load historical bars Attempt {attempt + 1} failed: {e}")
+            last_exception = e
+            time.sleep(backoff_factor * (2 ** attempt))
+
+    print("All attempts to fetch historical bar data failed.")
+    send_to_telegram(f"Failed to fetch historical bar data after {max_retries} retries. Last exception: {last_exception}")
+    raise Exception(f"Failed to fetch historical bar data after {max_retries} retries. Last exception: {last_exception}")

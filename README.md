@@ -22,3 +22,10 @@ While the platform is fully functional and growing, ongoing development is plann
 Contributions to this project are welcome. Whether it's improving the frontend, enhancing the backend capabilities, or experimenting with new trading strategies and machine learning models, your input can help take this platform to the next level.
 
 This repository represents a sophisticated and evolving tool for algorithmic traders, offering precision, speed, and a level of customization that is unparalleled in open-source systems. Join us in shaping the future of algorithmic trading.
+
+**Screenshots**
+
+<img width="700" alt="image" src="https://github.com/drew2323/v2trading/assets/28433232/751d5b0e-ef64-453f-8e76-89a39db679c5">
+
+<img width="700" alt="image" src="https://github.com/drew2323/v2trading/assets/28433232/4bf6128c-9b36-4e88-9da1-5a33319976a1">
+

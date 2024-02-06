@@ -13,7 +13,7 @@ from v2realbot.common.model import StrategyInstance, Runner, RunArchive, RunArch
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
 from typing import List
 import tomli
-from v2realbot.config import DATA_DIR, QUIET_MODE,NORMALIZED_TICK_BASE_PRICE
+from v2realbot.config import DATA_DIR, QUIET_MODE,NORMALIZED_TICK_BASE_PRICE,ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY
 import requests
 from uuid import UUID
 #from decimal import Decimal
@@ -26,6 +26,42 @@ import pandas as pd
 from collections import deque
 import socket
 import numpy as np
+from alpaca.trading.requests import GetCalendarRequest
+from alpaca.trading.client import TradingClient
+import time as timepkg
+
+#Alpaca Calendar wrapper with retry
+def fetch_calendar_data(start, end, max_retries=5, backoff_factor=1):
+    """
+    Attempts to fetch calendar data with exponential backoff. Raises an exception if all retries fail.
+
+    TODO sem pridat local caching mechanism
+
+    :param client: Alpaca API client instance.
+    :param start: The start date for the calendar data.
+    :param end: The end date for the calendar data.
+    :param max_retries: Maximum number of retries.
+    :param backoff_factor: Factor to determine the next sleep time.
+    :return: Calendar data.
+    :raises: ConnectionError if all retries fail.
+    """
+    clientTrading = TradingClient(ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, raw_data=False)
+    calendar_request = GetCalendarRequest(start=start, end=end)
+    last_exception = None
+
+    for attempt in range(max_retries):
+        try:
+            cal_dates = clientTrading.get_calendar(calendar_request)
+            richprint("Calendar data fetch successful", start, end)
+            return cal_dates
+        except Exception as e:
+            richprint(f"Attempt {attempt + 1} failed: {e}")
+            last_exception = e
+            timepkg.sleep(backoff_factor * (2 ** attempt))
+
+    richprint("****All attempts to fetch calendar data failed.****")
+    send_to_telegram(f"FETCH_CALENDER_DATA_FAILED. {last_exception} BACKEST STOPPED" )
+    raise ConnectionError(f"Failed to fetch calendar data after {max_retries} retries. Last exception: {last_exception}")
 
 def concatenate_weekdays(weekday_filter):
     # Mapping of weekdays where 0 is Monday and 6 is Sunday

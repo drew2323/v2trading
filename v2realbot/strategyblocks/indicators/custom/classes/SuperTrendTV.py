@@ -10,6 +10,7 @@ class SuperTrendTV(IndicatorBase):
     See conversation: [Indicator Plugin Builder](https://chat.openai.com/g/g-aCKuSmbIe-indicator-plugin-builder/c/1ad650dc-05f1-4cf6-b936-772c0ea86ffa)
     inspirace https://www.tradingview.com/script/r6dAP7yi/
     """
+    
     def __init__(self, atr_period=10, atr_multiplier=3.0, state=None):
         super().__init__(state)
         self.atr_period = atr_period
@@ -19,7 +20,7 @@ class SuperTrendTV(IndicatorBase):
         self.closes = deque(maxlen=atr_period)
         self.up = None
         self.down = None
-        self.trend = 1
+        self.trend = 0
 
     def next(self, high, low, close):
         self.highs.append(high[-1])
@@ -44,7 +45,14 @@ class SuperTrendTV(IndicatorBase):
             self.up = max(up, self.up) if close[-2] > self.up else up
             self.down = min(dn, self.down) if close[-2] < self.down else dn
 
-        previous_trend = self.trend
-        self.trend = 1 if (self.trend == -1 and close[-1] > self.down) else -1 if (self.trend == 1 and close[-1] < self.up) else self.trend
+        # Update trend for the first time if it's still at initial state
+        if self.trend == 0:
+            self.trend = 1 if close[-1] > self.down else -1 if close[-1] < self.up else 0
+        else:
+            # Update trend based on previous values if it's not at initial state
+            self.trend = 1 if (self.trend == -1 and close[-1] > self.down) else -1 if (self.trend == 1 and close[-1] < self.up) else self.trend
+
+        #previous_trend = self.trend
+        #self.trend = 1 if (self.trend == -1 and close[-1] > self.down) else -1 if (self.trend == 1 and close[-1] < self.up) else self.trend
 
         return [self.up, self.down, self.trend]

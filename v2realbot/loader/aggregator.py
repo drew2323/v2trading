@@ -48,7 +48,7 @@ class TradeAggregator:
         self.excludes = excludes
         self.skip_cache = skip_cache
 
-        if mintick >= resolution:
+        if resolution > 0 and mintick >= resolution:
             print("Mintick musi byt mensi nez resolution")
             raise Exception
 
@@ -320,13 +320,13 @@ class TradeAggregator:
             #TODO: do budoucna vymyslet, kdyz bude mene tradu, tak to radit vzdy do spravneho intervalu
             #zarovname time prvniho baru podle timeframu kam patří (např. 5, 10, 15 ...) (ROUND)
             if self.align == StartBarAlign.ROUND and self.bar_start == 0:
-                t = datetime.fromtimestamp(data['t'])
+                t = datetime.fromtimestamp(data['t'], tz=zoneUTC)
                 t = t - timedelta(seconds=t.second % self.resolution,microseconds=t.microsecond)
                 self.bar_start = datetime.timestamp(t)
             #nebo pouzijeme datum tradu zaokrouhlene na vteriny (RANDOM)
             else:
                 #ulozime si jeho timestamp (odtum pocitame resolution)
-                t = datetime.fromtimestamp(int(data['t']))
+                t = datetime.fromtimestamp(int(data['t']), tz=zoneUTC)
                 #timestamp
                 self.bar_start = int(data['t'])
             
@@ -376,7 +376,7 @@ class TradeAggregator:
             if self.mintick != 0 and self.lastBarConfirmed:
                #d zacatku noveho baru musi ubehnout x sekund nez posilame updazte
                 #pocatek noveho baru + Xs  musi byt vetsi nez aktualni trade              
-                if (self.newBar['time'] + timedelta(seconds=self.mintick)) > datetime.fromtimestamp(data['t']):
+                if (self.newBar['time'] + timedelta(seconds=self.mintick)) > datetime.fromtimestamp(data['t'], tz=zoneUTC):
                     #print("waiting for mintick")
                     return []
                 else:
@@ -756,8 +756,14 @@ class TradeAggregator:
         Ve strategii je třeba počítat s tím, že open v nepotvrzeném baru není finální.
         """""
 
+        if self.resolution < 0:  # Treat as percentage
+            reference_price = self.lastConfirmedBar['close'] if self.lastConfirmedBar is not None else float(data['p'])
+            brick_size = abs(self.resolution) * reference_price / 100.0
+        else:  # Treat as absolute value pocet ticku
+            brick_size = self.resolution
+
         #pocet ticku např. 10ticků, případně pak na procenta
-        brick_size = self.resolution
+        #brick_size = self.resolution
         #potvrzene pripravene k vraceni
         confirmedBars = []
         #potvrdi existujici a nastavi k vraceni

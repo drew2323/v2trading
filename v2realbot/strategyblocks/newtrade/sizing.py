@@ -9,6 +9,7 @@ from traceback import format_exc
 from v2realbot.strategyblocks.newtrade.conditions import go_conditions_met, common_go_preconditions_check
 from v2realbot.strategyblocks.indicators.helpers import get_source_series
 import numpy as np
+from scipy.interpolate import interp1d
 
 def get_size(state: StrategyState, data, signaloptions: dict, direction: TradeDirection):
     return state.vars.chunk * get_multiplier(state, signaloptions, direction)
@@ -133,8 +134,17 @@ def get_multiplier(state: StrategyState, data, signaloptions: dict, direction: T
             state.ilog(lvl=1,e=f"SIZER - Pattern source  and size axis must be set", options=str(options))
             return multiplier
 
-        state.ilog(lvl=1,e=f"SIZER - Input value of {pattern_source} value {input_value}", options=options, time=state.time)
-        multiplier = np.interp(input_value, pattern_source_axis, pattern_size_axis)
+        state.ilog(lvl=1,e=f"SIZER - Input value of {pattern_source} value {input_value}", options=options, time=state.time)   
+
+        #puvodni jednoducha interpolace
+        #multiplier = np.interp(input_value, pattern_source_axis, pattern_size_axis)
+
+        # Updated interpolation function for smoother results
+        # Create the interpolation function
+        f = interp1d(pattern_source_axis, pattern_size_axis, kind='cubic')
+
+        # Interpolate the input value using the interpolation function
+        multiplier = f(input_value)
         state.ilog(lvl=1,e=f"SIZER - Interpolated value  {multiplier}", input_value=input_value, pattern_source_axis=pattern_source_axis, pattern_size_axis=pattern_size_axis, options=options, time=state.time)
     
     if multiplier > 1 or multiplier <= 0:

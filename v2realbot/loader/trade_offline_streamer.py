@@ -90,8 +90,8 @@ class Trade_Offline_Streamer(Thread):
                 time.sleep(backoff_factor * (2 ** attempt))
 
         print("All attempts to fetch data failed.")
-        send_to_telegram(f"Failed to fetch stock trades after {max_retries} retries. Last exception: {last_exception}")
-        raise ConnectionError(f"Failed to fetch stock trades after {max_retries} retries. Last exception: {last_exception}")
+        send_to_telegram(f"Failed to fetch stock trades after {max_retries} retries. Last exception: {str(last_exception)} and {format_exc()}")
+        raise ConnectionError(f"Failed to fetch stock trades after {max_retries} retries. Last exception: {str(last_exception)} and {format_exc()}")
 
    # Override the run() function of Thread class
    #odebrano async

@@ -51,6 +51,9 @@ def convert_historical_bars(daily_bars):
   for i in range(len(daily_bars)):
     bar = daily_bars[i]
 
+    if bar is None:
+       continue
+
     # Calculate the HLCC4 indicator
     hlcc4 = (bar['h'] + bar['l'] + bar['c'] + bar['o']) / 4
     datum = to_datetime(bar['t'], utc=True)

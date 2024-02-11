@@ -24,7 +24,6 @@ from tinydb import TinyDB, Query, where
 from tinydb.operations import set
 import orjson
 import numpy as np
-from numpy import ndarray
 from rich import print
 import pandas as pd
 from traceback import format_exc
@@ -37,10 +36,10 @@ from v2realbot.strategyblocks.inits.init_indicators import initialize_dynamic_in
 from v2realbot.strategyblocks.indicators.indicators_hub import populate_dynamic_indicators
 from v2realbot.interfaces.backtest_interface import BacktestInterface
 import os
-from v2realbot.reporting.metricstoolsimage import generate_trading_report_image
-import msgpack
+import v2realbot.reporting.metricstoolsimage as mt
 import gzip
 import os
+import msgpack
 #import gc
 #from pyinstrument import Profiler
 #adding lock to ensure thread safety of TinyDB (in future will be migrated to proper db)
@@ -349,13 +348,15 @@ def capsule(target: object, db: object, inter_batch_params: dict = None):
                 db.runners.remove(i)
                 #vytvoreni report image pro RUNNER
                 try:
-                    res, val = generate_trading_report_image(runner_ids=[str(i.id)])
+                    res, val = mt.generate_trading_report_image(runner_ids=[str(i.id)])
                     if res == 0:
                         print("DAILY REPORT IMAGE CREATED")
                     else:
                         print(f"Daily report ERROR - {val}")
                 except Exception as e:
-                    print("Nepodarilo se vytvorit report image", str(e)+format_exc())       
+                    err_msg = "Nepodarilo se vytvorit daily report image" + str(e)+format_exc()
+                    send_to_telegram(err_msg)
+                    print(err_msg)     
         target.release()
     print("Runner STOPPED")
 
@@ -567,14 +568,16 @@ def batch_run_manager(id: UUID, runReq: RunRequest, rundays: list[RunDay]):
     runReq = None
     #vytvoreni report image pro batch
     try:
-        res, val = generate_trading_report_image(batch_id=batch_id)
+        res, val = mt.generate_trading_report_image(batch_id=batch_id)
         if res == 0:
             print("BATCH REPORT CREATED")
         else:
             print(f"BATCH REPORT ERROR - {val}")
 
     except Exception as e:
-        print("Nepodarilo se vytvorit report image", str(e)+format_exc())       
+        err_msg = "Nepodarilo se vytvorit batch report image" + str(e)+format_exc()
+        send_to_telegram(err_msg)
+        print(err_msg)       
 
     #gc.collect()
 
@@ -915,7 +918,7 @@ def archive_runner(runner: Runner, strat: StrategyInstance, inter_batch_params: 
         #pole indicatoru, kazdy ma svoji casovou osu time
         flattened_indicators_list = []
         for key, value in strat.state.indicators.items():
-                if isinstance(value, ndarray):
+                if isinstance(value, np.ndarray):
                     #print("is numpy", key,value)
                     flattened_indicators[key]= value.tolist()
                     #print("changed numpy:",value.tolist())
@@ -925,7 +928,7 @@ def archive_runner(runner: Runner, strat: StrategyInstance, inter_batch_params: 
         flattened_indicators_list.append(flattened_indicators)
         flattened_indicators = {}
         for key, value in strat.state.cbar_indicators.items():
-                if isinstance(value, ndarray):
+                if isinstance(value, np.ndarray):
                     #print("is numpy", key,value)
                     flattened_indicators[key]= value.tolist()
                     #print("changed numpy:",value.tolist())

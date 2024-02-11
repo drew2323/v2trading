@@ -13,6 +13,7 @@ from collections import defaultdict
 from pandas import to_datetime
 from msgpack.ext import Timestamp
 import time
+from traceback import format_exc
 
 def convert_historical_bars(daily_bars):
   """Converts a list of daily bars into a dictionary with the specified keys.
@@ -124,5 +125,5 @@ def get_historical_bars(symbol: str, time_from: datetime, time_to: datetime, tim
             time.sleep(backoff_factor * (2 ** attempt))
 
     print("All attempts to fetch historical bar data failed.")
-    send_to_telegram(f"Failed to fetch historical bar data after {max_retries} retries. Last exception: {last_exception}")
-    raise Exception(f"Failed to fetch historical bar data after {max_retries} retries. Last exception: {last_exception}")
+    send_to_telegram(f"Failed to fetch historical bar data after {max_retries} retries. Last exception: {str(last_exception)} and {format_exc()}")
+    raise Exception(f"Failed to fetch historical bar data after {max_retries} retries. Last exception: {str(last_exception)} and {format_exc()}")

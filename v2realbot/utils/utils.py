@@ -29,6 +29,7 @@ import numpy as np
 from alpaca.trading.requests import GetCalendarRequest
 from alpaca.trading.client import TradingClient
 import time as timepkg
+from traceback import format_exc
 
 #Alpaca Calendar wrapper with retry
 def fetch_calendar_data(start, end, max_retries=5, backoff_factor=1):
@@ -60,8 +61,8 @@ def fetch_calendar_data(start, end, max_retries=5, backoff_factor=1):
             timepkg.sleep(backoff_factor * (2 ** attempt))
 
     richprint("****All attempts to fetch calendar data failed.****")
-    send_to_telegram(f"FETCH_CALENDER_DATA_FAILED. {last_exception} BACKEST STOPPED" )
-    raise ConnectionError(f"Failed to fetch calendar data after {max_retries} retries. Last exception: {last_exception}")
+    send_to_telegram(f"FETCH_CALENDER_DATA_FAILED. {str(last_exception)} and {format_exc()} BACKEST STOPPED" )
+    raise ConnectionError(f"Failed to fetch calendar data after {max_retries} retries. Last exception: {str(last_exception)} and {format_exc()}")
 
 def concatenate_weekdays(weekday_filter):
     # Mapping of weekdays where 0 is Monday and 6 is Sunday

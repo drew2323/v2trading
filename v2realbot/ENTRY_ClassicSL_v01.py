@@ -3,7 +3,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from v2realbot.strategy.base import StrategyState
 from v2realbot.strategy.StrategyOrderLimitVykladaciNormalizedMYSELL import StrategyOrderLimitVykladaciNormalizedMYSELL
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account
-from v2realbot.utils.utils import zoneNY, print, fetch_calendar_data
+from v2realbot.utils.utils import zoneNY, print, fetch_calendar_data, send_to_telegram
 from v2realbot.utils.historicals import get_historical_bars
 from datetime import datetime, timedelta
 from rich import print as printanyway
@@ -199,7 +199,12 @@ def init(state: StrategyState):
 
     #NOTE zatim pridano takto do baru dalsi indikatory
     #BUDE PREDELANO - v rámci custom rozliseni a static indikátoru
-
+    if state.dailyBars is None:
+        print("Nepodařilo se načíst denní bary")
+        err_msg = f"Nepodařilo se načíst denní bary (get_historical_bars) pro {state.symbol} od {history_datetime_from} do {history_datetime_to} ve strat.init. Probably wrong symbol?"
+        send_to_telegram(err_msg)
+        raise Exception(err_msg)
+    
     #RSI vraci pouze pro vsechny + prepend with zeros nepocita prvnich N (dle rsi length)
     rsi_calculated = rsi(state.dailyBars["vwap"], 14).tolist()
     num_zeros_to_prepend = len(state.dailyBars["vwap"]) - len(rsi_calculated)

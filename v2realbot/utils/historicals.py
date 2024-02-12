@@ -123,7 +123,7 @@ def get_historical_bars(symbol: str, time_from: datetime, time_to: datetime, tim
                 return None
             return convert_historical_bars(bars[symbol])
         except Exception as e:
-            print(f"Load historical bars Attempt {attempt + 1} failed: {e}")
+            print(f"Load historical bars Attempt {attempt + 1} failed: {str(e)} and {format_exc()}")
             last_exception = e
             time.sleep(backoff_factor * (2 ** attempt))
 

@@ -1,12 +1,15 @@
-from uuid import UUID
+from uuid import UUID, uuid4
 from alpaca.trading.enums import OrderSide, OrderStatus, TradeEvent,OrderType
 #from utils import AttributeDict
 from rich import print
 from typing import Any, Optional, List, Union
 from datetime import datetime, date
-from pydantic import BaseModel
-from v2realbot.enums.enums import Mode, Account
+from pydantic import BaseModel, Field
+from v2realbot.enums.enums import Mode, Account, SchedulerStatus, Moddus
 from alpaca.data.enums import Exchange
+
+
+
 
 #models for server side datatables
 # Model for individual column data
@@ -134,7 +137,33 @@ class RunRequest(BaseModel):
     cash: int = 100000
     skip_cache: Optional[bool] = False
 
-
+#Trida, která je nadstavbou runrequestu a pouzivame ji v scheduleru, je zde navic jen par polí
+class RunManagerRecord(BaseModel):
+    moddus: Moddus
+    id: UUID = Field(default_factory=uuid4) 
+    strat_id: UUID
+    symbol: Optional[str] = None
+    account: Account
+    mode: Mode
+    note: Optional[str] = None
+    ilog_save: bool = False
+    bt_from: datetime = None
+    bt_to: datetime = None
+    #weekdays filter
+    #pokud je uvedeny filtrujeme tyto dny
+    weekdays_filter: Optional[list] = None #list of strings 0-6 representing days to run
+    #GENERATED ID v ramci runu, vaze vsechny runnery v batchovem behu
+    batch_id: Optional[str] = None
+    testlist_id: Optional[str] = None
+    start_time: str #time (HH:MM) that start function is called
+    stop_time: Optional[str] #time  (HH:MM) that stop function is called
+    status: SchedulerStatus
+    last_processed: Optional[datetime]
+    history: Optional[str] = None
+    valid_from: Optional[datetime] = None # US East time zone daetime
+    valid_to: Optional[datetime] = None # US East time zone daetime
+    runner_id: Optional[UUID] = None #last runner_id from scheduler after stratefy is started
+    strat_running: Optional[bool] = None #automatically updated field based on status of runner_id above, it is added by row_to_RunManagerRecord
 class RunnerView(BaseModel):
     id: UUID
     strat_id: UUID

@@ -80,7 +80,7 @@ def get_all_stratins():
     else:
         return (0, [])
      
-def get_stratin(id: UUID):
+def get_stratin(id: UUID) -> List[StrategyInstance]:
     for i in db.stratins:
         if str(i.id) == str(id):
             return (0, i)
@@ -105,7 +105,7 @@ def create_stratin(si: StrategyInstance):
     if res < 0:
         return (-1, "None")
     si.id = uuid4()
-    print(si)
+    #print(si)
     db.stratins.append(si)
     db.save()
     #print(db.stratins)
@@ -242,13 +242,14 @@ def pause_runner(id: UUID):
             return (0, "paused runner " + str(i.id))
     print("no ID found")
     return (-1, "not running instance found")
-
-def stop_runner(id: UUID = None):
+#allows to delete runner based on runner_id, strat_id or all (both none)
+#podpruje i hodnotu strat_id v id
+def stop_runner(id: UUID = None, strat_id: UUID = None):
     chng = []
     try:
         for i in db.runners:
             #print(i['id'])
-            if id is None or str(i.id) == id:
+            if (id is None and strat_id is None) or str(i.id) == str(id) or str(i.strat_id) == str(strat_id) or str(i.strat_id) == str(id):
                 chng.append(i.id)
                 print("Sending STOP signal to Runner", i.id)
                 #just sending the signal, update is done in stop after plugin
@@ -356,7 +357,20 @@ def capsule(target: object, db: object, inter_batch_params: dict = None):
                 except Exception as e:
                     err_msg = "Nepodarilo se vytvorit daily report image" + str(e)+format_exc()
                     send_to_telegram(err_msg)
-                    print(err_msg)     
+                    print(err_msg)
+                #PRO LIVE a PAPER pri vyplnenem batchi vytvarime batchovy soubor zde (pro BT ridi batch_manager)
+                if i.run_mode in [Mode.LIVE, Mode.PAPER] and i.batch_id is not None:
+                    try:
+                        res, val = mt.generate_trading_report_image(batch_id=i.batch_id)
+                        if res == 0:
+                            print("BATCH REPORT CREATED")
+                        else:
+                            print(f"BATCH REPORT ERROR - {val}")
+                    except Exception as e:
+                        err_msg = f"Nepodarilo se vytvorit batchj report image pro {i.strat_id} a batch{i.batch_id}" + str(e)+format_exc()
+                        send_to_telegram(err_msg)
+                        print(err_msg)
+
         target.release()
     print("Runner STOPPED")
 
@@ -477,6 +491,9 @@ def run_batch_stratin(id: UUID, runReq: RunRequest):
 # bud ceka na dokonceni v runners nebo to bude ridit jinak a bude mit jednoho runnera?
 # nejak vymyslet.
 # logovani zatim jen do print
+
+##OFFLINE BATCH RUN MANAGER (generuje batch_id, ridi datove provazani runnerů(inter_batch_data) a generuje batch report
+## a samozrejme spousti jednotlivé dny
 def batch_run_manager(id: UUID, runReq: RunRequest, rundays: list[RunDay]):
     #zde muzu iterovat nad intervaly
     #cekat az dobehne jeden interval a pak spustit druhy
@@ -1035,7 +1052,7 @@ def get_all_archived_runners() -> list[RunArchiveView]:
 
 #new version to support search and ordering
 #TODO index nad strat_id a batch_id mam?
-def get_all_archived_runners_p(request: DataTablesRequest) -> Tuple[int, RunArchiveViewPagination]:
+def get_all_archived_runners_p_original(request: DataTablesRequest) -> Tuple[int, RunArchiveViewPagination]:
     conn = pool.get_connection()
     search_value = request.search.value  # Extract the search value from the request
     try:
@@ -1064,6 +1081,76 @@ def get_all_archived_runners_p(request: DataTablesRequest) -> Tuple[int, RunArch
         rows = c.fetchall()
 
         # Filtered count might be different from total count when search is applied
+        filtered_count_query = """
+        SELECT COUNT(*) FROM runner_header
+        WHERE (:search_value = '' OR strat_id LIKE :search_value OR batch_id LIKE :search_value)
+        """
+        c.execute(filtered_count_query, {'search_value': f'%{search_value}%'})
+        filtered_count = c.fetchone()[0]
+
+        results = [row_to_runarchiveview(row) for row in rows]
+
+    finally:
+        conn.row_factory = None
+        pool.release_connection(conn)
+
+    try:
+        obj = RunArchiveViewPagination(draw=request.draw, recordsTotal=total_count, recordsFiltered=filtered_count, data=results)
+        return 0, obj
+    except Exception as e:
+        return -2, str(e) + format_exc()
+
+
+#new version with batch_id asc sortin https://chat.openai.com/c/64511445-5181-411b-b9d0-51d16930bf71
+#Tato verze správně groupuje záznamy se stejnym batch_id (podle maximalniho batche) a non batch zaznamy prolne mezi ne podle jeho stopped date - vlozi zaznam po nebo pred jednotlivou skupinu (dle jejiho max.date)
+#diky tomu se mi radi batche a nonbatche spravne a pokud do batche pridame zaznam zobrazi se nam batch nahore
+def get_all_archived_runners_p(request: DataTablesRequest) -> Tuple[int, RunArchiveViewPagination]:
+    conn = pool.get_connection()
+    search_value = request.search.value  # Extract the search value from the request
+    try:
+        conn.row_factory = Row
+        c = conn.cursor()
+
+        # Total count query
+        total_count_query = """
+        SELECT COUNT(*) FROM runner_header
+        WHERE (:search_value = '' OR strat_id LIKE :search_value OR batch_id LIKE :search_value)
+        """
+        c.execute(total_count_query, {'search_value': f'%{search_value}%'})
+        total_count = c.fetchone()[0]
+
+        # Paginated query with advanced sorting logic
+        paginated_query = f"""
+        WITH GroupedData AS (
+            SELECT runner_id, strat_id, batch_id, symbol, name, note, started, 
+                stopped, mode, account, bt_from, bt_to, ilog_save, profit, 
+                trade_count, end_positions, end_positions_avgp, metrics,
+                MAX(stopped) OVER (PARTITION BY batch_id) AS max_stopped
+            FROM runner_header
+            WHERE (:search_value = '' OR strat_id LIKE :search_value OR batch_id LIKE :search_value)
+        ),
+        InterleavedGroups AS (
+            SELECT *,
+                CASE 
+                    WHEN batch_id IS NOT NULL THEN max_stopped
+                    ELSE stopped
+                END AS sort_key
+            FROM GroupedData
+        )
+        SELECT runner_id, strat_id, batch_id, symbol, name, note, started, 
+            stopped, mode, account, bt_from, bt_to, ilog_save, profit, 
+            trade_count, end_positions, end_positions_avgp, metrics
+        FROM InterleavedGroups
+        ORDER BY 
+            sort_key DESC,
+            CASE WHEN batch_id IS NOT NULL THEN 0 ELSE 1 END,
+            stopped DESC
+        LIMIT {request.length} OFFSET {request.start}
+        """
+        c.execute(paginated_query, {'search_value': f'%{search_value}%'})
+        rows = c.fetchall()
+
+        # Filtered count query
         filtered_count_query = """
         SELECT COUNT(*) FROM runner_header
         WHERE (:search_value = '' OR strat_id LIKE :search_value OR batch_id LIKE :search_value)
@@ -1573,6 +1660,9 @@ def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator, save: bool =
         local_dict_bars = {key: state.bars[key] for key in state.bars.keys() if key != "time"}
         state.ind_mapping = {**local_dict_inds, **local_dict_bars, **local_dict_cbar_inds}
         #print("IND MAPPING DONE:", state.ind_mapping)
+
+        ##intialize required vars from strat init
+        state.vars["loaded_models"] = {}
 
         ##intialize dynamic indicators
         initialize_dynamic_indicators(state)

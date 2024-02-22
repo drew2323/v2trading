@@ -3,9 +3,12 @@ import sqlite3
 import queue
 import threading
 import time
-from v2realbot.common.model import RunArchive, RunArchiveView
+from v2realbot.common.model import RunArchive, RunArchiveView, RunManagerRecord
 from datetime import datetime
 import orjson
+from v2realbot.utils.utils import json_serial, send_to_telegram, zoneNY
+import v2realbot.controller.services as cs
+from uuid import UUID
 
 sqlite_db_file = DATA_DIR + "/v2trading.db"
 # Define the connection pool
@@ -31,7 +34,7 @@ class ConnectionPool:
         return connection
 
 
-def execute_with_retry(cursor: sqlite3.Cursor, statement: str, params = None, retry_interval: int = 1) -> sqlite3.Cursor:
+def execute_with_retry(cursor: sqlite3.Cursor, statement: str, params = None, retry_interval: int = 2) -> sqlite3.Cursor:
     """get connection from pool and execute SQL statement with retry logic if required.
 
     Args:
@@ -61,6 +64,37 @@ pool = ConnectionPool(10)
 #for one shared connection (used for writes only in WAL mode)
 insert_conn = sqlite3.connect(sqlite_db_file, check_same_thread=False)
 insert_queue = queue.Queue()
+
+#prevede dict radku zpatky na objekt vcetme retypizace
+def row_to_runmanager(row: dict) -> RunManagerRecord:
+
+    is_running = cs.is_runner_running(row['runner_id']) if row['runner_id'] else False
+
+    res = RunManagerRecord(
+        moddus=row['moddus'],
+        id=row['id'],
+        strat_id=row['strat_id'],
+        symbol=row['symbol'],
+        mode=row['mode'],
+        account=row['account'],
+        note=row['note'],
+        ilog_save=bool(row['ilog_save']),
+        bt_from=datetime.fromisoformat(row['bt_from']) if row['bt_from'] else None,
+        bt_to=datetime.fromisoformat(row['bt_to']) if row['bt_to'] else None,
+        weekdays_filter=[int(x) for x in row['weekdays_filter'].split(',')] if row['weekdays_filter'] else [],
+        batch_id=row['batch_id'],
+        testlist_id=row['testlist_id'],
+        start_time=row['start_time'],
+        stop_time=row['stop_time'],
+        status=row['status'],
+        #last_started=zoneNY.localize(datetime.fromisoformat(row['last_started'])) if row['last_started'] else None,
+        last_processed=datetime.fromisoformat(row['last_processed']) if row['last_processed'] else None,
+        history=row['history'],
+        valid_from=datetime.fromisoformat(row['valid_from']) if row['valid_from'] else None,
+        valid_to=datetime.fromisoformat(row['valid_to']) if row['valid_to'] else None,
+        runner_id = row['runner_id'] if row['runner_id'] and is_running else None,  #runner_id is only present if it is running
+        strat_running = is_running) #cant believe this when called from separate process  as not current
+    return res
 
 #prevede dict radku zpatky na objekt vcetme retypizace
 def row_to_runarchiveview(row: dict) -> RunArchiveView:

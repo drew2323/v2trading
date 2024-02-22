@@ -30,6 +30,33 @@ from alpaca.trading.requests import GetCalendarRequest
 from alpaca.trading.client import TradingClient
 import time as timepkg
 from traceback import format_exc
+import re
+import tempfile
+import shutil
+from filelock import FileLock
+
+def validate_and_format_time(time_string):
+    """
+    Validates if the given time string is in the format HH:MM or H:MM. 
+    If valid, returns the standardized time string in HH:MM format.
+
+    Args:
+        time_string (str): The time string to validate.
+
+    Returns:
+        str or None: Standardized time string in HH:MM format if valid, 
+                     None otherwise.
+    """
+    # Regular expression for matching the time format H:MM or HH:MM
+    time_pattern = re.compile(r'^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$')
+
+    # Checking if the time string matches the pattern
+    if time_pattern.match(time_string):
+        # Standardize the time format to HH:MM
+        standardized_time = datetime.strptime(time_string, '%H:%M').strftime('%H:%M')
+        return standardized_time
+    else:
+        return None
 
 #Alpaca Calendar wrapper with retry
 def fetch_calendar_data(start, end, max_retries=5, backoff_factor=1):
@@ -587,6 +614,7 @@ def json_serial(obj):
         Intervals: lambda obj: obj.__dict__,
         SLHistory: lambda obj: obj.__dict__,
         InstantIndicator: lambda obj: obj.__dict__,
+        StrategyInstance: lambda obj: obj.__dict__,
     }
 
     serializer = type_map.get(type(obj))
@@ -620,18 +648,30 @@ def parse_toml_string(tomlst: str):
     return (0, dict_replace_value(tomlst,"None",None))
 
 #class to persist
+
+# A FileLock is used to prevent concurrent access to the cache file.
+# The __init__ method reads the existing cache file within the lock to ensure it's not being written to simultaneously by another process.
+# The save method writes to a temporary file first and then atomically moves it to the desired file location. This prevents the issue of partial file writes in case the process is interrupted during the write.
+#Zatim temporary fix, aby nezapisoval jiny process
+#predtim nez bude implementovano ukladani do db
+#pro ostatni processy je dostupne rest api get stratin
 class Store:
-    stratins : List[StrategyInstance]  = []
+    stratins: List[StrategyInstance] = []
     runners: List[Runner] = []
+    
     def __init__(self) -> None:
+        self.lock = FileLock(DATA_DIR + "/strategyinstances.lock")
         self.db_file = DATA_DIR + "/strategyinstances.cache"
         if os.path.exists(self.db_file):
-            with open (self.db_file, 'rb') as fp:
+            with self.lock, open(self.db_file, 'rb') as fp:
                 self.stratins = pickle.load(fp)
 
     def save(self):
-        with open(self.db_file, 'wb') as fp:
-            pickle.dump(self.stratins, fp)
+        with self.lock:
+            temp_fd, temp_path = tempfile.mkstemp(dir=DATA_DIR)
+            with os.fdopen(temp_fd, 'wb') as temp_file:
+                pickle.dump(self.stratins, temp_file)
+            shutil.move(temp_path, self.db_file)
 
 qu = Queue()
 

@@ -424,7 +424,7 @@ class Strategy:
         
         #main strat loop
         print(self.name, "Waiting for DATA",self.q1.qsize())
-        with tqdm(total=self.q1.qsize()) as pbar:
+        with tqdm(total=self.q1.qsize(), desc=self.name + "-Ingesting Aggregated") as pbar:
             while True:
                 try:
                     #block 5s, after that check signals
@@ -655,7 +655,7 @@ class Strategy:
             if len(self.state.iter_log_list) > 0:
                 rt_out["iter_log"] = self.state.iter_log_list
 
-            #print(rt_out)
+            printnow(rt_out)
 
             print("RTQUEUE INSERT")
             #send current values to Realtime display on frontend

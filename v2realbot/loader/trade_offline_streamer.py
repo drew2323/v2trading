@@ -289,7 +289,7 @@ class Trade_Offline_Streamer(Thread):
                 cnt = 1
                 
                 
-                for t in tqdm(tradesResponse[symbol]):
+                for t in tqdm(tradesResponse[symbol], desc="Loading Trades"):
                     
                     #protoze je zde cely den, poustime dal, jen ty relevantni
                     #pokud je    start_time < trade < end_time

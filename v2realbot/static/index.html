@@ -299,6 +299,251 @@
                         </div>
                 </div>
             </div>
+             <!-- SCHEDULER -->
+             <div id="runmanager-table" class="flex-items">
+                <label data-bs-toggle="collapse" data-bs-target="#runmanager-table-inner">
+                    <h4>Run Manager</h4>
+                </label>
+                <div id="runmanager-table-inner" class="collapse show collapsible-section" style="width:58%">
+                    <div id="controls">
+                        <button title="Create new" id="button_add_sched" class="btn btn-outline-success btn-sm">Add</button>
+                        <button title="Edit selected" id="button_edit_sched" class="btn btn-outline-success btn-sm">Edit</button>
+                        <button title="Delete selected" id="button_delete_sched" class="btn btn-outline-success btn-sm">Delete</button>
+                        <button title="History" id="button_history_sched" class="btn btn-outline-success btn-sm">History</button>
+                        <button title="Refresh" id="button_refresh_sched" class="btn btn-outline-success btn-sm">Refresh</button>
+                        <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                            <!-- <input type="radio" class="btn-check" name="filterOptions" id="filterNone" autocomplete="off" checked>
+                            <label class="btn btn-outline-primary" for="filterNone">All</label> -->
+                        
+                            <input type="radio" class="btn-check" name="filterOptions" id="filterSchedule" autocomplete="off" checked>
+                            <label class="btn btn-outline-primary" for="filterSchedule">Scheduled</label>
+                        
+                            <input type="radio" class="btn-check" name="filterOptions" id="filterQueue" autocomplete="off">
+                            <label class="btn btn-outline-primary" for="filterQueue">Queued</label>
+                        </div>
+                    </div>
+                    <table id="runmanagerTable" class="table-striped table dataTable" style="width:100%; border-color: #dce1dc;">
+                        <thead>
+                            <tr>
+                                <th>Id</th>
+                                <th>Type</th>
+                                <th>Strat_Id</th>
+                                <th>Symbol</th>
+                                <th>Account</th>
+                                <th>Mode</th>
+                                <th>Note</th>
+                                <th>Log</th>
+                                <th>BT_from</th>
+                                <th>BT_to</th>
+                                <th>days</th>
+                                <th>batch_id</th>
+                                <th>start</th>
+                                <th>stop</th>
+                                <th>status</th>
+                                <th>last_processed</th>
+                                <th>history</th>
+                                <th>valid_from</th>
+                                <th>valid_to</th>
+                                <th>testlist_id</th>
+                                <th>Running</th>
+                                <th>RunnerId</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>                  
+                <div id="delModalRunmanager" class="modal fade">
+                    <div class="modal-dialog">
+                        <form method="post" id="delFormRunmanager">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h4 class="modal-title"><i class="fa fa-plus"></i> Delete record</h4>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="form-group">
+                                        <label for="delidrunmanager" class="form-label">Id</label>
+                                        <!-- <div id="listofids"></div> -->
+                                        <input type="text" class="form-control" id="delidrunmanager" name="id" placeholder="id" readonly>			
+                                    </div>				
+                                </div>
+                                <div class="modal-footer">
+                                    <input type="submit" name="delete" id="deleterunmanager" class="btn btn-primary" value="Delete" />
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>                
+                <div id="addeditModalRunmanager" class="modal fade">
+                    <div class="modal-dialog">
+                        <form method="post" id="addeditFormRunmanager">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h4 class="modal-title_run"><i class="fa fa-plus"></i> Add scheduler record</h4>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="form-group">
+                                        <label for="runmanid" class="form-label">Record Id</label>
+                                        <input type="text" class="form-control" id="runmanid" name="id" placeholder="auto generated id" readonly>			
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="runmanmoddus" class="form-label">Type</label>
+                                        <input type="text" class="form-control" id="runmanmoddus" name="moddus" readonly>	
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="runmanstrat_id" class="form-label">StrategyId</label>
+                                        <input type="text" class="form-control" id="runmanstrat_id" name="strat_id" placeholder="strategy id">			
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="runmode" class="form-label">Mode</label>
+                                        <select class="form-control" id="runmanmode" name="mode"><option value="paper">paper</option><option value="live">live</option><option value="backtest">backtest</option><option value="prep">prep</option></select>		
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="account" class="form-label">Account</label>
+                                        <select class="form-control" id="runmanaccount" name="account"><option value="ACCOUNT1">ACCOUNT1</option><option value="ACCOUNT2">ACCOUNT2</option></select>		
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="status" class="form-label">Status</label>
+                                        <select class="form-control" id="runmanstatus" name="status"><option value="active">active</option><option value="suspended">suspended</option></select>		
+                                    </div>
+                                    <div class="form-group" id="runmanstart_time_div">
+                                        <label for="start" class="form-label">Start Time</label>							
+                                        <input type="text" class="form-control" id="runmanstart_time" name="start_time" value="9:30" step="1">							
+                                    </div>	   	
+                                    <div class="form-group" id="runmanstop_time_div">
+                                        <label for="stop" class="form-label">Stop Time</label>							
+                                        <input type="text-local" class="form-control" id="runmanstop_time" name="stop_time" value="16:00" step="1">							
+                                    </div>
+
+                                    <!-- pro budouci queueing backtestu -->
+                                    <div class="form-group" id="runmanbt_from_div">
+                                        <label for="bt_from" class="form-label">bt_from</label>							
+                                        <input type="datetime-local" class="form-control" id="runmanbt_from" name="bt_from" placeholder="2023-04-06T09:00:00Z" step="1">							
+                                    </div>	   	
+                                    <div class="form-group" id="runmanbt_to_div">
+                                        <label for="bt_to" class="form-label">bt_to</label>							
+                                        <input type="datetime-local" class="form-control" id="runmanbt_to" name="bt_to" placeholder="2023-04-06T09:00:00Z" step="1">							
+                                    </div> 
+                                    <div class="form-group" id="runmantestlist_id_div">
+                                        <label for="test_batch_id" class="form-label">Test List ID</label>							
+                                        <input type="text" class="form-control" id="runmantestlist_id" name="testlist_id" placeholder="test intervals ID">							
+                                    </div>
+                                    <!-- pro budouci queueing backtestu -->
+
+                                    <!-- Initial Checkbox for Enabling Weekday Selection -->
+                                    <div class="form-group">
+                                        <div style="display:inline-flex">
+                                            <label for="runman_enable_weekdays" class="form-label">Limit to Weekdays</label>							
+                                            <input type="checkbox" class="form-check" id="runman_enable_weekdays" name="enable_weekdays" aria-label="Enable Weekday Selection">							
+                                        </div>
+                                    </div>
+
+                                    <!-- Weekday Checkboxes -->
+                                    <div class="form-group weekday-checkboxes" style="display:none;">
+                                        <!-- <label class="form-label">Select Weekdays:</label> -->
+                                        <div>
+                                            <input type="checkbox" id="monday" name="weekdays" value="monday">
+                                            <label for="monday">Monday</label>
+                                        </div>
+                                        <div>
+                                            <input type="checkbox" id="tuesday" name="weekdays" value="tuesday">
+                                            <label for="tuesday">Tuesday</label>
+                                        </div>
+                                        <div>
+                                            <input type="checkbox" id="wednesday" name="weekdays" value="wednesday">
+                                            <label for="wednesday">Wednesday</label>
+                                        </div>
+                                        <div>
+                                            <input type="checkbox" id="thursday" name="weekdays" value="thursday">
+                                            <label for="thursday">Thursday</label>
+                                        </div>
+                                        <div>
+                                            <input type="checkbox" id="friday" name="weekdays" value="friday">
+                                            <label for="friday">Friday</label>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group" id="runmanvalid_from_div">
+                                        <label for="runmanvalid_from" class="form-label">Valid from</label>							
+                                        <input type="datetime-local" class="form-control" id="runmanvalid_from" name="valid_from" placeholder="2023-04-06T09:00:00Z" step="1">							
+                                    </div>	   	
+                                    <div class="form-group" id="runmanvalid_to_div">
+                                        <label for="runmanvalid_to" class="form-label">Valid to</label>							
+                                        <input type="datetime-local" class="form-control" id="runmanvalid_to" name="valid_to" placeholder="2023-04-06T09:00:00Z" step="1">							
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="batch_id" class="form-label">Batch ID</label>							
+                                        <input type="text" class="form-control" id="runmanbatch_id" name="batch_id" placeholder="batch id">							
+                                    </div>
+                                    <div class="form-group">
+                                        <div style="display:inline-flex">
+                                          <label for="ilog_save" class="form-label">Enable logs</label>							
+                                          <input type="checkbox" class="form-check" id="runmanilog_save" name="ilog_save" aria-label="Enable logs">							
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="note" class="form-label">note</label>							
+                                        <textarea class="form-control" rows="1" id="runmannote" name="note"></textarea>							
+                                    </div>				
+                                </div>
+                                <div class="modal-footer">
+                                    <input type="hidden" name="runner_id" id="runmanrunner_id" />
+                                    <input type="hidden" name="history" id="runmanhistory" />
+                                    <input type="hidden" name="last_processed" id="runmanlast_processed" />
+                                    <!--<input type="hidden" name="action" id="action" value="" />-->
+                                    <input type="submit" id="runmanagersubmit" class="btn btn-primary" value="Add" />
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div id="historyModalRunmanager" class="modal fade">
+                    <div class="modal-dialog">
+                        <form method="post" id="historyModalRunmanagerForm">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h4 class="modal-title"><i class="fa fa-plus"></i>View History</h4>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="form-group">
+                                        <label for="RunmanId" class="form-label">Id</label>
+                                        <input type="text" class="form-control" id="RunmanId" name="id" placeholder="id" readonly>			
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="Runmanlast_processed" class="form-label">Last processed</label>	
+                                        <input type="text" class="form-control" id="Runmanlast_processed" name="last_processed" readonly>													
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="Runmanhistory" class="form-label">History</label>							
+                                        <textarea class="form-control" rows="8" id="Runmanhistory" name="history" readonly></textarea>							
+                                    </div>
+                                    <!-- <div class="form-group">
+                                        <label for="metrics" class="form-label">Metrics</label>							
+                                        <textarea class="form-control" rows="8" id="metrics" name="metrics"></textarea>							
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="stratvars" class="form-label">Stratvars</label>							
+                                        <textarea class="form-control" rows="8" id="editstratvars" name="stratvars"></textarea>							
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="strat_json" class="form-label">Strat JSON</label>							
+                                        <textarea class="form-control" rows="6" id="editstratjson" name="stratjson"></textarea>							
+                                    </div>			 -->
+                                </div>
+                                <div class="modal-footer">
+                                    <!-- <input type="submit" name="delete" id="editarchive" class="btn btn-primary" value="Edit" /> -->
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
             <div id="archive-table" class="flex-items">
                 <label data-bs-toggle="collapse" data-bs-target="#archive-table-inner">
                     <h4>Past Runs</h4>
@@ -403,27 +648,34 @@
                 </div>
                 <div id="logModal" class="modal fade" style="--bs-modal-width: 825px;">
                     <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h4 class="modal-title"><i class="fa fa-plus"></i>Log</h4>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h4 class="modal-title"><i class="fa fa-plus"></i>Log</h4>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="form-group">
+                                    <label for="logFileSelect" class="form-label">Select Log File</label>
+                                    <select class="form-select" id="logFileSelect" aria-label="Log file select">
+                                        <!-- <option selected>Select a log file</option> -->
+                                        <option value="strat.log" selected>strat.log</option>
+                                        <option value="job.log">job.log</option>
+                                    </select>
                                 </div>
-                                <div class="modal-body">
-                                    <div class="form-group">
-                                        <label for="logHere" class="form-label">Log</label>
-                                        <div id="log-container">
-                                            <pre id="log-content"></pre>
-                                        </div>
-                                        <!-- <input type="text" class="form-control" id="delidarchive" name="delidarchive" placeholder="id">			 -->
-                                    </div>				
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-primary" id="logRefreshButton"  value="Refresh">Refresh</button>
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <div class="form-group mt-3">
+                                    <label for="logHere" class="form-label">Log</label>
+                                    <div id="log-container">
+                                        <pre id="log-content"></pre>
+                                    </div>
                                 </div>
                             </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-primary" id="logRefreshButton" value="Refresh">Refresh</button>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </div>                
                 <div id="editModalArchive" class="modal fade">
                     <div class="modal-dialog">
                         <form method="post" id="editFormArchive">
@@ -911,7 +1163,11 @@
         <script src="/static/js/tables/archivetable/modals.js?v=1.06"></script>
         <script src="/static/js/tables/archivetable/handlers.js?v=1.06"></script>
 
-
+        <!-- Runmanager functionality -->
+        <script src="/static/js/tables/runmanager/init.js?v=1.08"></script>
+        <script src="/static/js/tables/runmanager/functions.js?v=1.07"></script>
+        <script src="/static/js/tables/runmanager/modals.js?v=1.06"></script>
+        <script src="/static/js/tables/runmanager/handlers.js?v=1.06"></script>
 
         <script src="/static/js/livewebsocket.js?v=1.01"></script>
         <script src="/static/js/realtimechart.js?v=1.01"></script>
@@ -920,6 +1176,6 @@
         <script src="/static/js/ml.js?v=1.02"></script>
         <script src="/static/js/common.js?v=1.01"></script>
         <script src="/static/js/configform.js?v=1.01"></script>
-
+        <!-- <script src="/static/js/scheduler.js?v=1.01"></script> -->
     </body>
 </html>

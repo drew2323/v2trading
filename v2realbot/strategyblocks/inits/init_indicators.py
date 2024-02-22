@@ -4,9 +4,9 @@ from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, Foll
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus
 from v2realbot.utils.utils import isrising, isfalling,zoneNY, price2dec, print, safe_get, is_still, is_window_open, eval_cond_dict, crossed_down, crossed_up, crossed, is_pivot, json_serial, pct_diff, create_new_bars, slice_dict_lists
 from v2realbot.utils.directive_utils import get_conditions_from_configuration
-import mlroom.utils.mlutils as ml
+#import mlroom.utils.mlutils as ml
 from v2realbot.common.model import SLHistory
-from v2realbot.config import KW, MODEL_DIR
+from v2realbot.config import KW, MODEL_DIR, _ml_module_loaded
 from uuid import uuid4
 from datetime import datetime
 #import random
@@ -17,8 +17,14 @@ from rich import print as printanyway
 from threading import Event
 from traceback import format_exc
 
+def load_ml_model(modelname, modelversion, MODEL_DIR):
+    global ml
+    import mlroom.utils.mlutils as ml
+    return ml.load_model(modelname, modelversion, None, MODEL_DIR)
+
 def initialize_dynamic_indicators(state):
     #pro vsechny indikatory, ktere maji ve svych stratvars TYPE inicializujeme
+    
     ##ßprintanyway(state.vars, state)
     dict_copy = state.vars.indicators.copy()
     for indname, indsettings in dict_copy.items():
@@ -68,7 +74,8 @@ def initialize_dynamic_indicators(state):
                     modelname = safe_get(indsettings["cp"], 'name', None)
                     modelversion = safe_get(indsettings["cp"], 'version', "1")
                     if modelname is not None:
-                        state.vars.loaded_models[modelname] =  ml.load_model(modelname, modelversion, None, MODEL_DIR)
+                        state.vars.loaded_models[modelname] =  load_ml_model(modelname, modelversion, MODEL_DIR)
+                        # state.vars.loaded_models[modelname] =  ml.load_model(modelname, modelversion, None, MODEL_DIR)
                         if state.vars.loaded_models[modelname] is not None:
                             printanyway(f"model {modelname} loaded")
                         else:

@@ -284,13 +284,23 @@ function initialize_archiveRecords() {
 
                     //pokud mame batch_id podivame se zda jeho nastaveni uz nema a pokud ano pouzijeme to
                     //pokud nemame tak si ho loadneme
+                    //Tento kod parsuje informace do header hlavicky podle notes, je to relevantni pouze pro
+                    //backtest batche, nikoliv pro paper a live, kde pocet dni je neznamy a poznamka se muze menit
+                    //do budoucna tento parsing na frontendu bude nahrazen batch tabulkou v db, ktera persistuje
+                    //tyto data
                     if (group) {
                         const existingBatch = batchHeaders.find(batch => batch.batch_id == group);
                         //jeste neni v poli batchu - udelame hlavicku
                         if (!existingBatch) {
                             itemCount = extractNumbersFromString(firstRowData.note);
-                            try {profit = firstRowData.metrics.profit.batch_sum_profit;}
+                            if (!itemCount) {
+                                itemCount="NA"
+                            }
+                
+                            try { profit = firstRowData.metrics.profit.batch_sum_profit;}
                             catch (e) {profit = 'NA'}
+                            
+                            if (!profit) {profit = 'NA'}
                             period = firstRowData.note ? firstRowData.note.substring(0, 14) : '';
                             try {
                             batch_note = firstRowData.note ? firstRowData.note.split("N:")[1].trim() : ''
@@ -298,15 +308,22 @@ function initialize_archiveRecords() {
                             started = firstRowData.started
                             stratinId = firstRowData.strat_id
                             symbol = firstRowData.symbol
+                            if (period.startsWith("SCHED")) {
+                                period = "SCHEDULER";
+                              }
                             var newBatchHeader = {batch_id:group, batch_note:batch_note, profit:profit, itemCount:itemCount, period:period, started:started, stratinId:stratinId, symbol:symbol};
                             batchHeaders.push(newBatchHeader)
                         }
                         //uz je v poli, ale mame novejsi (pribyl v ramci backtestu napr.) - updatujeme
                         else if (new Date(existingBatch.started) < new Date(firstRowData.started)) {
-                            itemCount = extractNumbersFromString(firstRowData.note);
+                            try {itemCount = extractNumbersFromString(firstRowData.note);}
+                            catch (e) {itemCount = 'NA'}
                             try {profit = firstRowData.metrics.profit.batch_sum_profit;}
                             catch (e) {profit = 'NA'}
                             period = firstRowData.note ? firstRowData.note.substring(0, 14) : '';
+                            if (period.startsWith("SCHED")) {
+                                period = "SCHEDULER";
+                              }
                             try {
                                 batch_note = firstRowData.note ? firstRowData.note.split("N:")[1].trim() : ''
                                 } catch (e) { batch_note = ''}

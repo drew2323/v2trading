@@ -453,8 +453,10 @@ function display_batch_report(batch_id) {
 }
 
 function refresh_logfile() {
+    logfile = $("#logFileSelect").val()
+    lines = 700
     $.ajax({
-        url:"/log?lines=30",
+        url:"/log?lines="+lines+"&logfile="+logfile,
         beforeSend: function (xhr) {
             xhr.setRequestHeader('X-API-Key',
             API_KEY); },

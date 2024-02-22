@@ -250,6 +250,17 @@ strong {
   --bs-form-invalid-border-color: #ea868f;
 }
 
+.btn-check:checked+.btn, .btn.active, .btn.show, .btn:first-child:active, :not(.btn-check)+.btn:active {
+  color: var(--bs-btn-active-color);
+  background-color: #3a5962;
+  border-color: #3a5962;
+}
+
+.btn-outline-primary {
+  --bs-btn-color: #94b1b3;
+  --bs-btn-border-color: #3a5a62;
+}
+
 .form-label {
   margin-top: 0.5em;
   color: var(--bs-emphasis-color);

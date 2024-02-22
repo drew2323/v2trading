@@ -1,0 +1,1251 @@
+Cron trigger: 2024-02-16 21:24:36
+2024-02-17 09:24:41.627053: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+Calendar data fetch successful 2024-12-31 2024-12-31
+Market open at 2024-12-31 09:30:00-05:00 and close at 2024-12-31 16:00:00-05:00
+current_market_datetime_str: 2024-12-31 09:30:00
+current_time_str: 09:30
+Candidates fetched, start: 0 stop: 0
+CALL FINISHED, with 2024-12-31 09:30:00-04:56 RESULT: -1, No candidates found for 2024-12-31 09:30:00-04:56 and US
+Cron trigger: 2024-02-16 21:26:20
+2024-02-17 09:26:24.178102: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+Calendar data fetch successful 2024-12-31 2024-12-31
+Market open at 2024-12-31 09:30:00-05:00 and close at 2024-12-31 16:00:00-05:00
+current_market_datetime_str: 2024-12-31 09:30:00
+current_time_str: 09:30
+Candidates fetched, start: 0 stop: 0
+CALL FINISHED, with 2024-12-31 09:30:00-04:56 RESULT: -1, No candidates found for 2024-12-31 09:30:00-04:56 and US
+Cron trigger: 2024-02-16 21:27:28
+Cron trigger: 2024-02-16 21:27:30
+Cron trigger: 2024-02-16 21:27:31
+Cron trigger: 2024-02-16 21:27:42
+Cron trigger: 2024-02-16 21:27:43
+Cron trigger: 2024-02-16 21:31:28
+Traceback (most recent call last):
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/v2realbot/scheduler/scheduler.py", line 7, in <module>
+    import v2realbot.controller.services as cs
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/v2realbot/controller/services.py", line 35, in <module>
+    from v2realbot.strategyblocks.inits.init_indicators import initialize_dynamic_indicators
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/v2realbot/strategyblocks/inits/init_indicators.py", line 7, in <module>
+    import mlroom.utils.mlutils as ml
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/mlroom/utils/mlutils.py", line 9, in <module>
+    from keras.models import model_from_json
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/keras/__init__.py", line 8, in <module>
+    from keras import _tf_keras
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/keras/_tf_keras/__init__.py", line 1, in <module>
+    from keras._tf_keras import keras
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/keras/_tf_keras/keras/__init__.py", line 8, in <module>
+    from keras import activations
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/keras/activations/__init__.py", line 8, in <module>
+    from keras.src.activations import deserialize
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/keras/src/__init__.py", line 1, in <module>
+    from keras.src import activations
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/keras/src/activations/__init__.py", line 3, in <module>
+    from keras.src.activations.activations import elu
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/keras/src/activations/activations.py", line 1, in <module>
+    from keras.src import backend
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/keras/src/backend/__init__.py", line 33, in <module>
+    from keras.src.backend.tensorflow import *  # noqa: F403
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/keras/src/backend/tensorflow/__init__.py", line 1, in <module>
+    from keras.src.backend.tensorflow import core
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/keras/src/backend/tensorflow/core.py", line 4, in <module>
+    import tensorflow as tf
+ModuleNotFoundError: No module named 'tensorflow'
+Cron trigger: 2024-02-16 21:31:52
+Traceback (most recent call last):
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/v2realbot/scheduler/scheduler.py", line 7, in <module>
+    import v2realbot.controller.services as cs
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/v2realbot/controller/services.py", line 35, in <module>
+    from v2realbot.strategyblocks.inits.init_indicators import initialize_dynamic_indicators
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/v2realbot/strategyblocks/inits/init_indicators.py", line 7, in <module>
+    import mlroom.utils.mlutils as ml
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/mlroom/utils/mlutils.py", line 9, in <module>
+    from keras.models import model_from_json
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/keras/__init__.py", line 8, in <module>
+    from keras import _tf_keras
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/keras/_tf_keras/__init__.py", line 1, in <module>
+    from keras._tf_keras import keras
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/keras/_tf_keras/keras/__init__.py", line 8, in <module>
+    from keras import activations
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/keras/activations/__init__.py", line 8, in <module>
+    from keras.src.activations import deserialize
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/keras/src/__init__.py", line 1, in <module>
+    from keras.src import activations
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/keras/src/activations/__init__.py", line 3, in <module>
+    from keras.src.activations.activations import elu
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/keras/src/activations/activations.py", line 1, in <module>
+    from keras.src import backend
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/keras/src/backend/__init__.py", line 33, in <module>
+    from keras.src.backend.tensorflow import *  # noqa: F403
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/keras/src/backend/tensorflow/__init__.py", line 1, in <module>
+    from keras.src.backend.tensorflow import core
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/keras/src/backend/tensorflow/core.py", line 4, in <module>
+    import tensorflow as tf
+ModuleNotFoundError: No module named 'tensorflow'
+Cron trigger: 2024-02-16 21:32:53
+Traceback (most recent call last):
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/v2realbot/scheduler/scheduler.py", line 7, in <module>
+    import v2realbot.controller.services as cs
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/v2realbot/controller/services.py", line 35, in <module>
+    from v2realbot.strategyblocks.inits.init_indicators import initialize_dynamic_indicators
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/v2realbot/strategyblocks/inits/init_indicators.py", line 7, in <module>
+    import mlroom.utils.mlutils as ml
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/mlroom/utils/mlutils.py", line 9, in <module>
+    from keras.models import model_from_json
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/keras/__init__.py", line 8, in <module>
+    from keras import _tf_keras
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/keras/_tf_keras/__init__.py", line 1, in <module>
+    from keras._tf_keras import keras
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/keras/_tf_keras/keras/__init__.py", line 8, in <module>
+    from keras import activations
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/keras/activations/__init__.py", line 8, in <module>
+    from keras.src.activations import deserialize
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/keras/src/__init__.py", line 1, in <module>
+    from keras.src import activations
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/keras/src/activations/__init__.py", line 3, in <module>
+    from keras.src.activations.activations import elu
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/keras/src/activations/activations.py", line 1, in <module>
+    from keras.src import backend
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/keras/src/backend/__init__.py", line 33, in <module>
+    from keras.src.backend.tensorflow import *  # noqa: F403
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/keras/src/backend/tensorflow/__init__.py", line 1, in <module>
+    from keras.src.backend.tensorflow import core
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/.venv/lib/python3.10/site-packages/keras/src/backend/tensorflow/core.py", line 4, in <module>
+    import tensorflow as tf
+ModuleNotFoundError: No module named 'tensorflow'
+Cron trigger: 2024-02-16 21:38:52
+Calendar data fetch successful 2024-12-31 2024-12-31
+Market open at 2024-12-31 09:30:00-05:00 and close at 2024-12-31 16:00:00-05:00
+current_market_datetime_str: 2024-12-31 09:30:00
+current_time_str: 09:30
+Candidates fetched, start: 0 stop: 0
+CALL FINISHED, with 2024-12-31 09:30:00-04:56 RESULT: -1, No candidates found for 2024-12-31 09:30:00-04:56 and US
+Cron trigger: 2024-02-16 21:50:14
+Calendar data fetch successful 2024-12-31 2024-12-31
+Market open at 2024-12-31 09:30:00-05:00 and close at 2024-12-31 16:00:00-05:00
+current_market_datetime_str: 2024-12-31 09:30:00
+current_time_str: 09:30
+Candidates fetched, start: 0 stop: 0
+CALL FINISHED, with 2024-12-31 09:30:00-04:56 RESULT: -1, No candidates found for 2024-12-31 09:30:00-04:56 and US
+Cron trigger: 2024-02-16 21:50:41
+Calendar data fetch successful 2024-12-31 2024-12-31
+Market open at 2024-12-31 09:30:00-05:00 and close at 2024-12-31 16:00:00-05:00
+current_market_datetime_str: 2024-12-31 09:30:00
+current_time_str: 09:30
+Candidates fetched, start: 0 stop: 0
+CALL FINISHED, with 2024-12-31 09:30:00-04:56 RESULT: -1, No candidates found for 2024-12-31 09:30:00-04:56 and US
+Cron trigger: 2024-02-16 21:58:56
+Calendar data fetch successful 2024-12-31 2024-12-31
+Market open at 2024-12-31 09:30:00-05:00 and close at 2024-12-31 16:00:00-05:00
+current_market_datetime_str: 2024-12-31 09:30:00
+current_time_str: 09:30
+Candidates fetched, start: 0 stop: 0
+CALL FINISHED, with 2024-12-31 09:30:00-04:56 RESULT: -1, No candidates found for 2024-12-31 09:30:00-04:56 and US
+Cron trigger: 2024-02-16 21:59:08
+Calendar data fetch successful 2024-12-31 2024-12-31
+Market open at 2024-12-31 09:30:00-05:00 and close at 2024-12-31 16:00:00-05:00
+current_market_datetime_str: 2024-12-31 09:30:00
+current_time_str: 09:30
+Candidates fetched, start: 0 stop: 0
+CALL FINISHED, with 2024-12-31 09:30:00-04:56 RESULT: -1, No candidates found for 2024-12-31 09:30:00-04:56 and US
+Cron trigger: 2024-02-16 21:59:14
+Calendar data fetch successful 2024-12-31 2024-12-31
+Market open at 2024-12-31 09:30:00-05:00 and close at 2024-12-31 16:00:00-05:00
+current_market_datetime_str: 2024-12-31 09:30:00
+current_time_str: 09:30
+Candidates fetched, start: 0 stop: 0
+CALL FINISHED, with 2024-12-31 09:30:00-04:56 RESULT: -1, No candidates found for 2024-12-31 09:30:00-04:56 and US
+Cron trigger: 2024-02-16 22:39:19
+Calendar data fetch successful 2024-12-31 2024-12-31
+Market open at 2024-12-31 09:30:00-05:00 and close at 2024-12-31 16:00:00-05:00
+current_market_datetime_str: 2024-12-31 09:30:00
+current_time_str: 09:30
+Candidates fetched, start: 0 stop: 0
+CALL FINISHED, with 2024-12-31 09:30:00-04:56 RESULT: -1, No candidates found for 2024-12-31 09:30:00-04:56 and US
+Cron trigger: 2024-02-16 23:29:34
+Traceback (most recent call last):
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/v2realbot/scheduler/scheduler.py", line 207, in <module>
+    print("SCheduler NY time: ", datetime.strptime("debug_date", "%d.%m.%Y %H:%M"))
+  File "/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/_strptime.py", line 568, in _strptime_datetime
+    tt, fraction, gmtoff_fraction = _strptime(data_string, format)
+  File "/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/_strptime.py", line 349, in _strptime
+    raise ValueError("time data %r does not match format %r" %
+ValueError: time data 'debug_date' does not match format '%d.%m.%Y %H:%M'
+Cron trigger: 2024-02-16 23:29:47
+Traceback (most recent call last):
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/v2realbot/scheduler/scheduler.py", line 207, in <module>
+    print("SCheduler NY time: ", datetime.strptime("debug_date", "%d.%m.%Y %H:%M"))
+  File "/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/_strptime.py", line 568, in _strptime_datetime
+    tt, fraction, gmtoff_fraction = _strptime(data_string, format)
+  File "/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/_strptime.py", line 349, in _strptime
+    raise ValueError("time data %r does not match format %r" %
+ValueError: time data 'debug_date' does not match format '%d.%m.%Y %H:%M'
+Cron trigger: 2024-02-16 23:31:05
+Scheduler.py NY time:  16.02.2024 23:31
+Calendar data fetch successful 2024-02-16 2024-02-16
+Market open at 2024-02-16 09:30:00-05:00 and close at 2024-02-16 16:00:00-05:00
+current_market_datetime_str: 2024-02-16 23:31:09
+current_time_str: 23:31
+Candidates fetched, start: 1 stop: 3
+START - Looping over 1 candidates
+Candidate:  start
+Traceback (most recent call last):
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/v2realbot/scheduler/scheduler.py", line 210, in <module>
+    res, msg = startstop_scheduled(debug_date=debug_date, market="US")
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/v2realbot/scheduler/scheduler.py", line 87, in startstop_scheduled
+    if cs.is_stratin_running(record.strat_id):
+AttributeError: 'str' object has no attribute 'strat_id'
+Cron trigger: 2024-02-17 08:23:05
+Traceback (most recent call last):
+  File "/Users/davidbrazda/Documents/Development/python/v2trading/v2realbot/scheduler/scheduler.py", line 6, in <module>
+    import pytz  # Install using 'pip install pytz'
+    ^^^^^^^^^^^
+ModuleNotFoundError: No module named 'pytz'
+Current [1;36m0[0m scheduled jobs: [1m[[0m[1m][0m
+Current [1;36m0[0m scheduled jobs: [1m[[0m[1m][0m
+Current [1;36m0[0m scheduled jobs: [1m[[0m[1m][0m
+Hello
+Current [1;36m0[0m scheduled jobs: [1m[[0m[1m][0m
+Current [1;36m0[0m scheduled jobs: [1m[[0m[1m][0m
+starting insert_queue2db thread
+Current [1;36m0[0m scheduled jobs: [1m[[0m[1m][0m
+Updated [1;36m9[0m scheduled jobs: [1m[[0m[1m<[0m[1;95mJob[0m[39m [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_testinterval[0m[39m [0m[33mname[0m[39m=[0m[35mprint_hello[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93m6f54c363[0m[93m-e30c-4ad2-b232-ccc5c11d6745[0m[39m [0m[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m
+[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93mea6d79f2[0m[93m-d441-4236-8969-90c77b565e10[0m[39m [0m[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93m6f54c363[0m[93m-e30c-4ad2-b232-ccc5c11d6745[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[39m>, [0m
+[39m<Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93mea6d79f2[0m[93m-d441-4236-8969-90c77b565e10[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93mbc4ec7d2[0m[93m-249b-4799-a02f-f1ce66f83d4a[0m[39m [0m
+[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93mbc4ec7d2[0m[93m-249b-4799-a02f-f1ce66f83d4a[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[39m>, <Job [0m
+[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93m8aeae4b4[0m[93m-f200-478b-93af-6c8afec1fed9[0m[39m [0m[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93m8aeae4b4[0m[93m-f200-478b-93af-6c8afec1fed9[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[1m>[0m[1m][0m
+Current [1;36m0[0m scheduled jobs: [1m[[0m[1m][0m
+Updated [1;36m9[0m scheduled jobs: [1m[[0m[1m<[0m[1;95mJob[0m[39m [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_testinterval[0m[39m [0m[33mname[0m[39m=[0m[35mprint_hello[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93m6f54c363[0m[93m-e30c-4ad2-b232-ccc5c11d6745[0m[39m [0m[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m
+[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93mea6d79f2[0m[93m-d441-4236-8969-90c77b565e10[0m[39m [0m[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93m6f54c363[0m[93m-e30c-4ad2-b232-ccc5c11d6745[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[39m>, [0m
+[39m<Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93mea6d79f2[0m[93m-d441-4236-8969-90c77b565e10[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93mbc4ec7d2[0m[93m-249b-4799-a02f-f1ce66f83d4a[0m[39m [0m
+[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93mbc4ec7d2[0m[93m-249b-4799-a02f-f1ce66f83d4a[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[39m>, <Job [0m
+[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93m8aeae4b4[0m[93m-f200-478b-93af-6c8afec1fed9[0m[39m [0m[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93m8aeae4b4[0m[93m-f200-478b-93af-6c8afec1fed9[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[1m>[0m[1m][0m
+Current [1;36m9[0m scheduled jobs: [1m[[0m[1m<[0m[1;95mJob[0m[39m [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_testinterval[0m[39m [0m[33mname[0m[39m=[0m[35mprint_hello[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93m6f54c363[0m[93m-e30c-4ad2-b232-ccc5c11d6745[0m[39m [0m[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m
+[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93mea6d79f2[0m[93m-d441-4236-8969-90c77b565e10[0m[39m [0m[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93m6f54c363[0m[93m-e30c-4ad2-b232-ccc5c11d6745[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[39m>, [0m
+[39m<Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93mea6d79f2[0m[93m-d441-4236-8969-90c77b565e10[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93mbc4ec7d2[0m[93m-249b-4799-a02f-f1ce66f83d4a[0m[39m [0m
+[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93mbc4ec7d2[0m[93m-249b-4799-a02f-f1ce66f83d4a[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[39m>, <Job [0m
+[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93m8aeae4b4[0m[93m-f200-478b-93af-6c8afec1fed9[0m[39m [0m[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93m8aeae4b4[0m[93m-f200-478b-93af-6c8afec1fed9[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[1m>[0m[1m][0m
+Updated [1;36m9[0m scheduled jobs: [1m[[0m[1m<[0m[1;95mJob[0m[39m [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_testinterval[0m[39m [0m[33mname[0m[39m=[0m[35mprint_hello[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93mbc4ec7d2[0m[93m-249b-4799-a02f-f1ce66f83d4a[0m[39m [0m[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m
+[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93mbc4ec7d2[0m[93m-249b-4799-a02f-f1ce66f83d4a[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93m6f54c363[0m[93m-e30c-4ad2-b232-ccc5c11d6745[0m[39m [0m[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, [0m
+[39m<Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93mea6d79f2[0m[93m-d441-4236-8969-90c77b565e10[0m[39m [0m[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93m6f54c363[0m[93m-e30c-4ad2-b232-ccc5c11d6745[0m[39m [0m
+[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93mea6d79f2[0m[93m-d441-4236-8969-90c77b565e10[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[39m>, <Job [0m
+[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93m8aeae4b4[0m[93m-f200-478b-93af-6c8afec1fed9[0m[39m [0m[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93m8aeae4b4[0m[93m-f200-478b-93af-6c8afec1fed9[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[1m>[0m[1m][0m
+Current [1;36m9[0m scheduled jobs: [1m[[0m[1m<[0m[1;95mJob[0m[39m [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_testinterval[0m[39m [0m[33mname[0m[39m=[0m[35mprint_hello[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93m6f54c363[0m[93m-e30c-4ad2-b232-ccc5c11d6745[0m[39m [0m[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m
+[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93mea6d79f2[0m[93m-d441-4236-8969-90c77b565e10[0m[39m [0m[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93m6f54c363[0m[93m-e30c-4ad2-b232-ccc5c11d6745[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[39m>, [0m
+[39m<Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93mea6d79f2[0m[93m-d441-4236-8969-90c77b565e10[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93mbc4ec7d2[0m[93m-249b-4799-a02f-f1ce66f83d4a[0m[39m [0m
+[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93mbc4ec7d2[0m[93m-249b-4799-a02f-f1ce66f83d4a[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[39m>, <Job [0m
+[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93m8aeae4b4[0m[93m-f200-478b-93af-6c8afec1fed9[0m[39m [0m[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93m8aeae4b4[0m[93m-f200-478b-93af-6c8afec1fed9[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[1m>[0m[1m][0m
+********** WS Streamer STARTED **********
+Updated [1;36m9[0m scheduled jobs: [1m[[0m[1m<[0m[1;95mJob[0m[39m [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_testinterval[0m[39m [0m[33mname[0m[39m=[0m[35mprint_hello[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93m6f54c363[0m[93m-e30c-4ad2-b232-ccc5c11d6745[0m[39m [0m[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m
+[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93mea6d79f2[0m[93m-d441-4236-8969-90c77b565e10[0m[39m [0m[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93m6f54c363[0m[93m-e30c-4ad2-b232-ccc5c11d6745[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[39m>, [0m
+[39m<Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93mea6d79f2[0m[93m-d441-4236-8969-90c77b565e10[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93mbc4ec7d2[0m[93m-249b-4799-a02f-f1ce66f83d4a[0m[39m [0m
+[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93mbc4ec7d2[0m[93m-249b-4799-a02f-f1ce66f83d4a[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[39m>, <Job [0m
+[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93m8aeae4b4[0m[93m-f200-478b-93af-6c8afec1fed9[0m[39m [0m[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93m8aeae4b4[0m[93m-f200-478b-93af-6c8afec1fed9[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[1m>[0m[1m][0m
+Current [1;36m9[0m scheduled jobs: [1m[[0m[1m<[0m[1;95mJob[0m[39m [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_testinterval[0m[39m [0m[33mname[0m[39m=[0m[35mprint_hello[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93m6f54c363[0m[93m-e30c-4ad2-b232-ccc5c11d6745[0m[39m [0m[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m
+[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93mea6d79f2[0m[93m-d441-4236-8969-90c77b565e10[0m[39m [0m[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93m6f54c363[0m[93m-e30c-4ad2-b232-ccc5c11d6745[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[39m>, [0m
+[39m<Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93mea6d79f2[0m[93m-d441-4236-8969-90c77b565e10[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93mbc4ec7d2[0m[93m-249b-4799-a02f-f1ce66f83d4a[0m[39m [0m
+[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93mbc4ec7d2[0m[93m-249b-4799-a02f-f1ce66f83d4a[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[39m>, <Job [0m
+[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93m8aeae4b4[0m[93m-f200-478b-93af-6c8afec1fed9[0m[39m [0m[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93m8aeae4b4[0m[93m-f200-478b-93af-6c8afec1fed9[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[1m>[0m[1m][0m
+Updated [1;36m9[0m scheduled jobs: [1m[[0m[1m<[0m[1;95mJob[0m[39m [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_testinterval[0m[39m [0m[33mname[0m[39m=[0m[35mprint_hello[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93m6f54c363[0m[93m-e30c-4ad2-b232-ccc5c11d6745[0m[39m [0m[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m
+[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93mea6d79f2[0m[93m-d441-4236-8969-90c77b565e10[0m[39m [0m[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93m6f54c363[0m[93m-e30c-4ad2-b232-ccc5c11d6745[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[39m>, [0m
+[39m<Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93mea6d79f2[0m[93m-d441-4236-8969-90c77b565e10[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93mbc4ec7d2[0m[93m-249b-4799-a02f-f1ce66f83d4a[0m[39m [0m
+[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93mbc4ec7d2[0m[93m-249b-4799-a02f-f1ce66f83d4a[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[39m>, <Job [0m
+[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93m8aeae4b4[0m[93m-f200-478b-93af-6c8afec1fed9[0m[39m [0m[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93m8aeae4b4[0m[93m-f200-478b-93af-6c8afec1fed9[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[1m>[0m[1m][0m
+Current [1;36m0[0m scheduled jobs: [1m[[0m[1m][0m
+Job ID: scheduler_testinterval
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m20[0m [1;92m22:05:12[0m.[1;36m162884[0m-[1;92m05:00[0m
+Job Function: print_hello
+Trigger: interval[1m[[0m[1;92m0:00:10[0m[1m][0m
+Job Args: 
+Job Kwargs: 
+
+Job ID: scheduler_start_[93m6f54c363-e30c-4ad2-b232-ccc5c11d6745[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: start_runman_record
+Trigger: cron
+Job Args: [93m6f54c363-e30c-4ad2-b232-ccc5c11d6745[0m
+Job Kwargs: 
+
+Job ID: scheduler_start_[93mea6d79f2-d441-4236-8969-90c77b565e10[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: start_runman_record
+Trigger: cron
+Job Args: [93mea6d79f2-d441-4236-8969-90c77b565e10[0m
+Job Kwargs: 
+
+Job ID: scheduler_stop_[93m6f54c363-e30c-4ad2-b232-ccc5c11d6745[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: stop_runman_record
+Trigger: cron
+Job Args: [93m6f54c363-e30c-4ad2-b232-ccc5c11d6745[0m
+Job Kwargs: 
+
+Job ID: scheduler_stop_[93mea6d79f2-d441-4236-8969-90c77b565e10[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: stop_runman_record
+Trigger: cron
+Job Args: [93mea6d79f2-d441-4236-8969-90c77b565e10[0m
+Job Kwargs: 
+
+Job ID: scheduler_start_[93mbc4ec7d2-249b-4799-a02f-f1ce66f83d4a[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m21:50:00[0m-[1;92m05:00[0m
+Job Function: start_runman_record
+Trigger: cron
+Job Args: [93mbc4ec7d2-249b-4799-a02f-f1ce66f83d4a[0m
+Job Kwargs: 
+
+Job ID: scheduler_stop_[93mbc4ec7d2-249b-4799-a02f-f1ce66f83d4a[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m21:50:00[0m-[1;92m05:00[0m
+Job Function: stop_runman_record
+Trigger: cron
+Job Args: [93mbc4ec7d2-249b-4799-a02f-f1ce66f83d4a[0m
+Job Kwargs: 
+
+Job ID: scheduler_start_[93m8aeae4b4-f200-478b-93af-6c8afec1fed9[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m23[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: start_runman_record
+Trigger: cron
+Job Args: [93m8aeae4b4-f200-478b-93af-6c8afec1fed9[0m
+Job Kwargs: 
+
+Job ID: scheduler_stop_[93m8aeae4b4-f200-478b-93af-6c8afec1fed9[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m23[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: stop_runman_record
+Trigger: cron
+Job Args: [93m8aeae4b4-f200-478b-93af-6c8afec1fed9[0m
+Job Kwargs: 
+
+Updated [1;36m9[0m scheduled jobs.
+Current [1;36m9[0m scheduled jobs: [1m[[0m[1m<[0m[1;95mJob[0m[39m [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_testinterval[0m[39m [0m[33mname[0m[39m=[0m[35mprint_hello[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93m6f54c363[0m[93m-e30c-4ad2-b232-ccc5c11d6745[0m[39m [0m[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m
+[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93mea6d79f2[0m[93m-d441-4236-8969-90c77b565e10[0m[39m [0m[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93m6f54c363[0m[93m-e30c-4ad2-b232-ccc5c11d6745[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[39m>, [0m
+[39m<Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93mea6d79f2[0m[93m-d441-4236-8969-90c77b565e10[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93mbc4ec7d2[0m[93m-249b-4799-a02f-f1ce66f83d4a[0m[39m [0m
+[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93mbc4ec7d2[0m[93m-249b-4799-a02f-f1ce66f83d4a[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[39m>, <Job [0m
+[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93m8aeae4b4[0m[93m-f200-478b-93af-6c8afec1fed9[0m[39m [0m[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93m8aeae4b4[0m[93m-f200-478b-93af-6c8afec1fed9[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[1m>[0m[1m][0m
+Job ID: scheduler_testinterval
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m20[0m [1;92m22:06:39[0m.[1;36m698718[0m-[1;92m05:00[0m
+Job Function: print_hello
+Trigger: interval[1m[[0m[1;92m0:00:10[0m[1m][0m
+Job Args: 
+Job Kwargs: 
+
+Job ID: scheduler_start_[93mbc4ec7d2-249b-4799-a02f-f1ce66f83d4a[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m20[0m [1;92m22:07:00[0m-[1;92m05:00[0m
+Job Function: start_runman_record
+Trigger: cron
+Job Args: [93mbc4ec7d2-249b-4799-a02f-f1ce66f83d4a[0m
+Job Kwargs: 
+
+Job ID: scheduler_stop_[93mbc4ec7d2-249b-4799-a02f-f1ce66f83d4a[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m20[0m [1;92m22:07:00[0m-[1;92m05:00[0m
+Job Function: stop_runman_record
+Trigger: cron
+Job Args: [93mbc4ec7d2-249b-4799-a02f-f1ce66f83d4a[0m
+Job Kwargs: 
+
+Job ID: scheduler_start_[93m6f54c363-e30c-4ad2-b232-ccc5c11d6745[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: start_runman_record
+Trigger: cron
+Job Args: [93m6f54c363-e30c-4ad2-b232-ccc5c11d6745[0m
+Job Kwargs: 
+
+Job ID: scheduler_start_[93mea6d79f2-d441-4236-8969-90c77b565e10[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: start_runman_record
+Trigger: cron
+Job Args: [93mea6d79f2-d441-4236-8969-90c77b565e10[0m
+Job Kwargs: 
+
+Job ID: scheduler_stop_[93m6f54c363-e30c-4ad2-b232-ccc5c11d6745[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: stop_runman_record
+Trigger: cron
+Job Args: [93m6f54c363-e30c-4ad2-b232-ccc5c11d6745[0m
+Job Kwargs: 
+
+Job ID: scheduler_stop_[93mea6d79f2-d441-4236-8969-90c77b565e10[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: stop_runman_record
+Trigger: cron
+Job Args: [93mea6d79f2-d441-4236-8969-90c77b565e10[0m
+Job Kwargs: 
+
+Job ID: scheduler_start_[93m8aeae4b4-f200-478b-93af-6c8afec1fed9[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m23[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: start_runman_record
+Trigger: cron
+Job Args: [93m8aeae4b4-f200-478b-93af-6c8afec1fed9[0m
+Job Kwargs: 
+
+Job ID: scheduler_stop_[93m8aeae4b4-f200-478b-93af-6c8afec1fed9[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m23[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: stop_runman_record
+Trigger: cron
+Job Args: [93m8aeae4b4-f200-478b-93af-6c8afec1fed9[0m
+Job Kwargs: 
+
+Updated [1;36m9[0m scheduled jobs.
+Current [1;36m9[0m scheduled jobs: [1m[[0m[1m<[0m[1;95mJob[0m[39m [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_testinterval[0m[39m [0m[33mname[0m[39m=[0m[35mprint_hello[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93m6f54c363[0m[93m-e30c-4ad2-b232-ccc5c11d6745[0m[39m [0m[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m
+[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93mea6d79f2[0m[93m-d441-4236-8969-90c77b565e10[0m[39m [0m[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93m6f54c363[0m[93m-e30c-4ad2-b232-ccc5c11d6745[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[39m>, [0m
+[39m<Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93mea6d79f2[0m[93m-d441-4236-8969-90c77b565e10[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93mbc4ec7d2[0m[93m-249b-4799-a02f-f1ce66f83d4a[0m[39m [0m
+[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93mbc4ec7d2[0m[93m-249b-4799-a02f-f1ce66f83d4a[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[39m>, <Job [0m
+[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93m8aeae4b4[0m[93m-f200-478b-93af-6c8afec1fed9[0m[39m [0m[33mname[0m[39m=[0m[35mstart_runman_record[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93m8aeae4b4[0m[93m-f200-478b-93af-6c8afec1fed9[0m[39m [0m[33mname[0m[39m=[0m[35mstop_runman_record[0m[1;39m)[0m[1m>[0m[1m][0m
+Job ID: scheduler_testinterval
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m20[0m [1;92m22:07:11[0m.[1;36m334985[0m-[1;92m05:00[0m
+Job Function: print_hello
+Trigger: interval[1m[[0m[1;92m0:00:10[0m[1m][0m
+Job Args: 
+Job Kwargs: 
+
+Job ID: scheduler_start_[93m6f54c363-e30c-4ad2-b232-ccc5c11d6745[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: start_runman_record
+Trigger: cron
+Job Args: [93m6f54c363-e30c-4ad2-b232-ccc5c11d6745[0m
+Job Kwargs: 
+
+Job ID: scheduler_start_[93mea6d79f2-d441-4236-8969-90c77b565e10[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: start_runman_record
+Trigger: cron
+Job Args: [93mea6d79f2-d441-4236-8969-90c77b565e10[0m
+Job Kwargs: 
+
+Job ID: scheduler_stop_[93m6f54c363-e30c-4ad2-b232-ccc5c11d6745[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: stop_runman_record
+Trigger: cron
+Job Args: [93m6f54c363-e30c-4ad2-b232-ccc5c11d6745[0m
+Job Kwargs: 
+
+Job ID: scheduler_stop_[93mea6d79f2-d441-4236-8969-90c77b565e10[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: stop_runman_record
+Trigger: cron
+Job Args: [93mea6d79f2-d441-4236-8969-90c77b565e10[0m
+Job Kwargs: 
+
+Job ID: scheduler_start_[93mbc4ec7d2-249b-4799-a02f-f1ce66f83d4a[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m22:07:00[0m-[1;92m05:00[0m
+Job Function: start_runman_record
+Trigger: cron
+Job Args: [93mbc4ec7d2-249b-4799-a02f-f1ce66f83d4a[0m
+Job Kwargs: 
+
+Job ID: scheduler_stop_[93mbc4ec7d2-249b-4799-a02f-f1ce66f83d4a[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m22:07:00[0m-[1;92m05:00[0m
+Job Function: stop_runman_record
+Trigger: cron
+Job Args: [93mbc4ec7d2-249b-4799-a02f-f1ce66f83d4a[0m
+Job Kwargs: 
+
+Job ID: scheduler_start_[93m8aeae4b4-f200-478b-93af-6c8afec1fed9[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m23[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: start_runman_record
+Trigger: cron
+Job Args: [93m8aeae4b4-f200-478b-93af-6c8afec1fed9[0m
+Job Kwargs: 
+
+Job ID: scheduler_stop_[93m8aeae4b4-f200-478b-93af-6c8afec1fed9[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m23[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: stop_runman_record
+Trigger: cron
+Job Args: [93m8aeae4b4-f200-478b-93af-6c8afec1fed9[0m
+Job Kwargs: 
+
+Updated [1;36m9[0m scheduled jobs.
+Current [1;36m0[0m scheduled jobs: [1m[[0m[1m][0m
+Job ID: scheduler_testinterval
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m20[0m [1;92m22:17:40[0m.[1;36m327829[0m-[1;92m05:00[0m
+Job Function: print_hello
+Trigger: interval[1m[[0m[1;92m0:00:10[0m[1m][0m
+Job Args: 
+Job Kwargs: 
+
+Job ID: scheduler_start_[93m6f54c363-e30c-4ad2-b232-ccc5c11d6745[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: wrapper
+Trigger: cron
+Job Args: [93m6f54c363-e30c-4ad2-b232-ccc5c11d6745[0m
+Job Kwargs: 
+
+Job ID: scheduler_start_[93mea6d79f2-d441-4236-8969-90c77b565e10[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: wrapper
+Trigger: cron
+Job Args: [93mea6d79f2-d441-4236-8969-90c77b565e10[0m
+Job Kwargs: 
+
+Job ID: scheduler_stop_[93m6f54c363-e30c-4ad2-b232-ccc5c11d6745[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: wrapper
+Trigger: cron
+Job Args: [93m6f54c363-e30c-4ad2-b232-ccc5c11d6745[0m
+Job Kwargs: 
+
+Job ID: scheduler_stop_[93mea6d79f2-d441-4236-8969-90c77b565e10[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: wrapper
+Trigger: cron
+Job Args: [93mea6d79f2-d441-4236-8969-90c77b565e10[0m
+Job Kwargs: 
+
+Job ID: scheduler_start_[93mbc4ec7d2-249b-4799-a02f-f1ce66f83d4a[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m22:07:00[0m-[1;92m05:00[0m
+Job Function: wrapper
+Trigger: cron
+Job Args: [93mbc4ec7d2-249b-4799-a02f-f1ce66f83d4a[0m
+Job Kwargs: 
+
+Job ID: scheduler_stop_[93mbc4ec7d2-249b-4799-a02f-f1ce66f83d4a[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m22:07:00[0m-[1;92m05:00[0m
+Job Function: wrapper
+Trigger: cron
+Job Args: [93mbc4ec7d2-249b-4799-a02f-f1ce66f83d4a[0m
+Job Kwargs: 
+
+Job ID: scheduler_start_[93m8aeae4b4-f200-478b-93af-6c8afec1fed9[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m23[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: wrapper
+Trigger: cron
+Job Args: [93m8aeae4b4-f200-478b-93af-6c8afec1fed9[0m
+Job Kwargs: 
+
+Job ID: scheduler_stop_[93m8aeae4b4-f200-478b-93af-6c8afec1fed9[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m23[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: wrapper
+Trigger: cron
+Job Args: [93m8aeae4b4-f200-478b-93af-6c8afec1fed9[0m
+Job Kwargs: 
+
+Current [1;36m9[0m scheduled jobs: [1m[[0m[1m<[0m[1;95mJob[0m[39m [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_testinterval[0m[39m [0m[33mname[0m[39m=[0m[35mprint_hello[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93m6f54c363[0m[93m-e30c-4ad2-b232-ccc5c11d6745[0m[39m [0m
+[33mname[0m[39m=[0m[35mwith_redirected_stdout[0m[39m.<locals>.wrapper[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93mea6d79f2[0m[93m-d441-4236-8969-90c77b565e10[0m[39m [0m[33mname[0m[39m=[0m[35mwith_redirected_stdout[0m[39m.<locals>.wrapper[0m[1;39m)[0m[39m>, <Job [0m
+[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93m6f54c363[0m[93m-e30c-4ad2-b232-ccc5c11d6745[0m[39m [0m[33mname[0m[39m=[0m[35mwith_redirected_stdout[0m[39m.<locals>.wrapper[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93mea6d79f2[0m[93m-d441-4236-8969-90c77b565e10[0m[39m [0m
+[33mname[0m[39m=[0m[35mwith_redirected_stdout[0m[39m.<locals>.wrapper[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93mbc4ec7d2[0m[93m-249b-4799-a02f-f1ce66f83d4a[0m[39m [0m[33mname[0m[39m=[0m[35mwith_redirected_stdout[0m[39m.<locals>.wrapper[0m[1;39m)[0m[39m>, <Job [0m
+[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93mbc4ec7d2[0m[93m-249b-4799-a02f-f1ce66f83d4a[0m[39m [0m[33mname[0m[39m=[0m[35mwith_redirected_stdout[0m[39m.<locals>.wrapper[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93m8aeae4b4[0m[93m-f200-478b-93af-6c8afec1fed9[0m[39m [0m
+[33mname[0m[39m=[0m[35mwith_redirected_stdout[0m[39m.<locals>.wrapper[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93m8aeae4b4[0m[93m-f200-478b-93af-6c8afec1fed9[0m[39m [0m[33mname[0m[39m=[0m[35mwith_redirected_stdout[0m[39m.<locals>.wrapper[0m[1;39m)[0m[1m>[0m[1m][0m
+Job ID: scheduler_start_[93mbc4ec7d2-249b-4799-a02f-f1ce66f83d4a[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m20[0m [1;92m22:18:00[0m-[1;92m05:00[0m
+Job Function: wrapper
+Trigger: cron
+Job Args: [93mbc4ec7d2-249b-4799-a02f-f1ce66f83d4a[0m
+Job Kwargs: 
+
+Job ID: scheduler_stop_[93mbc4ec7d2-249b-4799-a02f-f1ce66f83d4a[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m20[0m [1;92m22:18:00[0m-[1;92m05:00[0m
+Job Function: wrapper
+Trigger: cron
+Job Args: [93mbc4ec7d2-249b-4799-a02f-f1ce66f83d4a[0m
+Job Kwargs: 
+
+Job ID: scheduler_testinterval
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m20[0m [1;92m22:18:00[0m.[1;36m488891[0m-[1;92m05:00[0m
+Job Function: print_hello
+Trigger: interval[1m[[0m[1;92m0:00:10[0m[1m][0m
+Job Args: 
+Job Kwargs: 
+
+Job ID: scheduler_start_[93m6f54c363-e30c-4ad2-b232-ccc5c11d6745[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: wrapper
+Trigger: cron
+Job Args: [93m6f54c363-e30c-4ad2-b232-ccc5c11d6745[0m
+Job Kwargs: 
+
+Job ID: scheduler_start_[93mea6d79f2-d441-4236-8969-90c77b565e10[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: wrapper
+Trigger: cron
+Job Args: [93mea6d79f2-d441-4236-8969-90c77b565e10[0m
+Job Kwargs: 
+
+Job ID: scheduler_stop_[93m6f54c363-e30c-4ad2-b232-ccc5c11d6745[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: wrapper
+Trigger: cron
+Job Args: [93m6f54c363-e30c-4ad2-b232-ccc5c11d6745[0m
+Job Kwargs: 
+
+Job ID: scheduler_stop_[93mea6d79f2-d441-4236-8969-90c77b565e10[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: wrapper
+Trigger: cron
+Job Args: [93mea6d79f2-d441-4236-8969-90c77b565e10[0m
+Job Kwargs: 
+
+Job ID: scheduler_start_[93m8aeae4b4-f200-478b-93af-6c8afec1fed9[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m23[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: wrapper
+Trigger: cron
+Job Args: [93m8aeae4b4-f200-478b-93af-6c8afec1fed9[0m
+Job Kwargs: 
+
+Job ID: scheduler_stop_[93m8aeae4b4-f200-478b-93af-6c8afec1fed9[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m23[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: wrapper
+Trigger: cron
+Job Args: [93m8aeae4b4-f200-478b-93af-6c8afec1fed9[0m
+Job Kwargs: 
+
+Startj g record [93mbc4ec7d2-249b-4799-a02f-f1ce66f83d4a[0m
+Stopping record [93mbc4ec7d2-249b-4799-a02f-f1ce66f83d4a[0m
+strategy [93m15687653-04fb-46aa-8806-ef4af4e45d96[0m not RUNNING or not distinctive [1m([0mmanually launched or two strat_ids in scheduler[1m)[0m
+Hello
+Calendar data fetch successful [1;36m2024[0m-[1;36m02[0m-[1;36m20[0m [1;36m2024[0m-[1;36m02[0m-[1;36m20[0m
+OPEN:[1;36m2024[0m-[1;36m02[0m-[1;36m20[0m [1;92m09:30:00[0m-[1;92m05:00[0m CLOS[1;92mE:2024[0m-[1;36m02[0m-[1;36m20[0m [1;92m16:00:00[0m-[1;92m05:00[0m
+StrategyInstance fetched: [93m15687653-04fb-46aa-8806-ef4af4e45d96[0m
+[1;35mRunRequest[0m[1m([0m
+    [33mid[0m=[1;35mUUID[0m[1m([0m[32m'15687653-04fb-46aa-8806-ef4af4e45d96'[0m[1m)[0m,
+    [33maccount[0m=[1m<[0m[1;95mAccount.ACCOUNT1:[0m[39m [0m[32m'ACCOUNT1'[0m[39m>,[0m
+[39m    [0m[33mmode[0m[39m=<Mode.PAPER: [0m[32m'paper'[0m[1m>[0m,
+    [33mnote[0m=[32m'SCHED 22:18-22:19'[0m,
+    [33mdebug[0m=[3;91mFalse[0m,
+    [33mstrat_json[0m=[32m'[0m[32m{[0m[32m"id": "15687653-04fb-46aa-8806-ef4af4e45d96", "id2": -2013, "name": "SUPERTREND TV", "symbol": "BAC", "class_name": "StrategyClassicSL", "script": [0m
+[32m"ENTRY_ClassicSL_v01", "open_rush": 0, "close_rush": 0, "stratvars_conf": "[0m[32m[[0m[32mstratvars[0m[32m][0m[32m\\r\\n#obecne platici pro vsechny signaly \\r\\n    #abs profit/loss to suspend [0m
+[32mstrategy\\r\\n    #max_sum_profit_to_quit = 300\\r\\n    #max_sum_loss_to_quit = -300\\r\\n\\r\\n    #procenta profit/loss to suspend startegy\\r\\n    [0m
+[32m#max_sum_profit_to_quit_rel = 0.3\\r\\n    #max_sum_loss_to_quit_rel = -0.3\\r\\n    normalize_ticks = true\\r\\n    normalized_base_price = 30\\r\\n    long_enabled = [0m
+[32mtrue\\r\\n    short_enabled = true\\r\\n    chunk = 2000\\r\\n    maxpozic = 4000\\r\\n    #nastavuje pevny profit\\r\\n    profit = 0.25\\r\\n    max_profit = 0.30\\r\\n    [0m
+[32mconsolidation_bar_count = 5\\r\\n    #po minutach\\r\\n    window_open = 0\\r\\n    window_close = 360\\r\\n    signal_only_on_confirmed = true\\r\\n    [0m
+[32mforced_exit_window_start = 361\\r\\n    forced_exit_window_end = 389\\r\\n    #pouze posledni minutu prod\\u00e1me, ne\\u010dek\\u00e1me na breakeven\\r\\n    [0m
+[32m#forced_exit_breakeven_period = false\\r\\n\\r\\n[0m[32m[[0m[32mstratvars.indicators.atr10[0m[32m][0m[32m\\r\\n    #[0m[32m[[0m[32mstratvars.indicators.atr10[0m[32m][0m[32m\\r\\n    type = \'ATR\'\\r\\n    length = 10\\r\\n    [0m
+[32mon_confirmed_only = true\\r\\n[0m[32m[[0m[32mstratvars.indicators.MESA[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'talib_ind\'\\r\\n    returns = [0m[32m[[0m[32m\\"mama\\", \\"fama\\"[0m[32m][0m[32m\\r\\n    [0m
+[32mon_confirmed_only = true\\r\\n    cp.defval = \'close\'\\r\\n    #cp.lookback = 100\\r\\n    cp.type = \'MAMA\'\\r\\n    cp.params.series = [0m[32m[[0m[32m\'close\'[0m[32m][0m[32m\\r\\n    [0m
+[32m#cp.params.keys.fastlimit = 0\\r\\n    #cp.params.keys.slowlimit = 0\\r\\n    scale = \\"right\\"\\r\\n[0m[32m[[0m[32mstratvars.indicators.supertrend[0m[32m][0m[32m\\r\\n    output = \'bar\'\\r\\n    [0m
+[32mtype = \'custom\'\\r\\n    returns = [0m[32m[[0m[32m\'basic_up\',\'basic_dn\',\'final_up\', \'final_down\', \'trend\'[0m[32m][0m[32m\\r\\n    scale = [0m[32m[[0m[32m\'right\', \'right\', \'right\', \'right\', [0m
+[32m\'signal\'[0m[32m][0m[32m\\r\\n    subtype = \'classed\'\\r\\n    on_confirmed_only = true\\r\\n    cp.class_name = \'SuperTrend\'\\r\\n    cp.next = [0m[32m[[0m[32m\'high\', \'low\', \'close\'[0m[32m][0m[32m\\r\\n [0m
+[32m[[0m[32mstratvars.indicators.supertrend.cp.init[0m[32m][0m[32m #params is send to init, opt\\r\\n    [0m[32matr_period[0m[32m=[0m[32m14[0m[32m\\r\\n    [0m[32mmultiplier[0m[32m=[0m[32m1[0m[32m.2\\r\\n[0m[32m[[0m[32mstratvars.indicators.supertrend1[0m[32m][0m[32m\\r\\n    output =[0m
+[32m\\"bar\\"\\r\\n    type = \\"custom\\"\\r\\n    returns = [0m[32m[[0m[32m\'dn\',\'up\',\'trend1\'[0m[32m][0m[32m\\r\\n    scale = [0m[32m[[0m[32m\'right\',\'right\',\'signal\'[0m[32m][0m[32m\\r\\n    subtype = \\"classed\\"\\r\\n  [0m
+[32mon_confirmed_only = true\\r\\n    cp.class_name = \\"SuperTrend1\\"\\r\\n    cp.next = [0m[32m[[0m[32m\'high\',\'low\',\'close\'[0m[32m][0m[32m #optional, source posilany explicitne do next ve [0m
+[32mstejnojmenn\\u00e9m parametru, note that next has access to state\\r\\n    #cp.next_mapping = [0m[32m[[0m[32m\\"data\\"[0m[32m][0m[32m \\r\\n [0m[32m[[0m[32mstratvars.indicators.supertrend1.cp.init[0m[32m][0m[32m #params is send to[0m
+[32minit, opt\\r\\n    [0m[32mperiod[0m[32m=[0m[32m14[0m[32m\\r\\n    [0m[32mmultiplier[0m[32m=[0m[32m1[0m[32m.2\\r\\n[0m[32m[[0m[32mstratvars.indicators.supertrendTV[0m[32m][0m[32m\\r\\noutput = \'bar\'\\r\\ntype = \'custom\'\\r\\nreturns = [0m[32m[[0m[32m\'dnB\', \'upB\', [0m
+[32m\'trendB\'[0m[32m][0m[32m\\r\\nscale = [0m[32m[[0m[32m\'right\', \'right\', \'signal\'[0m[32m][0m[32m\\r\\nsubtype = \'classed\'\\r\\non_confirmed_only = true\\r\\ncp.class_name = \'SuperTrendTV\'\\r\\ncp.next = [0m
+[32m[[0m[32m\'high\', \'low\', \'close\'[0m[32m][0m[32m\\r\\n[0m[32m[[0m[32mstratvars.indicators.supertrendBard.cp.init[0m[32m][0m[32m #params is send to init, opt\\r\\natr_period = 10\\r\\natr_multiplier = [0m
+[32m3\\r\\n[0m[32m[[0m[32mstratvars.indicators.mama_angle3[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'talib_ind\'\\r\\n    on_confirmed_only = true\\r\\n    cp.lookback = 10\\r\\n    [0m
+[32mcp.type = \'LINEARREG_ANGLE\'\\r\\n    cp.params.series = [0m[32m[[0m[32m\'mama\'[0m[32m][0m[32m\\r\\n    cp.params.keys.timeperiod = 3\\r\\n    scale = [0m
+[32m\'linreg\'\\r\\n[0m[32m[[0m[32mstratvars.indicators.ht_trendline[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'talib_ind\'\\r\\n    on_confirmed_only = true\\r\\n    cp.defval = [0m
+[32m\\"close\\" #pokud nejsou hodnoty, vracime close\\r\\n    #cp.lookback = 100 #celkovy lookback pro vsechny serie\\r\\n    cp.type = \'HT_TRENDLINE\'\\r\\n    cp.params.series [0m
+[32m= [0m[32m[[0m[32m\\"close\\"[0m[32m][0m[32m #vstupni serie pro pozicni parametry pro ta-lib\\r\\n    #cp.params.keys.timeperiod = 14 #keyword argumenty pro ta-lib\\r\\n    scale = [0m
+[32m\\"right\\"\\r\\n[0m[32m[[0m[32mstratvars.indicators.ht_dcperiod[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'talib_ind\'\\r\\n    on_confirmed_only = true\\r\\n    #cp.source = [0m
+[32m\'close\'\\r\\n    cp.defval = \\"close\\" #pokud nejsou hodnoty, vracime close\\r\\n    cp.lookback = 100 #celkovy lookback pro vsechny serie\\r\\n    cp.type = [0m
+[32m\'HT_DCPERIOD\'\\r\\n    cp.params.series = [0m[32m[[0m[32m\\"close\\"[0m[32m][0m[32m #vstupni serie pro pozicni parametry pro ta-lib\\r\\n    #cp.params.keys.timeperiod = 14 #keyword argumenty pro [0m
+[32mta-lib\\r\\n    scale = \\"period\\"\\r\\n[0m[32m[[0m[32mstratvars.indicators.bbands[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'talib_ind\'\\r\\n    returns = [0m[32m[[0m[32m\\"upperband\\", [0m
+[32m\\"middleband\\", \\"lowerband\\"[0m[32m][0m[32m\\r\\n    on_confirmed_only = true\\r\\n    cp.defval = \'close\'\\r\\n    cp.lookback = 100\\r\\n    cp.type = \'BBANDS\'\\r\\n    [0m
+[32mcp.params.series = [0m[32m[[0m[32m\'close\'[0m[32m][0m[32m\\r\\n    cp.params.keys.timeperiod = 5\\r\\n    cp.params.keys.[0m[32mnbdevup[0m[32m=[0m[32m2[0m[32m\\r\\n    cp.params.keys.[0m[32mnbdevdn[0m[32m=[0m[32m2[0m[32m\\r\\n    [0m
+[32mcp.params.keys.[0m[32mmatype[0m[32m=[0m[32m0[0m[32m\\r\\n    scale = \'right\'\\r\\n[0m[32m[[0m[32mstratvars.indicators.vwap_cum[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'expression\'\\r\\n    on_confirmed_only[0m
+[32m= true\\r\\n    cp.convertToNumpy = [0m[32m[[0m[32m\'hlcc4\',\'volume\'[0m[32m][0m[32m\\r\\n    cp.expression = \'np.sum[0m[32m([0m[32m([0m[32mhlcc4 * volume[0m[32m)[0m[32m / np.sum[0m[32m([0m[32mvolume[0m[32m)[0m[32m)[0m[32m\'\\r\\n    scale = [0m
+[32m\'right\'\\r\\n[0m[32m[[0m[32mstratvars.indicators.vwap_angle5[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'talib_ind\'\\r\\n    on_confirmed_only = true\\r\\n    cp.lookback = 5\\r\\n [0m
+[32mcp.type = \'LINEARREG_ANGLE\'\\r\\n    cp.params.series = [0m[32m[[0m[32m\'vwap_cum\'[0m[32m][0m[32m\\r\\n    cp.params.keys.timeperiod = 5\\r\\n    scale = [0m
+[32m\'linreg\'\\r\\n[0m[32m[[0m[32mstratvars.indicators.div_vwap_cum[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'divergence\'\\r\\n    on_confirmed_only = true\\r\\n    cp.source1 = [0m
+[32m\'close\'\\r\\n    cp.source2 = \'vwap_cum\'\\r\\n    cp.type = \'reln\'\\r\\n    scale = \'left\'\\r\\n[0m[32m[[0m[32mstratvars.indicators.div_vwap_cum_mul[0m[32m][0m[32m #multiplikator predchoziho [0m
+[32mindikatoru kvuli lepsimu zobrazeni a zaokrouhleni\\r\\n    type = \'custom\'\\r\\n    subtype = \'expression\'\\r\\n    cp.expression = \'div_vwap_cum[0m[32m[[0m[32m-1[0m[32m][0m[32m*1000\'\\r\\n    [0m
+[32mscale = \'own\'\\r\\n[0m[32m[[0m[32mstratvars.indicators.profit[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'expression\'\\r\\n    on_confirmed_only = true\\r\\n    cp.expression = [0m
+[32m\'state.profit\'\\r\\n[0m[32m[[0m[32mstratvars.indicators.rsi14[0m[32m][0m[32m\\r\\n    output = \\"bar\\"\\r\\n    type = \'custom\'\\r\\n    subtype = \'rsi\'\\r\\n    MA_length = 10 #vytvori dalsi [0m
+[32mstejnojmenny indikator s postfixem _MA\\r\\n    on_confirmed_only = true\\r\\n    cp.source = \'vwap\'\\r\\n    cp.length = 15\\r\\n    cp.start = \\"linear\\"\\r\\n    scale [0m
+[32m= \'left\'\\r\\n[0m[32m[[0m[32mstratvars.indicators.weekday[0m[32m][0m[32m\\r\\n    output = \\"bar\\"\\r\\n    type = \\"custom\\"\\r\\n    subtype = \\"classed\\"\\r\\n    on_confirmed_only = [0m
+[32mtrue\\r\\n    cp.class_name = \\"WeekDay\\"\\r\\n[0m[32m[[0m[32mstratvars.indicators.volumebar[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'barparams\'\\r\\n    on_confirmed_only = [0m
+[32mtrue\\r\\n    cp.source = \'volume\'\\r\\n[0m[32m[[0m[32mstratvars.indicators.indexbar[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'barparams\'\\r\\n    on_confirmed_only = true\\r\\n  [0m
+[32mcp.source = \'index\'\\r\\n[0m[32m[[0m[32mstratvars.indicators.volumebarema[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'ma\'\\r\\n    on_confirmed_only = true\\r\\n    cp.source = [0m
+[32m\'volumebar\'\\r\\n    cp.lookback = 30\\r\\n    cp.type = \'ema\'\\r\\n[0m[32m[[0m[32mstratvars.indicators.voldiv[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'divergence\'\\r\\n    [0m
+[32mon_confirmed_only = true\\r\\n    cp.source1 = \'volumebar\'\\r\\n    cp.source2 = \'volumebarema\'\\r\\n    cp.type = \'reln\'\\r\\n    scale = [0m
+[32m\\"left\\"\\r\\n[0m[32m[[0m[32mstratvars.indicators.div_vwap_angle6[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'talib_ind\'\\r\\n    on_confirmed_only = true\\r\\n    cp.lookback = [0m
+[32m10\\r\\n    cp.type = \'LINEARREG_ANGLE\'\\r\\n    cp.params.series = [0m[32m[[0m[32m\'div_vwap_cum\'[0m[32m][0m[32m\\r\\n    cp.params.keys.timeperiod = 10\\r\\n    scale = [0m
+[32m\'linreg\'\\r\\n[0m[32m[[0m[32mstratvars.indicators.signal[0m[32m][0m[32m\\r\\n    output = \\"bar\\"\\r\\n    type = \'custom\'\\r\\n    subtype = \'conditional\'\\r\\n    on_confirmed_only = true\\r\\n[0m
+[32mscale = \'left\'\\r\\n[0m[32m[[0m[32mstratvars.indicators.signal.cp.conditions.buy[0m[32m][0m[32m\\r\\n    #supertrend up\\r\\n    trendB.AND.change_val_if_equals = 1\\r\\n    #cena je nad vwapem urcitou[0m
+[32mdivergence\\r\\n    div_vwap_cum_mul.AND.change_val_if_above = 4\\r\\n    #strmy uhel divergence\\r\\n    div_vwap_angle6.AND.change_val_if_above = 0.023\\r\\n    true_val = [0m
+[32m1\\r\\n[0m[32m[[0m[32mstratvars.indicators.signal.cp.conditions.sell[0m[32m][0m[32m\\r\\n    trendB.AND.change_val_if_equals = -1\\r\\n    #cena je pod vwapem o danou divergen ce\\r\\n    [0m
+[32mdiv_vwap_cum_mul.AND.change_val_if_below = -3\\r\\n\\r\\n    #uhel divergence je strm\\u00fd\\r\\n    div_vwap_angle6.AND.change_val_if_below = -0.009\\r\\n    true_val = [0m
+[32m-1\\r\\n[0m[32m[[0m[32mstratvars.indicators.sl_long[0m[32m][0m[32m\\r\\n    #[0m[32m[[0m[32mstratvars.indicators.freq_period_multiplier[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'expression\'\\r\\n    [0m
+[32mon_confirmed_only = true\\r\\n    cp.expression = \'close[0m[32m[[0m[32m-1[0m[32m][0m[32m-[0m[32m([0m[32matr10[0m[32m[[0m[32m-1[0m[32m][0m[32m*2[0m[32m)[0m[32m\'\\r\\n    [0m[32mscale[0m[32m= \\"right\\"\\r\\n[0m[32m[[0m[32mstratvars.indicators.sl_short[0m[32m][0m[32m\\r\\n    [0m
+[32m#[0m[32m[[0m[32mstratvars.indicators.freq_period_multiplier[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'expression\'\\r\\n    on_confirmed_only = true\\r\\n    cp.expression = [0m
+[32m\'close[0m[32m[[0m[32m-1[0m[32m][0m[32m+[0m[32m([0m[32matr10[0m[32m[[0m[32m-1[0m[32m][0m[32m*2[0m[32m)[0m[32m\'\\r\\n    [0m[32mscale[0m[32m= \\"right\\"\\r\\n[0m[32m[[0m[32mstratvars.indicators.long_goal[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'expression\'\\r\\n    [0m
+[32mon_confirmed_only = true\\r\\n    cp.expression = \'close[0m[32m[[0m[32m-1[0m[32m][0m[32m+[0m[32m([0m[32matr10[0m[32m[[0m[32m-1[0m[32m][0m[32m*3[0m[32m)[0m[32m\'\\r\\n    scale = \'right\'\\r\\n[0m[32m[[0m[32mstratvars.indicators.short_goal[0m[32m][0m[32m\\r\\n    type = [0m
+[32m\'custom\'\\r\\n    subtype = \'expression\'\\r\\n    on_confirmed_only = true\\r\\n    cp.expression = \'close[0m[32m[[0m[32m-1[0m[32m][0m[32m-[0m[32m([0m[32matr10[0m[32m[[0m[32m-1[0m[32m][0m[32m*3[0m[32m)[0m[32m\'\\r\\n    scale = [0m
+[32m\'right\'\\r\\n[0m[32m[[0m[32mstratvars.signals.main[0m[32m][0m[32m\\r\\n    signal_only_on_confirmed = true\\r\\n    next_signal_offset_from_last_exit = 0\\r\\n    #6.5h, [0m[32m360[0m[32m=[0m[32m6h[0m[32m, \\r\\n    window_open =[0m
+[32m2\\r\\n    window_close = 360\\r\\n    min_bar_index = 0\\r\\n    #activated = true\\r\\n    profit = 0.50\\r\\n    #profit_short = 0.07\\r\\n    #profit_short = [0m
+[32m\\"short_goal\\"\\r\\n    #profit_long = 0.07\\r\\n    #profit_long = \\"long_goal\\"\\r\\n    #ochrana proti extremnim hodntoam z indikatoru - fallback\\r\\n    [0m
+[32mprofit_min_ind_tick_value = 0.03\\r\\n    max_profit = 0.50\\r\\n    #SL_defval_short = \\"sl_short\\"\\r\\n    #SL_defval_short = \\"high1bars\\"\\r\\n    #SL_defval_long = [0m
+[32m\\"sl_long\\"\\r\\n    SL_defval_short = 0.30\\r\\n    SL_defval_long = 0.30\\r\\n    SL_trailing_enabled_short = false\\r\\n    SL_trailing_enabled_long = false\\r\\n    [0m
+[32mSL_trailing_offset_short = 0.04\\r\\n    SL_trailing_offset_long = 0.04\\r\\n    SL_trailing_step_short = 0.01\\r\\n    SL_trailing_step_long = 0.01\\r\\n    [0m
+[32mSL_trailing_stop_at_breakeven_short = false\\r\\n    SL_trailing_stop_at_breakeven_long = false\\r\\n    reverse_for_SL_exit_short = \\"no\\"\\r\\n    reverse_for_SL_exit_long[0m
+[32m= \\"cond\\"\\r\\n    #[0m[32m[[0m[32m0.236, 0.382, 0.618[0m[32m][0m[32m\\r\\n    #SL_opt_exit_levels_short = [0m[32m[[0m[32m0.236, 0.382, 0.618[0m[32m][0m[32m\\r\\n    #SL_opt_exit_levels_long = [0m[32m[[0m[32m0.236, 0.382, 0.618[0m[32m][0m[32m\\r\\n    [0m
+[32m##SL_opt_exit_sizes_short = [0m[32m[[0m[32m0.2[0m[32m][0m[32m\\r\\n    #SL_opt_exit_sizes_long = [0m[32m[[0m[32m0.2[0m[32m][0m[32m\\r\\n[0m[32m[[0m[32mstratvars.signals.main.conditions[0m[32m][0m[32m\\r\\n    #preconditions \\r\\n\\r\\n    #SHORT ENTRY\\r\\n [0m
+[32msignal.AND.go_short_if_equals = -1\\r\\n\\r\\n    #pouze pri prepnuti\\r\\n    #vwap_angle5.AND.go_short_if_below = -0.1\\r\\n    \\r\\n    #trendB.AND.go_short_if_fallingc = [0m
+[32m2\\r\\n    #signal_linreg.go_short_if_equals = -1\\r\\n    #signal.go_short_if_equals = -1\\r\\n    #signal_conf_short.go_short_if_equals = 1\\r\\n    #EXIT PROTECTION\\r\\n  [0m
+[32m#drzime dokud stoupame\\r\\n    #slopetick5.dont_exit_long_if_above = 0\\r\\n    #mama_angle3.dont_exit_long_if_above = 0\\r\\n    #mama_angle3.dont_exit_short_if_below = 0  [0m
+[32m\\r\\n    #signal_linreg.dont_exit_short_if_equals = -1 \\r\\n    #EXIT - drzime po dobu trvani signalu\\r\\n    signal.exit_long_if_not_equals = 1\\r\\n    [0m
+[32msignal.exit_short_if_not_equals = -1\\r\\n    #okamzity exit, kdyz je pod 0 ??\\r\\n    #signal_linreg.exit_long_if_not_equals = 1\\r\\n    [0m
+[32m#signal_linreg.exit_short_if_not_equals = -1\\r\\n\\r\\n    #LONG ENTRY\\r\\n    signal.go_long_if_equals = 1\\r\\n\\r\\n    #vwap_angle5.AND.go_long_if_above = 0.1\\r\\n    [0m
+[32m#trendB.AND.go_long_if_risingc = 2\\r\\n    #signal_linreg.go_long_if_equals = 1\\r\\n\\r\\n    #reverse\\r\\n    #trend1.AND.reverse_long_if_equals = -1\\r\\n    [0m
+[32m#vwap_angle5.AND.reverse_long_if_below = -0.05\\r\\n    #trend1.AND.reverse_short_if_equals = 1\\r\\n    #vwap_angle5.AND.reverse_short_if_above = 0.05\\r\\n    [0m
+[32m#signal_conf_sell.reverse_long_if_equals = 1\\r\\n\\r\\n    #CONDITIONAL REVERSE ONLY\\r\\n    #slope1.slreverseonly_long_if_below = 0\\r\\n    [0m
+[32m#slope1.slreverseonly_short_if_above = 0\\r\\n\\r\\n[0m[32m[[0m[32mstratvars.exit[0m[32m][0m[32m\\r\\n    #maximalni stoploss, fallout pro \\"exit_short_if\\" direktivy\\r\\n    SL_defval_short = [0m
+[32m0.10\\r\\n    SL_defval_long = 0.02\\r\\n    SL_trailing_enabled_short = false\\r\\n    SL_trailing_enabled_long = false\\r\\n    #minimalni vzdalenost od aktualni SL, aby se [0m
+[32mSL posunula na \\r\\n    SL_trailing_offset_short = 0.02\\r\\n    SL_trailing_offset_long = 0.02\\r\\n    #zda trailing zastavit na brakeeven\\r\\n    [0m
+[32mSL_trailing_stop_at_breakeven_short = false\\r\\n    SL_trailing_stop_at_breakeven_long = false\\r\\n[0m[32m[[0m[32mstratvars.exit.conditions[0m[32m][0m[32m\\r\\n    #obecne exit conditions platne pro [0m
+[32mvsechny\\r\\n    #slope20.exit_long_if_below = 20\\r\\n    #slope10.exit_short_if_above = 0.3\\r\\n\\r\\n   #TBD - mozna udelat EOD exit jako direktivu\\r\\n", [0m
+[32m"add_data_conf": "[0m[32m[[0m[32m[[0m[32madd_data[0m[32m][0m[32m][0m[32m\\r\\n    [0m[32msymbol[0m[32m=\\"BAC\\"\\r\\n    [0m[32mrectype[0m[32m= \\"cbar\\"\\r\\n    [0m[32mresolution[0m[32m=[0m[32m12[0m[32m\\r\\n    [0m[32mupdate_ltp[0m[32m=[0m[32mtrue[0m[32m\\r\\n    [0m[32malign[0m[32m=\\"round\\"\\r\\n    [0m
+[32mmintick[0m[32m=[0m[32m0[0m[32m\\r\\n    [0m[32mminsize[0m[32m=[0m[32m100[0m[32m\\r\\n    [0m[32mexthours[0m[32m=[0m[32mfalse"[0m[32m, "note": "", "history": "\\nREASON:STOP Signal received\\nREASON:STOP Signal received\\nREASON:STOP Signal [0m
+[32mreceived\\nREASON:STOP Signal received"[0m[32m}[0m[32m'[0m,
+    [33milog_save[0m=[3;91mFalse[0m,
+    [33mbt_from[0m=[3;35mNone[0m,
+    [33mbt_to[0m=[3;35mNone[0m,
+    [33mweekdays_filter[0m=[1m[[0m[1m][0m,
+    [33mtest_batch_id[0m=[3;35mNone[0m,
+    [33mbatch_id[0m=[32m'22'[0m,
+    [33mcash[0m=[1;36m100000[0m,
+    [33mskip_cache[0m=[3;91mFalse[0m
+[1m)[0m
+RUN [93m7d8198bd-bbc7-4dbb-a37f-c1df8edde461[0m INITIATED
+instance vytvorena [1m<[0m[1;95mv2realbot.strategy.StrategyClassicSL.StrategyClassicSL[0m[39m object at [0m[1;36m0x144d11cf0[0m[1m>[0m
+adding stream
+[1m{[0m
+    [32m'symbol'[0m: [32m'BAC'[0m,
+    [32m'rectype'[0m: [1m<[0m[1;95mRecordType.CBAR:[0m[39m [0m[32m'cbar'[0m[39m>,[0m
+[39m    [0m[32m'resolution'[0m[39m: [0m[1;36m12[0m[39m,[0m
+[39m    [0m[32m'update_ltp'[0m[39m: [0m[3;92mTrue[0m[39m,[0m
+[39m    [0m[32m'align'[0m[39m: <StartBarAlign.ROUND: [0m[32m'round'[0m[1m>[0m,
+    [32m'mintick'[0m: [1;36m0[0m,
+    [32m'minsize'[0m: [1;36m100[0m,
+    [32m'exthours'[0m: [3;91mFalse[0m
+[1m}[0m
+stav pred pridavanim []
+websocket zatim nebezi, pouze pridavame do pole
+Starting strategy SUPERTREND TV
+Spuštěna SUPERTREND TV
+********** WS Streamer - run WS-LDR-SUPERTREND TV **********
+symbol ve streams BAC
+subscribed to BAC
+WS-LDR-SUPERTREND TV it is not running, starting by calling RUN
+********** WS Streamer STARTED **********
+********** WS Order Update Streamer started for SUPERTREND TV **********
+creating workdict for buy value [1m{[0m[32m'AND'[0m: [1m[[0m[1m([0m[32m'trendB'[0m, [32m'change_val_if_equals'[0m, [1;36m1[0m[1m)[0m, [1m([0m[32m'div_vwap_cum_mul'[0m, [32m'change_val_if_above'[0m, [1;36m4[0m[1m)[0m, [1m([0m[32m'div_vwap_angle6'[0m, [32m'change_val_if_above'[0m, 
+[1;36m0.023[0m[1m)[0m[1m][0m, [32m'OR'[0m: [1m[[0m[1m][0m[1m}[0m
+creating workdict for sell value [1m{[0m[32m'AND'[0m: [1m[[0m[1m([0m[32m'trendB'[0m, [32m'change_val_if_equals'[0m, [1;36m-1[0m[1m)[0m, [1m([0m[32m'div_vwap_cum_mul'[0m, [32m'change_val_if_below'[0m, [1;36m-3[0m[1m)[0m, [1m([0m[32m'div_vwap_angle6'[0m, [32m'change_val_if_below'[0m, 
+[1;36m-0.009[0m[1m)[0m[1m][0m, [32m'OR'[0m: [1m[[0m[1m][0m[1m}[0m
+Strategy [93m15687653-04fb-46aa-8806-ef4af4e45d96[0m started successfully.
+Current [1;36m9[0m scheduled jobs: [1m[[0m[1m<[0m[1;95mJob[0m[39m [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_testinterval[0m[39m [0m[33mname[0m[39m=[0m[35mprint_hello[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93m6f54c363[0m[93m-e30c-4ad2-b232-ccc5c11d6745[0m[39m [0m
+[33mname[0m[39m=[0m[35mwith_redirected_stdout[0m[39m.<locals>.wrapper[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93mea6d79f2[0m[93m-d441-4236-8969-90c77b565e10[0m[39m [0m[33mname[0m[39m=[0m[35mwith_redirected_stdout[0m[39m.<locals>.wrapper[0m[1;39m)[0m[39m>, <Job [0m
+[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93m6f54c363[0m[93m-e30c-4ad2-b232-ccc5c11d6745[0m[39m [0m[33mname[0m[39m=[0m[35mwith_redirected_stdout[0m[39m.<locals>.wrapper[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93mea6d79f2[0m[93m-d441-4236-8969-90c77b565e10[0m[39m [0m
+[33mname[0m[39m=[0m[35mwith_redirected_stdout[0m[39m.<locals>.wrapper[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93mbc4ec7d2[0m[93m-249b-4799-a02f-f1ce66f83d4a[0m[39m [0m[33mname[0m[39m=[0m[35mwith_redirected_stdout[0m[39m.<locals>.wrapper[0m[1;39m)[0m[39m>, <Job [0m
+[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93mbc4ec7d2[0m[93m-249b-4799-a02f-f1ce66f83d4a[0m[39m [0m[33mname[0m[39m=[0m[35mwith_redirected_stdout[0m[39m.<locals>.wrapper[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_start_[0m[93m8aeae4b4[0m[93m-f200-478b-93af-6c8afec1fed9[0m[39m [0m
+[33mname[0m[39m=[0m[35mwith_redirected_stdout[0m[39m.<locals>.wrapper[0m[1;39m)[0m[39m>, <Job [0m[1;39m([0m[33mid[0m[39m=[0m[35mscheduler_stop_[0m[93m8aeae4b4[0m[93m-f200-478b-93af-6c8afec1fed9[0m[39m [0m[33mname[0m[39m=[0m[35mwith_redirected_stdout[0m[39m.<locals>.wrapper[0m[1;39m)[0m[1m>[0m[1m][0m
+Job ID: scheduler_testinterval
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m20[0m [1;92m22:18:11[0m.[1;36m020523[0m-[1;92m05:00[0m
+Job Function: print_hello
+Trigger: interval[1m[[0m[1;92m0:00:10[0m[1m][0m
+Job Args: 
+Job Kwargs: 
+
+Job ID: scheduler_start_[93m6f54c363-e30c-4ad2-b232-ccc5c11d6745[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: wrapper
+Trigger: cron
+Job Args: [93m6f54c363-e30c-4ad2-b232-ccc5c11d6745[0m
+Job Kwargs: 
+
+Job ID: scheduler_start_[93mea6d79f2-d441-4236-8969-90c77b565e10[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: wrapper
+Trigger: cron
+Job Args: [93mea6d79f2-d441-4236-8969-90c77b565e10[0m
+Job Kwargs: 
+
+Job ID: scheduler_stop_[93m6f54c363-e30c-4ad2-b232-ccc5c11d6745[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: wrapper
+Trigger: cron
+Job Args: [93m6f54c363-e30c-4ad2-b232-ccc5c11d6745[0m
+Job Kwargs: 
+
+Job ID: scheduler_stop_[93mea6d79f2-d441-4236-8969-90c77b565e10[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: wrapper
+Trigger: cron
+Job Args: [93mea6d79f2-d441-4236-8969-90c77b565e10[0m
+Job Kwargs: 
+
+Job ID: scheduler_start_[93mbc4ec7d2-249b-4799-a02f-f1ce66f83d4a[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m22:18:00[0m-[1;92m05:00[0m
+Job Function: wrapper
+Trigger: cron
+Job Args: [93mbc4ec7d2-249b-4799-a02f-f1ce66f83d4a[0m
+Job Kwargs: 
+
+Job ID: scheduler_stop_[93mbc4ec7d2-249b-4799-a02f-f1ce66f83d4a[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m21[0m [1;92m22:18:00[0m-[1;92m05:00[0m
+Job Function: wrapper
+Trigger: cron
+Job Args: [93mbc4ec7d2-249b-4799-a02f-f1ce66f83d4a[0m
+Job Kwargs: 
+
+Job ID: scheduler_start_[93m8aeae4b4-f200-478b-93af-6c8afec1fed9[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m23[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: wrapper
+Trigger: cron
+Job Args: [93m8aeae4b4-f200-478b-93af-6c8afec1fed9[0m
+Job Kwargs: 
+
+Job ID: scheduler_stop_[93m8aeae4b4-f200-478b-93af-6c8afec1fed9[0m
+Next Run Time: [1;36m2024[0m-[1;36m02[0m-[1;36m23[0m [1;92m09:30:00[0m-[1;92m05:00[0m
+Job Function: wrapper
+Trigger: cron
+Job Args: [93m8aeae4b4-f200-478b-93af-6c8afec1fed9[0m
+Job Kwargs: 
+
+APS jobs initialized
+Record in db updated [93mbc4ec7d2-249b-4799-a02f-f1ce66f83d4a[0m
+Current 0 scheduled jobs: []
+Job ID: scheduler_start_6f54c363-e30c-4ad2-b232-ccc5c11d6745
+Next Run Time: 2024-02-21 09:30:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='9', minute='30']
+Job Args: 6f54c363-e30c-4ad2-b232-ccc5c11d6745
+Job Kwargs: 
+
+Job ID: scheduler_start_ea6d79f2-d441-4236-8969-90c77b565e10
+Next Run Time: 2024-02-21 09:30:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='9', minute='30']
+Job Args: ea6d79f2-d441-4236-8969-90c77b565e10
+Job Kwargs: 
+
+Job ID: scheduler_stop_6f54c363-e30c-4ad2-b232-ccc5c11d6745
+Next Run Time: 2024-02-21 09:30:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='9', minute='30']
+Job Args: 6f54c363-e30c-4ad2-b232-ccc5c11d6745
+Job Kwargs: 
+
+Job ID: scheduler_stop_ea6d79f2-d441-4236-8969-90c77b565e10
+Next Run Time: 2024-02-21 09:30:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='9', minute='30']
+Job Args: ea6d79f2-d441-4236-8969-90c77b565e10
+Job Kwargs: 
+
+Job ID: scheduler_start_bc4ec7d2-249b-4799-a02f-f1ce66f83d4a
+Next Run Time: 2024-02-21 22:18:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='22', minute='18']
+Job Args: bc4ec7d2-249b-4799-a02f-f1ce66f83d4a
+Job Kwargs: 
+
+Job ID: scheduler_stop_bc4ec7d2-249b-4799-a02f-f1ce66f83d4a
+Next Run Time: 2024-02-21 22:18:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='22', minute='18']
+Job Args: bc4ec7d2-249b-4799-a02f-f1ce66f83d4a
+Job Kwargs: 
+
+Job ID: scheduler_start_8aeae4b4-f200-478b-93af-6c8afec1fed9
+Next Run Time: 2024-02-23 09:30:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='0,4', hour='9', minute='30']
+Job Args: 8aeae4b4-f200-478b-93af-6c8afec1fed9
+Job Kwargs: 
+
+Job ID: scheduler_stop_8aeae4b4-f200-478b-93af-6c8afec1fed9
+Next Run Time: 2024-02-23 09:30:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='0,4', hour='9', minute='30']
+Job Args: 8aeae4b4-f200-478b-93af-6c8afec1fed9
+Job Kwargs: 
+
+Current 8 scheduled jobs: [<Job (id=scheduler_start_6f54c363-e30c-4ad2-b232-ccc5c11d6745 name=with_redirected_stdout.<locals>.wrapper)>, <Job (id=scheduler_start_ea6d79f2-d441-4236-8969-90c77b565e10 name=with_redirected_stdout.<locals>.wrapper)>, <Job (id=scheduler_stop_6f54c363-e30c-4ad2-b232-ccc5c11d6745 name=with_redirected_stdout.<locals>.wrapper)>, <Job (id=scheduler_stop_ea6d79f2-d441-4236-8969-90c77b565e10 name=with_redirected_stdout.<locals>.wrapper)>, <Job (id=scheduler_start_bc4ec7d2-249b-4799-a02f-f1ce66f83d4a name=with_redirected_stdout.<locals>.wrapper)>, <Job (id=scheduler_stop_bc4ec7d2-249b-4799-a02f-f1ce66f83d4a name=with_redirected_stdout.<locals>.wrapper)>, <Job (id=scheduler_start_8aeae4b4-f200-478b-93af-6c8afec1fed9 name=with_redirected_stdout.<locals>.wrapper)>, <Job (id=scheduler_stop_8aeae4b4-f200-478b-93af-6c8afec1fed9 name=with_redirected_stdout.<locals>.wrapper)>]
+Job ID: scheduler_start_6f54c363-e30c-4ad2-b232-ccc5c11d6745
+Next Run Time: 2024-02-21 09:30:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='9', minute='30']
+Job Args: 6f54c363-e30c-4ad2-b232-ccc5c11d6745
+Job Kwargs: 
+
+Job ID: scheduler_start_ea6d79f2-d441-4236-8969-90c77b565e10
+Next Run Time: 2024-02-21 09:30:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='9', minute='30']
+Job Args: ea6d79f2-d441-4236-8969-90c77b565e10
+Job Kwargs: 
+
+Job ID: scheduler_stop_6f54c363-e30c-4ad2-b232-ccc5c11d6745
+Next Run Time: 2024-02-21 09:30:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='9', minute='30']
+Job Args: 6f54c363-e30c-4ad2-b232-ccc5c11d6745
+Job Kwargs: 
+
+Job ID: scheduler_stop_ea6d79f2-d441-4236-8969-90c77b565e10
+Next Run Time: 2024-02-21 09:30:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='9', minute='30']
+Job Args: ea6d79f2-d441-4236-8969-90c77b565e10
+Job Kwargs: 
+
+Job ID: scheduler_start_bc4ec7d2-249b-4799-a02f-f1ce66f83d4a
+Next Run Time: 2024-02-21 22:18:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='22', minute='18']
+Job Args: bc4ec7d2-249b-4799-a02f-f1ce66f83d4a
+Job Kwargs: 
+
+Job ID: scheduler_stop_bc4ec7d2-249b-4799-a02f-f1ce66f83d4a
+Next Run Time: 2024-02-21 22:18:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='22', minute='18']
+Job Args: bc4ec7d2-249b-4799-a02f-f1ce66f83d4a
+Job Kwargs: 
+
+Job ID: scheduler_start_8aeae4b4-f200-478b-93af-6c8afec1fed9
+Next Run Time: 2024-02-23 09:30:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='0,4', hour='9', minute='30']
+Job Args: 8aeae4b4-f200-478b-93af-6c8afec1fed9
+Job Kwargs: 
+
+Job ID: scheduler_stop_8aeae4b4-f200-478b-93af-6c8afec1fed9
+Next Run Time: 2024-02-23 09:30:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='0,4', hour='9', minute='30']
+Job Args: 8aeae4b4-f200-478b-93af-6c8afec1fed9
+Job Kwargs: 
+
+Current 0 scheduled jobs: []
+Job ID: scheduler_start_6f54c363-e30c-4ad2-b232-ccc5c11d6745
+Next Run Time: 2024-02-21 09:30:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='9', minute='30']
+Job Args: 6f54c363-e30c-4ad2-b232-ccc5c11d6745
+Job Kwargs: 
+
+Job ID: scheduler_start_ea6d79f2-d441-4236-8969-90c77b565e10
+Next Run Time: 2024-02-21 09:30:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='9', minute='30']
+Job Args: ea6d79f2-d441-4236-8969-90c77b565e10
+Job Kwargs: 
+
+Job ID: scheduler_stop_6f54c363-e30c-4ad2-b232-ccc5c11d6745
+Next Run Time: 2024-02-21 16:00:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='16', minute='0']
+Job Args: 6f54c363-e30c-4ad2-b232-ccc5c11d6745
+Job Kwargs: 
+
+Job ID: scheduler_stop_ea6d79f2-d441-4236-8969-90c77b565e10
+Next Run Time: 2024-02-21 16:00:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='16', minute='0']
+Job Args: ea6d79f2-d441-4236-8969-90c77b565e10
+Job Kwargs: 
+
+Job ID: scheduler_start_bc4ec7d2-249b-4799-a02f-f1ce66f83d4a
+Next Run Time: 2024-02-21 22:18:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='22', minute='18']
+Job Args: bc4ec7d2-249b-4799-a02f-f1ce66f83d4a
+Job Kwargs: 
+
+Job ID: scheduler_stop_bc4ec7d2-249b-4799-a02f-f1ce66f83d4a
+Next Run Time: 2024-02-21 22:29:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='22', minute='29']
+Job Args: bc4ec7d2-249b-4799-a02f-f1ce66f83d4a
+Job Kwargs: 
+
+Job ID: scheduler_start_8aeae4b4-f200-478b-93af-6c8afec1fed9
+Next Run Time: 2024-02-23 09:30:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='0,4', hour='9', minute='30']
+Job Args: 8aeae4b4-f200-478b-93af-6c8afec1fed9
+Job Kwargs: 
+
+Job ID: scheduler_stop_8aeae4b4-f200-478b-93af-6c8afec1fed9
+Next Run Time: 2024-02-23 16:00:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='0,4', hour='16', minute='0']
+Job Args: 8aeae4b4-f200-478b-93af-6c8afec1fed9
+Job Kwargs: 
+
+Current 8 scheduled jobs: [<Job (id=scheduler_start_6f54c363-e30c-4ad2-b232-ccc5c11d6745 name=with_redirected_stdout.<locals>.wrapper)>, <Job (id=scheduler_start_ea6d79f2-d441-4236-8969-90c77b565e10 name=with_redirected_stdout.<locals>.wrapper)>, <Job (id=scheduler_stop_6f54c363-e30c-4ad2-b232-ccc5c11d6745 name=with_redirected_stdout.<locals>.wrapper)>, <Job (id=scheduler_stop_ea6d79f2-d441-4236-8969-90c77b565e10 name=with_redirected_stdout.<locals>.wrapper)>, <Job (id=scheduler_start_bc4ec7d2-249b-4799-a02f-f1ce66f83d4a name=with_redirected_stdout.<locals>.wrapper)>, <Job (id=scheduler_stop_bc4ec7d2-249b-4799-a02f-f1ce66f83d4a name=with_redirected_stdout.<locals>.wrapper)>, <Job (id=scheduler_start_8aeae4b4-f200-478b-93af-6c8afec1fed9 name=with_redirected_stdout.<locals>.wrapper)>, <Job (id=scheduler_stop_8aeae4b4-f200-478b-93af-6c8afec1fed9 name=with_redirected_stdout.<locals>.wrapper)>]
+Job ID: scheduler_start_bc4ec7d2-249b-4799-a02f-f1ce66f83d4a
+Next Run Time: 2024-02-20 22:32:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='22', minute='32']
+Job Args: bc4ec7d2-249b-4799-a02f-f1ce66f83d4a
+Job Kwargs: 
+
+Job ID: scheduler_stop_bc4ec7d2-249b-4799-a02f-f1ce66f83d4a
+Next Run Time: 2024-02-20 22:33:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='22', minute='33']
+Job Args: bc4ec7d2-249b-4799-a02f-f1ce66f83d4a
+Job Kwargs: 
+
+Job ID: scheduler_start_6f54c363-e30c-4ad2-b232-ccc5c11d6745
+Next Run Time: 2024-02-21 09:30:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='9', minute='30']
+Job Args: 6f54c363-e30c-4ad2-b232-ccc5c11d6745
+Job Kwargs: 
+
+Job ID: scheduler_start_ea6d79f2-d441-4236-8969-90c77b565e10
+Next Run Time: 2024-02-21 09:30:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='9', minute='30']
+Job Args: ea6d79f2-d441-4236-8969-90c77b565e10
+Job Kwargs: 
+
+Job ID: scheduler_stop_6f54c363-e30c-4ad2-b232-ccc5c11d6745
+Next Run Time: 2024-02-21 16:00:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='16', minute='0']
+Job Args: 6f54c363-e30c-4ad2-b232-ccc5c11d6745
+Job Kwargs: 
+
+Job ID: scheduler_stop_ea6d79f2-d441-4236-8969-90c77b565e10
+Next Run Time: 2024-02-21 16:00:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='16', minute='0']
+Job Args: ea6d79f2-d441-4236-8969-90c77b565e10
+Job Kwargs: 
+
+Job ID: scheduler_start_8aeae4b4-f200-478b-93af-6c8afec1fed9
+Next Run Time: 2024-02-23 09:30:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='0,4', hour='9', minute='30']
+Job Args: 8aeae4b4-f200-478b-93af-6c8afec1fed9
+Job Kwargs: 
+
+Job ID: scheduler_stop_8aeae4b4-f200-478b-93af-6c8afec1fed9
+Next Run Time: 2024-02-23 16:00:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='0,4', hour='16', minute='0']
+Job Args: 8aeae4b4-f200-478b-93af-6c8afec1fed9
+Job Kwargs: 
+
+Startj g record bc4ec7d2-249b-4799-a02f-f1ce66f83d4a
+Calendar data fetch successful [1;36m2024[0m-[1;36m02[0m-[1;36m20[0m [1;36m2024[0m-[1;36m02[0m-[1;36m20[0m
+OPEN:2024-02-20 09:30:00-05:00 CLOSE:2024-02-20 16:00:00-05:00
+StrategyInstance fetched: [93m15687653-04fb-46aa-8806-ef4af4e45d96[0m
+[1;35mRunRequest[0m[1m([0m
+    [33mid[0m=[1;35mUUID[0m[1m([0m[32m'15687653-04fb-46aa-8806-ef4af4e45d96'[0m[1m)[0m,
+    [33maccount[0m=[1m<[0m[1;95mAccount.ACCOUNT1:[0m[39m [0m[32m'ACCOUNT1'[0m[39m>,[0m
+[39m    [0m[33mmode[0m[39m=<Mode.PAPER: [0m[32m'paper'[0m[1m>[0m,
+    [33mnote[0m=[32m'SCHED 22:32-22:33'[0m,
+    [33mdebug[0m=[3;91mFalse[0m,
+    [33mstrat_json[0m=[32m'[0m[32m{[0m[32m"id": "15687653-04fb-46aa-8806-ef4af4e45d96", "id2": -2013, "name": "SUPERTREND TV", "symbol": "BAC", "class_name": "StrategyClassicSL", "script": "ENTRY_ClassicSL_v01", "open_rush": 0, [0m
+[32m"close_rush": 0, "stratvars_conf": "[0m[32m[[0m[32mstratvars[0m[32m][0m[32m\\r\\n#obecne platici pro vsechny signaly \\r\\n    #abs profit/loss to suspend strategy\\r\\n    #max_sum_profit_to_quit = 300\\r\\n    #max_sum_loss_to_quit = [0m
+[32m-300\\r\\n\\r\\n    #procenta profit/loss to suspend startegy\\r\\n    #max_sum_profit_to_quit_rel = 0.3\\r\\n    #max_sum_loss_to_quit_rel = -0.3\\r\\n    normalize_ticks = true\\r\\n    normalized_base_price = [0m
+[32m30\\r\\n    long_enabled = true\\r\\n    short_enabled = true\\r\\n    chunk = 2000\\r\\n    maxpozic = 4000\\r\\n    #nastavuje pevny profit\\r\\n    profit = 0.25\\r\\n    max_profit = 0.30\\r\\n    [0m
+[32mconsolidation_bar_count = 5\\r\\n    #po minutach\\r\\n    window_open = 0\\r\\n    window_close = 360\\r\\n    signal_only_on_confirmed = true\\r\\n    forced_exit_window_start = 361\\r\\n    [0m
+[32mforced_exit_window_end = 389\\r\\n    #pouze posledni minutu prod\\u00e1me, ne\\u010dek\\u00e1me na breakeven\\r\\n    #forced_exit_breakeven_period = false\\r\\n\\r\\n[0m[32m[[0m[32mstratvars.indicators.atr10[0m[32m][0m[32m\\r\\n    [0m
+[32m#[0m[32m[[0m[32mstratvars.indicators.atr10[0m[32m][0m[32m\\r\\n    type = \'ATR\'\\r\\n    length = 10\\r\\n    on_confirmed_only = true\\r\\n[0m[32m[[0m[32mstratvars.indicators.MESA[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'talib_ind\'\\r\\n    [0m
+[32mreturns = [0m[32m[[0m[32m\\"mama\\", \\"fama\\"[0m[32m][0m[32m\\r\\n    on_confirmed_only = true\\r\\n    cp.defval = \'close\'\\r\\n    #cp.lookback = 100\\r\\n    cp.type = \'MAMA\'\\r\\n    cp.params.series = [0m[32m[[0m[32m\'close\'[0m[32m][0m[32m\\r\\n    [0m
+[32m#cp.params.keys.fastlimit = 0\\r\\n    #cp.params.keys.slowlimit = 0\\r\\n    scale = \\"right\\"\\r\\n[0m[32m[[0m[32mstratvars.indicators.supertrend[0m[32m][0m[32m\\r\\n    output = \'bar\'\\r\\n    type = \'custom\'\\r\\n    returns = [0m
+[32m[[0m[32m\'basic_up\',\'basic_dn\',\'final_up\', \'final_down\', \'trend\'[0m[32m][0m[32m\\r\\n    scale = [0m[32m[[0m[32m\'right\', \'right\', \'right\', \'right\', \'signal\'[0m[32m][0m[32m\\r\\n    subtype = \'classed\'\\r\\n    on_confirmed_only = true\\r\\n [0m
+[32mcp.class_name = \'SuperTrend\'\\r\\n    cp.next = [0m[32m[[0m[32m\'high\', \'low\', \'close\'[0m[32m][0m[32m\\r\\n [0m[32m[[0m[32mstratvars.indicators.supertrend.cp.init[0m[32m][0m[32m #params is send to init, opt\\r\\n    [0m[32matr_period[0m[32m=[0m[32m14[0m[32m\\r\\n    [0m
+[32mmultiplier[0m[32m=[0m[32m1[0m[32m.2\\r\\n[0m[32m[[0m[32mstratvars.indicators.supertrend1[0m[32m][0m[32m\\r\\n    output = \\"bar\\"\\r\\n    type = \\"custom\\"\\r\\n    returns = [0m[32m[[0m[32m\'dn\',\'up\',\'trend1\'[0m[32m][0m[32m\\r\\n    scale = [0m[32m[[0m[32m\'right\',\'right\',\'signal\'[0m[32m][0m[32m\\r\\n[0m
+[32msubtype = \\"classed\\"\\r\\n    on_confirmed_only = true\\r\\n    cp.class_name = \\"SuperTrend1\\"\\r\\n    cp.next = [0m[32m[[0m[32m\'high\',\'low\',\'close\'[0m[32m][0m[32m #optional, source posilany explicitne do next ve [0m
+[32mstejnojmenn\\u00e9m parametru, note that next has access to state\\r\\n    #cp.next_mapping = [0m[32m[[0m[32m\\"data\\"[0m[32m][0m[32m \\r\\n [0m[32m[[0m[32mstratvars.indicators.supertrend1.cp.init[0m[32m][0m[32m #params is send to init, opt\\r\\n    [0m[32mperiod[0m[32m=[0m[32m14[0m[32m\\r\\n   [0m
+[32mmultiplier[0m[32m=[0m[32m1[0m[32m.2\\r\\n[0m[32m[[0m[32mstratvars.indicators.supertrendTV[0m[32m][0m[32m\\r\\noutput = \'bar\'\\r\\ntype = \'custom\'\\r\\nreturns = [0m[32m[[0m[32m\'dnB\', \'upB\', \'trendB\'[0m[32m][0m[32m\\r\\nscale = [0m[32m[[0m[32m\'right\', \'right\', \'signal\'[0m[32m][0m[32m\\r\\nsubtype = [0m
+[32m\'classed\'\\r\\non_confirmed_only = true\\r\\ncp.class_name = \'SuperTrendTV\'\\r\\ncp.next = [0m[32m[[0m[32m\'high\', \'low\', \'close\'[0m[32m][0m[32m\\r\\n[0m[32m[[0m[32mstratvars.indicators.supertrendBard.cp.init[0m[32m][0m[32m #params is send to init, [0m
+[32mopt\\r\\natr_period = 10\\r\\natr_multiplier = 3\\r\\n[0m[32m[[0m[32mstratvars.indicators.mama_angle3[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'talib_ind\'\\r\\n    on_confirmed_only = true\\r\\n    cp.lookback = [0m
+[32m10\\r\\n    cp.type = \'LINEARREG_ANGLE\'\\r\\n    cp.params.series = [0m[32m[[0m[32m\'mama\'[0m[32m][0m[32m\\r\\n    cp.params.keys.timeperiod = 3\\r\\n    scale = \'linreg\'\\r\\n[0m[32m[[0m[32mstratvars.indicators.ht_trendline[0m[32m][0m[32m\\r\\n    type = [0m
+[32m\'custom\'\\r\\n    subtype = \'talib_ind\'\\r\\n    on_confirmed_only = true\\r\\n    cp.defval = \\"close\\" #pokud nejsou hodnoty, vracime close\\r\\n    #cp.lookback = 100 #celkovy lookback pro vsechny [0m
+[32mserie\\r\\n    cp.type = \'HT_TRENDLINE\'\\r\\n    cp.params.series = [0m[32m[[0m[32m\\"close\\"[0m[32m][0m[32m #vstupni serie pro pozicni parametry pro ta-lib\\r\\n    #cp.params.keys.timeperiod = 14 #keyword argumenty pro ta-lib\\r\\n    [0m
+[32mscale = \\"right\\"\\r\\n[0m[32m[[0m[32mstratvars.indicators.ht_dcperiod[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'talib_ind\'\\r\\n    on_confirmed_only = true\\r\\n    #cp.source = \'close\'\\r\\n    cp.defval = [0m
+[32m\\"close\\" #pokud nejsou hodnoty, vracime close\\r\\n    cp.lookback = 100 #celkovy lookback pro vsechny serie\\r\\n    cp.type = \'HT_DCPERIOD\'\\r\\n    cp.params.series = [0m[32m[[0m[32m\\"close\\"[0m[32m][0m[32m #vstupni serie pro [0m
+[32mpozicni parametry pro ta-lib\\r\\n    #cp.params.keys.timeperiod = 14 #keyword argumenty pro ta-lib\\r\\n    scale = \\"period\\"\\r\\n[0m[32m[[0m[32mstratvars.indicators.bbands[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = [0m
+[32m\'talib_ind\'\\r\\n    returns = [0m[32m[[0m[32m\\"upperband\\", \\"middleband\\", \\"lowerband\\"[0m[32m][0m[32m\\r\\n    on_confirmed_only = true\\r\\n    cp.defval = \'close\'\\r\\n    cp.lookback = 100\\r\\n    cp.type = \'BBANDS\'\\r\\n[0m
+[32mcp.params.series = [0m[32m[[0m[32m\'close\'[0m[32m][0m[32m\\r\\n    cp.params.keys.timeperiod = 5\\r\\n    cp.params.keys.[0m[32mnbdevup[0m[32m=[0m[32m2[0m[32m\\r\\n    cp.params.keys.[0m[32mnbdevdn[0m[32m=[0m[32m2[0m[32m\\r\\n    cp.params.keys.[0m[32mmatype[0m[32m=[0m[32m0[0m[32m\\r\\n    scale = [0m
+[32m\'right\'\\r\\n[0m[32m[[0m[32mstratvars.indicators.vwap_cum[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'expression\'\\r\\n    on_confirmed_only = true\\r\\n    cp.convertToNumpy = [0m[32m[[0m[32m\'hlcc4\',\'volume\'[0m[32m][0m[32m\\r\\n    [0m
+[32mcp.expression = \'np.sum[0m[32m([0m[32m([0m[32mhlcc4 * volume[0m[32m)[0m[32m / np.sum[0m[32m([0m[32mvolume[0m[32m)[0m[32m)[0m[32m\'\\r\\n    scale = \'right\'\\r\\n[0m[32m[[0m[32mstratvars.indicators.vwap_angle5[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'talib_ind\'\\r\\n    [0m
+[32mon_confirmed_only = true\\r\\n    cp.lookback = 5\\r\\n    cp.type = \'LINEARREG_ANGLE\'\\r\\n    cp.params.series = [0m[32m[[0m[32m\'vwap_cum\'[0m[32m][0m[32m\\r\\n    cp.params.keys.timeperiod = 5\\r\\n    scale = [0m
+[32m\'linreg\'\\r\\n[0m[32m[[0m[32mstratvars.indicators.div_vwap_cum[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'divergence\'\\r\\n    on_confirmed_only = true\\r\\n    cp.source1 = \'close\'\\r\\n    cp.source2 = [0m
+[32m\'vwap_cum\'\\r\\n    cp.type = \'reln\'\\r\\n    scale = \'left\'\\r\\n[0m[32m[[0m[32mstratvars.indicators.div_vwap_cum_mul[0m[32m][0m[32m #multiplikator predchoziho indikatoru kvuli lepsimu zobrazeni a zaokrouhleni\\r\\n    type = [0m
+[32m\'custom\'\\r\\n    subtype = \'expression\'\\r\\n    cp.expression = \'div_vwap_cum[0m[32m[[0m[32m-1[0m[32m][0m[32m*1000\'\\r\\n    scale = \'own\'\\r\\n[0m[32m[[0m[32mstratvars.indicators.profit[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = [0m
+[32m\'expression\'\\r\\n    on_confirmed_only = true\\r\\n    cp.expression = \'state.profit\'\\r\\n[0m[32m[[0m[32mstratvars.indicators.rsi14[0m[32m][0m[32m\\r\\n    output = \\"bar\\"\\r\\n    type = \'custom\'\\r\\n    subtype = \'rsi\'\\r\\n [0m
+[32mMA_length = 10 #vytvori dalsi stejnojmenny indikator s postfixem _MA\\r\\n    on_confirmed_only = true\\r\\n    cp.source = \'vwap\'\\r\\n    cp.length = 15\\r\\n    cp.start = \\"linear\\"\\r\\n    scale = [0m
+[32m\'left\'\\r\\n[0m[32m[[0m[32mstratvars.indicators.weekday[0m[32m][0m[32m\\r\\n    output = \\"bar\\"\\r\\n    type = \\"custom\\"\\r\\n    subtype = \\"classed\\"\\r\\n    on_confirmed_only = true\\r\\n    cp.class_name = [0m
+[32m\\"WeekDay\\"\\r\\n[0m[32m[[0m[32mstratvars.indicators.volumebar[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'barparams\'\\r\\n    on_confirmed_only = true\\r\\n    cp.source = [0m
+[32m\'volume\'\\r\\n[0m[32m[[0m[32mstratvars.indicators.indexbar[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'barparams\'\\r\\n    on_confirmed_only = true\\r\\n    cp.source = [0m
+[32m\'index\'\\r\\n[0m[32m[[0m[32mstratvars.indicators.volumebarema[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'ma\'\\r\\n    on_confirmed_only = true\\r\\n    cp.source = \'volumebar\'\\r\\n    cp.lookback = 30\\r\\n    [0m
+[32mcp.type = \'ema\'\\r\\n[0m[32m[[0m[32mstratvars.indicators.voldiv[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'divergence\'\\r\\n    on_confirmed_only = true\\r\\n    cp.source1 = \'volumebar\'\\r\\n    cp.source2 = [0m
+[32m\'volumebarema\'\\r\\n    cp.type = \'reln\'\\r\\n    scale = \\"left\\"\\r\\n[0m[32m[[0m[32mstratvars.indicators.div_vwap_angle6[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'talib_ind\'\\r\\n    on_confirmed_only = [0m
+[32mtrue\\r\\n    cp.lookback = 10\\r\\n    cp.type = \'LINEARREG_ANGLE\'\\r\\n    cp.params.series = [0m[32m[[0m[32m\'div_vwap_cum\'[0m[32m][0m[32m\\r\\n    cp.params.keys.timeperiod = 10\\r\\n    scale = [0m
+[32m\'linreg\'\\r\\n[0m[32m[[0m[32mstratvars.indicators.signal[0m[32m][0m[32m\\r\\n    output = \\"bar\\"\\r\\n    type = \'custom\'\\r\\n    subtype = \'conditional\'\\r\\n    on_confirmed_only = true\\r\\n    scale = [0m
+[32m\'left\'\\r\\n[0m[32m[[0m[32mstratvars.indicators.signal.cp.conditions.buy[0m[32m][0m[32m\\r\\n    #supertrend up\\r\\n    trendB.AND.change_val_if_equals = 1\\r\\n    #cena je nad vwapem urcitou divergence\\r\\n    [0m
+[32mdiv_vwap_cum_mul.AND.change_val_if_above = 4\\r\\n    #strmy uhel divergence\\r\\n    div_vwap_angle6.AND.change_val_if_above = 0.023\\r\\n    true_val = [0m
+[32m1\\r\\n[0m[32m[[0m[32mstratvars.indicators.signal.cp.conditions.sell[0m[32m][0m[32m\\r\\n    trendB.AND.change_val_if_equals = -1\\r\\n    #cena je pod vwapem o danou divergen ce\\r\\n    div_vwap_cum_mul.AND.change_val_if_below = [0m
+[32m-3\\r\\n\\r\\n    #uhel divergence je strm\\u00fd\\r\\n    div_vwap_angle6.AND.change_val_if_below = -0.009\\r\\n    true_val = -1\\r\\n[0m[32m[[0m[32mstratvars.indicators.sl_long[0m[32m][0m[32m\\r\\n    [0m
+[32m#[0m[32m[[0m[32mstratvars.indicators.freq_period_multiplier[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'expression\'\\r\\n    on_confirmed_only = true\\r\\n    cp.expression = \'close[0m[32m[[0m[32m-1[0m[32m][0m[32m-[0m[32m([0m[32matr10[0m[32m[[0m[32m-1[0m[32m][0m[32m*2[0m[32m)[0m[32m\'\\r\\n    [0m[32mscale[0m[32m= [0m
+[32m\\"right\\"\\r\\n[0m[32m[[0m[32mstratvars.indicators.sl_short[0m[32m][0m[32m\\r\\n    #[0m[32m[[0m[32mstratvars.indicators.freq_period_multiplier[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'expression\'\\r\\n    on_confirmed_only = true\\r\\n    [0m
+[32mcp.expression = \'close[0m[32m[[0m[32m-1[0m[32m][0m[32m+[0m[32m([0m[32matr10[0m[32m[[0m[32m-1[0m[32m][0m[32m*2[0m[32m)[0m[32m\'\\r\\n    [0m[32mscale[0m[32m= \\"right\\"\\r\\n[0m[32m[[0m[32mstratvars.indicators.long_goal[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'expression\'\\r\\n    on_confirmed_only = true\\r\\n   [0m
+[32mcp.expression = \'close[0m[32m[[0m[32m-1[0m[32m][0m[32m+[0m[32m([0m[32matr10[0m[32m[[0m[32m-1[0m[32m][0m[32m*3[0m[32m)[0m[32m\'\\r\\n    scale = \'right\'\\r\\n[0m[32m[[0m[32mstratvars.indicators.short_goal[0m[32m][0m[32m\\r\\n    type = \'custom\'\\r\\n    subtype = \'expression\'\\r\\n    on_confirmed_only = true\\r\\n   [0m
+[32mcp.expression = \'close[0m[32m[[0m[32m-1[0m[32m][0m[32m-[0m[32m([0m[32matr10[0m[32m[[0m[32m-1[0m[32m][0m[32m*3[0m[32m)[0m[32m\'\\r\\n    scale = \'right\'\\r\\n[0m[32m[[0m[32mstratvars.signals.main[0m[32m][0m[32m\\r\\n    signal_only_on_confirmed = true\\r\\n    next_signal_offset_from_last_exit = 0\\r\\n    #6.5h, [0m[32m360[0m[32m=[0m[32m6h[0m[32m, [0m
+[32m\\r\\n    window_open = 2\\r\\n    window_close = 360\\r\\n    min_bar_index = 0\\r\\n    #activated = true\\r\\n    profit = 0.50\\r\\n    #profit_short = 0.07\\r\\n    #profit_short = \\"short_goal\\"\\r\\n    [0m
+[32m#profit_long = 0.07\\r\\n    #profit_long = \\"long_goal\\"\\r\\n    #ochrana proti extremnim hodntoam z indikatoru - fallback\\r\\n    profit_min_ind_tick_value = 0.03\\r\\n    max_profit = 0.50\\r\\n    [0m
+[32m#SL_defval_short = \\"sl_short\\"\\r\\n    #SL_defval_short = \\"high1bars\\"\\r\\n    #SL_defval_long = \\"sl_long\\"\\r\\n    SL_defval_short = 0.30\\r\\n    SL_defval_long = 0.30\\r\\n    [0m
+[32mSL_trailing_enabled_short = false\\r\\n    SL_trailing_enabled_long = false\\r\\n    SL_trailing_offset_short = 0.04\\r\\n    SL_trailing_offset_long = 0.04\\r\\n    SL_trailing_step_short = 0.01\\r\\n    [0m
+[32mSL_trailing_step_long = 0.01\\r\\n    SL_trailing_stop_at_breakeven_short = false\\r\\n    SL_trailing_stop_at_breakeven_long = false\\r\\n    reverse_for_SL_exit_short = \\"no\\"\\r\\n    reverse_for_SL_exit_long[0m
+[32m= \\"cond\\"\\r\\n    #[0m[32m[[0m[32m0.236, 0.382, 0.618[0m[32m][0m[32m\\r\\n    #SL_opt_exit_levels_short = [0m[32m[[0m[32m0.236, 0.382, 0.618[0m[32m][0m[32m\\r\\n    #SL_opt_exit_levels_long = [0m[32m[[0m[32m0.236, 0.382, 0.618[0m[32m][0m[32m\\r\\n    ##SL_opt_exit_sizes_short = [0m[32m[[0m[32m0.2[0m[32m][0m[32m\\r\\n   [0m
+[32m#SL_opt_exit_sizes_long = [0m[32m[[0m[32m0.2[0m[32m][0m[32m\\r\\n[0m[32m[[0m[32mstratvars.signals.main.conditions[0m[32m][0m[32m\\r\\n    #preconditions \\r\\n\\r\\n    #SHORT ENTRY\\r\\n    signal.AND.go_short_if_equals = -1\\r\\n\\r\\n    #pouze pri prepnuti\\r\\n   [0m
+[32m#vwap_angle5.AND.go_short_if_below = -0.1\\r\\n    \\r\\n    #trendB.AND.go_short_if_fallingc = 2\\r\\n    #signal_linreg.go_short_if_equals = -1\\r\\n    #signal.go_short_if_equals = -1\\r\\n    [0m
+[32m#signal_conf_short.go_short_if_equals = 1\\r\\n    #EXIT PROTECTION\\r\\n    #drzime dokud stoupame\\r\\n    #slopetick5.dont_exit_long_if_above = 0\\r\\n    #mama_angle3.dont_exit_long_if_above = 0\\r\\n    [0m
+[32m#mama_angle3.dont_exit_short_if_below = 0  \\r\\n    #signal_linreg.dont_exit_short_if_equals = -1 \\r\\n    #EXIT - drzime po dobu trvani signalu\\r\\n    signal.exit_long_if_not_equals = 1\\r\\n    [0m
+[32msignal.exit_short_if_not_equals = -1\\r\\n    #okamzity exit, kdyz je pod 0 ??\\r\\n    #signal_linreg.exit_long_if_not_equals = 1\\r\\n    #signal_linreg.exit_short_if_not_equals = -1\\r\\n\\r\\n    #LONG [0m
+[32mENTRY\\r\\n    signal.go_long_if_equals = 1\\r\\n\\r\\n    #vwap_angle5.AND.go_long_if_above = 0.1\\r\\n    #trendB.AND.go_long_if_risingc = 2\\r\\n    #signal_linreg.go_long_if_equals = 1\\r\\n\\r\\n    [0m
+[32m#reverse\\r\\n    #trend1.AND.reverse_long_if_equals = -1\\r\\n    #vwap_angle5.AND.reverse_long_if_below = -0.05\\r\\n    #trend1.AND.reverse_short_if_equals = 1\\r\\n    #vwap_angle5.AND.reverse_short_if_above =[0m
+[32m0.05\\r\\n    #signal_conf_sell.reverse_long_if_equals = 1\\r\\n\\r\\n    #CONDITIONAL REVERSE ONLY\\r\\n    #slope1.slreverseonly_long_if_below = 0\\r\\n    #slope1.slreverseonly_short_if_above = [0m
+[32m0\\r\\n\\r\\n[0m[32m[[0m[32mstratvars.exit[0m[32m][0m[32m\\r\\n    #maximalni stoploss, fallout pro \\"exit_short_if\\" direktivy\\r\\n    SL_defval_short = 0.10\\r\\n    SL_defval_long = 0.02\\r\\n    SL_trailing_enabled_short = false\\r\\n[0m
+[32mSL_trailing_enabled_long = false\\r\\n    #minimalni vzdalenost od aktualni SL, aby se SL posunula na \\r\\n    SL_trailing_offset_short = 0.02\\r\\n    SL_trailing_offset_long = 0.02\\r\\n    #zda trailing [0m
+[32mzastavit na brakeeven\\r\\n    SL_trailing_stop_at_breakeven_short = false\\r\\n    SL_trailing_stop_at_breakeven_long = false\\r\\n[0m[32m[[0m[32mstratvars.exit.conditions[0m[32m][0m[32m\\r\\n    #obecne exit conditions platne pro [0m
+[32mvsechny\\r\\n    #slope20.exit_long_if_below = 20\\r\\n    #slope10.exit_short_if_above = 0.3\\r\\n\\r\\n   #TBD - mozna udelat EOD exit jako direktivu\\r\\n", "add_data_conf": "[0m[32m[[0m[32m[[0m[32madd_data[0m[32m][0m[32m][0m[32m\\r\\n    [0m
+[32msymbol[0m[32m=\\"BAC\\"\\r\\n    [0m[32mrectype[0m[32m= \\"cbar\\"\\r\\n    [0m[32mresolution[0m[32m=[0m[32m12[0m[32m\\r\\n    [0m[32mupdate_ltp[0m[32m=[0m[32mtrue[0m[32m\\r\\n    [0m[32malign[0m[32m=\\"round\\"\\r\\n    [0m[32mmintick[0m[32m=[0m[32m0[0m[32m\\r\\n    [0m[32mminsize[0m[32m=[0m[32m100[0m[32m\\r\\n    [0m[32mexthours[0m[32m=[0m[32mfalse"[0m[32m, "note": "", "history": [0m
+[32m"\\nREASON:STOP Signal received\\nREASON:STOP Signal received\\nREASON:STOP Signal received\\nREASON:STOP Signal received"[0m[32m}[0m[32m'[0m,
+    [33milog_save[0m=[3;91mFalse[0m,
+    [33mbt_from[0m=[3;35mNone[0m,
+    [33mbt_to[0m=[3;35mNone[0m,
+    [33mweekdays_filter[0m=[1m[[0m[1m][0m,
+    [33mtest_batch_id[0m=[3;35mNone[0m,
+    [33mbatch_id[0m=[32m'22'[0m,
+    [33mcash[0m=[1;36m100000[0m,
+    [33mskip_cache[0m=[3;91mFalse[0m
+[1m)[0m
+RUN [93m208c9c2b-d25b-4dd9-8654-c19bdd2d4a30[0m INITIATED
+instance vytvorena [1m<[0m[1;95mv2realbot.strategy.StrategyClassicSL.StrategyClassicSL[0m[39m object at [0m[1;36m0x14ac7b310[0m[1m>[0m
+adding stream
+[1m{[0m[32m'symbol'[0m: [32m'BAC'[0m, [32m'rectype'[0m: [1m<[0m[1;95mRecordType.CBAR:[0m[39m [0m[32m'cbar'[0m[39m>, [0m[32m'resolution'[0m[39m: [0m[1;36m12[0m[39m, [0m[32m'update_ltp'[0m[39m: [0m[3;92mTrue[0m[39m, [0m[32m'align'[0m[39m: <StartBarAlign.ROUND: [0m[32m'round'[0m[1m>[0m, [32m'mintick'[0m: [1;36m0[0m, [32m'minsize'[0m: [1;36m100[0m, [32m'exthours'[0m: [3;91mFalse[0m[1m}[0m
+stav pred pridavanim []
+websocket zatim nebezi, pouze pridavame do pole
+Starting strategy SUPERTREND TV
+Spuštěna SUPERTREND TV
+********** WS Streamer - run WS-LDR-SUPERTREND TV **********
+symbol ve streams BAC
+subscribed to BAC
+WS-LDR-SUPERTREND TV it is not running, starting by calling RUN
+********** WS Streamer STARTED **********
+********** WS Order Update Streamer started for SUPERTREND TV **********
+creating workdict for buy value [1m{[0m[32m'AND'[0m: [1m[[0m[1m([0m[32m'trendB'[0m, [32m'change_val_if_equals'[0m, [1;36m1[0m[1m)[0m, [1m([0m[32m'div_vwap_cum_mul'[0m, [32m'change_val_if_above'[0m, [1;36m4[0m[1m)[0m, [1m([0m[32m'div_vwap_angle6'[0m, [32m'change_val_if_above'[0m, [1;36m0.023[0m[1m)[0m[1m][0m, [32m'OR'[0m: [1m[[0m[1m][0m[1m}[0m
+creating workdict for sell value [1m{[0m[32m'AND'[0m: [1m[[0m[1m([0m[32m'trendB'[0m, [32m'change_val_if_equals'[0m, [1;36m-1[0m[1m)[0m, [1m([0m[32m'div_vwap_cum_mul'[0m, [32m'change_val_if_below'[0m, [1;36m-3[0m[1m)[0m, [1m([0m[32m'div_vwap_angle6'[0m, [32m'change_val_if_below'[0m, [1;36m-0.009[0m[1m)[0m[1m][0m, [32m'OR'[0m: [1m[[0m[1m][0m[1m}[0m
+Strategy [93m15687653-04fb-46aa-8806-ef4af4e45d96[0m started successfully.
+Current 8 scheduled jobs: [<Job (id=scheduler_stop_bc4ec7d2-249b-4799-a02f-f1ce66f83d4a name=with_redirected_stdout.<locals>.wrapper)>, <Job (id=scheduler_start_6f54c363-e30c-4ad2-b232-ccc5c11d6745 name=with_redirected_stdout.<locals>.wrapper)>, <Job (id=scheduler_start_ea6d79f2-d441-4236-8969-90c77b565e10 name=with_redirected_stdout.<locals>.wrapper)>, <Job (id=scheduler_stop_6f54c363-e30c-4ad2-b232-ccc5c11d6745 name=with_redirected_stdout.<locals>.wrapper)>, <Job (id=scheduler_stop_ea6d79f2-d441-4236-8969-90c77b565e10 name=with_redirected_stdout.<locals>.wrapper)>, <Job (id=scheduler_start_bc4ec7d2-249b-4799-a02f-f1ce66f83d4a name=with_redirected_stdout.<locals>.wrapper)>, <Job (id=scheduler_start_8aeae4b4-f200-478b-93af-6c8afec1fed9 name=with_redirected_stdout.<locals>.wrapper)>, <Job (id=scheduler_stop_8aeae4b4-f200-478b-93af-6c8afec1fed9 name=with_redirected_stdout.<locals>.wrapper)>]
+Job ID: scheduler_stop_bc4ec7d2-249b-4799-a02f-f1ce66f83d4a
+Next Run Time: 2024-02-20 22:33:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='22', minute='33']
+Job Args: bc4ec7d2-249b-4799-a02f-f1ce66f83d4a
+Job Kwargs: 
+
+Job ID: scheduler_start_6f54c363-e30c-4ad2-b232-ccc5c11d6745
+Next Run Time: 2024-02-21 09:30:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='9', minute='30']
+Job Args: 6f54c363-e30c-4ad2-b232-ccc5c11d6745
+Job Kwargs: 
+
+Job ID: scheduler_start_ea6d79f2-d441-4236-8969-90c77b565e10
+Next Run Time: 2024-02-21 09:30:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='9', minute='30']
+Job Args: ea6d79f2-d441-4236-8969-90c77b565e10
+Job Kwargs: 
+
+Job ID: scheduler_stop_6f54c363-e30c-4ad2-b232-ccc5c11d6745
+Next Run Time: 2024-02-21 16:00:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='16', minute='0']
+Job Args: 6f54c363-e30c-4ad2-b232-ccc5c11d6745
+Job Kwargs: 
+
+Job ID: scheduler_stop_ea6d79f2-d441-4236-8969-90c77b565e10
+Next Run Time: 2024-02-21 16:00:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='16', minute='0']
+Job Args: ea6d79f2-d441-4236-8969-90c77b565e10
+Job Kwargs: 
+
+Job ID: scheduler_start_bc4ec7d2-249b-4799-a02f-f1ce66f83d4a
+Next Run Time: 2024-02-21 22:32:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='22', minute='32']
+Job Args: bc4ec7d2-249b-4799-a02f-f1ce66f83d4a
+Job Kwargs: 
+
+Job ID: scheduler_start_8aeae4b4-f200-478b-93af-6c8afec1fed9
+Next Run Time: 2024-02-23 09:30:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='0,4', hour='9', minute='30']
+Job Args: 8aeae4b4-f200-478b-93af-6c8afec1fed9
+Job Kwargs: 
+
+Job ID: scheduler_stop_8aeae4b4-f200-478b-93af-6c8afec1fed9
+Next Run Time: 2024-02-23 16:00:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='0,4', hour='16', minute='0']
+Job Args: 8aeae4b4-f200-478b-93af-6c8afec1fed9
+Job Kwargs: 
+
+APS jobs initialized
+Record in db updated bc4ec7d2-249b-4799-a02f-f1ce66f83d4a
+Current 8 scheduled jobs: [<Job (id=scheduler_start_6f54c363-e30c-4ad2-b232-ccc5c11d6745 name=with_redirected_stdout.<locals>.wrapper)>, <Job (id=scheduler_start_ea6d79f2-d441-4236-8969-90c77b565e10 name=with_redirected_stdout.<locals>.wrapper)>, <Job (id=scheduler_stop_6f54c363-e30c-4ad2-b232-ccc5c11d6745 name=with_redirected_stdout.<locals>.wrapper)>, <Job (id=scheduler_stop_ea6d79f2-d441-4236-8969-90c77b565e10 name=with_redirected_stdout.<locals>.wrapper)>, <Job (id=scheduler_start_bc4ec7d2-249b-4799-a02f-f1ce66f83d4a name=with_redirected_stdout.<locals>.wrapper)>, <Job (id=scheduler_stop_bc4ec7d2-249b-4799-a02f-f1ce66f83d4a name=with_redirected_stdout.<locals>.wrapper)>, <Job (id=scheduler_start_8aeae4b4-f200-478b-93af-6c8afec1fed9 name=with_redirected_stdout.<locals>.wrapper)>, <Job (id=scheduler_stop_8aeae4b4-f200-478b-93af-6c8afec1fed9 name=with_redirected_stdout.<locals>.wrapper)>]
+Job ID: scheduler_start_6f54c363-e30c-4ad2-b232-ccc5c11d6745
+Next Run Time: 2024-02-21 09:30:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='9', minute='30']
+Job Args: 6f54c363-e30c-4ad2-b232-ccc5c11d6745
+Job Kwargs: 
+
+Job ID: scheduler_start_ea6d79f2-d441-4236-8969-90c77b565e10
+Next Run Time: 2024-02-21 09:30:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='9', minute='30']
+Job Args: ea6d79f2-d441-4236-8969-90c77b565e10
+Job Kwargs: 
+
+Job ID: scheduler_stop_6f54c363-e30c-4ad2-b232-ccc5c11d6745
+Next Run Time: 2024-02-21 16:00:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='16', minute='0']
+Job Args: 6f54c363-e30c-4ad2-b232-ccc5c11d6745
+Job Kwargs: 
+
+Job ID: scheduler_stop_ea6d79f2-d441-4236-8969-90c77b565e10
+Next Run Time: 2024-02-21 16:00:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='16', minute='0']
+Job Args: ea6d79f2-d441-4236-8969-90c77b565e10
+Job Kwargs: 
+
+Job ID: scheduler_start_bc4ec7d2-249b-4799-a02f-f1ce66f83d4a
+Next Run Time: 2024-02-21 22:32:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='22', minute='32']
+Job Args: bc4ec7d2-249b-4799-a02f-f1ce66f83d4a
+Job Kwargs: 
+
+Job ID: scheduler_stop_bc4ec7d2-249b-4799-a02f-f1ce66f83d4a
+Next Run Time: 2024-02-21 22:33:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='*', hour='22', minute='33']
+Job Args: bc4ec7d2-249b-4799-a02f-f1ce66f83d4a
+Job Kwargs: 
+
+Job ID: scheduler_start_8aeae4b4-f200-478b-93af-6c8afec1fed9
+Next Run Time: 2024-02-23 09:30:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='0,4', hour='9', minute='30']
+Job Args: 8aeae4b4-f200-478b-93af-6c8afec1fed9
+Job Kwargs: 
+
+Job ID: scheduler_stop_8aeae4b4-f200-478b-93af-6c8afec1fed9
+Next Run Time: 2024-02-23 16:00:00-05:00
+Job Function: wrapper
+Trigger: cron[day_of_week='0,4', hour='16', minute='0']
+Job Args: 8aeae4b4-f200-478b-93af-6c8afec1fed9
+Job Kwargs: 
+
+Stopping record bc4ec7d2-249b-4799-a02f-f1ce66f83d4a
+Requesting STOP 208c9c2b-d25b-4dd9-8654-c19bdd2d4a30
+APS jobs initialized
+Record updated bc4ec7d2-249b-4799-a02f-f1ce66f83d4a

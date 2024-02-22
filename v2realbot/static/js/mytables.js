@@ -621,7 +621,6 @@ $(document).ready(function () {
         })
     });
 
-
     //button run
     $('#button_run').click(function () {
         row = stratinRecords.row('.selected').data();
@@ -953,7 +952,18 @@ var runnerRecords =
                 render: function ( data, type, row ) {
                     return format_date(data)
                 },
+            },
+            {
+                targets: [4], //symbol
+                render: function ( data, type, row ) {
+                    if (type === 'display') {
+                        //console.log("arch")
+                        var color = getColorForId(row.strat_id);
+                        return '<span style="color:' + color + ';">'+data+'</span>';
+                    }
+                    return data;
                 },
+            },
         ],
         // select: {
         //     style: 'multi'

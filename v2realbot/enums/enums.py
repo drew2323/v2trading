@@ -52,6 +52,16 @@ class Account(str, Enum):
     """
     ACCOUNT1 = "ACCOUNT1"
     ACCOUNT2 = "ACCOUNT2"
+
+class Moddus(str, Enum):
+    """
+    Moddus for RunManager record
+
+    schedule - scheduled record
+    queue - queued record
+    """
+    SCHEDULE = "schedule"
+    QUEUE = "queue"
 class RecordType(str, Enum):
     """
     Represents output of aggregator
@@ -63,6 +73,15 @@ class RecordType(str, Enum):
     CBARDOLLAR = "cbardollar"
     CBARRENKO = "cbarrenko"
     TRADE = "trade"
+
+class SchedulerStatus(str, Enum):
+    """
+    ACTIVE - active scheduling
+    SUSPENDED - suspended for scheduling
+    """
+
+    ACTIVE = "active"
+    SUSPENDED = "suspended"
 
 class Mode(str, Enum):
     """
@@ -76,7 +95,6 @@ class Mode(str, Enum):
     LIVE = "live"
     BT = "backtest"
     PREP = "prep"
-
 
 class StartBarAlign(str, Enum):
     """

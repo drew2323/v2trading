@@ -363,6 +363,10 @@ $(document).ready(function () {
         refresh_logfile()
     });
 
+    $('#logFileSelect').change(function() {
+        refresh_logfile();
+    });
+
     //button to open log modal
     $('#button_show_log').click(function () {
         window.$('#logModal').modal('show');

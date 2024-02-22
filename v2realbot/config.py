@@ -4,12 +4,18 @@ from appdirs import user_data_dir
 from pathlib import Path
 import os
 
+# Global flag to track if the ml module has been imported (solution for long import times of tensorflow)
+#the first occurence of using it will load it globally
+_ml_module_loaded = False
+
 #directory for generated images and basic reports
 MEDIA_DIRECTORY = Path(__file__).parent.parent.parent / "media"
 RUNNER_DETAIL_DIRECTORY = Path(__file__).parent.parent.parent / "runner_detail"
 
 #location of strat.log - it is used to fetch by gui
+LOG_PATH = Path(__file__).parent.parent
 LOG_FILE = Path(__file__).parent.parent / "strat.log"
+JOB_LOG_FILE = Path(__file__).parent.parent / "job.log"
 
 #'0.0.0.0',
 #currently only prod server has acces to LIVE

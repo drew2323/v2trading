@@ -59,7 +59,12 @@ class Trade_WS_Streamer(Thread):
         #if it is the last item at all, stop the client from running
         if len(Trade_WS_Streamer._streams) == 0:
             print("removed last item from WS, stopping the client")
-            Trade_WS_Streamer.client.stop()
+            #Trade_WS_Streamer.client.stop_ws()
+            #Trade_WS_Streamer.client.stop()
+            #zkusíme explicitně zavolat kroky pro disconnect od ws
+            if Trade_WS_Streamer.client._stop_stream_queue.empty():
+                Trade_WS_Streamer.client._stop_stream_queue.put_nowait({"should_stop": True})
+            Trade_WS_Streamer.client._should_run = False
             return
         
         if not self.symbol_exists(obj.symbol):

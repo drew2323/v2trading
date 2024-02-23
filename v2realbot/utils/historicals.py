@@ -4,7 +4,7 @@ from alpaca.data import Quote, Trade, Snapshot, Bar
 from alpaca.data.models import BarSet, QuoteSet, TradeSet
 from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from v2realbot.utils.utils import zoneNY, send_to_telegram
-from v2realbot.config import ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY
+from v2realbot.config import ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, ACCOUNT1_PAPER_FEED
 from alpaca.data.enums import DataFeed
 from datetime import datetime, timedelta
 import pandas as pd
@@ -112,7 +112,7 @@ def get_historical_bars(symbol: str, time_from: datetime, time_to: datetime, tim
     :raises: Exception if all retries fail.
     """
     stock_client = StockHistoricalDataClient(ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, raw_data=True)
-    bar_request = StockBarsRequest(symbol_or_symbols=symbol, timeframe=timeframe, start=time_from, end=time_to, feed=DataFeed.SIP)
+    bar_request = StockBarsRequest(symbol_or_symbols=symbol, timeframe=timeframe, start=time_from, end=time_to, feed=ACCOUNT1_PAPER_FEED)
     
     last_exception = None
 

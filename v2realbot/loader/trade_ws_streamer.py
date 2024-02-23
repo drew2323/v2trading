@@ -4,7 +4,7 @@
 """
 from v2realbot.loader.aggregator import TradeAggregator2Queue
 from alpaca.data.live import StockDataStream
-from v2realbot.config import ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, ACCOUNT1_PAPER_FEED
+from v2realbot.config import LIVE_DATA_API_KEY, LIVE_DATA_SECRET_KEY, LIVE_DATA_FEED
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockLatestQuoteRequest, StockBarsRequest, StockTradesRequest
 from threading import Thread, current_thread
@@ -21,7 +21,8 @@ from msgpack import packb
 class Trade_WS_Streamer(Thread):
 
     ##tento ws streamer je pouze jeden pro vsechny, tzn. vyuziváme natvrdo placena data primarniho uctu (nezalezi jestli paper nebo live)
-    client = StockDataStream(ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, raw_data=True, websocket_params={}, feed=ACCOUNT1_PAPER_FEED)
+    print(f"Realtime Websocket connection will use FEED: {LIVE_DATA_FEED} and credential of ACCOUNT1")
+    client = StockDataStream(LIVE_DATA_API_KEY, LIVE_DATA_SECRET_KEY, raw_data=True, websocket_params={}, feed=LIVE_DATA_FEED)
     #uniquesymbols = set()
     _streams = []
     #to_run = dict()

@@ -108,7 +108,8 @@ class Keys:
         self.FEED = feed
 
 # podle modu (PAPER, LIVE) vrati objekt
-# obsahujici klice pro pripojeni k alpace
+# obsahujici klice pro pripojeni k alpace - používá se pro Trading API a order updates websockets (pristupy relevantni per strategie)
+#pro real time data se bere LIVE_DATA_API_KEY, LIVE_DATA_SECRET_KEY, LIVE_DATA_FEED nize - jelikoz jde o server wide nastaveni
 def get_key(mode: Mode, account: Account):
     if mode not in [Mode.PAPER, Mode.LIVE]:
         print("has to be LIVE or PAPER only")
@@ -134,28 +135,88 @@ ACCOUNT1_PAPER_API_KEY = os.environ.get('ACCOUNT1_PAPER_API_KEY')
 ACCOUNT1_PAPER_SECRET_KEY = os.environ.get('ACCOUNT1_PAPER_SECRET_KEY')
 ACCOUNT1_PAPER_MAX_BATCH_SIZE = 1
 ACCOUNT1_PAPER_PAPER = True
-ACCOUNT1_PAPER_FEED = DataFeed.SIP
+#ACCOUNT1_PAPER_FEED = DataFeed.SIP
+
+# Load the data feed type from environment variable
+data_feed_type_str = os.environ.get('ACCOUNT1_PAPER_FEED', 'iex')  # Default to 'sip' if not set
+
+# Convert the string to DataFeed enum
+try:
+    ACCOUNT1_PAPER_FEED = DataFeed(data_feed_type_str)
+except ValueError:
+    # Handle the case where the environment variable does not match any enum member
+    print(f"Invalid data feed type: {data_feed_type_str} in ACCOUNT1_PAPER_FEED defaulting to 'iex'")
+    ACCOUNT1_PAPER_FEED = DataFeed.SIP
 
 #PRIMARY LIVE
 ACCOUNT1_LIVE_API_KEY = os.environ.get('ACCOUNT1_LIVE_API_KEY')
 ACCOUNT1_LIVE_SECRET_KEY = os.environ.get('ACCOUNT1_LIVE_SECRET_KEY')
 ACCOUNT1_LIVE_MAX_BATCH_SIZE = 1
 ACCOUNT1_LIVE_PAPER = False
-ACCOUNT1_LIVE_FEED = DataFeed.SIP
+#ACCOUNT1_LIVE_FEED = DataFeed.SIP
+
+# Load the data feed type from environment variable
+data_feed_type_str = os.environ.get('ACCOUNT1_LIVE_FEED', 'iex')  # Default to 'sip' if not set
+
+# Convert the string to DataFeed enum
+try:
+    ACCOUNT1_LIVE_FEED = DataFeed(data_feed_type_str)
+except ValueError:
+    # Handle the case where the environment variable does not match any enum member
+    print(f"Invalid data feed type: {data_feed_type_str} in ACCOUNT1_LIVE_FEED defaulting to 'iex'")
+    ACCOUNT1_LIVE_FEED = DataFeed.IEX
 
 #SECONDARY PAPER - Martin
 ACCOUNT2_PAPER_API_KEY = os.environ.get('ACCOUNT2_PAPER_API_KEY')
 ACCOUNT2_PAPER_SECRET_KEY = os.environ.get('ACCOUNT2_PAPER_SECRET_KEY')
 ACCOUNT2_PAPER_MAX_BATCH_SIZE = 1
 ACCOUNT2_PAPER_PAPER = True
-ACCOUNT2_PAPER_FEED = DataFeed.IEX
+#ACCOUNT2_PAPER_FEED = DataFeed.IEX
 
-# #SECONDARY PAPER
-# ACCOUNT2_PAPER_API_KEY = 'PK0OQHZG03PUZ1SC560V'
-# ACCOUNT2_PAPER_SECRET_KEY = 'cTglhm7kwRcZfFT27fQWz31sXaxadzQApFDW6Lat'
-# ACCOUNT2_PAPER_MAX_BATCH_SIZE = 1
-# ACCOUNT2_PAPER_PAPER = True
-# ACCOUNT2_PAPER_FEED = DataFeed.IEX
+# Load the data feed type from environment variable
+data_feed_type_str = os.environ.get('ACCOUNT2_PAPER_FEED', 'iex')  # Default to 'sip' if not set
+
+# Convert the string to DataFeed enum
+try:
+    ACCOUNT2_PAPER_FEED = DataFeed(data_feed_type_str)
+except ValueError:
+    # Handle the case where the environment variable does not match any enum member
+    print(f"Invalid data feed type: {data_feed_type_str} in ACCOUNT2_PAPER_FEED defaulting to 'iex'")
+    ACCOUNT2_PAPER_FEED = DataFeed.IEX
+
+
+#SECONDARY LIVE - Martin
+# ACCOUNT2_LIVE_API_KEY = os.environ.get('ACCOUNT2_LIVE_API_KEY')
+# ACCOUNT2_LIVE_SECRET_KEY = os.environ.get('ACCOUNT2_LIVE_SECRET_KEY')
+# ACCOUNT2_LIVE_MAX_BATCH_SIZE = 1
+# ACCOUNT2_LIVE_PAPER = True
+# #ACCOUNT2_LIVE_FEED = DataFeed.IEX
+
+# # Load the data feed type from environment variable
+# data_feed_type_str = os.environ.get('ACCOUNT2_LIVE_FEED', 'iex')  # Default to 'sip' if not set
+
+# # Convert the string to DataFeed enum
+# try:
+#     ACCOUNT2_LIVE_FEED = DataFeed(data_feed_type_str)
+# except ValueError:
+#     # Handle the case where the environment variable does not match any enum member
+#     print(f"Invalid data feed type: {data_feed_type_str} in ACCOUNT2_LIVE_FEED defaulting to 'iex'")
+#     ACCOUNT2_LIVE_FEED = DataFeed.IEX
+
+#zatim jsou LIVE_DATA nastaveny jako z account1_paper
+LIVE_DATA_API_KEY = ACCOUNT1_PAPER_API_KEY
+LIVE_DATA_SECRET_KEY = ACCOUNT1_PAPER_SECRET_KEY
+
+# Load the data feed type from environment variable
+data_feed_type_str = os.environ.get('LIVE_DATA_FEED', 'iex')  # Default to 'sip' if not set
+
+# Convert the string to DataFeed enum
+try:
+    LIVE_DATA_FEED = DataFeed(data_feed_type_str)
+except ValueError:
+    # Handle the case where the environment variable does not match any enum member
+    print(f"Invalid data feed type: {data_feed_type_str} in LIVE_DATA_FEED defaulting to 'iex'")
+    LIVE_DATA_FEED = DataFeed.IEX
 
 class KW:
     activate: str = "activate"

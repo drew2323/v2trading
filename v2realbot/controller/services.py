@@ -1947,7 +1947,7 @@ def get_alpaca_history_bars(symbol: str, datetime_object_from: datetime, datetim
         client = StockHistoricalDataClient(ACCOUNT1_LIVE_API_KEY, ACCOUNT1_LIVE_SECRET_KEY, raw_data=False)
         #datetime_object_from = datetime(2023, 2, 27, 18, 51, 38, tzinfo=datetime.timezone.utc)
         #datetime_object_to = datetime(2023, 2, 27, 21, 51, 39, tzinfo=datetime.timezone.utc)
-        bar_request = StockBarsRequest(symbol_or_symbols=symbol,timeframe=timeframe, start=datetime_object_from, end=datetime_object_to, feed=ACCOUNT1_LIVE_API_KEY)
+        bar_request = StockBarsRequest(symbol_or_symbols=symbol,timeframe=timeframe, start=datetime_object_from, end=datetime_object_to, feed=ACCOUNT1_LIVE_FEED)
         #print("before df")
         bars = client.get_stock_bars(bar_request)
         result = []

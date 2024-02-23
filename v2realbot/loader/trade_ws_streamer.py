@@ -21,7 +21,8 @@ from msgpack import packb
 class Trade_WS_Streamer(Thread):
 
     ##tento ws streamer je pouze jeden pro vsechny, tzn. vyuziváme natvrdo placena data primarniho uctu (nezalezi jestli paper nebo live)
-    print(f"Realtime Websocket connection will use FEED: {LIVE_DATA_FEED} and credential of ACCOUNT1")
+    msg = f"Realtime Websocket connection will use FEED: {LIVE_DATA_FEED} and credential of ACCOUNT1"
+    print(msg)
     client = StockDataStream(LIVE_DATA_API_KEY, LIVE_DATA_SECRET_KEY, raw_data=True, websocket_params={}, feed=LIVE_DATA_FEED)
     #uniquesymbols = set()
     _streams = []
@@ -39,6 +40,7 @@ class Trade_WS_Streamer(Thread):
         return False
 
     def add_stream(self, obj: TradeAggregator2Queue):
+        print(Trade_WS_Streamer.msg)
         print("stav pred pridavanim", Trade_WS_Streamer._streams)
         Trade_WS_Streamer._streams.append(obj)
         if Trade_WS_Streamer.client._running is False:

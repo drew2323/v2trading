@@ -14,7 +14,7 @@ from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeSt
 from datetime import datetime
 from v2realbot.loader.trade_offline_streamer import Trade_Offline_Streamer
 from threading import Thread, current_thread, Event, enumerate
-from v2realbot.config import STRATVARS_UNCHANGEABLES, ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, ACCOUNT1_PAPER_FEED, ACCOUNT1_LIVE_API_KEY, ACCOUNT1_LIVE_SECRET_KEY, ACCOUNT1_LIVE_FEED, DATA_DIR,BT_FILL_CONS_TRADES_REQUIRED,BT_FILL_LOG_SURROUNDING_TRADES,BT_FILL_CONDITION_BUY_LIMIT,BT_FILL_CONDITION_SELL_LIMIT, GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN, MEDIA_DIRECTORY, RUNNER_DETAIL_DIRECTORY, OFFLINE_MODE
+from v2realbot.config import STRATVARS_UNCHANGEABLES, ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, ACCOUNT1_PAPER_FEED, ACCOUNT1_LIVE_API_KEY, ACCOUNT1_LIVE_SECRET_KEY, ACCOUNT1_LIVE_FEED, DATA_DIR,BT_FILL_CONS_TRADES_REQUIRED,BT_FILL_LOG_SURROUNDING_TRADES,BT_FILL_CONDITION_BUY_LIMIT,BT_FILL_CONDITION_SELL_LIMIT, GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN, MEDIA_DIRECTORY, RUNNER_DETAIL_DIRECTORY, OFFLINE_MODE, LIVE_DATA_FEED
 import importlib
 from alpaca.trading.requests import GetCalendarRequest
 from alpaca.trading.client import TradingClient
@@ -886,6 +886,7 @@ def archive_runner(runner: Runner, strat: StrategyInstance, inter_batch_params: 
                         rectype=strat.state.rectype,
                         cache_used=strat.dataloader.cache_used if isinstance(strat.dataloader, Trade_Offline_Streamer) else None,
                         configs=dict(
+                            LIVE_DATA_FEED=str(LIVE_DATA_FEED),
                             GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN=GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN,
                             BT_FILL_CONS_TRADES_REQUIRED=BT_FILL_CONS_TRADES_REQUIRED,
                             BT_FILL_LOG_SURROUNDING_TRADES=BT_FILL_LOG_SURROUNDING_TRADES,

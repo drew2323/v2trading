@@ -252,7 +252,7 @@ def _run_stratin(stratin_id: UUID, runReq: RunRequest):
         runReq.bt_to = zoneNY.localize(runReq.bt_to)  
     #pokud jedeme nad test intervaly anebo je požadováno více dní - pouštíme jako batch day by day
     #do budoucna dát na FE jako flag
-    print(runReq)
+    #print(runReq)
     if runReq.mode not in [Mode.LIVE, Mode.PAPER] and (runReq.test_batch_id is not None or (runReq.bt_from is not None and runReq.bt_to is not None and runReq.bt_from.date() != runReq.bt_to.date())):
         res, id = cs.run_batch_stratin(id=stratin_id, runReq=runReq)
     else:

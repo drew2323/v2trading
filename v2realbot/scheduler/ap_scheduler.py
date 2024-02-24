@@ -124,7 +124,7 @@ def initialize_jobs(run_manager_records: RunManagerRecord = None):
     return 0, current_jobs_dict
 
 #zastresovaci funkce resici error handling a printing
-def start_runman_record(id: UUID, market = "US1", debug_date = None):
+def start_runman_record(id: UUID, market = "US", debug_date = None):
     record = None
     res, record, msg = _start_runman_record(id=id, market=market, debug_date=debug_date)
 

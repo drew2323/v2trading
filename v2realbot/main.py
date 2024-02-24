@@ -42,6 +42,7 @@ import mlroom.utils.mlutils as ml
 from typing import List
 import v2realbot.controller.run_manager as rm
 import v2realbot.scheduler.ap_scheduler as aps
+import re
 #from async io import Queue, QueueEmpty
 #              
 # install()
@@ -557,30 +558,65 @@ def _get_archived_runner_log_byID(runner_id: UUID, timestamp_from: float, timest
     else:
         raise HTTPException(status_code=404, detail=f"No logs found with id: {runner_id} and between {timestamp_from} and {timestamp_to}")
 
+def remove_ansi_codes(text):
+    ansi_escape = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
+    return ansi_escape.sub('', text)
+
 # endregion 
 # A simple function to read the last lines of a file
-def tail(file_path, n=10, buffer_size=1024):
+# def tail(file_path, n=10, buffer_size=1024):
+#     try:
+#         with open(file_path, 'rb') as f:
+#             f.seek(0, 2)  # Move to the end of the file
+#             file_size = f.tell()
+#             lines = []
+#             buffer = bytearray()
+
+#             for i in range(file_size // buffer_size + 1):
+#                 read_start = max(-buffer_size * (i + 1), -file_size)
+#                 f.seek(read_start, 2)
+#                 read_size = min(buffer_size, file_size - buffer_size * i)
+#                 buffer[0:0] = f.read(read_size)  # Prepend to buffer
+
+#                 if buffer.count(b'\n') >= n + 1:
+#                     break
+
+#             lines = buffer.decode(errors='ignore').splitlines()[-n:]
+#             lines = [remove_ansi_codes(line) for line in lines]
+#             return lines
+#     except Exception as e:
+#         return [str(e) + format_exc()]
+
+#updated version that reads lines line by line
+def tail(file_path, n=10):
     try:
         with open(file_path, 'rb') as f:
             f.seek(0, 2)  # Move to the end of the file
             file_size = f.tell()
             lines = []
-            buffer = bytearray()
+            line = b''
 
-            for i in range(file_size // buffer_size + 1):
-                read_start = max(-buffer_size * (i + 1), -file_size)
-                f.seek(read_start, 2)
-                read_size = min(buffer_size, file_size - buffer_size * i)
-                buffer[0:0] = f.read(read_size)  # Prepend to buffer
+            f.seek(-1, 2)  # Start at the last byte
+            while len(lines) < n and f.tell() != 0:
+                byte = f.read(1)
+                if byte == b'\n':
+                    # Decode, remove ANSI codes, and append the line
+                    lines.append(remove_ansi_codes(line.decode(errors='ignore')))
+                    line = b''
+                else:
+                    line = byte + line
+                f.seek(-2, 1)  # Move backwards by two bytes
 
-                if buffer.count(b'\n') >= n + 1:
-                    break
+            if line:
+                # Append any remaining line after removing ANSI codes
+                lines.append(remove_ansi_codes(line.decode(errors='ignore')))
 
-            lines = buffer.decode(errors='ignore').splitlines()[-n:]
-            return lines
+            return lines[::-1]  # Reverse the list to get the lines in correct order
     except Exception as e:
-        return [str(e) + format_exc()]
+        return [str(e)]
 
+
+    
 @app.get("/log", dependencies=[Depends(api_key_auth)])
 def read_log(lines: int = 700, logfile: str = "strat.log"):
     log_path = LOG_PATH  / logfile

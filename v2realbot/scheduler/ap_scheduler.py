@@ -124,7 +124,7 @@ def initialize_jobs(run_manager_records: RunManagerRecord = None):
     return 0, current_jobs_dict
 
 #zastresovaci funkce resici error handling a printing
-def start_runman_record(id: UUID, market = "US", debug_date = None):
+def start_runman_record(id: UUID, market = "US1", debug_date = None):
     record = None
     res, record, msg = _start_runman_record(id=id, market=market, debug_date=debug_date)
 
@@ -207,13 +207,14 @@ def _start_runman_record(id: UUID, market = "US", debug_date = None):
     
     record = result
 
-    res, sada = sch.get_todays_market_times(market=market, debug_date=debug_date)
-    if res == 0:
-        market_time_now, market_open_datetime, market_close_datetime = sada
-        print(f"OPEN:{market_open_datetime} CLOSE:{market_close_datetime}")
-    else:
-        sada = "Error getting market times (CLOSED): " + str(sada)
-        return res, record, sada
+    if market is not None and market == "US":
+        res, sada = sch.get_todays_market_times(market=market, debug_date=debug_date)
+        if res == 0:
+            market_time_now, market_open_datetime, market_close_datetime = sada
+            print(f"OPEN:{market_open_datetime} CLOSE:{market_close_datetime}")
+        else:
+            sada = "Error getting market times (CLOSED): " + str(sada)
+            return res, record, sada
     
     if cs.is_stratin_running(record.strat_id):
         return -1, record, f"Stratin {record.strat_id} is already running"

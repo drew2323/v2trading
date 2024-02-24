@@ -2,7 +2,7 @@ from v2realbot.loader.aggregator import TradeAggregator, TradeAggregator2List, T
 #from v2realbot.loader.cacher import get_cached_agg_data
 from alpaca.trading.requests import GetCalendarRequest
 from alpaca.data.live import StockDataStream
-from v2realbot.config import ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, DATA_DIR, OFFLINE_MODE
+from v2realbot.config import ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, DATA_DIR, OFFLINE_MODE, LIVE_DATA_FEED
 from alpaca.data.enums import DataFeed
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockLatestQuoteRequest, StockBarsRequest, StockTradesRequest
@@ -191,9 +191,10 @@ class Trade_Offline_Streamer(Thread):
             #         stream.send_cache_to_output(cache)
             #         to_rem.append(stream)
 
-            #cache resime jen kdyz backtestujeme cely den
+            #cache resime jen kdyz backtestujeme cely den a mame sip datapoint (iex necachujeme)
             #pokud ne tak ani necteme, ani nezapisujeme do cache
-            if self.time_to >= day.close and self.time_from <= day.open:
+
+            if (self.time_to >= day.close and self.time_from <= day.open) and LIVE_DATA_FEED == DataFeed.SIP:
                 #tento odstavec obchazime pokud je nastaveno "dont_use_cache"
                 stream_btdata = self.to_run[symbpole[0]][0]
                 cache_btdata, file_btdata = stream_btdata.get_cache(day.open, day.close)
@@ -249,9 +250,9 @@ class Trade_Offline_Streamer(Thread):
                 # tradesResponse = self.client.get_stock_trades(stockTradeRequest)
                 print("Remote Fetch DAY DATA Complete", day.open, day.close)
 
-                #pokud jde o dnešní den a nebyl konec trhu tak cache neukládáme
-                if day.open < datetime.now().astimezone(zoneNY) < day.close:
-                    print("not saving trade cache, market still open today")
+                #pokud jde o dnešní den a nebyl konec trhu tak cache neukládáme, pripadne pri iex datapointu necachujeme
+                if (day.open < datetime.now().astimezone(zoneNY) < day.close) or LIVE_DATA_FEED == DataFeed.IEX:
+                    print("not saving trade cache, market still open today or IEX datapoint")
                     #ic(datetime.now().astimezone(zoneNY))
                     #ic(day.open, day.close)
                 else:

@@ -468,7 +468,8 @@ function refresh_logfile() {
                 $('#log-content').html("no records");
             }
             else {
-                $('#log-content').html(response.lines.join('\n'));	
+                var escapedLines = response.lines.map(line => escapeHtml(line));
+                $('#log-content').html(escapedLines.join('\n'));  
             }	
         },
         error: function(xhr, status, error) {
@@ -478,6 +479,14 @@ function refresh_logfile() {
     })        
 }
 
+function escapeHtml(text) {
+    return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
 function delete_arch_rows(ids) {
     $.ajax({
         url:"/archived_runners/",

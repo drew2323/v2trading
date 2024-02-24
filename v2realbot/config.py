@@ -218,6 +218,8 @@ except ValueError:
     print(f"Invalid data feed type: {data_feed_type_str} in LIVE_DATA_FEED defaulting to 'iex'")
     LIVE_DATA_FEED = DataFeed.IEX
 
+# LIVE_DATA_FEED = DataFeed.IEX
+
 class KW:
     activate: str = "activate"
     dont_go: str = "dont_go"

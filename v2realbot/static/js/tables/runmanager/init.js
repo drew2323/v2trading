@@ -176,16 +176,16 @@ function initialize_runmanagerRecords() {
                         tit = date.toLocaleString('cs-CZ', {
                                 timeZone: 'America/New_York',
                             })
-
-                        if (isToday(now)) {
-                            //return local time only
-                            return '<div title="'+tit+'">'+ 'dnes ' + format_date(data,true,true)+'</div>'
-                        }
-                        else
-                        {
-                            //return  local datetime
-                            return '<div title="'+tit+'">'+ format_date(data,true,false)+'</div>'
-                        }
+                        return '<div title="'+tit+'">'+ format_date(data,true,false)+'</div>'
+                        // if (isToday(now)) {
+                        //     //return local time only
+                        //     return '<div title="'+tit+'">'+ 'dnes ' + format_date(data,true,true)+'</div>'
+                        // }
+                        // else
+                        // {
+                        //     //return  local datetime
+                        //     return '<div title="'+tit+'">'+ format_date(data,true,false)+'</div>'
+                        // }
                     },
                     },
                     // {

@@ -1126,7 +1126,9 @@ def get_all_archived_runners_p(request: DataTablesRequest) -> Tuple[int, RunArch
             SELECT runner_id, strat_id, batch_id, symbol, name, note, started, 
                 stopped, mode, account, bt_from, bt_to, ilog_save, profit, 
                 trade_count, end_positions, end_positions_avgp, metrics,
-                MAX(stopped) OVER (PARTITION BY batch_id) AS max_stopped
+                MAX(stopped) OVER (PARTITION BY batch_id) AS max_stopped,
+                SUM(profit) OVER (PARTITION BY batch_id) AS batch_profit,
+                COUNT(*) OVER (PARTITION BY batch_id) AS batch_count
             FROM runner_header
             WHERE (:search_value = '' OR strat_id LIKE :search_value OR batch_id LIKE :search_value)
         ),
@@ -1140,7 +1142,8 @@ def get_all_archived_runners_p(request: DataTablesRequest) -> Tuple[int, RunArch
         )
         SELECT runner_id, strat_id, batch_id, symbol, name, note, started, 
             stopped, mode, account, bt_from, bt_to, ilog_save, profit, 
-            trade_count, end_positions, end_positions_avgp, metrics
+            trade_count, end_positions, end_positions_avgp, metrics, 
+            batch_profit, batch_count
         FROM InterleavedGroups
         ORDER BY 
             sort_key DESC,

@@ -3,10 +3,13 @@ from v2realbot.enums.enums import Mode, Account, FillCondition
 from appdirs import user_data_dir
 from pathlib import Path
 import os
-
+from collections import defaultdict
 # Global flag to track if the ml module has been imported (solution for long import times of tensorflow)
 #the first occurence of using it will load it globally
 _ml_module_loaded = False
+
+#TBD - konfiguracni dict issue #148
+#CFG: defaultdict = defaultdict(None)
 
 #directory for generated images and basic reports
 MEDIA_DIRECTORY = Path(__file__).parent.parent.parent / "media"

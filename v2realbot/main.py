@@ -10,6 +10,7 @@ from fastapi.security import APIKeyHeader
 import uvicorn
 from uuid import UUID
 import v2realbot.controller.services as cs
+import v2realbot.controller.configs as cf
 from v2realbot.utils.ilog import get_log_window
 from v2realbot.common.model import RunManagerRecord, StrategyInstance, RunnerView, RunRequest, Trade, RunArchive, RunArchiveView, RunArchiveViewPagination, RunArchiveDetail, Bar, RunArchiveChange, TestList, ConfigItem, InstantIndicator, DataTablesRequest, AnalyzerInputs
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status, WebSocketException, Cookie, Query
@@ -771,7 +772,7 @@ def delete_testlist(record_id: str):
 # Get all config items
 @app.get("/config-items/", dependencies=[Depends(api_key_auth)])
 def get_all_items() -> list[ConfigItem]:
-    res, sada = cs.get_all_config_items()
+    res, sada = cf.get_all_config_items()
     if res == 0:
         return sada
     else:
@@ -781,7 +782,7 @@ def get_all_items() -> list[ConfigItem]:
 # Get a config item by ID
 @app.get("/config-items/{item_id}", dependencies=[Depends(api_key_auth)])
 def get_item(item_id: int)-> ConfigItem:
-    res, sada = cs.get_config_item_by_id(item_id)
+    res, sada = cf.get_config_item_by_id(item_id)
     if res == 0:
         return sada
     else:
@@ -790,7 +791,7 @@ def get_item(item_id: int)-> ConfigItem:
 # Get a config item by Name
 @app.get("/config-items-by-name/", dependencies=[Depends(api_key_auth)])
 def get_item(item_name: str)-> ConfigItem:
-    res, sada = cs.get_config_item_by_name(item_name)
+    res, sada = cf.get_config_item_by_name(item_name)
     if res == 0:
         return sada
     else:
@@ -799,7 +800,7 @@ def get_item(item_name: str)-> ConfigItem:
 # Create a new config item
 @app.post("/config-items/", dependencies=[Depends(api_key_auth)], status_code=status.HTTP_200_OK)
 def create_item(config_item: ConfigItem) -> ConfigItem:
-    res, sada = cs.create_config_item(config_item)
+    res, sada = cf.create_config_item(config_item)
     if res == 0: return sada
     else:
         raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error not created: {res}:{id} {sada}")
@@ -808,7 +809,7 @@ def create_item(config_item: ConfigItem) -> ConfigItem:
 # Update a config item by ID
 @app.put("/config-items/{item_id}", dependencies=[Depends(api_key_auth)])
 def update_item(item_id: int, config_item: ConfigItem) -> ConfigItem:
-    res, sada = cs.get_config_item_by_id(item_id)
+    res, sada = cf.get_config_item_by_id(item_id)
     if res != 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No data found")
 
@@ -821,11 +822,11 @@ def update_item(item_id: int, config_item: ConfigItem) -> ConfigItem:
 # Delete a config item by ID
 @app.delete("/config-items/{item_id}", dependencies=[Depends(api_key_auth)])
 def delete_item(item_id: int) -> dict:
-    res, sada = cs.get_config_item_by_id(item_id)
+    res, sada = cf.get_config_item_by_id(item_id)
     if res != 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No data found")
 
-    res, sada = cs.delete_config_item(item_id)
+    res, sada = cf.delete_config_item(item_id)
     if res == 0: return sada
     else:
         raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error not created: {res}:{id}")

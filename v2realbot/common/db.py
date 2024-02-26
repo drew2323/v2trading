@@ -1,4 +1,3 @@
-from v2realbot.config import DATA_DIR
 import sqlite3
 import queue
 import threading
@@ -9,6 +8,7 @@ import orjson
 from v2realbot.utils.utils import json_serial, send_to_telegram, zoneNY
 import v2realbot.controller.services as cs
 from uuid import UUID
+from v2realbot.config import DATA_DIR
 
 sqlite_db_file = DATA_DIR + "/v2trading.db"
 # Define the connection pool

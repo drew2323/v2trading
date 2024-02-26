@@ -98,7 +98,7 @@ def row_to_runmanager(row: dict) -> RunManagerRecord:
 
 #prevede dict radku zpatky na objekt vcetme retypizace
 def row_to_runarchiveview(row: dict) -> RunArchiveView:
-    return RunArchive(
+    a =  RunArchiveView(
         id=row['runner_id'],
         strat_id=row['strat_id'],
         batch_id=row['batch_id'],
@@ -116,8 +116,11 @@ def row_to_runarchiveview(row: dict) -> RunArchiveView:
         trade_count=int(row['trade_count']),
         end_positions=int(row['end_positions']),
         end_positions_avgp=float(row['end_positions_avgp']),
-        metrics=orjson.loads(row['metrics']) if row['metrics'] else None
+        metrics=orjson.loads(row['metrics']) if row['metrics'] else None,
+        batch_profit=int(row['batch_profit']) if row['batch_profit'] else 0,
+        batch_count=int(row['batch_count']) if row['batch_count'] else 0,
     )
+    return a
 
 #prevede dict radku zpatky na objekt vcetme retypizace
 def row_to_runarchive(row: dict) -> RunArchive:

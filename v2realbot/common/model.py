@@ -320,6 +320,8 @@ class RunArchiveView(BaseModel):
     end_positions: int = 0
     end_positions_avgp: float = 0
     metrics: Union[dict, str] = None
+    batch_profit: float = 0  # Total profit for the batch - now calculated during query
+    batch_count: int = 0  # Count of runs in the batch - now calculated during query
 
 #same but with pagination
 class RunArchiveViewPagination(BaseModel):

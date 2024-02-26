@@ -42,6 +42,8 @@ function initialize_archiveRecords() {
                         {data: 'end_positions_avgp', visible: true},
                         {data: 'metrics', visible: true},
                         {data: 'batch_id', visible: true},
+                        {data: 'batch_profit', visible: true},
+                        {data: 'batch_count', visible: true},
                     ],
             paging: true,
             processing: true,
@@ -237,6 +239,8 @@ function initialize_archiveRecords() {
                     var groupId = group ? group : 'no-batch-id-' + firstRowData.id;
                     var stateKey = 'dt-group-state-' + groupId;
                     var state = localStorage.getItem(stateKey);
+                    var profit = firstRowData.batch_profit
+                    var itemCount = firstRowData.batch_count
 
                     // Iterate over each row in the group to set the data attribute
                     // zaroven pro kazdy node nastavime viditelnost podle nastaveni
@@ -252,10 +256,10 @@ function initialize_archiveRecords() {
                     });
 
                     // Initialize variables for the group
-                    var itemCount = 0;
+                    //var itemCount = 0;
                     var period = '';
                     var batch_note = '';
-                    var profit = '';
+                    //var profit = '';
                     var started = null;
                     var stratinId = null;
                     var symbol = null;
@@ -292,15 +296,15 @@ function initialize_archiveRecords() {
                         const existingBatch = batchHeaders.find(batch => batch.batch_id == group);
                         //jeste neni v poli batchu - udelame hlavicku
                         if (!existingBatch) {
-                            itemCount = extractNumbersFromString(firstRowData.note);
-                            if (!itemCount) {
-                                itemCount="NA"
-                            }
+                            // itemCount = extractNumbersFromString(firstRowData.note);
+                            // if (!itemCount) {
+                            //     itemCount="NA"
+                            // }
                 
-                            try { profit = firstRowData.metrics.profit.batch_sum_profit;}
-                            catch (e) {profit = 'NA'}
+                            // try { profit = firstRowData.metrics.profit.batch_sum_profit;}
+                            // catch (e) {profit = 'NA'}
                             
-                            if (!profit) {profit = 'NA'}
+                            // if (!profit) {profit = 'NA'}
                             period = firstRowData.note ? firstRowData.note.substring(0, 14) : '';
                             try {
                             batch_note = firstRowData.note ? firstRowData.note.split("N:")[1].trim() : ''
@@ -316,10 +320,10 @@ function initialize_archiveRecords() {
                         }
                         //uz je v poli, ale mame novejsi (pribyl v ramci backtestu napr.) - updatujeme
                         else if (new Date(existingBatch.started) < new Date(firstRowData.started)) {
-                            try {itemCount = extractNumbersFromString(firstRowData.note);}
-                            catch (e) {itemCount = 'NA'}
-                            try {profit = firstRowData.metrics.profit.batch_sum_profit;}
-                            catch (e) {profit = 'NA'}
+                            // try {itemCount = extractNumbersFromString(firstRowData.note);}
+                            // catch (e) {itemCount = 'NA'}
+                            // try {profit = firstRowData.metrics.profit.batch_sum_profit;}
+                            // catch (e) {profit = 'NA'}
                             period = firstRowData.note ? firstRowData.note.substring(0, 14) : '';
                             if (period.startsWith("SCHED")) {
                                 period = "SCHEDULER";

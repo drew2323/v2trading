@@ -213,7 +213,7 @@ def _start_runman_record(id: UUID, market = "US", debug_date = None):
             market_time_now, market_open_datetime, market_close_datetime = sada
             print(f"OPEN:{market_open_datetime} CLOSE:{market_close_datetime}")
         else:
-            sada = "Error getting market times (CLOSED): " + str(sada)
+            sada = f"Market {market} Error getting market times (CLOSED): " + str(sada)
             return res, record, sada
     
     if cs.is_stratin_running(record.strat_id):

@@ -653,7 +653,7 @@ def _generate_report_image(runner_ids: list[UUID]):
         res, stream = generate_trading_report_image(runner_ids=runner_ids,stream=True)
         if res == 0: return StreamingResponse(stream, media_type="image/png",headers={"Content-Disposition": "attachment; filename=report.png"})
         elif res < 0:
-            raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error: {res}:{id}")
+            raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error: {res}:{stream}")
     except Exception as e:
             raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error: {str(e)}" + format_exc())        
 

@@ -78,10 +78,11 @@ function get_detail_and_chart(row) {
     })
 }
 
-//rerun stratin
-function run_day_again() {
+//rerun stratin (use to rerun strategy and also to rerun live/paper as bt on same period)
+function run_day_again(turnintobt=false) {
     row = archiveRecords.row('.selected').data();
-    $('#button_runagain_arch').attr('disabled',true);
+    var button_name = turnintobt ? '#button_runbt_arch' : '#button_runagain_arch'
+    $(button_name).attr('disabled',true)
 
     var record1 = new Object()
     //console.log(JSON.stringify(rows))
@@ -142,7 +143,7 @@ function run_day_again() {
         //console.log("Result from second request:", result2);
 
         //console.log("calling compare")
-        rerun_strategy(result1, result2)
+        rerun_strategy(result1, result2, turnintobt)
         // Perform your action with the results from both requests
         // Example:
 
@@ -154,13 +155,22 @@ function run_day_again() {
     });
 
 
-    function rerun_strategy(archRunner, stratData) {
+    function rerun_strategy(archRunner, stratData, turnintobt) {
         record1 = archRunner
         //console.log(record1)
 
+        var note_prefix = "RERUN "
+        if ((turnintobt) && ((record1.mode == 'live') || (record1.mode == 'paper'))) {
+            record1.mode = 'backtest'
+            record1.bt_from = record1.started
+            record1.bt_to = record1.stopped
+            note_prefix = "BT SAME PERIOD "
+        }
+
+        record1.note = note_prefix + record1.note
+        //nebudeme muset odstanovat pri kazdem pridani noveho atributu v budoucnu
         //smazeneme nepotrebne a pridame potrebne
         //do budoucna predelat na vytvoreni noveho objektu
-        //nebudeme muset odstanovat pri kazdem pridani noveho atributu v budoucnu
         delete record1["end_positions"];
         delete record1["end_positions_avgp"];
         delete record1["profit"];
@@ -171,8 +181,6 @@ function run_day_again() {
         delete record1["metrics"];
         delete record1["settings"];
         delete record1["stratvars"];
-
-        record1.note = "RERUN " + record1.note
 
         if (record1.bt_from == "") {delete record1["bt_from"];}
         if (record1.bt_to == "") {delete record1["bt_to"];}
@@ -212,7 +220,7 @@ function run_day_again() {
             contentType: "application/json",
             data: jsonString,
             success:function(data){							
-                $('#button_runagain_arch').attr('disabled',false);
+                $(button_name).attr('disabled',false);
                 setTimeout(function () {
                     runnerRecords.ajax.reload();
                     stratinRecords.ajax.reload();
@@ -222,7 +230,7 @@ function run_day_again() {
                 var err = eval("(" + xhr.responseText + ")");
                 window.alert(JSON.stringify(xhr));
                 //console.log(JSON.stringify(xhr));
-                $('#button_runagain_arch').attr('disabled',false);
+                $(button_name).attr('disabled',false);
             }
         })
     }
@@ -541,6 +549,7 @@ function generateStorageKey(batchId) {
 function disable_arch_buttons() {
     //disable buttons (enable on row selection)
     $('#button_runagain_arch').attr('disabled','disabled');
+    $('#button_runbt_arch').attr('disabled','disabled');
     $('#button_show_arch').attr('disabled','disabled');
     $('#button_delete_arch').attr('disabled','disabled');
     $('#button_delete_batch').attr('disabled','disabled');
@@ -563,4 +572,10 @@ function enable_arch_buttons() {
     $('#button_report').attr('disabled',false);
     $('#button_export_xml').attr('disabled',false);
     $('#button_export_csv').attr('disabled',false);
+
+    //Backtest same period button is displayed only when row with mode paper/live is selected
+    row = archiveRecords.row('.selected').data();
+    if ((row.mode == 'paper') || (row.mode == 'live')) {
+        $('#button_runbt_arch').attr('disabled',false);
+    }
 }

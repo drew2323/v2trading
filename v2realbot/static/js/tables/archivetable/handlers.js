@@ -462,6 +462,11 @@ $(document).ready(function () {
     //run again button
     $('#button_runagain_arch').click(run_day_again)
 
+    //run in bt mode
+    $('#button_runbt_arch').click(function() {
+        run_day_again(true);
+      });
+
     //workaround pro spatne oznacovani selectu i pro group-headery
     // $('#archiveTable tbody').on('click', 'tr.group-header', function(event) {
     // var $row = $(this);

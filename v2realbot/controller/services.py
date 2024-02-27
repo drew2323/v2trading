@@ -1859,13 +1859,13 @@ def get_alpaca_history_bars(symbol: str, datetime_object_from: datetime, datetim
     """Returns Bar object
     """
     try:
+        result = []
         client = StockHistoricalDataClient(ACCOUNT1_LIVE_API_KEY, ACCOUNT1_LIVE_SECRET_KEY, raw_data=False)
         #datetime_object_from = datetime(2023, 2, 27, 18, 51, 38, tzinfo=datetime.timezone.utc)
         #datetime_object_to = datetime(2023, 2, 27, 21, 51, 39, tzinfo=datetime.timezone.utc)
         bar_request = StockBarsRequest(symbol_or_symbols=symbol,timeframe=timeframe, start=datetime_object_from, end=datetime_object_to, feed=ACCOUNT1_LIVE_FEED)
         #print("before df")
         bars = client.get_stock_bars(bar_request)
-        result = []
         ##pridavame pro jistotu minutu z obou stran kvuli frontendu
         business_hours = {
             # monday = 0, tuesday = 1, ... same pattern as date.weekday()
@@ -1896,11 +1896,17 @@ def get_alpaca_history_bars(symbol: str, datetime_object_from: datetime, datetim
         #bars.data[symbol]
         return 0, result
     except Exception as e:
-        print(str(e) + format_exc())
-        if OFFLINE_MODE:
-            print("OFFLINE MODE ENABLED")
-            return 0, []
-        return -2, str(e)    
+        # Workaround of error when no data foun d AttributeError and has the specific message
+        if isinstance(e, AttributeError) and str(e) == "'NoneType' object has no attribute 'items'":
+            print("Caught the specific AttributeError: 'NoneType' object has no attribute 'items' means NO DATA FOUND")
+            #print(str(e) + format_exc())        
+            return 0, result            
+        else:
+            print(str(e) + format_exc())
+            if OFFLINE_MODE:
+                print("OFFLINE MODE ENABLED")
+                return 0, []
+            return -2, str(e)    
 # change_archived_runner
 # delete_archived_runner_details
 

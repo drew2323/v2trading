@@ -994,8 +994,8 @@ JSON.safeStringify = (obj, indent = 2) => {
 function isToday(someDate) {
   // Convert input date to Eastern Time
   var dateInEastern = new Date(someDate.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-  console.log("vstupuje ",someDate)
-  console.log("americky ",dateInEastern)
+  //console.log("vstupuje ",someDate)
+  //console.log("americky ",dateInEastern)
   // Get today's date in Eastern Time
   var todayInEastern = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
 

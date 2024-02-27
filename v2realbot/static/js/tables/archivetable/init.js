@@ -82,7 +82,7 @@ function initialize_archiveRecords() {
                             })
 
                         if (isToday(date)) {
-                            console.log("volame isToday s", date)
+                            //console.log("volame isToday s", date)
                             //return local time only
                             return '<div title="'+tit+'">'+ 'dnes ' + format_date(data,true,true)+'</div>'
                         }

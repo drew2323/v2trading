@@ -168,7 +168,6 @@ function initialize_runmanagerRecords() {
                     targets: [15,17, 18, 8, 9], //start, stop, valid_from, valid_to, bt_from, bt_to, last_proccessed
                     render: function ( data, type, row ) {
                         if (!data) return data
-                        now = new Date(data)
                         if (type == "sort") {
                             return new Date(data).getTime();
                         }

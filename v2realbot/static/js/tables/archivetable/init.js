@@ -70,30 +70,32 @@ function initialize_archiveRecords() {
                 {
                     targets: [5],
                     render: function ( data, type, row ) {
-                        now = new Date(data)
                         if (type == "sort") {
                             return new Date(data).getTime();
                         }
+                        //data = "2024-02-26T19:29:13.400621-05:00"
+                        // Create a date object from the string, represents given moment in time in UTC time
                         var date = new Date(data);
+            
                         tit = date.toLocaleString('cs-CZ', {
                                 timeZone: 'America/New_York',
                             })
 
-                        if (isToday(now)) {
+                        if (isToday(date)) {
+                            console.log("volame isToday s", date)
                             //return local time only
-                            return '<div title="'+tit+'">'+ 'dnes ' + format_date(data,false,true)+'</div>'
+                            return '<div title="'+tit+'">'+ 'dnes ' + format_date(data,true,true)+'</div>'
                         }
                         else
                         {
                             //return  local datetime
-                            return '<div title="'+tit+'">'+ format_date(data,false,false)+'</div>'
+                            return '<div title="'+tit+'">'+ format_date(data,true,false)+'</div>'
                         }
                     },
                     },
                     {
                         targets: [6],
                         render: function ( data, type, row ) {
-                            now = new Date(data)
                             if (type == "sort") {
                                 return new Date(data).getTime();
                             }
@@ -102,14 +104,14 @@ function initialize_archiveRecords() {
                                     timeZone: 'America/New_York',
                                 })
         
-                            if (isToday(now)) {
+                            if (isToday(date)) {
                                 //return local time only
-                                return '<div title="'+tit+'" class="token level comment">'+ 'dnes ' + format_date(data,false,true)+'</div>'
+                                return '<div title="'+tit+'" class="token level comment">'+ 'dnes ' + format_date(data,true,true)+'</div>'
                             }
                             else
                             {
                                 //return  local datetime
-                                return '<div title="'+tit+'" class="token level number">'+ format_date(data,false,false)+'</div>'
+                                return '<div title="'+tit+'" class="token level number">'+ format_date(data,true,false)+'</div>'
                             }
                         },
                         },

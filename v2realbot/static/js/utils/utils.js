@@ -990,12 +990,26 @@ JSON.safeStringify = (obj, indent = 2) => {
     return retVal;
   };
 
- function isToday(someDate) {
-    const today = new Date()
-    return someDate.getDate() == today.getDate() &&
-      someDate.getMonth() == today.getMonth() &&
-      someDate.getFullYear() == today.getFullYear()
-  }
+
+function isToday(someDate) {
+  // Convert input date to Eastern Time
+  var dateInEastern = new Date(someDate.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  console.log("vstupuje ",someDate)
+  console.log("americky ",dateInEastern)
+  // Get today's date in Eastern Time
+  var todayInEastern = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
+
+  return dateInEastern.getDate() === todayInEastern.getDate() &&
+    dateInEastern.getMonth() === todayInEastern.getMonth() &&
+    dateInEastern.getFullYear() === todayInEastern.getFullYear();
+}  
+//  function isToday(someDate) {
+  
+//     const today = new Date()
+//     return someDate.getDate() == today.getDate() &&
+//       someDate.getMonth() == today.getMonth() &&
+//       someDate.getFullYear() == today.getFullYear()
+//   }
 
 //https://www.w3schools.com/jsref/jsref_tolocalestring.asp
 function format_date(datum, markettime = false, timeonly = false) {

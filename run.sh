@@ -19,10 +19,10 @@ OUTPUT_PID_FILE=running.pid
 
 OUTPUT_PID_PATH=$HOME
 
-PYTHON_TO_USE="python3"
+PYTHON_TO_USE="python"
 
 # If using 'virtualenv' with python, specify the local virtualenv dir.
-#VIRTUAL_ENV_DIR=""
+VIRTUAL_ENV_DIR="/c/Projects/v2trading_clone/petr_venv"
 
 #----END EDITABLE VARS-------
 
@@ -34,7 +34,7 @@ BACKUP_LOG_FILE="$HISTORY_DIR/${TIMESTAMP}_$LOG_FILE"
 
 # If virtualenv specified & exists, using that version of python instead.
 if [ -d "$VIRTUAL_ENV_DIR" ]; then
-    PYTHON_TO_USE="$VIRTUAL_ENV_DIR/bin/python"
+    PYTHON_TO_USE="$VIRTUAL_ENV_DIR/Scripts/python"
 fi
 
 start() {

@@ -62,7 +62,7 @@ BT_FILL_PRICE_MARKET_ORDER_PREMIUM = 0.005
 COUNT_API_REQUESTS = False
 #stratvars that cannot be changed in gui
 STRATVARS_UNCHANGEABLES = ['pendingbuys', 'blockbuy', 'jevylozeno', 'limitka']
-DATA_DIR = user_data_dir("v2realbot")
+DATA_DIR = user_data_dir("v2realbot", "david")
 MODEL_DIR = Path(DATA_DIR)/"models"
 #BT DELAYS
 #profiling
@@ -152,8 +152,8 @@ except ValueError:
     ACCOUNT1_PAPER_FEED = DataFeed.SIP
 
 #PRIMARY LIVE
-ACCOUNT1_LIVE_API_KEY = os.environ.get('ACCOUNT1_LIVE_API_KEY')
-ACCOUNT1_LIVE_SECRET_KEY = os.environ.get('ACCOUNT1_LIVE_SECRET_KEY')
+ACCOUNT1_LIVE_API_KEY = os.environ.get('ACCOUNT1_PAPER_API_KEY')
+ACCOUNT1_LIVE_SECRET_KEY = os.environ.get('ACCOUNT1_PAPER_SECRET_KEY')
 ACCOUNT1_LIVE_MAX_BATCH_SIZE = 1
 ACCOUNT1_LIVE_PAPER = False
 #ACCOUNT1_LIVE_FEED = DataFeed.SIP

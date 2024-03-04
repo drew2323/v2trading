@@ -62,7 +62,7 @@ BT_FILL_PRICE_MARKET_ORDER_PREMIUM = 0.005
 COUNT_API_REQUESTS = False
 #stratvars that cannot be changed in gui
 STRATVARS_UNCHANGEABLES = ['pendingbuys', 'blockbuy', 'jevylozeno', 'limitka']
-DATA_DIR = user_data_dir("v2realbot")
+DATA_DIR = user_data_dir("v2realbot", "david")
 MODEL_DIR = Path(DATA_DIR)/"models"
 #BT DELAYS
 #profiling

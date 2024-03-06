@@ -23,6 +23,7 @@ from traceback import format_exc
 from datetime import timedelta, time
 from threading import Lock
 import v2realbot.common.db as db
+import v2realbot.common.transform as tr
 from sqlite3 import OperationalError, Row
 import v2realbot.strategyblocks.indicators.custom as ci
 from v2realbot.strategyblocks.inits.init_indicators import initialize_dynamic_indicators
@@ -114,7 +115,7 @@ def fetch_all_run_manager_records() -> list[RunManagerRecord]:
         #Transform row to object
         for row in rows:
             #add transformed object into result list
-            results.append(db.row_to_runmanager(row))
+            results.append(tr.row_to_runmanager(row))
 
         return 0, results
     finally:
@@ -133,7 +134,7 @@ def fetch_run_manager_record_by_id(strategy_id) -> RunManagerRecord:
         if row is None:
             return -2, "not found"
         else:
-            return 0, db.row_to_runmanager(row)
+            return 0, tr.row_to_runmanager(row)
 
     except Exception as e:
         print("ERROR while fetching all records:", str(e) + format_exc())
@@ -152,6 +153,9 @@ def add_run_manager_record(new_record: RunManagerRecord):
         new_record.stop_time = validate_and_format_time(new_record.stop_time)
         if new_record.stop_time is None:
             return -2, f"Invalid stop_time format {new_record.stop_time}"
+
+    if new_record.batch_id is None:
+        new_record.batch_id = str(uuid4())[:8]
 
     conn = db.pool.get_connection()
     try:
@@ -355,7 +359,7 @@ def fetch_scheduled_candidates_for_start_and_stop(market_datetime_now, market) -
         start_candidates = []
         stop_candidates = []
         for row in rows:
-            run_manager_record = db.row_to_runmanager(row)
+            run_manager_record = tr.row_to_runmanager(row)
             if row['is_start_time']:
                 start_candidates.append(run_manager_record)
             if row['is_stop_time']:
@@ -426,7 +430,7 @@ def fetch_startstop_scheduled_candidates(market_datetime_now, time_check, market
         """
         cursor.execute(query, (market_datetime_now_str, market_datetime_now_str, current_time_str))
         rows = cursor.fetchall()
-        results = [db.row_to_runmanager(row) for row in rows]
+        results = [tr.row_to_runmanager(row) for row in rows]
 
         return 0, results
     except Exception as e:

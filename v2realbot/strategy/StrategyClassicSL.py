@@ -189,7 +189,8 @@ class StrategyClassicSL(Strategy):
                             setattr(tradeData, "rel_profit_cum", rel_profit_cum_calculated)
 
                 #test na maximalni profit/loss, pokud vypiname pak uz nedelame pripdany reverzal
-                if await self.stop_when_max_profit_loss() is False:
+                #kontrolu na max loss provadime az u FILLu, kdy je znama celkova castka
+                if data.event == TradeEvent.FILL and await self.stop_when_max_profit_loss() is False:
 
                     #pIF REVERSAL REQUIRED - reverse position is added to prescr.Trades with same signal name
                     #jen při celém FILLU
@@ -332,7 +333,8 @@ class StrategyClassicSL(Strategy):
                             setattr(tradeData, "rel_profit_cum", rel_profit_cum_calculated)
                             #sem nejspis update skutecne vstupni ceny (celk.mnozstvi(order.qty) a avg_costs), to same i druhy smer
 
-                if await self.stop_when_max_profit_loss() is False:
+                #kontrolu na max loss provadime az u FILLu, kdy je znama celkova castka
+                if data.event == TradeEvent.FILL and await self.stop_when_max_profit_loss() is False:
 
                     #IF REVERSAL REQUIRED - reverse position is added to prescr.Trades with same signal name
                     if data.event == TradeEvent.FILL and self.state.vars.requested_followup is not None:

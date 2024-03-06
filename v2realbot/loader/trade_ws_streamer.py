@@ -4,7 +4,7 @@
 """
 from v2realbot.loader.aggregator import TradeAggregator2Queue
 from alpaca.data.live import StockDataStream
-from v2realbot.config import LIVE_DATA_API_KEY, LIVE_DATA_SECRET_KEY, LIVE_DATA_FEED
+from v2realbot.config import LIVE_DATA_API_KEY, LIVE_DATA_SECRET_KEY
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockLatestQuoteRequest, StockBarsRequest, StockTradesRequest
 from threading import Thread, current_thread
@@ -12,6 +12,7 @@ from v2realbot.utils.utils import parse_alpaca_timestamp, ltp
 from datetime import datetime, timedelta
 from threading import Thread, Lock
 from msgpack import packb
+import v2realbot.utils.config_handler as cfh
 
 """
     Shared streamer (can be shared amongst concurrently running strategies)
@@ -19,11 +20,12 @@ from msgpack import packb
     by strategies
 """
 class Trade_WS_Streamer(Thread):
-
+    live_data_feed = cfh.config_handler.get_val('LIVE_DATA_FEED')
     ##tento ws streamer je pouze jeden pro vsechny, tzn. vyuziváme natvrdo placena data primarniho uctu (nezalezi jestli paper nebo live)
-    msg = f"Realtime Websocket connection will use FEED: {LIVE_DATA_FEED} and credential of ACCOUNT1"
+    msg = f"Realtime Websocket connection will use FEED: {live_data_feed} and credential of ACCOUNT1"
     print(msg)
-    client = StockDataStream(LIVE_DATA_API_KEY, LIVE_DATA_SECRET_KEY, raw_data=True, websocket_params={}, feed=LIVE_DATA_FEED)
+    #cfh.config_handler.print_current_config()
+    client = StockDataStream(LIVE_DATA_API_KEY, LIVE_DATA_SECRET_KEY, raw_data=True, websocket_params={}, feed=live_data_feed)
     #uniquesymbols = set()
     _streams = []
     #to_run = dict()
@@ -45,6 +47,18 @@ class Trade_WS_Streamer(Thread):
         Trade_WS_Streamer._streams.append(obj)
         if Trade_WS_Streamer.client._running is False:
             print("websocket zatim nebezi, pouze pridavame do pole")
+
+            #zde delame refresh clienta (pokud se zmenilo live_data_feed)
+
+            # live_data_feed = cfh.config_handler.get_val('LIVE_DATA_FEED')
+            # #po otestování přepnout jen pokud se live_data_feed změnil
+            # #if live_data_feed != Trade_WS_Streamer.live_data_feed:
+            # #    Trade_WS_Streamer.live_data_feed = live_data_feed
+            # msg = f"REFRESH OF CLIENT! Realtime Websocket connection will use FEED: {live_data_feed} and credential of ACCOUNT1"
+            # print(msg)
+            # #cfh.config_handler.print_current_config()
+            # Trade_WS_Streamer.client = StockDataStream(LIVE_DATA_API_KEY, LIVE_DATA_SECRET_KEY, raw_data=True, websocket_params={}, feed=live_data_feed)
+
         else:
             print("websocket client bezi")
             if self.symbol_exists(obj.symbol):

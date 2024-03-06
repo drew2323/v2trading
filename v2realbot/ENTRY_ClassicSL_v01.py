@@ -17,7 +17,7 @@ from v2realbot.strategyblocks.activetrade.activetrade_hub import manage_active_t
 from v2realbot.strategyblocks.inits.init_indicators import initialize_dynamic_indicators
 from v2realbot.strategyblocks.inits.init_directives import intialize_directive_conditions
 from alpaca.trading.client import TradingClient
-from v2realbot.config import ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, DATA_DIR, OFFLINE_MODE
+from v2realbot.config import ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, DATA_DIR
 from alpaca.trading.models import Calendar
 from v2realbot.indicators.oscillators import rsi
 from v2realbot.indicators.moving_averages import sma

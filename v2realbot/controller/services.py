@@ -14,7 +14,7 @@ from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeSt
 from datetime import datetime
 from v2realbot.loader.trade_offline_streamer import Trade_Offline_Streamer
 from threading import Thread, current_thread, Event, enumerate
-from v2realbot.config import STRATVARS_UNCHANGEABLES, ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, ACCOUNT1_PAPER_FEED, ACCOUNT1_LIVE_API_KEY, ACCOUNT1_LIVE_SECRET_KEY, ACCOUNT1_LIVE_FEED, DATA_DIR,BT_FILL_CONS_TRADES_REQUIRED,BT_FILL_LOG_SURROUNDING_TRADES,BT_FILL_CONDITION_BUY_LIMIT,BT_FILL_CONDITION_SELL_LIMIT, GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN, MEDIA_DIRECTORY, RUNNER_DETAIL_DIRECTORY, OFFLINE_MODE, LIVE_DATA_FEED
+from v2realbot.config import STRATVARS_UNCHANGEABLES, ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, ACCOUNT1_PAPER_FEED, ACCOUNT1_LIVE_API_KEY, ACCOUNT1_LIVE_SECRET_KEY, ACCOUNT1_LIVE_FEED, DATA_DIR, MEDIA_DIRECTORY, RUNNER_DETAIL_DIRECTORY
 import importlib
 from alpaca.trading.requests import GetCalendarRequest
 from alpaca.trading.client import TradingClient
@@ -29,7 +29,8 @@ import pandas as pd
 from traceback import format_exc
 from datetime import timedelta, time
 from threading import Lock
-from v2realbot.common.db import pool, execute_with_retry, row_to_runarchive, row_to_runarchiveview
+from v2realbot.common.db import pool, execute_with_retry
+import v2realbot.common.transform as tr
 from sqlite3 import OperationalError, Row
 import v2realbot.strategyblocks.indicators.custom as ci
 from v2realbot.strategyblocks.inits.init_indicators import initialize_dynamic_indicators
@@ -40,6 +41,7 @@ import v2realbot.reporting.metricstoolsimage as mt
 import gzip
 import os
 import msgpack
+import v2realbot.utils.config_handler as cfh
 #import gc
 #from pyinstrument import Profiler
 #adding lock to ensure thread safety of TinyDB (in future will be migrated to proper db)
@@ -886,14 +888,9 @@ def archive_runner(runner: Runner, strat: StrategyInstance, inter_batch_params: 
                         rectype=strat.state.rectype,
                         cache_used=strat.dataloader.cache_used if isinstance(strat.dataloader, Trade_Offline_Streamer) else None,
                         configs=dict(
-                            LIVE_DATA_FEED=str(LIVE_DATA_FEED),
-                            GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN=GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN,
-                            BT_FILL_CONS_TRADES_REQUIRED=BT_FILL_CONS_TRADES_REQUIRED,
-                            BT_FILL_LOG_SURROUNDING_TRADES=BT_FILL_LOG_SURROUNDING_TRADES,
-                            BT_FILL_CONDITION_BUY_LIMIT=BT_FILL_CONDITION_BUY_LIMIT,
-                            BT_FILL_CONDITION_SELL_LIMIT=BT_FILL_CONDITION_SELL_LIMIT))
+                            CONFIG_HANDLER=dict(profile=cfh.config_handler.active_profile, values=cfh.config_handler.active_config)))
 
-        
+    
         #add profit of this batch iteration to batch_sum_profit
         if inter_batch_params is not None:
             inter_batch_params["batch_profit"] += round(float(strat.state.profit),2)
@@ -1009,7 +1006,7 @@ def get_all_archived_runners() -> list[RunArchiveView]:
         rows = c.fetchall()
         results = []
         for row in rows:
-            results.append(row_to_runarchiveview(row))
+            results.append(tr.row_to_runarchiveview(row))
     finally:
         conn.row_factory = None
         pool.release_connection(conn)        
@@ -1039,7 +1036,7 @@ def get_all_archived_runners() -> list[RunArchiveView]:
 #         c.execute(paginated_query)
 #         rows = c.fetchall()
 
-#         results = [row_to_runarchiveview(row) for row in rows]
+#         results = [tr.row_to_runarchiveview(row) for row in rows]
 
 #     finally:
 #         conn.row_factory = None
@@ -1089,7 +1086,7 @@ def get_all_archived_runners_p_original(request: DataTablesRequest) -> Tuple[int
         c.execute(filtered_count_query, {'search_value': f'%{search_value}%'})
         filtered_count = c.fetchone()[0]
 
-        results = [row_to_runarchiveview(row) for row in rows]
+        results = [tr.row_to_runarchiveview(row) for row in rows]
 
     finally:
         conn.row_factory = None
@@ -1162,7 +1159,7 @@ def get_all_archived_runners_p(request: DataTablesRequest) -> Tuple[int, RunArch
         c.execute(filtered_count_query, {'search_value': f'%{search_value}%'})
         filtered_count = c.fetchone()[0]
 
-        results = [row_to_runarchiveview(row) for row in rows]
+        results = [tr.row_to_runarchiveview(row) for row in rows]
 
     finally:
         conn.row_factory = None
@@ -1197,7 +1194,7 @@ def get_archived_runner_header_byID(id: UUID) -> RunArchive:
         row = c.fetchone()
 
         if row:
-            return 0, row_to_runarchive(row)
+            return 0, tr.row_to_runarchive(row)
         else:
             return -2, "not found"
 
@@ -1903,7 +1900,7 @@ def get_alpaca_history_bars(symbol: str, datetime_object_from: datetime, datetim
             return 0, result            
         else:
             print(str(e) + format_exc())
-            if OFFLINE_MODE:
+            if cfh.config_handler.get_val('OFFLINE_MODE'):
                 print("OFFLINE MODE ENABLED")
                 return 0, []
             return -2, str(e)    

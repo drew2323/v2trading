@@ -2,7 +2,7 @@ from v2realbot.loader.aggregator import TradeAggregator, TradeAggregator2List, T
 #from v2realbot.loader.cacher import get_cached_agg_data
 from alpaca.trading.requests import GetCalendarRequest
 from alpaca.data.live import StockDataStream
-from v2realbot.config import ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, DATA_DIR, OFFLINE_MODE, LIVE_DATA_FEED
+from v2realbot.config import ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, DATA_DIR
 from alpaca.data.enums import DataFeed
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockLatestQuoteRequest, StockBarsRequest, StockTradesRequest
@@ -26,6 +26,7 @@ import time
 from traceback import format_exc
 from collections import defaultdict
 import requests
+import v2realbot.utils.config_handler as cfh
 """
     Trade offline data streamer, based on Alpaca historical data.
 """
@@ -103,6 +104,8 @@ class Trade_Offline_Streamer(Thread):
             print("call add streams to queue first")
             return 0
         
+        cfh.config_handler.print_current_config()
+
         #iterujeme nad streamy
         for i in self.streams:
             self.uniquesymbols.add(i.symbol)
@@ -136,8 +139,8 @@ class Trade_Offline_Streamer(Thread):
         #datetime.fromtimestamp(data['updated']).astimezone(zoneNY))
         #REFACTOR STARTS HERE
         #print(f"{self.time_from=} {self.time_to=}")
-              
-        if OFFLINE_MODE:
+ 
+        if cfh.config_handler.get_val('OFFLINE_MODE'):
             #just one day - same like time_from
             den = str(self.time_to.date())
             bt_day = Calendar(date=den,open="9:30",close="16:00")
@@ -149,6 +152,8 @@ class Trade_Offline_Streamer(Thread):
 
             #zatim podpora pouze main session
         
+        live_data_feed = cfh.config_handler.get_val('LIVE_DATA_FEED')
+
         #zatim podpora pouze 1 symbolu, predelat na froloop vsech symbolu ze symbpole
         #minimalni jednotka pro CACHE je 1 den - a to jen marketopen to marketclose (extended hours not supported yet)
         for day in cal_dates:
@@ -194,7 +199,7 @@ class Trade_Offline_Streamer(Thread):
             #cache resime jen kdyz backtestujeme cely den a mame sip datapoint (iex necachujeme)
             #pokud ne tak ani necteme, ani nezapisujeme do cache
 
-            if (self.time_to >= day.close and self.time_from <= day.open) and LIVE_DATA_FEED == DataFeed.SIP:
+            if (self.time_to >= day.close and self.time_from <= day.open) and live_data_feed == DataFeed.SIP:
                 #tento odstavec obchazime pokud je nastaveno "dont_use_cache"
                 stream_btdata = self.to_run[symbpole[0]][0]
                 cache_btdata, file_btdata = stream_btdata.get_cache(day.open, day.close)
@@ -251,7 +256,7 @@ class Trade_Offline_Streamer(Thread):
                 print("Remote Fetch DAY DATA Complete", day.open, day.close)
 
                 #pokud jde o dnešní den a nebyl konec trhu tak cache neukládáme, pripadne pri iex datapointu necachujeme
-                if (day.open < datetime.now().astimezone(zoneNY) < day.close) or LIVE_DATA_FEED == DataFeed.IEX:
+                if (day.open < datetime.now().astimezone(zoneNY) < day.close) or live_data_feed == DataFeed.IEX:
                     print("not saving trade cache, market still open today or IEX datapoint")
                     #ic(datetime.now().astimezone(zoneNY))
                     #ic(day.open, day.close)

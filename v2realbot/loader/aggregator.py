@@ -11,10 +11,10 @@ import threading
 from copy import deepcopy
 from msgpack import unpackb
 import os
-from v2realbot.config import DATA_DIR, GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN, AGG_EXCLUDED_TRADES
-import pickle
+from v2realbot.config import DATA_DIR
 import dill
 import gzip
+import v2realbot.utils.config_handler as cfh
 
 class TradeAggregator:  
     def __init__(self,
@@ -25,7 +25,7 @@ class TradeAggregator:
                  align: StartBarAlign = StartBarAlign.ROUND,
                  mintick: int = 0,
                  exthours: bool = False,
-                 excludes: list = AGG_EXCLUDED_TRADES,
+                 excludes: list = cfh.config_handler.get_val('AGG_EXCLUDED_TRADES'),
                  skip_cache: bool = False):
         """
         UPDATED VERSION - vrací více záznamů
@@ -293,7 +293,7 @@ class TradeAggregator:
             self.diff_price = True    
         self.last_price = data['p'] 
 
-        if float(data['t']) - float(self.lasttimestamp) < GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN:
+        if float(data['t']) - float(self.lasttimestamp) < cfh.config_handler.get_val('GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN'):
             self.trades_too_close = True
         else:
             self.trades_too_close = False
@@ -540,7 +540,7 @@ class TradeAggregator:
             self.diff_price = True    
         self.last_price = data['p'] 
 
-        if float(data['t']) - float(self.lasttimestamp) < GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN:
+        if float(data['t']) - float(self.lasttimestamp) < cfh.config_handler.get_val('GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN'):
             self.trades_too_close = True
         else:
             self.trades_too_close = False
@@ -712,7 +712,7 @@ class TradeAggregator:
             self.diff_price = True    
         self.last_price = data['p'] 
 
-        if float(data['t']) - float(self.lasttimestamp) < GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN:
+        if float(data['t']) - float(self.lasttimestamp) < cfh.config_handler.get_val('GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN'):
             self.trades_too_close = True
         else:
             self.trades_too_close = False
@@ -872,7 +872,7 @@ class TradeAggregator:
             self.diff_price = True    
         self.last_price = data['p'] 
 
-        if float(data['t']) - float(self.lasttimestamp) < GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN:
+        if float(data['t']) - float(self.lasttimestamp) < cfh.config_handler.get_val('GROUP_TRADES_WITH_TIMESTAMP_LESS_THAN'):
             self.trades_too_close = True
         else:
             self.trades_too_close = False
@@ -968,7 +968,7 @@ class TradeAggregator2Queue(TradeAggregator):
     Child of TradeAggregator - sends items to given queue
     In the future others will be added - TradeAggToTxT etc.
     """
-    def __init__(self, symbol: str, queue: Queue, rectype: RecordType = RecordType.BAR, resolution: int = 5, minsize: int = 100, update_ltp: bool = False, align: StartBarAlign = StartBarAlign.ROUND, mintick: int = 0, exthours: bool = False, excludes: list = AGG_EXCLUDED_TRADES, skip_cache: bool = False):
+    def __init__(self, symbol: str, queue: Queue, rectype: RecordType = RecordType.BAR, resolution: int = 5, minsize: int = 100, update_ltp: bool = False, align: StartBarAlign = StartBarAlign.ROUND, mintick: int = 0, exthours: bool = False, excludes: list = cfh.config_handler.get_val('AGG_EXCLUDED_TRADES'), skip_cache: bool = False):
         super().__init__(rectype=rectype, resolution=resolution, minsize=minsize, update_ltp=update_ltp, align=align, mintick=mintick, exthours=exthours, excludes=excludes, skip_cache=skip_cache)
         self.queue = queue
         self.symbol = symbol
@@ -1013,7 +1013,7 @@ class TradeAggregator2List(TradeAggregator):
     """"
     stores records to the list
     """
-    def __init__(self, symbol: str, btdata: list, rectype: RecordType = RecordType.BAR, resolution: int = 5, minsize: int = 100, update_ltp: bool = False, align: StartBarAlign = StartBarAlign.ROUND, mintick: int = 0, exthours: bool = False, excludes: list = AGG_EXCLUDED_TRADES, skip_cache: bool = False):
+    def __init__(self, symbol: str, btdata: list, rectype: RecordType = RecordType.BAR, resolution: int = 5, minsize: int = 100, update_ltp: bool = False, align: StartBarAlign = StartBarAlign.ROUND, mintick: int = 0, exthours: bool = False, excludes: list = cfh.config_handler.get_val('AGG_EXCLUDED_TRADES'), skip_cache: bool = False):
         super().__init__(rectype=rectype, resolution=resolution, minsize=minsize, update_ltp=update_ltp, align=align, mintick=mintick, exthours=exthours, excludes=excludes, skip_cache=skip_cache)
         self.btdata = btdata
         self.symbol = symbol

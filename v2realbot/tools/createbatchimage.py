@@ -21,7 +21,7 @@ from io import BytesIO
 from v2realbot.utils.historicals import get_historical_bars
 from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 import mlroom.utils.ext_services as es
-from v2realbot.common.db import pool, execute_with_retry, row_to_runarchive, row_to_runarchiveview
+from v2realbot.common.db import pool, execute_with_retry
 from v2realbot.utils.utils import ltp, isrising, isfalling,trunc,AttributeDict
 import tqdm
 

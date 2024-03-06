@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account
 from v2realbot.common.db import pool, insert_queue
-import sqlite3
+
 
 
 #standardne vraci pole tuplů, kde clen tuplu jsou sloupce

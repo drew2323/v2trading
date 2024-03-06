@@ -13,7 +13,7 @@ from v2realbot.common.model import StrategyInstance, Runner, RunArchive, RunArch
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
 from typing import List
 import tomli
-from v2realbot.config import DATA_DIR, QUIET_MODE,NORMALIZED_TICK_BASE_PRICE,ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY
+from v2realbot.config import DATA_DIR, ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY
 import requests
 from uuid import UUID
 #from decimal import Decimal
@@ -34,6 +34,7 @@ import re
 import tempfile
 import shutil
 from filelock import FileLock
+import v2realbot.utils.config_handler as cfh
 
 def validate_and_format_time(time_string):
     """
@@ -456,11 +457,11 @@ def get_tick(price: float, normalized_ticks: float = 0.01):
     u cen pod 30, vrací 0.01. U cen nad 30 vrací pomerne zvetsene, 
 
     """
-    if price<NORMALIZED_TICK_BASE_PRICE:
+    if price<cfh.config_handler.get_val('NORMALIZED_TICK_BASE_PRICE'):
         return normalized_ticks
     else:
         #ratio of price vs base price
-        ratio = price/NORMALIZED_TICK_BASE_PRICE
+        ratio = price/cfh.config_handler.get_val('NORMALIZED_TICK_BASE_PRICE')
         return price2dec(ratio*normalized_ticks)
 
 def eval_cond_dict(cond: dict) -> tuple[bool, str]:
@@ -681,7 +682,7 @@ zoneUTC = pytz.utc
 zonePRG = pytz.timezone('Europe/Amsterdam')
 
 def print(*args, **kwargs):
-    if QUIET_MODE:
+    if cfh.config_handler.get_val('QUIET_MODE'):
         pass
     else:
         ####ic(*args, **kwargs)

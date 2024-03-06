@@ -6,7 +6,7 @@ from v2realbot.utils.utils import AttributeDict, zoneNY, is_open_rush, is_close_
 from v2realbot.utils.tlog import tlog
 from v2realbot.utils.ilog import insert_log, insert_log_multiple_queue
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Order, Account
-from v2realbot.config import BT_DELAYS, get_key, HEARTBEAT_TIMEOUT, QUIET_MODE, LOG_RUNNER_EVENTS, ILOG_SAVE_LEVEL_FROM,PROFILING_NEXT_ENABLED, PROFILING_OUTPUT_DIR, AGG_EXCLUDED_TRADES
+from v2realbot.config import get_key, HEARTBEAT_TIMEOUT, PROFILING_NEXT_ENABLED, PROFILING_OUTPUT_DIR
 import queue
 #from rich import print
 from v2realbot.loader.aggregator import TradeAggregator2Queue, TradeAggregator2List, TradeAggregator
@@ -29,6 +29,7 @@ from rich import print as printnow
 from collections import defaultdict
 import v2realbot.strategyblocks.activetrade.sl.optimsl as optimsl
 from tqdm import tqdm
+import v2realbot.utils.config_handler as cfh
 
 if PROFILING_NEXT_ENABLED:
     from pyinstrument import Profiler
@@ -93,7 +94,7 @@ class Strategy:
             align: StartBarAlign = StartBarAlign.ROUND,
             mintick: int = 0,
             exthours: bool = False,
-            excludes: list = AGG_EXCLUDED_TRADES):
+            excludes: list = cfh.config_handler.get_val('AGG_EXCLUDED_TRADES')):
         
         ##TODO vytvorit self.datas_here containing dict - queue - SYMBOL - RecType - 
         ##zatim natvrdo
@@ -327,8 +328,8 @@ class Strategy:
         elif self.rectype == RecordType.TRADE:
             self.state.last_trade_time = item['t']
         if self.mode == Mode.BT or self.mode == Mode.PREP:
-            self.bt.time = self.state.last_trade_time + BT_DELAYS.trigger_to_strat
-            self.state.time = self.state.last_trade_time + BT_DELAYS.trigger_to_strat
+            self.bt.time = self.state.last_trade_time + cfh.config_handler.get_val('BT_DELAYS','trigger_to_strat')
+            self.state.time = self.state.last_trade_time + cfh.config_handler.get_val('BT_DELAYS','trigger_to_strat')
         elif self.mode == Mode.LIVE or self.mode == Mode.PAPER:
             self.state.time = datetime.now().timestamp()
         #ic('time updated')
@@ -805,7 +806,7 @@ class StrategyState:
         self.iter_log_list = None
   
     def ilog(self, e: str = None, msg: str = None, lvl: int = 1, **kwargs):
-        if lvl < ILOG_SAVE_LEVEL_FROM:
+        if lvl < cfh.config_handler.get_val('ILOG_SAVE_LEVEL_FROM'):
             return
         
         if self.mode == Mode.LIVE or self.mode == Mode.PAPER:
@@ -830,5 +831,3 @@ class StrategyState:
         self.iter_log_list.append(row)
         row["name"] = self.name
         print(row)
-        #zatim obecny parametr -predelat per RUN?
-        #if LOG_RUNNER_EVENTS: insert_log(self.runner_id, time=self.time, logdict=row)

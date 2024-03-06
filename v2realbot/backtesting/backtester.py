@@ -43,7 +43,7 @@ from v2realbot.common.model import TradeUpdate, Order
 #from rich import print
 import threading
 import asyncio
-from v2realbot.config import BT_DELAYS, DATA_DIR, BT_FILL_CONDITION_BUY_LIMIT, BT_FILL_CONDITION_SELL_LIMIT, BT_FILL_LOG_SURROUNDING_TRADES, BT_FILL_CONS_TRADES_REQUIRED,BT_FILL_PRICE_MARKET_ORDER_PREMIUM
+from v2realbot.config import DATA_DIR
 from v2realbot.utils.utils import AttributeDict, ltp, zoneNY, trunc, count_decimals, print
 from v2realbot.utils.tlog import tlog
 from v2realbot.enums.enums import FillCondition
@@ -60,6 +60,7 @@ from v2realbot.utils.dash_save_html import make_static
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output
 from dash import dcc, html, dash_table, Dash
+import v2realbot.utils.config_handler as cfh
 """"
 LATENCY DELAYS
 .000 trigger - last_trade_time (.4246266)
@@ -171,7 +172,7 @@ class Backtester:
                 todel.append(order)
             elif not self.symbol or order.symbol == self.symbol:
                 #pricteme mininimalni latency od submittu k fillu
-                if order.submitted_at.timestamp() + BT_DELAYS.sub_to_fill > float(intime):
+                if order.submitted_at.timestamp() + cfh.config_handler.get_val('BT_DELAYS','sub_to_fill') > float(intime):
                     print(f"too soon for {order.id}")
                 #try to execute
                 else:
@@ -197,7 +198,7 @@ class Backtester:
         #Mazeme, jinak je to hruza
         #nechavame na konci trady, které muzeme potrebovat pro consekutivni pravidlo
         #osetrujeme, kdy je malo tradu a oriznuti by slo do zaporu
-        del_to_index = index_end-2-BT_FILL_CONS_TRADES_REQUIRED
+        del_to_index = index_end-2-cfh.config_handler.get_val('BT_FILL_CONS_TRADES_REQUIRED')
         del_to_index = del_to_index if del_to_index > 0 else 0
         del self.btdata[0:del_to_index]
         ##ic("after delete",len(self.btdata[0:index_end]))
@@ -218,7 +219,7 @@ class Backtester:
 
         fill_time = None
         fill_price = None
-        order_min_fill_time = o.submitted_at.timestamp() + BT_DELAYS.sub_to_fill
+        order_min_fill_time = o.submitted_at.timestamp() + cfh.config_handler.get_val('BT_DELAYS','sub_to_fill')
         #ic(order_min_fill_time)
         #ic(len(work_range))
 
@@ -240,17 +241,18 @@ class Backtester:
                     #NASTVENI PODMINEK PLNENI
                     fast_fill_condition = i[1] <= o.limit_price
                     slow_fill_condition = i[1] < o.limit_price
-                    if BT_FILL_CONDITION_BUY_LIMIT == FillCondition.FAST:
+                    fill_cond_buy_limit = cfh.config_handler.get_val('BT_FILL_CONDITION_BUY_LIMIT')
+                    if fill_cond_buy_limit == FillCondition.FAST:
                         fill_condition = fast_fill_condition
-                    elif BT_FILL_CONDITION_BUY_LIMIT == FillCondition.SLOW:
+                    elif fill_cond_buy_limit == FillCondition.SLOW:
                         fill_condition = slow_fill_condition
                     else:
                         print("unknow fill condition")
                         return -1
 
-                    if float(i[0]) > float(order_min_fill_time+BT_DELAYS.limit_order_offset) and fill_condition:
+                    if float(i[0]) > float(order_min_fill_time+cfh.config_handler.get_val('BT_DELAYS','limit_order_offset')) and fill_condition:
                         consec_cnt += 1
-                        if consec_cnt == BT_FILL_CONS_TRADES_REQUIRED:
+                        if consec_cnt == cfh.config_handler.get_val('BT_FILL_CONS_TRADES_REQUIRED'):
 
                             #(1679081919.381649, 27.88)
                             #ic(i)
@@ -261,10 +263,10 @@ class Backtester:
                             #fill_price = i[1]
 
                             print("FILL LIMIT BUY at", fill_time, datetime.fromtimestamp(fill_time).astimezone(zoneNY), "at",i[1])
-                            if BT_FILL_LOG_SURROUNDING_TRADES != 0:
+                            if cfh.config_handler.get_val('BT_FILL_LOG_SURROUNDING_TRADES') != 0:
                                 #TODO loguru
-                                print("FILL SURR TRADES: before",work_range[index-BT_FILL_LOG_SURROUNDING_TRADES:index])
-                                print("FILL SURR TRADES: fill and after",work_range[index:index+BT_FILL_LOG_SURROUNDING_TRADES])
+                                print("FILL SURR TRADES: before",work_range[index-cfh.config_handler.get_val('BT_FILL_LOG_SURROUNDING_TRADES'):index])
+                                print("FILL SURR TRADES: fill and after",work_range[index:index+cfh.config_handler.get_val('BT_FILL_LOG_SURROUNDING_TRADES')])
                             break
                     else:
                         consec_cnt = 0
@@ -275,17 +277,18 @@ class Backtester:
                     #NASTVENI PODMINEK PLNENI
                     fast_fill_condition = i[1] >= o.limit_price
                     slow_fill_condition = i[1] > o.limit_price
-                    if BT_FILL_CONDITION_SELL_LIMIT == FillCondition.FAST:
+                    fill_conf_sell_cfg = cfh.config_handler.get_val('BT_FILL_CONDITION_SELL_LIMIT')
+                    if fill_conf_sell_cfg == FillCondition.FAST:
                         fill_condition = fast_fill_condition
-                    elif BT_FILL_CONDITION_SELL_LIMIT == FillCondition.SLOW:
+                    elif fill_conf_sell_cfg == FillCondition.SLOW:
                         fill_condition = slow_fill_condition
                     else:
                         print("unknown fill condition")
                         return -1
 
-                    if float(i[0]) > float(order_min_fill_time+BT_DELAYS.limit_order_offset) and fill_condition:
+                    if float(i[0]) > float(order_min_fill_time+cfh.config_handler.get_val('BT_DELAYS','limit_order_offset')) and fill_condition:
                         consec_cnt += 1
-                        if consec_cnt == BT_FILL_CONS_TRADES_REQUIRED:
+                        if consec_cnt == cfh.config_handler.get_val('BT_FILL_CONS_TRADES_REQUIRED'):
                             #(1679081919.381649, 27.88)
                             #ic(i)
                             fill_time = i[0]
@@ -297,10 +300,11 @@ class Backtester:
 
                             #fill_price = i[1]
                             print("FILL LIMIT SELL at", fill_time, datetime.fromtimestamp(fill_time).astimezone(zoneNY), "at",i[1])
-                            if BT_FILL_LOG_SURROUNDING_TRADES != 0:
+                            surr_trades_cfg = cfh.config_handler.get_val('BT_FILL_LOG_SURROUNDING_TRADES')
+                            if surr_trades_cfg != 0:
                                 #TODO loguru
-                                print("FILL SELL SURR TRADES: before",work_range[index-BT_FILL_LOG_SURROUNDING_TRADES:index])
-                                print("FILL SELL SURR TRADES: fill and after",work_range[index:index+BT_FILL_LOG_SURROUNDING_TRADES])
+                                print("FILL SELL SURR TRADES: before",work_range[index-surr_trades_cfg:index])
+                                print("FILL SELL SURR TRADES: fill and after",work_range[index:index+surr_trades_cfg])
                             break
                     else:
                         consec_cnt = 0
@@ -314,11 +318,16 @@ class Backtester:
                     #ic(i)
                     fill_time = i[0]
                     fill_price = i[1]
-                    #přičteme MARKET PREMIUM z konfigurace (do budoucna mozna rozdilne pro BUY/SELL a nebo mozna z konfigurace pro dany itutl)
+                    #přičteme MARKET PREMIUM z konfigurace (je v pct nebo abs) (do budoucna mozna rozdilne pro BUY/SELL a nebo mozna z konfigurace pro dany titul)
+                    cfg_premium = cfh.config_handler.get_val('BT_FILL_PRICE_MARKET_ORDER_PREMIUM')
+                    if cfg_premium < 0: #configured as percentage
+                        premium = abs(cfg_premium) * fill_price / 100.0
+                    else: #configured as absolute value
+                        premium = cfg_premium           
                     if o.side == OrderSide.BUY:
-                        fill_price = fill_price + BT_FILL_PRICE_MARKET_ORDER_PREMIUM
+                        fill_price = fill_price + premium
                     elif o.side == OrderSide.SELL:
-                        fill_price = fill_price - BT_FILL_PRICE_MARKET_ORDER_PREMIUM
+                        fill_price = fill_price - premium
                     
                     print("FILL ",o.side,"MARKET at", fill_time, datetime.fromtimestamp(fill_time).astimezone(zoneNY), "cena", i[1])
                     break
@@ -367,7 +376,7 @@ class Backtester:
     def _do_notification_with_callbacks(self, tradeupdate: TradeUpdate, time: float):
     
         #do callbacku je třeba zpropagovat filltime čas (včetně latency pro notifikaci), aby se pripadne akce v callbacku udály s tímto časem
-        self.time = time + float(BT_DELAYS.fill_to_not)
+        self.time = time + float(cfh.config_handler.get_val('BT_DELAYS','fill_to_not'))
         print("current bt.time",self.time)
         #print("FILL NOTIFICATION: ", tradeupdate)
         res = asyncio.run(self.order_fill_callback(tradeupdate))
@@ -820,10 +829,10 @@ class Backtester:
             Trades:''' + str(len(self.trades)))
         textik8 = html.Div('''
             Profit:''' + str(state.profit))
-        textik9 = html.Div(f"{BT_FILL_CONS_TRADES_REQUIRED=}")
-        textik10 = html.Div(f"{BT_FILL_LOG_SURROUNDING_TRADES=}")
-        textik11 = html.Div(f"{BT_FILL_CONDITION_BUY_LIMIT=}")
-        textik12 = html.Div(f"{BT_FILL_CONDITION_SELL_LIMIT=}")
+        textik9 = html.Div(f"{cfh.config_handler.get_val('BT_FILL_CONS_TRADES_REQUIRED')=}")
+        textik10 = html.Div(f"{cfh.config_handler.get_val('BT_FILL_LOG_SURROUNDING_TRADES')=}")
+        textik11 = html.Div(f"{cfh.config_handler.get_val('BT_FILL_CONDITION_BUY_LIMIT')=}")
+        textik12 = html.Div(f"{cfh.config_handler.get_val('BT_FILL_CONDITION_SELL_LIMIT')=}")
         
         orders_title = dcc.Markdown('## Open orders')
         trades_title = dcc.Markdown('## Trades')

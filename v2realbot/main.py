@@ -9,8 +9,6 @@ from fastapi import FastAPI, Depends, HTTPException, status, File, UploadFile, R
 from fastapi.security import APIKeyHeader
 import uvicorn
 from uuid import UUID
-import v2realbot.controller.services as cs
-import v2realbot.controller.configs as cf
 from v2realbot.utils.ilog import get_log_window
 from v2realbot.common.model import RunManagerRecord, StrategyInstance, RunnerView, RunRequest, Trade, RunArchive, RunArchiveView, RunArchiveViewPagination, RunArchiveDetail, Bar, RunArchiveChange, TestList, ConfigItem, InstantIndicator, DataTablesRequest, AnalyzerInputs
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status, WebSocketException, Cookie, Query
@@ -44,6 +42,8 @@ from typing import List
 import v2realbot.controller.run_manager as rm
 import v2realbot.scheduler.ap_scheduler as aps
 import re
+import v2realbot.controller.configs as cf
+import v2realbot.controller.services as cs
 #from async io import Queue, QueueEmpty
 #              
 # install()
@@ -813,7 +813,7 @@ def update_item(item_id: int, config_item: ConfigItem) -> ConfigItem:
     if res != 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No data found")
 
-    res, sada = cs.update_config_item(item_id, config_item)
+    res, sada = cf.update_config_item(item_id, config_item)
     if res == 0: return sada
     else:
         raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error not created: {res}:{id}")

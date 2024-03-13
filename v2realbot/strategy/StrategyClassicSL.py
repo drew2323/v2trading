@@ -9,7 +9,7 @@ from alpaca.trading.enums import TradeEvent, OrderStatus
 from v2realbot.indicators.indicators import ema
 import orjson
 from datetime import datetime
-#from rich import print
+from rich import print as printanyway
 from random import randrange
 from alpaca.common.exceptions import APIError
 import numpy as np
@@ -152,6 +152,10 @@ class StrategyClassicSL(Strategy):
 
                         self.state.rel_profit_cum.append(rel_profit)
                         rel_profit_cum_calculated = round(np.sum(self.state.rel_profit_cum),5)
+
+                        #pro martingale updatujeme loss_series_cnt
+                        self.state.vars["martingale"]["cont_loss_series_cnt"] = 0 if rel_profit > 0 else self.state.vars["martingale"]["cont_loss_series_cnt"]+1
+                        self.state.ilog(lvl=1, e=f"update cont_loss_series_cnt na {self.state.vars['martingale']['cont_loss_series_cnt']}")
 
                 self.state.ilog(e=f"BUY notif - SHORT PROFIT: {partial_exit=} {partial_last=} {round(float(trade_profit),3)} celkem:{round(float(self.state.profit),3)} rel:{float(rel_profit)} rel_cum:{round(rel_profit_cum_calculated,7)}", msg=str(data.event), rel_profit_cum=str(self.state.rel_profit_cum), bought_amount=bought_amount, avg_costs=avg_costs, trade_qty=data.qty, trade_price=data.price, orderid=str(data.order.id))
 
@@ -298,6 +302,10 @@ class StrategyClassicSL(Strategy):
                         self.state.rel_profit_cum.append(rel_profit)
                         rel_profit_cum_calculated = round(np.sum(self.state.rel_profit_cum),5)
 
+                        #pro martingale updatujeme loss_series_cnt
+                        self.state.vars["martingale"]["cont_loss_series_cnt"] = 0 if rel_profit > 0 else self.state.vars["martingale"]["cont_loss_series_cnt"]+1
+                        self.state.ilog(lvl=1, e=f"update cont_loss_series_cnt na {self.state.vars['martingale']['cont_loss_series_cnt']}")
+
                 self.state.ilog(e=f"SELL notif - LONG PROFIT {partial_exit=} {partial_last=}:{round(float(trade_profit),3)} celkem:{round(float(self.state.profit),3)} rel:{float(rel_profit)} rel_cum:{round(rel_profit_cum_calculated,7)}", msg=str(data.event), rel_profit_cum = str(self.state.rel_profit_cum), sold_amount=sold_amount, avg_costs=avg_costs, trade_qty=data.qty, trade_price=data.price, orderid=str(data.order.id))
 
                 #zapsat profit do prescr.trades
@@ -423,12 +431,12 @@ class StrategyClassicSL(Strategy):
         #jde o uzavreni short pozice
         if int(self.state.positions) < 0 and (int(self.state.positions) + int(sizer)) > 0:
             self.state.ilog(e="buy nelze nakoupit vic nez shortuji", positions=self.state.positions, size=size)
-            print("buy nelze nakoupit vic nez shortuji") 
+            printanyway("buy nelze nakoupit vic nez shortuji") 
             return -2
 
         if int(self.state.positions) >= self.state.vars.maxpozic:
             self.state.ilog(e="buy Maxim mnozstvi naplneno", positions=self.state.positions)
-            print("max mnostvi naplneno")
+            printanyway("max mnostvi naplneno")
             return 0
 
         self.state.blockbuy = 1
@@ -447,13 +455,13 @@ class StrategyClassicSL(Strategy):
         #jde o uzavreni long pozice
         if int(self.state.positions) > 0 and (int(self.state.positions) - int(size)) < 0:
             self.state.ilog(e="nelze prodat vic nez longuji", positions=self.state.positions, size=size)
-            print("nelze prodat vic nez longuji") 
+            printanyway("nelze prodat vic nez longuji") 
             return -2
 
         #pokud shortuji a mam max pozic
         if int(self.state.positions) < 0 and abs(int(self.state.positions)) >= self.state.vars.maxpozic:
             self.state.ilog(e="short - Maxim mnozstvi naplneno", positions=self.state.positions, size=size)
-            print("max mnostvi naplneno")
+            printanyway("short - Maxim mnozstvi naplneno") 
             return 0
 
         #self.state.blocksell = 1

@@ -690,7 +690,8 @@ def _generate_analysis(analyzerInputs: AnalyzerInputs):
 
         if res == 0: return StreamingResponse(stream, media_type="image/png")
         elif res < 0:
-            raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error: {res}:{id}")
+            print("Error when generating analysis: ",str(stream))
+            raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error: {res}:{stream}")
     except Exception as e:
             raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error: {str(e)}" + format_exc())        
 

@@ -40,7 +40,7 @@
 from uuid import UUID, uuid4
 from alpaca.trading.enums import OrderSide, OrderStatus, TradeEvent, OrderType
 from v2realbot.common.model import TradeUpdate, Order
-#from rich import print
+from rich import print as printanyway
 import threading
 import asyncio
 from v2realbot.config import DATA_DIR
@@ -479,11 +479,11 @@ class Backtester:
         print("BT: submit order entry")
 
         if not time or time < 0:
-            print("time musi byt vyplneny")
+            printanyway("time musi byt vyplneny")
             return -1
 
         if not size or int(size) < 0:
-            print("size musi byt vetsi nez 0")
+            printanyway("size musi byt vetsi nez 0")
             return -1
 
         if (order_type != OrderType.MARKET) and (order_type != OrderType.LIMIT):
@@ -491,11 +491,11 @@ class Backtester:
             return -1
 
         if not side == OrderSide.BUY and not side == OrderSide.SELL:
-            print("side buy/sell required")
+            printanyway("side buy/sell required")
             return -1
         
         if order_type == OrderType.LIMIT and count_decimals(price) > 2:
-            print("only 2 decimals supported", price)
+            printanyway("only 2 decimals supported", price)
             return -1
     
         #pokud neexistuje klic v accountu vytvorime si ho
@@ -517,14 +517,14 @@ class Backtester:
             
             actual_minus_reserved = int(self.account[symbol][0]) - reserved 
             if actual_minus_reserved > 0 and actual_minus_reserved - int(size) < 0:
-                print("not enough shares available to sell or shorting while long position",self.account[symbol][0],"reserved",reserved,"available",int(self.account[symbol][0]) - reserved,"selling",size)
+                printanyway("not enough shares available to sell or shorting while long position",self.account[symbol][0],"reserved",reserved,"available",int(self.account[symbol][0]) - reserved,"selling",size)
                 return -1
             
             #if is shorting - check available cash to short
             if actual_minus_reserved <= 0:
                 cena = price if price else self.get_last_price(time, self.symbol)
                 if (self.cash - reserved_price - float(int(size)*float(cena))) < 0:
-                    print("not enough cash for shorting. cash",self.cash,"reserved",reserved,"available",self.cash-reserved,"needed",float(int(size)*float(cena)))
+                    printanyway("not enough cash for shorting. cash",self.cash,"reserved",reserved,"available",self.cash-reserved,"needed",float(int(size)*float(cena)))
                     return -1               
 
         #check for available cash
@@ -543,14 +543,14 @@ class Backtester:
             
             #jde o uzavreni shortu
             if actual_plus_reserved_qty < 0 and (actual_plus_reserved_qty + int(size)) > 0:
-                print("nejprve je treba uzavrit short pozici pro buy res_qty, size", actual_plus_reserved_qty, size)
+                printanyway("nejprve je treba uzavrit short pozici pro buy res_qty, size", actual_plus_reserved_qty, size)
                 return -1
 
             #jde o standardni long, kontroluju cash
             if actual_plus_reserved_qty >= 0:
                 cena = price if price else self.get_last_price(time, self.symbol)
                 if (self.cash - reserved_price - float(int(size)*float(cena))) < 0:
-                    print("not enough cash to buy long. cash",self.cash,"reserved_qty",reserved_qty,"reserved_price",reserved_price, "available",self.cash-reserved_price,"needed",float(int(size)*float(cena)))
+                    printanyway("not enough cash to buy long. cash",self.cash,"reserved_qty",reserved_qty,"reserved_price",reserved_price, "available",self.cash-reserved_price,"needed",float(int(size)*float(cena)))
                     return -1
 
         id = str(uuid4())
@@ -577,11 +577,11 @@ class Backtester:
         print("BT: replace order entry",id,size,price)
 
         if not price and not size:
-            print("size or price required")
+            printanyway("size or price required")
             return -1
 
         if len(self.open_orders) == 0:
-            print("BT: order doesnt exist")
+            printanyway("BT: order doesnt exist")
             return 0
         #with lock:
         for o in self.open_orders:
@@ -609,7 +609,7 @@ class Backtester:
         """
         print("BT: cancel order entry",id)
         if len(self.open_orders) == 0:
-            print("BTC: order doesnt exist")
+            printanyway("BTC: order doesnt exist")
             return 0
         #with lock:
         for o in self.open_orders:

@@ -115,6 +115,9 @@ def init(state: StrategyState):
     #models
     state.vars.loaded_models = {}
 
+    #state attributes for martingale sizing mngmt
+    state.vars["martingale"] = dict(cont_loss_series_cnt=0)
+    
     #INITIALIZE CBAR INDICATORS - do vlastni funkce
     #state.cbar_indicators['ivwap'] = []
     state.vars.last_tick_price = 0

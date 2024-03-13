@@ -74,6 +74,16 @@ def fetch_calendar_data(start, end, max_retries=5, backoff_factor=1):
     :return: Calendar data.
     :raises: ConnectionError if all retries fail.
     """
+    # Ensure start and end are of type datetime.date
+    if isinstance(start, datetime):
+        start = start.date()
+    if isinstance(end, datetime):
+        end = end.date()
+
+    # Verify that start and end are datetime.date objects after conversion
+    if not all([isinstance(start, date), isinstance(end, date)]):
+        raise ValueError("start and end must be datetime.date objects")
+    
     clientTrading = TradingClient(ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, raw_data=False)
     calendar_request = GetCalendarRequest(start=start, end=end)
     last_exception = None

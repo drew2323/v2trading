@@ -1896,7 +1896,7 @@ def get_alpaca_history_bars(symbol: str, datetime_object_from: datetime, datetim
         # Workaround of error when no data foun d AttributeError and has the specific message
         if isinstance(e, AttributeError) and str(e) == "'NoneType' object has no attribute 'items'":
             print("Caught the specific AttributeError: 'NoneType' object has no attribute 'items' means NO DATA FOUND")
-            #print(str(e) + format_exc())        
+            print(str(e) + format_exc())        
             return 0, result            
         else:
             print(str(e) + format_exc())

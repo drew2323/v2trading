@@ -40,7 +40,9 @@ class LiveInterface(GeneralInterface):
             
             return market_order.id
         except Exception as e:
-            print("Nepodarilo se odeslat buy", str(e))
+            reason = "Nepodarilo se market buy:" + str(e) + format_exc()
+            print(reason)
+            send_to_telegram(reason)
             return -1
 
     """buy limit"""
@@ -65,7 +67,9 @@ class LiveInterface(GeneralInterface):
 
             return limit_order.id
         except Exception as e:
-            print("Nepodarilo se odeslat limitku", str(e))
+            reason = "Nepodarilo se odeslat buy limitku:" + str(e) + format_exc()
+            print(reason)
+            send_to_telegram(reason)
             return -1
 
     """sell market"""
@@ -87,7 +91,9 @@ class LiveInterface(GeneralInterface):
             
             return market_order.id
         except Exception as e:
-            print("Nepodarilo se odeslat sell", str(e))
+            reason = "Nepodarilo se odeslat sell:" + str(e) + format_exc()
+            print(reason)
+            send_to_telegram(reason)
             return -1
 
     """sell limit"""
@@ -112,8 +118,9 @@ class LiveInterface(GeneralInterface):
             return limit_order.id
         
         except Exception as e:
-            print("Nepodarilo se odeslat sell_l", str(e))
-            #raise Exception(e)
+            reason = "Nepodarilo se odeslat sell limitku:" + str(e) + format_exc()
+            print(reason)
+            send_to_telegram(reason)
             return -1
         
     """order replace"""
@@ -136,7 +143,9 @@ class LiveInterface(GeneralInterface):
             if e.code == 42210000: return orderid
             else:
                 ##mozna tady proste vracet vzdy ok
-                print("Neslo nahradit profitku. Problem",str(e))
+                reason = "Neslo nahradit profitku. Problem:" + str(e) + format_exc()
+                print(reason)
+                send_to_telegram(reason)
                 return -1
                 #raise Exception(e)
 
@@ -150,7 +159,9 @@ class LiveInterface(GeneralInterface):
             #order doesnt exist
             if e.code == 40410000: return 0
             else:
-                print("nepovedlo se zrusit objednavku", str(e))
+                reason = "Nepovedlo se zrusit objednavku:" + str(e) + format_exc()
+                print(reason)
+                send_to_telegram(reason)
                 #raise Exception(e)
                 return -1
             
@@ -178,7 +189,9 @@ class LiveInterface(GeneralInterface):
             #list of Orders (orderlist[0].id)
             return orderlist
         except Exception as e:
-            print("Chyba pri dotazeni objednávek.", str(e))
+            reason = "Chyba pri dotazeni objednávek:" + str(e) + format_exc()
+            print(reason)
+            send_to_telegram(reason)
             #raise Exception (e)
             return -1
     

@@ -78,6 +78,7 @@ def execute_prescribed_trades(state: StrategyState, data):
                 size = state.vars.chunk
             res = state.sell(size=size)
             if isinstance(res, int) and res < 0:
+                print(f"error in required operation SHORT {res}")
                 raise Exception(f"error in required operation SHORT {res}")
             #defaultní goalprice nastavujeme az v notifikaci
 

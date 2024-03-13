@@ -23,12 +23,12 @@ clientTrading = TradingClient(ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY,
 
 #get previous days bar
 
-datetime_object_from = datetime.datetime(2023, 10, 11, 4, 0, 00, tzinfo=datetime.timezone.utc)
-datetime_object_to = datetime.datetime(2023, 10, 16, 16, 1, 00, tzinfo=datetime.timezone.utc)
-calendar_request = GetCalendarRequest(start=datetime_object_from,end=datetime_object_to)
-cal_dates = clientTrading.get_calendar(calendar_request)
-print(cal_dates)
-bar_request = StockBarsRequest(symbol_or_symbols="BAC",timeframe=TimeFrame.Day, start=datetime_object_from, end=datetime_object_to, feed=DataFeed.SIP)
+datetime_object_from = datetime.datetime(2024, 3, 9, 13, 29, 00, tzinfo=datetime.timezone.utc)
+datetime_object_to = datetime.datetime(2024, 3, 11, 20, 1, 00, tzinfo=datetime.timezone.utc)
+# calendar_request = GetCalendarRequest(start=datetime_object_from,end=datetime_object_to)
+# cal_dates = clientTrading.get_calendar(calendar_request)
+# print(cal_dates)
+bar_request = StockBarsRequest(symbol_or_symbols="BAC",timeframe=TimeFrame.Minute, start=datetime_object_from, end=datetime_object_to, feed=DataFeed.SIP)
 
 # bars = client.get_stock_bars(bar_request).df
 

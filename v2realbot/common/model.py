@@ -94,12 +94,12 @@ class TestList(BaseModel):
 class Trade(BaseModel):
     symbol: str
     timestamp: datetime
-    exchange: Optional[Union[Exchange, str]]
+    exchange: Optional[Union[Exchange, str]] = None
     price: float
     size: float
     id: int
-    conditions: Optional[List[str]]
-    tape: Optional[str]
+    conditions: Optional[List[str]] = None
+    tape: Optional[str] = None
 
 
 #persisted object in pickle
@@ -114,8 +114,20 @@ class StrategyInstance(BaseModel):
     close_rush: int = 0
     stratvars_conf: str
     add_data_conf: str
-    note: Optional[str] 
-    history: Optional[str]
+    note: Optional[str]  = None
+    history: Optional[str] = None
+
+    def __setstate__(self, state: dict[Any, Any]) -> None:
+        """
+        Hack to allow unpickling models stored from pydantic V1
+        """
+        state.setdefault("__pydantic_extra__", {})
+        state.setdefault("__pydantic_private__", {})
+
+        if "__pydantic_fields_set__" not in state:
+            state["__pydantic_fields_set__"] = state.get("__fields_set__")
+
+        super().__setstate__(state)
 
 class RunRequest(BaseModel):
     id: UUID
@@ -125,8 +137,8 @@ class RunRequest(BaseModel):
     debug: bool = False
     strat_json: Optional[str] = None
     ilog_save: bool = False
-    bt_from: datetime = None
-    bt_to: datetime = None
+    bt_from: Optional[datetime] = None
+    bt_to: Optional[datetime] = None
     #weekdays filter
     #pokud je uvedeny filtrujeme tyto dny
     weekdays_filter: Optional[list] = None
@@ -147,8 +159,8 @@ class RunManagerRecord(BaseModel):
     mode: Mode
     note: Optional[str] = None
     ilog_save: bool = False
-    bt_from: datetime = None
-    bt_to: datetime = None
+    bt_from: Optional[datetime] = None
+    bt_to: Optional[datetime] = None
     #weekdays filter
     #pokud je uvedeny filtrujeme tyto dny
     weekdays_filter: Optional[list] = None #list of strings 0-6 representing days to run
@@ -156,9 +168,9 @@ class RunManagerRecord(BaseModel):
     batch_id: Optional[str] = None
     testlist_id: Optional[str] = None
     start_time: str #time (HH:MM) that start function is called
-    stop_time: Optional[str] #time  (HH:MM) that stop function is called
+    stop_time: Optional[str] = None #time  (HH:MM) that stop function is called
     status: SchedulerStatus
-    last_processed: Optional[datetime]
+    last_processed: Optional[datetime] = None
     history: Optional[str] = None
     valid_from: Optional[datetime] = None # US East time zone daetime
     valid_to: Optional[datetime] = None # US East time zone daetime
@@ -193,10 +205,10 @@ class Runner(BaseModel):
     run_name: Optional[str] = None
     run_note: Optional[str] = None
     run_ilog_save: Optional[bool] = False
-    run_trade_count: Optional[int]
-    run_profit: Optional[float]
-    run_positions: Optional[int]
-    run_avgp: Optional[float]
+    run_trade_count: Optional[int] = None
+    run_profit: Optional[float] = None
+    run_positions: Optional[int] = None
+    run_avgp: Optional[float] = None
     run_strat_json: Optional[str] = None
     run_stopped: Optional[datetime] = None
     run_paused: Optional[datetime] = None   
@@ -230,41 +242,41 @@ class Bar(BaseModel):
     low: float
     close: float
     volume: float
-    trade_count: Optional[float]
-    vwap: Optional[float]
+    trade_count: Optional[float] = 0
+    vwap: Optional[float] = 0
 
 class Order(BaseModel):
     id: UUID
     submitted_at: datetime
-    filled_at: Optional[datetime]
-    canceled_at: Optional[datetime]
+    filled_at: Optional[datetime] = None
+    canceled_at: Optional[datetime] = None
     symbol: str
     qty: int
     status: OrderStatus
     order_type: OrderType
-    filled_qty: Optional[int]
-    filled_avg_price: Optional[float]
+    filled_qty: Optional[int] = None
+    filled_avg_price: Optional[float] = None
     side: OrderSide
-    limit_price: Optional[float]
+    limit_price: Optional[float] = None
 
 #entita pro kazdy kompletni FILL, je navazana na prescribed_trade 
 class TradeUpdate(BaseModel):
     event: Union[TradeEvent, str]
-    execution_id: Optional[UUID]
+    execution_id: Optional[UUID] = None
     order: Order
     timestamp: datetime
-    position_qty: Optional[float]
-    price: Optional[float]
-    qty: Optional[float]
-    value: Optional[float]
-    cash: Optional[float]
-    pos_avg_price: Optional[float]
-    profit: Optional[float]
-    profit_sum: Optional[float]
-    rel_profit: Optional[float]
-    rel_profit_cum: Optional[float]
-    signal_name: Optional[str]
-    prescribed_trade_id: Optional[str]
+    position_qty: Optional[float] = None
+    price: Optional[float] = None
+    qty: Optional[float] = None
+    value: Optional[float] = None
+    cash: Optional[float] = None
+    pos_avg_price: Optional[float] = None
+    profit: Optional[float] = None
+    profit_sum: Optional[float] = None
+    rel_profit: Optional[float] = None
+    rel_profit_cum: Optional[float] = None
+    signal_name: Optional[str] = None
+    prescribed_trade_id: Optional[str] = None
 
 
 class RunArchiveChange(BaseModel):
@@ -332,7 +344,7 @@ class RunArchiveViewPagination(BaseModel):
 
 #trida pro ukladani historie stoplossy do ext_data
 class SLHistory(BaseModel):
-    id: Optional[UUID]
+    id: Optional[UUID] = None
     time: datetime
     sl_val: float
 
@@ -345,7 +357,7 @@ class RunArchiveDetail(BaseModel):
     indicators: List[dict]
     statinds: dict
     trades: List[TradeUpdate]
-    ext_data: Optional[dict]
+    ext_data: Optional[dict] = None
     
 
 class InstantIndicator(BaseModel):

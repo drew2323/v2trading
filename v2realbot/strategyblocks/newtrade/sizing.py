@@ -147,7 +147,18 @@ def get_multiplier(state: StrategyState, data, signaloptions: dict, direction: T
         multiplier = f(input_value)
         state.ilog(lvl=1,e=f"SIZER - Interpolated value  {multiplier}", input_value=input_value, pattern_source_axis=pattern_source_axis, pattern_size_axis=pattern_size_axis, options=options, time=state.time)
     
-    if multiplier > 1 or multiplier <= 0:
+    martingale_enabled = utls.safe_get(options, "martingale_enabled", False)    
+
+    #pocet ztrátových obchodů v řadě mi udává multiplikátor (0 - 1, 1 ztráta 2x, 3 v řadě - 4x atp.)
+    if martingale_enabled:
+        cont_loss_series_cnt = state.vars["martingale"]["cont_loss_series_cnt"]
+        if cont_loss_series_cnt == 0:
+            multiplier = 1
+        else:
+            multiplier = 2 ** cont_loss_series_cnt
+        state.ilog(lvl=1,e=f"SIZER - MARTINGALE {multiplier}", options=options, time=state.time, cont_loss_series_cnt=cont_loss_series_cnt)
+
+    if (martingale_enabled is False and multiplier > 1) or multiplier <= 0:
         state.ilog(lvl=1,e=f"SIZER - Mame nekde problem MULTIPLIER mimo RANGE ERROR {multiplier}", options=options, time=state.time)
         multiplier = 1
     return multiplier

@@ -83,5 +83,6 @@ def row_to_runarchive(row: dict) -> RunArchive:
         end_positions=int(row['end_positions']),
         end_positions_avgp=float(row['end_positions_avgp']),
         metrics=orjson.loads(row['metrics']),
-        stratvars_toml=row['stratvars_toml']
+        stratvars_toml=row['stratvars_toml'],
+        transferables=orjson.loads(row['transferables']) if row['transferables'] else None
     )

@@ -151,7 +151,7 @@ def get_multiplier(state: StrategyState, data, signaloptions: dict, direction: T
 
     #pocet ztrátových obchodů v řadě mi udává multiplikátor (0 - 1, 1 ztráta 2x, 3 v řadě - 4x atp.)
     if martingale_enabled:
-        cont_loss_series_cnt = state.vars["martingale"]["cont_loss_series_cnt"]
+        cont_loss_series_cnt = state.vars["transferables"]["martingale"]["cont_loss_series_cnt"]
         if cont_loss_series_cnt == 0:
             multiplier = 1
         else:

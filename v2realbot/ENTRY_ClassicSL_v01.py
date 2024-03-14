@@ -16,6 +16,7 @@ from v2realbot.strategyblocks.newtrade.signals import signal_search
 from v2realbot.strategyblocks.activetrade.activetrade_hub import manage_active_trade
 from v2realbot.strategyblocks.inits.init_indicators import initialize_dynamic_indicators
 from v2realbot.strategyblocks.inits.init_directives import intialize_directive_conditions
+from v2realbot.strategyblocks.inits.init_attached_data import attach_previous_data
 from alpaca.trading.client import TradingClient
 from v2realbot.config import ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, DATA_DIR
 from alpaca.trading.models import Calendar
@@ -116,7 +117,8 @@ def init(state: StrategyState):
     state.vars.loaded_models = {}
 
     #state attributes for martingale sizing mngmt
-    state.vars["martingale"] = dict(cont_loss_series_cnt=0)
+    state.vars["transferables"] = {}
+    state.vars["transferables"]["martingale"] = dict(cont_loss_series_cnt=0)
     
     #INITIALIZE CBAR INDICATORS - do vlastni funkce
     #state.cbar_indicators['ivwap'] = []
@@ -130,6 +132,9 @@ def init(state: StrategyState):
 
     initialize_dynamic_indicators(state)
     intialize_directive_conditions(state)
+
+    #attach part of yesterdays data, bars, indicators, cbar_indicators
+    attach_previous_data(state)
 
     #intitialize indicator mapping (for use in operation) -  mozna presunout do samostatne funkce prip dat do base kdyz se osvedci
     local_dict_cbar_inds = {key: state.cbar_indicators[key] for key in state.cbar_indicators.keys() if key != "time"}

@@ -1,7 +1,6 @@
 
 import v2realbot.common.db as db
-from v2realbot.common.model import RunDay, StrategyInstance, Runner, RunRequest, RunArchive, RunArchiveView, RunArchiveViewPagination, RunArchiveDetail, RunArchiveChange, Bar, TradeEvent, TestList, Intervals, ConfigItem, InstantIndicator, DataTablesRequest
-import orjson
+from v2realbot.common.model import ConfigItem
 import v2realbot.utils.config_handler as ch
 
 # region CONFIG db services

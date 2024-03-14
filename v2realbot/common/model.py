@@ -301,8 +301,7 @@ class RunArchive(BaseModel):
     bt_from: Optional[datetime] = None
     bt_to: Optional[datetime] = None
     strat_json: Optional[str] = None
-    ##bude decomiss, misto toho stratvars_toml
-    stratvars: Optional[dict] = None
+    transferables: Optional[dict] = None #varaibles that are transferrable to next run
     settings: Optional[dict] = None
     ilog_save: Optional[bool] = False
     profit: float = 0

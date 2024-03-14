@@ -112,21 +112,45 @@ def concatenate_weekdays(weekday_filter):
     # Concatenate the weekday strings
     return ','.join(weekday_strings)
 
-def slice_dict_lists(d, last_item, to_tmstp = False):
+def filter_timeseries_by_timestamp(timeseries, timestamp):
+    """
+    Filter a timeseries dictionary, returning a new dictionary with entries
+    where the time value is greater than the provided timestamp.
+
+    Parameters:
+    - timeseries (dict): The original timeseries dictionary.
+    - timestamp (float): The timestamp to filter the timeseries by.
+
+    Returns:
+    - dict: A new timeseries dictionary filtered based on the provided timestamp.
+    """
+    # Find indices where time values are greater than the provided timestamp
+    indices = [i for i, time in enumerate(timeseries['time']) if time > timestamp]
+
+    # Create a new dictionary with values filtered by the indices
+    filtered_timeseries = {key: [value[i] for i in indices] for key, value in timeseries.items()}
+
+    return filtered_timeseries
+
+def slice_dict_lists(d, last_item, to_tmstp = False, time_to_datetime = False):
   """Slices every list in the dictionary to the last last_item items.
   
   Args:
     d: A dictionary.
     last_item: The number of items to keep at the end of each list.
-    to_tmstp: For "time" elements change it to timestamp from datetime if required.
-
+    to_tmstp: For "time" elements change it from datetime to timestamp from datetime if required.
+    time_to_datetime: For "time" elements change it from timestamp to datetime UTC if required.
   Returns:
     A new dictionary with the sliced lists.
+
+    datetime.fromtimestamp(data['updated']).astimezone(zoneUTC)
   """
   sliced_d = {}
   for key in d.keys():
     if key == "time" and to_tmstp:
         sliced_d[key] = [datetime.timestamp(t) for t in d[key][-last_item:]]
+    elif key == "time" and time_to_datetime:
+        sliced_d[key] = [datetime.fromtimestamp(t).astimezone(zoneUTC) for t in d[key][-last_item:]]
     else:
         sliced_d[key] = d[key][-last_item:]
   return sliced_d

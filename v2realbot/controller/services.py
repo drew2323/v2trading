@@ -35,6 +35,7 @@ from sqlite3 import OperationalError, Row
 import v2realbot.strategyblocks.indicators.custom as ci
 from v2realbot.strategyblocks.inits.init_indicators import initialize_dynamic_indicators
 from v2realbot.strategyblocks.indicators.indicators_hub import populate_dynamic_indicators
+from v2realbot.strategyblocks.inits.init_attached_data import attach_previous_data
 from v2realbot.interfaces.backtest_interface import BacktestInterface
 import os
 import v2realbot.reporting.metricstoolsimage as mt
@@ -412,7 +413,7 @@ def run_batch_stratin(id: UUID, runReq: RunRequest):
     def get_market_days_in_interval(datefrom, dateto, note = None, id = None):
         #getting dates from calendat
         clientTrading = TradingClient(ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, raw_data=False, paper=True)        
-        calendar_request = GetCalendarRequest(start=datefrom,end=dateto)
+        calendar_request = GetCalendarRequest(start=datefrom.date(),end=dateto.date())
         cal_dates = clientTrading.get_calendar(calendar_request)
         #list(Calendar)
         # Calendar
@@ -925,7 +926,8 @@ def archive_runner(runner: Runner, strat: StrategyInstance, inter_batch_params: 
                                             end_positions=strat.state.positions,
                                             end_positions_avgp=round(float(strat.state.avgp),3),
                                             metrics=results_metrics,
-                                            stratvars_toml=runner.run_stratvars_toml
+                                            stratvars_toml=runner.run_stratvars_toml,
+                                            transferables=strat.state.vars["transferables"]
                                             )
         
         #flatten indicators from numpy array
@@ -1220,17 +1222,43 @@ def get_archived_runner_header_byID(id: UUID) -> RunArchive:
 #     else:
 #         return 0, res
 
-#vrátí seznam runneru s danym batch_id
-def get_archived_runnerslist_byBatchID(batch_id: str):
+# #vrátí seznam runneru s danym batch_id
+# def get_archived_runnerslist_byBatchID(batch_id: str):
+#     conn = pool.get_connection()
+#     try:
+#         cursor = conn.cursor()
+#         cursor.execute(f"SELECT runner_id FROM runner_header WHERE batch_id='{str(batch_id)}'")
+#         runner_list = [row[0] for row in cursor.fetchall()]
+#     finally:
+#         pool.release_connection(conn)
+#     return 0, runner_list
+
+#update that allows to sort
+def get_archived_runnerslist_byBatchID(batch_id: str, sort_order: str = "asc"):
+    """
+    Fetches all runner records by batch_id, sorted by the 'started' column.
+
+    :param batch_id: The batch ID to filter runners by.
+    :param sort_order: The sort order of the 'started' column. Defaults to 'asc'.
+                       Accepts 'asc' for ascending or 'desc' for descending order.
+    :return: A tuple with the first element being a status code and the second being the list of runner_ids.
+    """
+    # Validate sort_order
+    if sort_order.lower() not in ['asc', 'desc']:
+        return -1, []  # Returning an error code and an empty list in case of invalid sort_order
+    
     conn = pool.get_connection()
     try:
         cursor = conn.cursor()
-        cursor.execute(f"SELECT runner_id FROM runner_header WHERE batch_id='{str(batch_id)}'")
+        query = f"""SELECT runner_id FROM runner_header 
+                    WHERE batch_id=? 
+                    ORDER BY datetime(started) {sort_order.upper()}"""
+        cursor.execute(query, (batch_id,))
         runner_list = [row[0] for row in cursor.fetchall()]
     finally:
         pool.release_connection(conn)
     return 0, runner_list
-    
+
 def insert_archive_header(archeader: RunArchive):
     conn = pool.get_connection()
     try:
@@ -1239,11 +1267,11 @@ def insert_archive_header(archeader: RunArchive):
 
         res = c.execute("""
             INSERT INTO runner_header 
-            (runner_id, strat_id, batch_id, symbol, name, note, started, stopped, mode, account, bt_from, bt_to, strat_json, settings, ilog_save, profit, trade_count, end_positions, end_positions_avgp, metrics, stratvars_toml) 
+            (runner_id, strat_id, batch_id, symbol, name, note, started, stopped, mode, account, bt_from, bt_to, strat_json, settings, ilog_save, profit, trade_count, end_positions, end_positions_avgp, metrics, stratvars_toml, transferables) 
             VALUES
-            (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (str(archeader.id), str(archeader.strat_id), archeader.batch_id, archeader.symbol, archeader.name, archeader.note, archeader.started, archeader.stopped, archeader.mode, archeader.account, archeader.bt_from, archeader.bt_to, orjson.dumps(archeader.strat_json).decode('utf-8'), orjson.dumps(archeader.settings).decode('utf-8'), archeader.ilog_save, archeader.profit, archeader.trade_count, archeader.end_positions, archeader.end_positions_avgp, orjson.dumps(archeader.metrics, default=json_serial, option=orjson.OPT_PASSTHROUGH_DATETIME).decode('utf-8'), archeader.stratvars_toml))
+            (str(archeader.id), str(archeader.strat_id), archeader.batch_id, archeader.symbol, archeader.name, archeader.note, archeader.started, archeader.stopped, archeader.mode, archeader.account, archeader.bt_from, archeader.bt_to, orjson.dumps(archeader.strat_json).decode('utf-8'), orjson.dumps(archeader.settings).decode('utf-8'), archeader.ilog_save, archeader.profit, archeader.trade_count, archeader.end_positions, archeader.end_positions_avgp, orjson.dumps(archeader.metrics, default=json_serial, option=orjson.OPT_PASSTHROUGH_DATETIME).decode('utf-8'), archeader.stratvars_toml, orjson.dumps(archeader.transferables).decode('utf-8')))
 
         #retry not yet supported for statement format above
         #res = execute_with_retry(c,statement)
@@ -1664,10 +1692,15 @@ def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator, save: bool =
 
         ##intialize required vars from strat init
         state.vars["loaded_models"] = {}
+        #state attributes for martingale sizing mngmt
+        state.vars["transferables"] = {}
+        state.vars["transferables"]["martingale"] = dict(cont_loss_series_cnt=0)
 
         ##intialize dynamic indicators
         initialize_dynamic_indicators(state)
-                    
+        #TODO vazit attached data (z toho potrebuji jen transferables, tzn. najit nejak predchozi runner a prelipnout transferables od zacatku)
+        #nejspis upravit attach_previous_data a nebo udelat specialni verzi
+        #attach_previous_data(state)     
 
         # print("subtype")   
         # function = "ci."+subtype+"."+subtype

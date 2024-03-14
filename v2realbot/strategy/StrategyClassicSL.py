@@ -154,8 +154,8 @@ class StrategyClassicSL(Strategy):
                         rel_profit_cum_calculated = round(np.sum(self.state.rel_profit_cum),5)
 
                         #pro martingale updatujeme loss_series_cnt
-                        self.state.vars["martingale"]["cont_loss_series_cnt"] = 0 if rel_profit > 0 else self.state.vars["martingale"]["cont_loss_series_cnt"]+1
-                        self.state.ilog(lvl=1, e=f"update cont_loss_series_cnt na {self.state.vars['martingale']['cont_loss_series_cnt']}")
+                        self.state.vars["transferables"]["martingale"]["cont_loss_series_cnt"] = 0 if rel_profit > 0 else self.state.vars["transferables"]["martingale"]["cont_loss_series_cnt"]+1
+                        self.state.ilog(lvl=1, e=f"update cont_loss_series_cnt na {self.state.vars['transferables']['martingale']['cont_loss_series_cnt']}")
 
                 self.state.ilog(e=f"BUY notif - SHORT PROFIT: {partial_exit=} {partial_last=} {round(float(trade_profit),3)} celkem:{round(float(self.state.profit),3)} rel:{float(rel_profit)} rel_cum:{round(rel_profit_cum_calculated,7)}", msg=str(data.event), rel_profit_cum=str(self.state.rel_profit_cum), bought_amount=bought_amount, avg_costs=avg_costs, trade_qty=data.qty, trade_price=data.price, orderid=str(data.order.id))
 
@@ -303,8 +303,8 @@ class StrategyClassicSL(Strategy):
                         rel_profit_cum_calculated = round(np.sum(self.state.rel_profit_cum),5)
 
                         #pro martingale updatujeme loss_series_cnt
-                        self.state.vars["martingale"]["cont_loss_series_cnt"] = 0 if rel_profit > 0 else self.state.vars["martingale"]["cont_loss_series_cnt"]+1
-                        self.state.ilog(lvl=1, e=f"update cont_loss_series_cnt na {self.state.vars['martingale']['cont_loss_series_cnt']}")
+                        self.state.vars["transferables"]["martingale"]["cont_loss_series_cnt"] = 0 if rel_profit > 0 else self.state.vars["transferables"]["martingale"]["cont_loss_series_cnt"]+1
+                        self.state.ilog(lvl=1, e=f"update cont_loss_series_cnt na {self.state.vars['transferables']['martingale']['cont_loss_series_cnt']}")
 
                 self.state.ilog(e=f"SELL notif - LONG PROFIT {partial_exit=} {partial_last=}:{round(float(trade_profit),3)} celkem:{round(float(self.state.profit),3)} rel:{float(rel_profit)} rel_cum:{round(rel_profit_cum_calculated,7)}", msg=str(data.event), rel_profit_cum = str(self.state.rel_profit_cum), sold_amount=sold_amount, avg_costs=avg_costs, trade_qty=data.qty, trade_price=data.price, orderid=str(data.order.id))
 

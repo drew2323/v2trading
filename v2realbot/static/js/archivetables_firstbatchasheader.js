@@ -638,7 +638,7 @@ $(document).ready(function () {
             else{
                 $('#editstratvars').val(JSON.stringify(row.stratvars,null,2));
             }
-            
+            $('#edittransferables').val(JSON.stringify(row.transferables,null,2));
             
             $('#editstratjson').val(row.strat_json);
         }

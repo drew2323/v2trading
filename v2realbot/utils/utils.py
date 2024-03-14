@@ -678,8 +678,9 @@ def parse_toml_string(tomlst: str):
     try:
         tomlst = tomli.loads(tomlst)
     except tomli.TOMLDecodeError as e:
-        print("Not valid TOML.", str(e))
-        return (-1, None)
+        msg = f"Not valid TOML: " + str(e)
+        richprint(msg)
+        return (-1, msg)
     return (0, dict_replace_value(tomlst,"None",None))
 
 #class to persist

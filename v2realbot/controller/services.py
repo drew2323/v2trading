@@ -103,10 +103,10 @@ def create_stratin(si: StrategyInstance):
     #validate toml
     res, stp = parse_toml_string(si.stratvars_conf)
     if res < 0:
-        return (-1,"stratvars invalid")
+        return (-1,f"stratvars invalid: {stp}")
     res, adp = parse_toml_string(si.add_data_conf)
     if res < 0:
-        return (-1, "None")
+        return (-1, f"add data conf invalid {adp}") 
     si.id = uuid4()
     #print(si)
     db.stratins.append(si)
@@ -120,10 +120,10 @@ def modify_stratin(si: StrategyInstance, id: UUID):
         return (-1, "strat is running, use modify_stratin_running")
     res, stp = parse_toml_string(si.stratvars_conf)
     if res < 0:
-        return (-1, "stratvars invalid")
+        return (-1, f"stratvars invalid {stp}")
     res, adp = parse_toml_string(si.add_data_conf)
     if res < 0:
-        return (-1, "add data conf invalid") 
+        return (-1, f"add data conf invalid {adp}") 
     for i in db.stratins:
         if str(i.id) == str(id):
             #print("removing",i)
@@ -181,14 +181,14 @@ def modify_stratin_running(si: StrategyInstance, id: UUID):
         #validate toml
         res,stp = parse_toml_string(si.stratvars_conf)
         if res < 0:
-            return (-1, "new stratvars format invalid")
+            return (-1, f"new stratvars format invalid {stp}")
         for i in db.stratins:
             if str(i.id) == str(id):
                 if not is_stratin_running(id=str(id)):
                     return (-1, "not running")
                 res,stp_old = parse_toml_string(i.stratvars_conf)
                 if res < 0:
-                    return (-1, "current stratin stratvars invalid")
+                    return (-1, f"current stratin stratvars invalid {stp_old}")
                 #TODO reload running strat
                 #print(stp)
                 #print("starting injection", stp)
@@ -447,7 +447,7 @@ def run_batch_stratin(id: UUID, runReq: RunRequest):
             cal_list.append(RunDay(start = start_time, end = end_time, note = note, id = id))
 
         print(f"Getting interval dates from - to - RESULT ({len(cal_list)}):")
-        print(cal_list)
+        #print(cal_list)
         return cal_list
     
     #getting days to run into RunDays format
@@ -619,10 +619,10 @@ def run_stratin(id: UUID, runReq: RunRequest, synchronous: bool = False, inter_b
                 #validate toml
                 res, stp = parse_toml_string(i.stratvars_conf)
                 if res < 0:
-                    return (-1, "stratvars invalid")
+                    return (-1, f"stratvars invalid {stp}")
                 res, adp = parse_toml_string(i.add_data_conf)
                 if res < 0:
-                    return (-1, "add data conf invalid")
+                    return (-1, f"add data conf invalid {adp}")
                 id = uuid4()
                 print(f"RUN {id} INITIATED")
                 name = i.name
@@ -1595,7 +1595,7 @@ def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator, save: bool =
         # print(row)
         res, toml_parsed = parse_toml_string(tomlino)
         if res < 0:
-            return (-2, "toml invalid")
+            return (-2, f"toml invalid: {toml_parsed}")
         
         #print("parsed toml", toml_parsed)
 
@@ -1841,10 +1841,10 @@ def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator, save: bool =
 
         #vracime list, kde pozice 0 je bar indicators, pozice 1 je ticks indicators
         if output == "bar":
-            return 0, [output_dict, []]
+            return 0, [output_dict, {}]
             #return 0, [new_inds[indicator.name], []]
         else:
-            return 0, [[], output_dict]
+            return 0, [{}, output_dict]
             #return 0, [[], new_tick_inds[indicator.name]]
 
     except Exception as e:

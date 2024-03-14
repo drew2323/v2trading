@@ -462,7 +462,7 @@ function display_batch_report(batch_id) {
 
 function refresh_logfile() {
     logfile = $("#logFileSelect").val()
-    lines = 700
+    lines = 1200
     $.ajax({
         url:"/log?lines="+lines+"&logfile="+logfile,
         beforeSend: function (xhr) {

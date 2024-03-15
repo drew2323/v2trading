@@ -3,7 +3,7 @@ from uuid import UUID, uuid4
 import pickle
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockTradesRequest, StockBarsRequest
-from alpaca.data.enums import DataFeed
+from alpaca.data.enums import DataFeed 
 from alpaca.data.timeframe import TimeFrame
 from v2realbot.strategy.base import StrategyState
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, OrderSide
@@ -1114,7 +1114,7 @@ def get_all_archived_runners_p(request: DataTablesRequest) -> Tuple[int, RunArch
         # Total count query
         total_count_query = """
         SELECT COUNT(*) FROM runner_header
-        WHERE (:search_value = '' OR strat_id LIKE :search_value OR batch_id LIKE :search_value)
+        WHERE (:search_value = '' OR strat_id LIKE :search_value OR batch_id LIKE :search_value OR symbol like :search_value OR name like :search_value)
         """
         c.execute(total_count_query, {'search_value': f'%{search_value}%'})
         total_count = c.fetchone()[0]
@@ -1129,7 +1129,7 @@ def get_all_archived_runners_p(request: DataTablesRequest) -> Tuple[int, RunArch
                 SUM(profit) OVER (PARTITION BY batch_id) AS batch_profit,
                 COUNT(*) OVER (PARTITION BY batch_id) AS batch_count
             FROM runner_header
-            WHERE (:search_value = '' OR strat_id LIKE :search_value OR batch_id LIKE :search_value)
+            WHERE (:search_value = '' OR strat_id LIKE :search_value OR batch_id LIKE :search_value OR symbol like :search_value OR name like :search_value)
         ),
         InterleavedGroups AS (
             SELECT *,
@@ -1156,7 +1156,7 @@ def get_all_archived_runners_p(request: DataTablesRequest) -> Tuple[int, RunArch
         # Filtered count query
         filtered_count_query = """
         SELECT COUNT(*) FROM runner_header
-        WHERE (:search_value = '' OR strat_id LIKE :search_value OR batch_id LIKE :search_value)
+        WHERE (:search_value = '' OR strat_id LIKE :search_value OR batch_id LIKE :search_value OR symbol like :search_value OR name like :search_value)
         """
         c.execute(filtered_count_query, {'search_value': f'%{search_value}%'})
         filtered_count = c.fetchone()[0]

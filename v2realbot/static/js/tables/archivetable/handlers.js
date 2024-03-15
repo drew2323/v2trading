@@ -265,8 +265,8 @@ $(document).ready(function () {
 
             $('#diff_first').text(record1.name);
             $('#diff_second').text(record2.name);
-            $('#diff_first_id').text(data1.id);
-            $('#diff_second_id').text(data2.id);
+            $('#diff_first_id').text(data1.id + ' Batch: ' + data1.batch_id);
+            $('#diff_second_id').text(data2.id + ' Batch: ' + data2.batch_id);
 
             //monaco
             require(["vs/editor/editor.main"], () => {
@@ -358,8 +358,13 @@ $(document).ready(function () {
         })
     });
 
+    $('#closeLogModal').click(function () {
+        editorLog.dispose()
+    });
+
     //button to query log
     $('#logRefreshButton').click(function () {
+        editorLog.dispose()
         refresh_logfile()
     });
 

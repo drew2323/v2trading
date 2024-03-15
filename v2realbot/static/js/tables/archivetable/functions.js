@@ -495,6 +495,12 @@ function refresh_logfile() {
                     readOnly: true
                 });
                 });
+                // Focus at the end of the file:
+                const model = editorLog.getModel();
+                const lastLineNumber = model.getLineCount();
+                const lastLineColumn = model.getLineMaxColumn(lastLineNumber);
+                editorLog.setPosition({ lineNumber: lastLineNumber, column: lastLineColumn });
+                editorLog.revealPosition({ lineNumber: lastLineNumber, column: lastLineColumn });
         },
         error: function(xhr, status, error) {
             var err = eval("(" + xhr.responseText + ")");

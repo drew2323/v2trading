@@ -35,40 +35,62 @@ class StrategyClassicSL(Strategy):
 
         max_sum_profit_to_quit_rel = safe_get(self.state.vars, "max_sum_profit_to_quit_rel", None)
         max_sum_loss_to_quit_rel = safe_get(self.state.vars, "max_sum_loss_to_quit_rel", None)
+        #load typ direktivy hard/soft cutoff
+        hard_cutoff = safe_get(self.state.vars, "hard_cutoff", False)
 
         rel_profit  = round(float(np.sum(self.state.rel_profit_cum)),5)
         if max_sum_profit_to_quit_rel is not None:
             if rel_profit >= float(max_sum_profit_to_quit_rel):
-                self.state.ilog(e=f"QUITTING MAX SUM REL PROFIT REACHED {max_sum_profit_to_quit_rel=} {self.state.profit=} {rel_profit=} relprofits:{str(self.state.rel_profit_cum)}")
+                msg = f"QUITTING {hard_cutoff=} MAX SUM REL PROFIT REACHED {max_sum_profit_to_quit_rel=} {self.state.profit=} {rel_profit=} relprofits:{str(self.state.rel_profit_cum)}"
+                printanyway(msg)
+                self.state.ilog(e=msg)
                 self.state.vars.pending = "max_sum_profit_to_quit_rel"
                 if self.mode not in [Mode.BT, Mode.PREP]:
-                    send_to_telegram(f"QUITTING MAX SUM REL PROFIT REACHED {max_sum_profit_to_quit_rel=} {self.state.profit=} {rel_profit=} relprofits:{str(self.state.rel_profit_cum)}")
-                self.signal_stop = True
+                    send_to_telegram(msg)
+                if hard_cutoff:
+                    self.hard_stop = True
+                else:
+                    self.soft_stop = True
                 return True
         if max_sum_loss_to_quit_rel is not None:
             if rel_profit < 0 and rel_profit <= float(max_sum_loss_to_quit_rel):
-                self.state.ilog(e=f"QUITTING MAX SUM REL LOSS REACHED {max_sum_loss_to_quit_rel=} {self.state.profit=} {rel_profit=} relprofits:{str(self.state.rel_profit_cum)}")
+                msg=f"QUITTING {hard_cutoff=} MAX SUM REL LOSS REACHED {max_sum_loss_to_quit_rel=} {self.state.profit=} {rel_profit=} relprofits:{str(self.state.rel_profit_cum)}"
+                printanyway(msg)
+                self.state.ilog(e=msg)
                 self.state.vars.pending = "max_sum_loss_to_quit_rel"
                 if self.mode not in [Mode.BT, Mode.PREP]:
-                    send_to_telegram(f"QUITTING MAX SUM REL LOSS REACHED {max_sum_loss_to_quit_rel=} {self.state.profit=} {rel_profit=} relprofits:{str(self.state.rel_profit_cum)}")
-                self.signal_stop = True
+                    send_to_telegram(msg)
+                if hard_cutoff:
+                    self.hard_stop = True
+                else:
+                    self.soft_stop = True
                 return True
 
         if max_sum_profit_to_quit is not None:
             if float(self.state.profit) >= float(max_sum_profit_to_quit):
-                self.state.ilog(e=f"QUITTING MAX SUM ABS PROFIT REACHED {max_sum_profit_to_quit=} {self.state.profit=} {rel_profit=} relprofits:{str(self.state.rel_profit_cum)}")
+                msg = f"QUITTING {hard_cutoff=} MAX SUM ABS PROFIT REACHED {max_sum_profit_to_quit=} {self.state.profit=} {rel_profit=} relprofits:{str(self.state.rel_profit_cum)}"
+                printanyway(msg)
+                self.state.ilog(e=msg)
                 self.state.vars.pending = "max_sum_profit_to_quit"
                 if self.mode not in [Mode.BT, Mode.PREP]:
-                    send_to_telegram(f"QUITTING MAX SUM ABS PROFIT REACHED {max_sum_profit_to_quit=} {self.state.profit=} {rel_profit=} relprofits:{str(self.state.rel_profit_cum)}")
-                self.signal_stop = True
+                    send_to_telegram(msg)
+                if hard_cutoff:
+                    self.hard_stop = True
+                else:
+                    self.soft_stop = True
                 return True
         if max_sum_loss_to_quit is not None:
             if float(self.state.profit) < 0 and float(self.state.profit) <= float(max_sum_loss_to_quit):
-                self.state.ilog(e=f"QUITTING MAX SUM ABS LOSS REACHED {max_sum_loss_to_quit=} {self.state.profit=} {rel_profit=} relprofits:{str(self.state.rel_profit_cum)}")
+                msg = f"QUITTING {hard_cutoff=} MAX SUM ABS LOSS REACHED {max_sum_loss_to_quit=} {self.state.profit=} {rel_profit=} relprofits:{str(self.state.rel_profit_cum)}"
+                printanyway(msg)
+                self.state.ilog(e=msg)
                 self.state.vars.pending = "max_sum_loss_to_quit"
                 if self.mode not in [Mode.BT, Mode.PREP]:
-                    send_to_telegram(f"QUITTING MAX SUM ABS LOSS REACHED {max_sum_loss_to_quit=} {self.state.profit=} {rel_profit=} relprofits:{str(self.state.rel_profit_cum)}")
-                self.signal_stop = True
+                    send_to_telegram(msg)
+                if hard_cutoff:
+                    self.hard_stop = True
+                else:
+                    self.soft_stop = True
                 return True
 
         return False
@@ -414,7 +436,7 @@ class StrategyClassicSL(Strategy):
         populate_all_indicators(item, self.state)
         
         #pro přípravu dat next nevoláme
-        if self.mode == Mode.PREP:
+        if self.mode == Mode.PREP or self.soft_stop:
             return
         else:
             self.next(item, self.state)

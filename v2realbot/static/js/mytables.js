@@ -90,8 +90,54 @@ $(document).ready(function () {
 
         monaco.languages.register({ id: 'python' });
         monaco.languages.register({ id: 'json' });
+        //Register mylogs language
+        monaco.languages.register({ id: 'mylogs' });
         // Register the TOML language
+        monaco.languages.setLanguageConfiguration('mylogs', {
+            comments: {
+                lineComment: '//',  // Adjust if your logs use a different comment symbol
+            },
+            brackets: [['[', ']'], ['{', '}']], // Array and object brackets
+            autoClosingPairs: [
+                { open: '{', close: '}', notIn: ['string'] },
+                { open: '"', close: '"', notIn: ['string', 'comment'] }, 
+                { open: "'", close: "'", notIn: ['string', 'comment'] }, 
+            ],
+        });
+        monaco.languages.setMonarchTokensProvider('mylogs', {
+            tokenizer: {
+                root: [
+                    [/#.*/, 'comment'], // Comments (if applicable)
+        
+                    // Timestamps 
+                    [/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+/, 'timestamp'], 
+        
+                    // Log Levels 
+                    [/\b(INFO|DEBUG|WARNING|ERROR|CRITICAL)\b/, 'log-level'],
+        
+                    // Strings 
+                    [/".*"/, 'string'], 
+                    [/'.*'/, 'string'],
+        
+                    // Key-Value Pairs
+                    [/[A-Za-z_]+\s*:/, 'key'],  
+                    [/-?\d+\.\d+/, 'number.float'], // Floating-point
+                    [/-?\d+/, 'number.integer'],    // Integers 
+                    [/\btrue\b/, 'boolean.true'],
+                    [/\bfalse\b/, 'boolean.false'],
+        
+                    // Other Words and Symbols
+                    [/[A-Za-z_]+/, 'identifier'],
+                    [/[ \t\r\n]+/, 'white'], 
+                    [/[\[\]{}(),]/, 'delimiter'], // Expand if more delimiters exist 
+                ]
+            }
+        });
+        
+        
         monaco.languages.register({ id: 'toml' });
+
+
 
         // Define the TOML language configuration
         monaco.languages.setLanguageConfiguration('toml', {

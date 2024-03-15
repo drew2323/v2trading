@@ -6,6 +6,7 @@ let editor_diff_arch1
 let editor_diff_arch2
 var archData = null
 var batchHeaders = []
+var editorLog = null
 
 function refresh_arch_and_callback(row, callback) {
     //console.log("entering refresh")
@@ -472,13 +473,28 @@ function refresh_logfile() {
         contentType: "application/json",
         dataType: "json",
         success:function(response){
+            if (editorLog) {
+                editorLog.dispose();
+            }
             if (response.lines.length == 0) {
-                $('#log-content').html("no records");
+                value = "no records";
+                // $('#log-content').html("no records");
             }
             else {
-                var escapedLines = response.lines.map(line => escapeHtml(line));
-                $('#log-content').html(escapedLines.join('\n'));  
-            }	
+                //console.log(response.lines)
+                //var escapedLines = response.lines.map(line => escapeHtml(line));
+                value = response.lines.join('\n')
+                // $('#log-content').html(escapedLines.join('\n'));  
+            }
+            require(["vs/editor/editor.main"], () => {
+                editorLog = monaco.editor.create(document.getElementById('log-container'), {
+                    value: value,
+                    language: 'mylogs',
+                    theme: 'tomlTheme-dark',
+                    automaticLayout: true,
+                    readOnly: true
+                });
+                });
         },
         error: function(xhr, status, error) {
             var err = eval("(" + xhr.responseText + ")");

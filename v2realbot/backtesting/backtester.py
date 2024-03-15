@@ -524,7 +524,7 @@ class Backtester:
             if actual_minus_reserved <= 0:
                 cena = price if price else self.get_last_price(time, self.symbol)
                 if (self.cash - reserved_price - float(int(size)*float(cena))) < 0:
-                    printanyway("not enough cash for shorting. cash",self.cash,"reserved",reserved,"available",self.cash-reserved,"needed",float(int(size)*float(cena)))
+                    printanyway("ERROR: not enough cash for shorting. cash",self.cash,"reserved",reserved,"available",self.cash-reserved,"needed",float(int(size)*float(cena)))
                     return -1               
 
         #check for available cash
@@ -550,7 +550,7 @@ class Backtester:
             if actual_plus_reserved_qty >= 0:
                 cena = price if price else self.get_last_price(time, self.symbol)
                 if (self.cash - reserved_price - float(int(size)*float(cena))) < 0:
-                    printanyway("not enough cash to buy long. cash",self.cash,"reserved_qty",reserved_qty,"reserved_price",reserved_price, "available",self.cash-reserved_price,"needed",float(int(size)*float(cena)))
+                    printanyway("ERROR: not enough cash to buy long. cash",self.cash,"reserved_qty",reserved_qty,"reserved_price",reserved_price, "available",self.cash-reserved_price,"needed",float(int(size)*float(cena)))
                     return -1
 
         id = str(uuid4())

@@ -80,7 +80,8 @@ class Strategy:
         self.pe = pe
         self.se = se
         #signal stop - internal
-        self.signal_stop = False
+        self.hard_stop = False #indikuje hard stop, tedy vypnuti strategie
+        self.soft_stop = False #indikuje soft stop (napr. při dosažení max zisku/ztráty), tedy pokracovani strategie, vytvareni dat, jen bez obchodu
 
     #prdelat queue na dynamic - podle toho jak bud uchtit pracovat s multiresolutions
     #zatim jen jedna q1
@@ -433,7 +434,7 @@ class Strategy:
                     #printnow(current_thread().name, "Items waiting in queue:", self.q1.qsize())
                 except queue.Empty:
                     #check internal signals - for profit/loss optim etc - valid for runner
-                    if self.signal_stop:
+                    if self.hard_stop:
                         print(current_thread().name, "Stopping signal - internal")
                         break     
                     
@@ -454,7 +455,7 @@ class Strategy:
                 if item == "last" or self.se.is_set():
                     print(current_thread().name, "stopping")
                     break
-                elif self.signal_stop:
+                elif self.hard_stop:
                     print(current_thread().name, "Stopping signal - internal")
                     break                     
                 elif self.pe.is_set():

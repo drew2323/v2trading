@@ -113,10 +113,12 @@ def initialize_jobs(run_manager_records: RunManagerRecord = None):
                                     start_date=record.valid_from, end_date=record.valid_to, timezone=zoneNY)
 
             # Schedule new jobs with the 'scheduler_' prefix
-            scheduler.add_job(start_runman_record, start_trigger, id=f"scheduler_start_{record.id}", args=[record.id])
-            scheduler.add_job(stop_runman_record, stop_trigger, id=f"scheduler_stop_{record.id}", args=[record.id])
+            market_value = record.market.value if record.market else None
+            scheduler.add_job(start_runman_record, start_trigger, id=f"scheduler_start_{record.id}", args=[record.id, market_value])
+            scheduler.add_job(stop_runman_record, stop_trigger, id=f"scheduler_stop_{record.id}", args=[record.id, market_value])
                         
-    #scheduler.add_job(print_hello, 'interval', seconds=10, id=f"scheduler_testinterval")
+    #scheduler.add_job(print_hello, 'interval', seconds=10, id=
+    # f"scheduler_testinterval")
     scheduled_jobs = scheduler.get_jobs()
     print(f"APS jobs refreshed ({len(scheduled_jobs)})")
     current_jobs_dict = format_apscheduler_jobs(scheduled_jobs)
@@ -124,7 +126,7 @@ def initialize_jobs(run_manager_records: RunManagerRecord = None):
     return 0, current_jobs_dict
 
 #zastresovaci funkce resici error handling a printing
-def start_runman_record(id: UUID, market = "US", debug_date = None):
+def start_runman_record(id: UUID, market, debug_date = None):
     record = None
     res, record, msg = _start_runman_record(id=id, market=market, debug_date=debug_date)
 
@@ -165,7 +167,7 @@ def update_runman_record(record: RunManagerRecord):
         err_msg= f"STOP: Error updating {record.id} errir {set} with values {record}"
         return -2, err_msg#toto stopne zpracovani dalsich zaznamu pri chybe, zvazit continue
 
-def stop_runman_record(id: UUID, market = "US", debug_date = None):
+def stop_runman_record(id: UUID, market, debug_date = None):
     res, record, msg = _stop_runman_record(id=id, market=market, debug_date=debug_date)
     #results : 0 - ok, -1 not running/already running/not specific, -2 error
 
@@ -196,7 +198,7 @@ def stop_runman_record(id: UUID, market = "US", debug_date = None):
         print(f"STOP JOB: {id} FINISHED")
 
 #start function that is called from the job
-def _start_runman_record(id: UUID, market = "US", debug_date = None):
+def _start_runman_record(id: UUID, market, debug_date = None):
     print(f"Start scheduled record {id}")
 
     record : RunManagerRecord = None
@@ -207,11 +209,13 @@ def _start_runman_record(id: UUID, market = "US", debug_date = None):
     
     record = result
 
-    if market is not None and market == "US":
+    if market == "US" or market is None:
         res, sada = sch.get_todays_market_times(market=market, debug_date=debug_date)
         if res == 0:
             market_time_now, market_open_datetime, market_close_datetime = sada
             print(f"OPEN:{market_open_datetime} CLOSE:{market_close_datetime}")
+        elif res == 1:
+            print("Market is open 24 hours.")
         else:
             sada = f"Market {market} Error getting market times (CLOSED): " + str(sada)
             return res, record, sada

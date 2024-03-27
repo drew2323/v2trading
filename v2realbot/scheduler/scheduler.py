@@ -18,7 +18,16 @@ from v2realbot.config import WEB_API_KEY
 #naplanovany jako samostatni job a triggerován pouze jednou v daný čas pro start a stop 
 #novy kod v aps_scheduler.py
 
-def get_todays_market_times(market = "US", debug_date = None):
+def is_market_day(date):
+    cal_dates = fetch_calendar_data(date, date)
+    if len(cal_dates) == 0:
+        print("No Market Day today")
+        return False, cal_dates
+    else:
+        print("Market is open")
+        return True, cal_dates
+
+def get_todays_market_times(market, debug_date = None):
     try:
         if market == "US":
             #zjistit vsechny podminky - mozna loopovat - podminky jsou vlevo
@@ -28,17 +37,15 @@ def get_todays_market_times(market = "US", debug_date = None):
                 nowNY = datetime.now().astimezone(zoneNY)
             nowNY_date = nowNY.date()
             #is market open - nyni pouze US
-            cal_dates = fetch_calendar_data(nowNY_date, nowNY_date)
-
-            if len(cal_dates) == 0:
-                print("No Market Day today")
-                return -1, "Market Closed"
+            stat, calendar_dates = is_market_day(nowNY_date)
+            if stat:
             #zatim podpora pouze main session
-
             #pouze main session
-            market_open_datetime = zoneNY.localize(cal_dates[0].open)
-            market_close_datetime = zoneNY.localize(cal_dates[0].close)
-            return 0, (nowNY, market_open_datetime, market_close_datetime)
+                market_open_datetime = zoneNY.localize(calendar_dates[0].open)
+                market_close_datetime = zoneNY.localize(calendar_dates[0].close)
+                return 0, (nowNY, market_open_datetime, market_close_datetime)
+        elif market is None:
+            return 1, "Market is open 24 hours. No check is needed."
         else:
             return -1, "Market not supported"
     except Exception as e:

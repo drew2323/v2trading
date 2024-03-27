@@ -5,7 +5,7 @@ from rich import print
 from typing import Any, Optional, List, Union
 from datetime import datetime, date
 from pydantic import BaseModel, Field
-from v2realbot.enums.enums import Mode, Account, SchedulerStatus, Moddus
+from v2realbot.enums.enums import Mode, Account, SchedulerStatus, Moddus, Market
 from alpaca.data.enums import Exchange
 
 
@@ -159,6 +159,7 @@ class RunManagerRecord(BaseModel):
     mode: Mode
     note: Optional[str] = None
     ilog_save: bool = False
+    market: Optional[Market] = None
     bt_from: Optional[datetime] = None
     bt_to: Optional[datetime] = None
     #weekdays filter

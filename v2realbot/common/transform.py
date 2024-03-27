@@ -5,7 +5,6 @@ import v2realbot.controller.services as cs
 
 #prevede dict radku zpatky na objekt vcetme retypizace
 def row_to_runmanager(row: dict) -> RunManagerRecord:
-
     is_running = cs.is_runner_running(row['runner_id']) if row['runner_id'] else False
 
     res = RunManagerRecord(
@@ -17,6 +16,7 @@ def row_to_runmanager(row: dict) -> RunManagerRecord:
         account=row['account'],
         note=row['note'],
         ilog_save=bool(row['ilog_save']),
+        market=str(row['market']) if row['market'] is not None else None,
         bt_from=datetime.fromisoformat(row['bt_from']) if row['bt_from'] else None,
         bt_to=datetime.fromisoformat(row['bt_to']) if row['bt_to'] else None,
         weekdays_filter=[int(x) for x in row['weekdays_filter'].split(',')] if row['weekdays_filter'] else [],

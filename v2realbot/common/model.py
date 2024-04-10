@@ -159,7 +159,7 @@ class RunManagerRecord(BaseModel):
     mode: Mode
     note: Optional[str] = None
     ilog_save: bool = False
-    market: Optional[Market] = None
+    market: Optional[Market] = 'US'
     bt_from: Optional[datetime] = None
     bt_to: Optional[datetime] = None
     #weekdays filter

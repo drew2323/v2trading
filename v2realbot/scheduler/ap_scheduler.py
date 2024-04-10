@@ -114,8 +114,8 @@ def initialize_jobs(run_manager_records: RunManagerRecord = None):
 
             # Schedule new jobs with the 'scheduler_' prefix
             market_value = record.market.value if record.market else None
-            scheduler.add_job(start_runman_record, start_trigger, id=f"scheduler_start_{record.id}", args=[record.id, market_value])
-            scheduler.add_job(stop_runman_record, stop_trigger, id=f"scheduler_stop_{record.id}", args=[record.id, market_value])
+            scheduler.add_job(start_runman_record, start_trigger, id=f"scheduler_start_{record.id}", args=[record.id])
+            scheduler.add_job(stop_runman_record, stop_trigger, id=f"scheduler_stop_{record.id}", args=[record.id])
                         
     #scheduler.add_job(print_hello, 'interval', seconds=10, id=
     # f"scheduler_testinterval")
@@ -126,9 +126,9 @@ def initialize_jobs(run_manager_records: RunManagerRecord = None):
     return 0, current_jobs_dict
 
 #zastresovaci funkce resici error handling a printing
-def start_runman_record(id: UUID, market, debug_date = None):
+def start_runman_record(id: UUID, debug_date = None):
     record = None
-    res, record, msg = _start_runman_record(id=id, market=market, debug_date=debug_date)
+    res, record, msg = _start_runman_record(id=id, debug_date=debug_date)
 
     if record is not None:
         market_time_now = datetime.now().astimezone(zoneNY) if debug_date is None else debug_date
@@ -167,8 +167,8 @@ def update_runman_record(record: RunManagerRecord):
         err_msg= f"STOP: Error updating {record.id} errir {set} with values {record}"
         return -2, err_msg#toto stopne zpracovani dalsich zaznamu pri chybe, zvazit continue
 
-def stop_runman_record(id: UUID, market, debug_date = None):
-    res, record, msg = _stop_runman_record(id=id, market=market, debug_date=debug_date)
+def stop_runman_record(id: UUID, debug_date = None):
+    res, record, msg = _stop_runman_record(id=id, debug_date=debug_date)
     #results : 0 - ok, -1 not running/already running/not specific, -2 error
 
     #report vzdy zapiseme do history, pokud je record not None, pripadna chyba se stala po dotazeni recordu
@@ -198,7 +198,7 @@ def stop_runman_record(id: UUID, market, debug_date = None):
         print(f"STOP JOB: {id} FINISHED")
 
 #start function that is called from the job
-def _start_runman_record(id: UUID, market, debug_date = None):
+def _start_runman_record(id: UUID, debug_date = None):
     print(f"Start scheduled record {id}")
 
     record : RunManagerRecord = None
@@ -209,15 +209,13 @@ def _start_runman_record(id: UUID, market, debug_date = None):
     
     record = result
 
-    if market == "US" or market is None:
-        res, sada = sch.get_todays_market_times(market=market, debug_date=debug_date)
+    if record.market == "US":
+        res, sada = sch.get_todays_market_times(market=record.market, debug_date=debug_date)
         if res == 0:
             market_time_now, market_open_datetime, market_close_datetime = sada
             print(f"OPEN:{market_open_datetime} CLOSE:{market_close_datetime}")
-        elif res == 1:
-            print("Market is open 24 hours.")
         else:
-            sada = f"Market {market} Error getting market times (CLOSED): " + str(sada)
+            sada = f"Market {record.market} Error getting market times (CLOSED): " + str(sada)
             return res, record, sada
     
     if cs.is_stratin_running(record.strat_id):
@@ -233,7 +231,7 @@ def _start_runman_record(id: UUID, market, debug_date = None):
     return 0, record, record.runner_id
 
 #stop function that is called from the job
-def _stop_runman_record(id: UUID, market = "US", debug_date = None):
+def _stop_runman_record(id: UUID, debug_date = None):
     record = None
     #get all records
     print(f"Stopping record {id}")
@@ -308,5 +306,5 @@ if __name__ == "__main__":
     # print(f"CALL FINISHED, with {debug_date} RESULT: {res}, {result}")
 
 
-    res, result = stop_runman_record(id=id, market = "US", debug_date = debug_date)
+    res, result = stop_runman_record(id=id, debug_date = debug_date)
     print(f"CALL FINISHED, with {debug_date} RESULT: {res}, {result}")

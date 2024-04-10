@@ -29,7 +29,7 @@ def is_market_day(date):
 
 def get_todays_market_times(market, debug_date = None):
     try:
-        if market == "US":
+        if market == "US" or market == "CRYPTO":
             #zjistit vsechny podminky - mozna loopovat - podminky jsou vlevo
             if debug_date is not None:
                 nowNY = debug_date
@@ -44,8 +44,6 @@ def get_todays_market_times(market, debug_date = None):
                 market_open_datetime = zoneNY.localize(calendar_dates[0].open)
                 market_close_datetime = zoneNY.localize(calendar_dates[0].close)
                 return 0, (nowNY, market_open_datetime, market_close_datetime)
-        elif market is None:
-            return 1, "Market is open 24 hours. No check is needed."
         else:
             return -1, "Market not supported"
     except Exception as e:

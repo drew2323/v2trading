@@ -244,11 +244,6 @@ def update_run_manager_record(record_id, updated_record: RunManagerRecord):
             update_query += f"{key} = ?, "
             if key == "ilog_save":
                 value = int(value)
-            elif key == "market":
-                print(value)
-                print(type(value))
-                value = str(value.value)
-                print(f"After:{value}")
             elif key in ["strat_id", "runner_id"]:
                 value = str(value) if value else None
             elif key == "weekdays_filter":

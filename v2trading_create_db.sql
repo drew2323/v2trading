@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS "runner_header" (
 	"end_positions_avgp"	NUMERIC,
 	"metrics"	TEXT,
 	"stratvars_toml"	TEXT,
+	"transferables"        TEXT,
 	PRIMARY KEY("runner_id")
 );
 CREATE TABLE IF NOT EXISTS "config_table" (

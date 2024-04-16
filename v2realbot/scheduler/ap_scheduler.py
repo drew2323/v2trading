@@ -216,7 +216,8 @@ def _start_runman_record(id: UUID, debug_date = None):
         else:
             sada = f"Market {record.market} Error getting market times (CLOSED): " + str(sada)
             return res, record, sada
-    
+    else:
+        print("Market type is unknown.")
     if cs.is_stratin_running(record.strat_id):
         return -1, record, f"Stratin {record.strat_id} is already running"
 

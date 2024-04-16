@@ -1,0 +1,137 @@
+# ################################## HOW TO USE #################################### #
+#                                                                                    #
+# This is a Jupyter notebook formatted as a script                                   #
+# Format: https://jupytext.readthedocs.io/en/latest/formats.html#the-percent-format  #
+#                                                                                    #
+# Save this file and remove the '.txt' extension                                     #
+# In Jupyter Lab, right click on the Python file -> Open With -> Jupytext Notebook   #
+# Make sure to have Jupytext installed: https://github.com/mwouts/jupytext           #
+#                                                                                    #
+# ################################################################################## #
+
+# %% [markdown]
+# #  Analysis
+# ## Expanding trade metrics
+
+# %%
+data = vbt.YFData.pull("BTC-USD")
+pf = vbt.PF.from_random_signals(data, n=50, tp_stop=0.5)
+pf.trades.plot_expanding_mfe_returns().show()
+
+# %% [markdown]
+# ## Trade signals
+
+# %%
+data = vbt.YFData.pull("BTC-USD")
+bb = data.run("bbands")
+long_entries = data.hlc3.vbt.crossed_above(bb.upper) & (bb.bandwidth < 0.1)
+long_exits = data.hlc3.vbt.crossed_below(bb.upper) & (bb.bandwidth > 0.5)
+short_entries = data.hlc3.vbt.crossed_below(bb.lower) & (bb.bandwidth < 0.1)
+short_exits = data.hlc3.vbt.crossed_above(bb.lower) & (bb.bandwidth > 0.5)
+pf = vbt.PF.from_signals(
+    data,
+    long_entries=long_entries,
+    long_exits=long_exits,
+    short_entries=short_entries,
+    short_exits=short_exits
+)
+pf.plot_trade_signals().show()
+
+# %% [markdown]
+# ## Edge ratio
+
+# %%
+data = vbt.YFData.pull("BTC-USD")
+fast_ema = data.run("ema", 10, hide_params=True)
+slow_ema = data.run("ema", 20, hide_params=True)
+entries = fast_ema.real_crossed_above(slow_ema)
+exits = fast_ema.real_crossed_below(slow_ema)
+pf = vbt.PF.from_signals(data, entries, exits, direction="both")
+rand_pf = vbt.PF.from_random_signals(data, n=pf.orders.count() // 2)
+fig = pf.trades.plot_running_edge_ratio(
+    trace_kwargs=dict(line_color="limegreen", name="Edge Ratio (S)")
+)
+fig = rand_pf.trades.plot_running_edge_ratio(
+    trace_kwargs=dict(line_color="mediumslateblue", name="Edge Ratio (R)"),
+    fig=fig
+)
+fig.show()
+
+# %% [markdown]
+# ## Trade history
+
+# %%
+data = vbt.YFData.pull(["BTC-USD", "ETH-USD"], missing_index="drop")
+pf = vbt.PF.from_random_signals(
+    data,
+    n=1,
+    run_kwargs=dict(hide_params=True),
+    tp_stop=0.5,
+    sl_stop=0.1
+)
+pf.trade_history
+
+# %% [markdown]
+# ## Patterns
+
+# %%
+data = vbt.YFData.pull("BTC-USD")
+data.hlc3.vbt.find_pattern(
+    pattern=[5, 1, 3, 1, 2, 1],
+    window=100,
+    max_window=700,
+).loc["2017":"2019"].plot().show()
+
+# %% [markdown]
+# ## Projections
+
+# %%
+data = vbt.YFData.pull("ETH-USD")
+pattern_ranges = data.hlc3.vbt.find_pattern(
+    pattern=data.close.iloc[-7:],
+    rescale_mode="rebase"
+)
+delta_ranges = pattern_ranges.with_delta(7)
+fig = data.iloc[-7:].plot(plot_volume=False)
+delta_ranges.plot_projections(fig=fig)
+fig.show()
+
+# %% [markdown]
+# ## MAE and MFE
+
+# %%
+data = vbt.YFData.pull("BTC-USD")
+pf = vbt.PF.from_random_signals(data, n=50)
+pf.trades.plot_mae_returns().show()
+
+# %%
+pf = vbt.PF.from_random_signals(data, n=50, sl_stop=0.1)
+pf.trades.plot_mae_returns().show()
+
+# %% [markdown]
+# ## OHLC-native classes
+
+# %%
+data = vbt.YFData.pull("BTC-USD", start="2020-01", end="2020-03")
+pf = vbt.PF.from_random_signals(
+    open=data.open,
+    high=data.high,
+    low=data.low,
+    close=data.close,
+    n=10
+)
+pf.trades.plot().show()
+
+# %% [markdown]
+# ## Benchmark
+
+# %%
+data = vbt.YFData.pull(["SPY", "MSFT"], start="2010", missing_columns="drop")
+
+pf = vbt.PF.from_holding(
+    close=data.data["MSFT"]["Close"],
+    bm_close=data.data["SPY"]["Close"]
+)
+pf.plot_cum_returns().show()
+
+# %%

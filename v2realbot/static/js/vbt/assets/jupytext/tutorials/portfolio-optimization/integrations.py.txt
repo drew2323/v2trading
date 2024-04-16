@@ -1,0 +1,867 @@
+# ################################## HOW TO USE #################################### #
+#                                                                                    #
+# This is a Jupyter notebook formatted as a script                                   #
+# Format: https://jupytext.readthedocs.io/en/latest/formats.html#the-percent-format  #
+#                                                                                    #
+# Save this file and remove the '.txt' extension                                     #
+# In Jupyter Lab, right click on the Python file -> Open With -> Jupytext Notebook   #
+# Make sure to have Jupytext installed: https://github.com/mwouts/jupytext           #
+#                                                                                    #
+# ################################################################################## #
+
+# %% [markdown]
+# #  Integrations
+# ## PyPortfolioOpt
+
+# %%
+from pypfopt.expected_returns import mean_historical_return
+from pypfopt.risk_models import CovarianceShrinkage
+from pypfopt.efficient_frontier import EfficientFrontier
+
+expected_returns = mean_historical_return(data.get("Close"))
+cov_matrix = CovarianceShrinkage(data.get("Close")).ledoit_wolf()
+optimizer = EfficientFrontier(expected_returns, cov_matrix)
+weights = optimizer.max_sharpe()
+weights
+
+# %% [markdown]
+# ### Parsing
+
+# %%
+from vectorbtpro.portfolio.pfopt.base import resolve_pypfopt_func_kwargs
+
+vbt.phelp(mean_historical_return)
+
+# %%
+print(vbt.prettify(resolve_pypfopt_func_kwargs(
+    mean_historical_return,
+    prices=data.get("Close"),
+    freq="1h",
+    year_freq="365d",
+    other_arg=100
+)))
+
+# %%
+print(vbt.prettify(resolve_pypfopt_func_kwargs(
+    EfficientFrontier,
+    prices=data.get("Close")
+)))
+
+# %%
+print(vbt.prettify(resolve_pypfopt_func_kwargs(
+    EfficientFrontier,
+    prices=data.get("Close"),
+    expected_returns="ema_historical_return",
+    cov_matrix="sample_cov"
+)))
+
+# %% [markdown]
+# ### Auto-optimization
+
+# %%
+vbt.pypfopt_optimize(prices=data.get("Close"))
+
+# %%
+S = CovarianceShrinkage(data.get("Close")).ledoit_wolf()
+ef = EfficientFrontier(None, S, weight_bounds=(-1, 1))
+ef.min_volatility()
+weights = ef.clean_weights()
+weights
+
+# %%
+vbt.pypfopt_optimize(
+    prices=data.get("Close"),
+    expected_returns=None,
+    weight_bounds=(-1, 1),
+    target="min_volatility"
+)
+
+# %%
+from pypfopt.expected_returns import capm_return
+
+mu = capm_return(data.get("Close"))
+S = CovarianceShrinkage(data.get("Close")).ledoit_wolf()
+ef = EfficientFrontier(mu, S, weight_bounds=(-1, 1))
+for symbol, direction in direction_mapper.items():
+    idx = data.symbols.index(symbol)
+    if direction == "long":
+        ef.add_constraint(lambda w, _idx=idx: w[_idx] >= 0)
+    if direction == "short":
+        ef.add_constraint(lambda w, _idx=idx: w[_idx] <= 0)
+ef.max_sharpe()
+weights = ef.clean_weights()
+weights
+
+# %%
+constraints = []
+for symbol, direction in direction_mapper.items():
+    idx = data.symbols.index(symbol)
+    if direction == "long":
+        constraints.append(lambda w, _idx=idx: w[_idx] >= 0)
+    if direction == "short":
+        constraints.append(lambda w, _idx=idx: w[_idx] <= 0)
+vbt.pypfopt_optimize(
+    prices=data.get("Close"),
+    expected_returns="capm_return",
+    cov_matrix="ledoit_wolf",
+    target="max_sharpe",
+    weight_bounds=(-1, 1),
+    constraints=constraints,
+)
+
+# %%
+sector_mapper = {
+    "ADAUSDT": "DeFi",
+    "BNBUSDT": "DeFi",
+    "BTCUSDT": "Payment",
+    "ETHUSDT": "DeFi",
+    "XRPUSDT": "Payment"
+}
+sector_lower = {
+    "DeFi": 0.75
+}
+sector_upper = {}
+
+# %%
+mu = capm_return(data.get("Close"))
+S = CovarianceShrinkage(data.get("Close")).ledoit_wolf()
+ef = EfficientFrontier(mu, S)
+ef.add_sector_constraints(sector_mapper, sector_lower, sector_upper)
+adausdt_index = ef.tickers.index("ADAUSDT")
+ef.add_constraint(lambda w: w[adausdt_index] == 0.10)
+ef.max_sharpe()
+weights = ef.clean_weights()
+weights
+
+# %%
+adausdt_index = list(sector_mapper.keys()).index("ADAUSDT")
+vbt.pypfopt_optimize(
+    prices=data.get("Close"),
+    expected_returns="capm_return",
+    sector_mapper=sector_mapper,
+    sector_lower=sector_lower,
+    sector_upper=sector_upper,
+    constraints=[lambda w: w[adausdt_index] == 0.10]
+)
+
+# %%
+from pypfopt.objective_functions import L2_reg
+
+mu = capm_return(data.get("Close"))
+S = CovarianceShrinkage(data.get("Close")).ledoit_wolf()
+ef = EfficientFrontier(mu, S)
+ef.add_sector_constraints(sector_mapper, sector_lower, sector_upper)
+ef.add_objective(L2_reg, gamma=0.1)
+ef.efficient_risk(0.15)
+weights = ef.clean_weights()
+weights
+
+# %%
+vbt.pypfopt_optimize(
+    prices=data.get("Close"),
+    expected_returns="capm_return",
+    sector_mapper=sector_mapper,
+    sector_lower=sector_lower,
+    sector_upper=sector_upper,
+    objectives=["L2_reg"],
+    gamma=0.1,
+    target="efficient_risk",
+    target_volatility=0.15
+)
+
+# %%
+from pypfopt import EfficientSemivariance
+from pypfopt.expected_returns import returns_from_prices
+
+mu = capm_return(data.get("Close"))
+returns = returns_from_prices(data.get("Close"))
+returns = returns.dropna()
+es = EfficientSemivariance(mu, returns)
+es.efficient_return(0.01)
+weights = es.clean_weights()
+weights
+
+# %%
+vbt.pypfopt_optimize(
+    prices=data.get("Close"),
+    expected_returns="capm_return",
+    optimizer="efficient_semivariance",
+    target="efficient_return",
+    target_return=0.01
+)
+
+# %%
+initial_weights = np.array([1 / len(data.symbols)] * len(data.symbols))
+
+# %%
+from pypfopt.objective_functions import transaction_cost
+
+mu = mean_historical_return(data.get("Close"))
+S = CovarianceShrinkage(data.get("Close")).ledoit_wolf()
+ef = EfficientFrontier(mu, S)
+ef.add_objective(transaction_cost, w_prev=initial_weights, k=0.001)
+ef.add_objective(L2_reg, gamma=0.05)
+ef.min_volatility()
+weights = ef.clean_weights()
+weights
+
+# %%
+vbt.pypfopt_optimize(
+    prices=data.get("Close"),
+    objectives=["transaction_cost", "L2_reg"],
+    w_prev=initial_weights,
+    k=0.001,
+    gamma=0.05,
+    target="min_volatility"
+)
+
+# %%
+import cvxpy as cp
+
+def logarithmic_barrier_objective(w, cov_matrix, k=0.1):
+    log_sum = cp.sum(cp.log(w))
+    var = cp.quad_form(w, cov_matrix)
+    return var - k * log_sum
+
+# %%
+mu = mean_historical_return(data.get("Close"))
+S = CovarianceShrinkage(data.get("Close")).ledoit_wolf()
+ef = EfficientFrontier(mu, S, weight_bounds=(0.01, 0.3))
+ef.convex_objective(logarithmic_barrier_objective, cov_matrix=S, k=0.001)
+weights = ef.clean_weights()
+weights
+
+# %%
+vbt.pypfopt_optimize(
+    prices=data.get("Close"),
+    weight_bounds=(0.01, 0.3),
+    k=0.001,
+    target=logarithmic_barrier_objective
+)
+
+# %%
+def deviation_risk_parity(w, cov_matrix):
+    cov_matrix = np.asarray(cov_matrix)
+    n = cov_matrix.shape[0]
+    rp = (w * (cov_matrix @ w)) / cp.quad_form(w, cov_matrix)
+    return cp.sum_squares(rp - 1 / n).value
+
+# %%
+mu = mean_historical_return(data.get("Close"))
+S = CovarianceShrinkage(data.get("Close")).ledoit_wolf()
+ef = EfficientFrontier(mu, S)
+ef.nonconvex_objective(deviation_risk_parity, ef.cov_matrix)
+weights = ef.clean_weights()
+weights
+
+# %%
+vbt.pypfopt_optimize(
+    prices=data.get("Close"),
+    target=deviation_risk_parity,
+    target_is_convex=False
+)
+
+# %%
+sp500_data = vbt.YFData.pull(
+    "^GSPC",
+    start=data.wrapper.index[0],
+    end=data.wrapper.index[-1]
+)
+market_caps = data.get("Close") * data.get("Volume")
+viewdict = {
+    "ADAUSDT": 0.20,
+    "BNBUSDT": -0.30,
+    "BTCUSDT": 0,
+    "ETHUSDT": -0.2,
+    "XRPUSDT": 0.15
+}
+
+# %%
+from pypfopt.black_litterman import (
+    market_implied_risk_aversion,
+    market_implied_prior_returns,
+    BlackLittermanModel
+)
+
+S = CovarianceShrinkage(data.get("Close")).ledoit_wolf()
+delta = market_implied_risk_aversion(sp500_data.get("Close"))
+prior = market_implied_prior_returns(market_caps.iloc[-1], delta, S)
+bl = BlackLittermanModel(S, pi=prior, absolute_views=viewdict)
+rets = bl.bl_returns()
+ef = EfficientFrontier(rets, S)
+ef.min_volatility()
+weights = ef.clean_weights()
+weights
+
+# %%
+vbt.pypfopt_optimize(
+    prices=data.get("Close"),
+    expected_returns="bl_returns",
+    market_prices=sp500_data.get("Close"),
+    market_caps=market_caps.iloc[-1],
+    absolute_views=viewdict,
+    target="min_volatility"
+)
+
+# %%
+from pypfopt import HRPOpt
+
+rets = returns_from_prices(data.get("Close"))
+hrp = HRPOpt(rets)
+hrp.optimize()
+weights = hrp.clean_weights()
+weights
+
+# %%
+vbt.pypfopt_optimize(
+    prices=data.get("Close"),
+    optimizer="hrp",
+    target="optimize"
+)
+
+# %% [markdown]
+# ### Argument groups
+
+# %%
+vbt.pypfopt_optimize(
+    prices=data.get("Close"),
+    expected_returns="bl_returns",
+    market_prices=sp500_data.get("Close"),
+    market_caps=market_caps.iloc[-1],
+    absolute_views=viewdict,
+    target="min_volatility",
+    cov_matrix=vbt.pfopt_func_dict({
+        "EfficientFrontier": "sample_cov",
+        "_def": "ledoit_wolf"
+    })
+)
+
+# %% [markdown]
+# ### Periodically
+
+# %%
+pfo = vbt.PortfolioOptimizer.from_pypfopt(
+    prices=data.get("Close"),
+    every="W"
+)
+
+pfo.plot().show()
+
+# %%
+pfo = vbt.PortfolioOptimizer.from_pypfopt(
+    prices=data.get("Close"),
+    every="W",
+    target=vbt.Param([
+        "max_sharpe",
+        "min_volatility",
+        "max_quadratic_utility"
+    ])
+)
+
+pfo.plot(column="min_volatility").show()
+
+# %%
+pf = pfo.simulate(data, freq="1h")
+
+pf.sharpe_ratio
+
+# %% [markdown]
+# #### Manually
+
+# %%
+def optimize_func(prices, index_slice, **kwargs):
+    period_prices = prices.iloc[index_slice]
+    return vbt.pypfopt_optimize(prices=period_prices, **kwargs)
+
+pfo = vbt.PortfolioOptimizer.from_optimize_func(
+    data.symbol_wrapper,
+    optimize_func,
+    prices=data.get("Close"),
+    index_slice=vbt.Rep("index_slice"),
+    every="W"
+)
+
+# %% [markdown]
+# ## Riskfolio-Lib
+
+# %%
+import riskfolio as rp
+
+returns = data.get("Close").vbt.to_returns()
+
+port = rp.Portfolio(returns=returns)
+port.assets_stats(
+    method_mu="hist",
+    method_cov="hist",
+    d=0.94
+)
+w = port.optimization(
+    model="Classic",
+    rm="MV",
+    obj="Sharpe",
+    rf=0,
+    l=0,
+    hist=True
+)
+w.T
+
+# %% [markdown]
+# ### Parsing
+
+# %%
+from vectorbtpro.utils.parsing import get_func_arg_names
+
+get_func_arg_names(port.assets_stats)
+
+# %%
+from vectorbtpro.portfolio.pfopt.base import resolve_riskfolio_func_kwargs
+
+resolve_riskfolio_func_kwargs(
+    port.assets_stats,
+    method_mu="hist",
+    method_cov="hist",
+    model="Classic"
+)
+
+# %%
+resolve_riskfolio_func_kwargs(
+    port.assets_stats,
+    method_mu="hist",
+    method_cov="hist",
+    model="Classic",
+    func_kwargs=dict(
+        assets_stats=dict(method_mu="ewma1"),
+        optimization=dict(model="BL")
+    )
+)
+
+# %% [markdown]
+# ### Auto-optimization
+
+# %%
+vbt.riskfolio_optimize(returns)
+
+# %%
+port = rp.Portfolio(returns=returns)
+port.assets_stats(
+    method_mu="hist",
+    method_cov="hist",
+    d=0.94
+)
+w = port.optimization(
+    model="Classic",
+    rm="UCI",
+    obj="Sharpe",
+    rf=0,
+    l=0,
+    hist=True
+)
+w.T
+
+# %%
+vbt.riskfolio_optimize(
+    returns,
+    method_mu="hist",
+    method_cov="hist",
+    d=0.94,
+    model="Classic",
+    rm="UCI",
+    obj="Sharpe",
+    rf=0,
+    l=0,
+    hist=True
+)
+
+# %%
+port = rp.Portfolio(returns=returns)
+port.assets_stats(
+    method_mu="hist",
+    method_cov="hist",
+    d=0.94
+)
+port.wc_stats(
+    box="s",
+    ellip="s",
+    q=0.05,
+    n_sim=3000,
+    window=3,
+    dmu=0.1,
+    dcov=0.1,
+    seed=0
+)
+w = port.wc_optimization(
+    obj="Sharpe",
+    rf=0,
+    l=0,
+    Umu="box",
+    Ucov="box"
+)
+w.T
+
+# %%
+vbt.riskfolio_optimize(
+    returns,
+    opt_method="wc",
+    method_mu="hist",
+    method_cov="hist",
+    box="s",
+    ellip="s",
+    q=0.05,
+    n_sim=3000,
+    window=3,
+    dmu=0.1,
+    dcov=0.1,
+    seed=0,
+    obj="Sharpe",
+    rf=0,
+    l=0,
+    Umu="box",
+    Ucov="box"
+)
+
+# %%
+vbt.riskfolio_optimize(
+    returns,
+    func_kwargs=dict(
+        assets_stats=dict(
+            opt_method="wc",
+            method_mu="hist",
+            method_cov="hist"
+        ),
+        wc_stats=dict(
+            box="s",
+            ellip="s",
+            q=0.05,
+            n_sim=3000,
+            window=3,
+            dmu=0.1,
+            dcov=0.1,
+            seed=0
+        ),
+        wc_optimization=dict(
+            obj="Sharpe",
+            rf=0,
+            l=0,
+            Umu="box",
+            Ucov="box"
+        )
+    )
+)
+
+# %%
+port = rp.Portfolio(returns=returns)
+port.sht = True
+port.uppersht = 0.3
+port.upperlng = 1.3
+port.budget = 1.0
+port.assets_stats(
+    method_mu="hist",
+    method_cov="hist",
+    d=0.94
+)
+w = port.optimization(
+    model="Classic",
+    rm="MV",
+    obj="Sharpe",
+    rf=0,
+    l=0,
+    hist=True
+)
+w.T
+
+# %%
+vbt.riskfolio_optimize(
+    returns,
+    sht=True,
+    uppersht=0.3,
+    upperlng=1.3,
+    budget=1.0,
+    method_mu="hist",
+    method_cov="hist",
+    d=0.94,
+    rm="MV",
+    obj="Sharpe",
+    rf=0,
+    l=0,
+    hist=True
+)
+
+# %%
+port = rp.Portfolio(returns=returns)
+port.assets_stats(
+    method_mu="hist",
+    method_cov="hist",
+    d=0.94
+)
+asset_classes = {"Assets": returns.columns.tolist()}
+asset_classes = pd.DataFrame(asset_classes)
+constraints = {
+    "Disabled": [False, False],
+    "Type": ["All Assets", "Assets"],
+    "Set": ["", ""],
+    "Position": ["", "BTCUSDT"],
+    "Sign": [">=", "<="],
+    'Weight': [0.1, 0.15],
+    "Type Relative": ["", ""],
+    "Relative Set": ["", ""],
+    "Relative": ["", ""],
+    "Factor": ["", ""],
+}
+constraints = pd.DataFrame(constraints)
+A, B = rp.assets_constraints(constraints, asset_classes)
+port.ainequality = A
+port.binequality = B
+w = port.optimization(
+    model="Classic",
+    rm="MV",
+    obj="Sharpe",
+    rf=0,
+    l=0,
+    hist=True
+)
+w.T
+
+# %%
+vbt.riskfolio_optimize(
+    returns,
+    method_mu="hist",
+    method_cov="hist",
+    constraints=[{
+        "Type": "All Assets",
+        "Sign": ">=",
+        "Weight": 0.1
+    }, {
+        "Type": "Assets",
+        "Position": "BTCUSDT",
+        "Sign": "<=",
+        "Weight": 0.15
+    }],
+    d=0.94,
+    rm="MV",
+    obj="Sharpe",
+    rf=0,
+    l=0,
+    hist=True
+)
+
+# %%
+tags = [
+    "Smart contracts",
+    "Smart contracts",
+    "Payments",
+    "Smart contracts",
+    "Payments"
+]
+
+# %%
+port = rp.Portfolio(returns=returns)
+port.assets_stats(
+    method_mu="hist",
+    method_cov="hist",
+    d=0.94
+)
+asset_classes = {
+    "Assets": returns.columns.tolist(),
+    "Tags": tags
+}
+asset_classes = pd.DataFrame(asset_classes)
+constraints = {
+    "Disabled": [False],
+    "Type": ["Classes"],
+    "Set": ["Tags"],
+    "Position": ["Smart contracts"],
+    "Sign": [">="],
+    'Weight': [0.8],
+    "Type Relative": [""],
+    "Relative Set": [""],
+    "Relative": [""],
+    "Factor": [""],
+}
+constraints = pd.DataFrame(constraints)
+A, B = rp.assets_constraints(constraints, asset_classes)
+port.ainequality = A
+port.binequality = B
+w = port.optimization(
+    model="Classic",
+    rm="MV",
+    obj="Sharpe",
+    rf=0,
+    l=0,
+    hist=True
+)
+w.T
+
+# %%
+vbt.riskfolio_optimize(
+    returns,
+    method_mu="hist",
+    method_cov="hist",
+    asset_classes={"Tags": tags},
+    constraints=[{
+        "Type": "Classes",
+        "Set": "Tags",
+        "Position": "Smart contracts",
+        "Sign": ">=",
+        "Weight": 0.8
+    }],
+    d=0.94,
+    rm="MV",
+    obj="Sharpe",
+    rf=0,
+    l=0,
+    hist=True
+)
+
+# %%
+port = rp.HCPortfolio(returns=returns)
+w = port.optimization(
+    model="NCO",
+    codependence="pearson",
+    covariance="hist",
+    obj="MinRisk",
+    rm="MV",
+    rf=0,
+    l=2,
+    linkage="ward",
+    max_k=10,
+    leaf_order=True
+)
+w.T
+
+# %%
+vbt.riskfolio_optimize(
+    returns,
+    port_cls="HCPortfolio",
+    model="NCO",
+    codependence="pearson",
+    covariance="hist",
+    obj="MinRisk",
+    rm="MV",
+    rf=0,
+    l=2,
+    linkage="ward",
+    max_k=10,
+    leaf_order=True
+)
+
+# %% [markdown]
+# ### Periodically
+
+# %%
+pfo = vbt.PortfolioOptimizer.from_riskfolio(
+    returns=returns,
+    every="W"
+)
+
+pfo.plot().show()
+
+# %%
+pfo = vbt.PortfolioOptimizer.from_riskfolio(
+    returns=returns,
+    constraints=[{
+        "Type": "Assets",
+        "Position": "BTCUSDT",
+        "Sign": "<=",
+        "Weight": vbt.Param([0.1, 0.2, 0.3], name="BTCUSDT_maxw")
+    }],
+    every="W",
+    param_search_kwargs=dict(incl_types=list)
+)
+
+# %%
+pfo.allocations.groupby("BTCUSDT_maxw").max()
+
+# %% [markdown]
+# ## Universal portfolios
+
+# %%
+from universal import tools, algos
+
+with vbt.WarningsFiltered():
+    algo = algos.CRP()
+    algo_result = algo.run(data.get("Close"))
+
+algo_result.weights
+
+# %%
+with vbt.WarningsFiltered():
+    algo = algos.DynamicCRP(
+        n=30,
+        min_history=7,
+        metric='sharpe',
+        alpha=0.01
+    )
+    algo_result = algo.run(data.get("Close").resample("D").last())
+    down_weights = algo_result.weights
+
+down_weights
+
+# %%
+weights = down_weights.vbt.realign(
+    data.wrapper.index,
+    freq="1h",
+    source_rbound=True,
+    target_rbound=True,
+    ffill=False
+)
+weights
+
+# %%
+with vbt.WarningsFiltered():
+    down_pfo = vbt.PortfolioOptimizer.from_universal_algo(
+        "DynamicCRP",
+        data.get("Close").resample("D").last(),
+        n=vbt.Param([7, 14, 30, 90]),
+        min_history=7,
+        metric='sharpe',
+        alpha=0.01
+    )
+
+down_pfo.plot(column=90).show()
+
+# %%
+resampler = vbt.Resampler(
+    down_pfo.wrapper.index,
+    data.wrapper.index,
+    target_freq="1h"
+)
+pfo = down_pfo.resample(resampler)
+
+# %%
+pf = pfo.simulate(data, freq="1h")
+
+pf.sharpe_ratio
+
+# %% [markdown]
+# ### Custom algorithm
+
+# %%
+from universal.algo import Algo
+
+class MeanReversion(Algo):
+    PRICE_TYPE = 'log'
+
+    def __init__(self, n):
+        self.n = n
+        super().__init__(min_history=n)
+
+    def init_weights(self, cols):
+        return pd.Series(np.zeros(len(cols)), cols)
+
+    def step(self, x, last_b, history):
+        ma = history.iloc[-self.n:].mean()
+        delta = x - ma
+        w = np.maximum(-delta, 0.)
+        return w / sum(w)
+
+with vbt.WarningsFiltered():
+    pfo = vbt.PortfolioOptimizer.from_universal_algo(
+        MeanReversion,
+        data.get("Close").resample("D").last(),
+        n=30,
+        every="W"
+    )
+
+pfo.plot().show()
+
+# %%

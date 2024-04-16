@@ -1,0 +1,266 @@
+# ################################## HOW TO USE #################################### #
+#                                                                                    #
+# This is a Jupyter notebook formatted as a script                                   #
+# Format: https://jupytext.readthedocs.io/en/latest/formats.html#the-percent-format  #
+#                                                                                    #
+# Save this file and remove the '.txt' extension                                     #
+# In Jupyter Lab, right click on the Python file -> Open With -> Jupytext Notebook   #
+# Make sure to have Jupytext installed: https://github.com/mwouts/jupytext           #
+#                                                                                    #
+# ################################################################################## #
+
+# %% [markdown]
+# #  Fundamentals
+# ## Stack
+
+# %%
+import numpy as np
+
+def rolling_window(a, window):
+    shape = a.shape[:-1] + (a.shape[-1] - window + 1, window)
+    strides = a.strides + (a.strides[-1],)
+    return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)
+
+np.mean(rolling_window(np.arange(10), 3), axis=1)
+
+# %%
+import pandas as pd
+
+index = pd.date_range('2020-01-01', '2020-01-10')
+sr = pd.Series(range(len(index)), index=index)
+sr.rolling(3).mean()
+
+# %%
+from numba import njit
+
+@njit
+def moving_average_nb(a, window_len):
+    b = np.empty_like(a, dtype=np.float_)
+    for i in range(len(a)):
+        window_start = max(0, i + 1 - window_len)
+        window_end = i + 1
+        if window_end - window_start < window_len:
+            b[i] = np.nan
+        else:
+            b[i] = np.mean(a[window_start:window_end])
+    return b
+
+moving_average_nb(np.arange(10), 3)
+
+# %%
+big_a = np.arange(1000000)
+%timeit moving_average_nb.py_func(big_a, 10)
+
+# %%
+%timeit np.mean(rolling_window(big_a, 10), axis=1)
+
+# %%
+%timeit pd.Series(big_a).rolling(10).mean()
+
+# %%
+%timeit moving_average_nb(big_a, 10)
+
+# %%
+arr = sr.values
+result = moving_average_nb(arr, 3)
+new_sr = pd.Series(result, index=sr.index, name=sr.name)
+new_sr
+
+# %%
+from vectorbtpro import *
+
+sr.vbt.rolling_mean(3)
+
+# %% [markdown]
+# ## Accessors
+
+# %%
+df = pd.DataFrame({'a': range(10), 'b': range(9, -1, -1)})
+df.vbt.rolling_mean(3)
+
+# %%
+ret = pd.Series([0.1, 0.2, -0.1])
+ret.vbt.returns.total()
+
+# %% [markdown]
+# ## Multidimensionality
+
+# %%
+p1 = pd.DataFrame({
+    'open': [1, 2, 3, 4, 5],
+    'high': [2.5, 3.5, 4.5, 5.5, 6.5],
+    'low': [0.5, 1.5, 2.5, 3.5, 4.5],
+    'close': [2, 3, 4, 5, 6]
+}, index=pd.date_range('2020-01-01', '2020-01-05'))
+p1
+
+# %%
+single_pf = vbt.Portfolio.from_holding(
+    open=p1['open'],
+    high=p1['high'],
+    low=p1['low'],
+    close=p1['close']
+)
+single_pf.value
+
+# %%
+p2 = pd.DataFrame({
+    'open': [6, 5, 4, 3, 2],
+    'high': [6.5, 5.5, 4.5, 3.5, 2.5],
+    'low': [4.5, 3.5, 2.5, 1.5, 0.5],
+    'close': [5, 4, 3, 2, 1]
+}, index=pd.date_range('2020-01-01', '2020-01-05'))
+p2
+
+# %%
+multi_open = pd.DataFrame({
+    'p1': p1['open'],
+    'p2': p2['open']
+})
+multi_high = pd.DataFrame({
+    'p1': p1['high'],
+    'p2': p2['high']
+})
+multi_low = pd.DataFrame({
+    'p1': p1['low'],
+    'p2': p2['low']
+})
+multi_close = pd.DataFrame({
+    'p1': p1['close'],
+    'p2': p2['close']
+})
+
+multi_pf = vbt.Portfolio.from_holding(
+    open=multi_open,
+    high=multi_high,
+    low=multi_low,
+    close=multi_close
+)
+multi_pf.value
+
+# %%
+candle_green = multi_close > multi_open
+prev_candle_green = candle_green.vbt.signals.fshift(1)
+prev_candle_green
+
+# %%
+candle_red = multi_close < multi_open
+prev_candle_red = candle_red.vbt.signals.fshift(1)
+prev_candle_red
+
+# %% [markdown]
+# ## Labels
+
+# %%
+macd = vbt.MACD.run(
+    multi_close,
+    fast_window=2,
+    slow_window=(3, 4),
+    signal_window=2,
+    macd_wtype="simple",
+    signal_wtype="weighted"
+)
+macd.signal
+
+# %% [markdown]
+# ## Broadcasting
+
+# %%
+part_arrays = dict(
+    close=pd.DataFrame({
+        'a': [1, 2, 3, 4],
+        'b': [4, 3, 2, 1]
+    }),
+    size=pd.Series([1, -1, 1, -1]),
+    direction=[['longonly', 'shortonly']],
+    fees=0.01
+)
+full_arrays = vbt.broadcast(part_arrays)
+
+full_arrays['close']
+
+# %%
+full_arrays['size']
+
+# %%
+full_arrays['direction']
+
+# %%
+full_arrays['fees']
+
+# %%
+fast_ma = vbt.MA.run(multi_close, window=[2, 3], short_name='fast')
+slow_ma = vbt.MA.run(multi_close, window=[3, 4], short_name='slow')
+
+fast_ma.ma
+
+# %%
+slow_ma.ma
+
+# %%
+fast_ma.ma > slow_ma.ma
+
+# %%
+fast_ma.ma.values > slow_ma.ma.values
+
+# %%
+fast_ma.ma.vbt > slow_ma.ma
+
+# %%
+df1 = pd.DataFrame({'a': [0], 'b': [1]})
+df2 = pd.DataFrame({'b': [0], 'a': [1]})
+df1 + df2
+
+# %%
+df1.values + df2.values
+
+# %%
+df1.vbt + df2
+
+# %%
+fast_ma.ma > multi_close
+
+# %%
+fast_ma.ma.values > multi_close.values
+
+# %%
+fast_ma.ma.vbt > multi_close
+
+# %%
+above_lower = multi_close.vbt > vbt.Param([1, 2], name='lower')
+below_upper = multi_close.vbt < vbt.Param([3, 4], name='upper')
+above_lower.vbt & below_upper
+
+# %% [markdown]
+# ## Flexible indexing
+
+# %%
+a = np.array([1])
+
+vbt.flex_select_1d_nb(a, 0)
+
+# %%
+vbt.flex_select_1d_nb(a, 1)
+
+# %%
+vbt.flex_select_1d_nb(a, 2)
+
+# %%
+full_a = np.broadcast_to(a, (1000,))
+
+full_a[2]
+
+# %%
+a = np.array([[0]])
+b = np.array([[1, 2, 3]])
+c = np.array([[4], [5], [6]])
+
+vbt.flex_select_nb(a, 2, 1)
+
+# %%
+vbt.flex_select_nb(b, 2, 1)
+
+# %%
+vbt.flex_select_nb(c, 2, 1)
+
+# %%

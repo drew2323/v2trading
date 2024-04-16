@@ -1,0 +1,120 @@
+[data-md-color-scheme="custom-light"] {
+    --md-hue: 225;
+
+    --md-default-fg-color: #000000de;
+    --md-default-fg-color--light: #0000008a;
+    --md-default-fg-color--lighter: #00000052;
+    --md-default-fg-color--lightest: #00000012;
+    --md-default-bg-color: #fff;
+    --md-default-bg-color--light: #ffffffb3;
+    --md-default-bg-color--lighter: #ffffff4d;
+    --md-default-bg-color--lightest: #ffffff1f;
+    --md-code-fg-color: #36464e;
+    --md-code-bg-color: #f3f4f5;
+    --md-code-bg-color--light: #f3f4f5b3;
+    --md-code-bg-color--lighter: #f3f4f54d;
+    --md-code-hl-color: #4287ff;
+    --md-code-hl-color--light: #4287ff1a;
+    --md-code-hl-number-color: #d52a2a;
+    --md-code-hl-special-color: #db1457;
+    --md-code-hl-function-color: #a846b9;
+    --md-code-hl-constant-color: #6e59d9;
+    --md-code-hl-keyword-color: #3f6ec6;
+    --md-code-hl-string-color: #1c7d4d;
+    --md-code-hl-name-color: var(--md-code-fg-color);
+    --md-code-hl-operator-color: var(--md-default-fg-color--light);
+    --md-code-hl-punctuation-color: var(--md-default-fg-color--light);
+    --md-code-hl-comment-color: var(--md-default-fg-color--light);
+    --md-code-hl-generic-color: var(--md-default-fg-color--light);
+    --md-code-hl-variable-color: var(--md-default-fg-color--light);
+    --md-typeset-color: var(--md-default-fg-color);
+    --md-typeset-a-color: var(--md-primary-fg-color);
+    --md-typeset-del-color: #f5503d26;
+    --md-typeset-ins-color: #0bd57026;
+    --md-typeset-kbd-color: #fafafa;
+    --md-typeset-kbd-accent-color: #fff;
+    --md-typeset-kbd-border-color: #b8b8b8;
+    --md-typeset-mark-color: #ffff0080;
+    --md-typeset-table-color: #0000001f;
+    --md-typeset-table-color--light: rgba(0,0,0,.035);
+    --md-admonition-fg-color: var(--md-default-fg-color);
+    --md-admonition-bg-color: var(--md-default-bg-color);
+    --md-warning-fg-color: #000000de;
+    --md-warning-bg-color: #ff9;
+    --md-footer-fg-color: #fff;
+    --md-footer-fg-color--light: #ffffffb3;
+    --md-footer-fg-color--lighter: #ffffff73;
+    --md-footer-bg-color: #000000de;
+    --md-footer-bg-color--dark: #00000052;
+    --md-shadow-z1: 0 0.2rem 0.5rem #0000000d,0 0 0.05rem #0000001a;
+    --md-shadow-z2: 0 0.2rem 0.5rem #0000001a,0 0 0.05rem #00000040;
+    --md-shadow-z3: 0 0.2rem 0.5rem #0003,0 0 0.05rem #00000059;
+}
+
+[data-md-color-primary="custom-light"] {
+    --md-primary-hue: 250;
+
+    --md-primary-fg-color: hsla(var(--md-primary-hue),0%,100%,1);
+    --md-primary-fg-color--light: hsla(var(--md-primary-hue),0%,100%,0.7);
+    --md-primary-fg-color--dark: hsla(var(--md-primary-hue),0%,0%,0.07);
+    --md-primary-bg-color: hsla(var(--md-primary-hue),0%,0%,0.87);
+    --md-primary-bg-color--light: hsla(var(--md-primary-hue),0%,0%,0.54);
+
+    --md-typeset-a-color: #4051b5;
+}
+
+[data-md-color-accent="custom-light"] {
+    --md-accent-fg-color: #4287ff;
+    --md-accent-fg-color--transparent: #4287ff1a;
+    --md-accent-bg-color: #fff;
+    --md-accent-bg-color--light: #ffffffb3;
+}
+
+[data-md-color-primary="custom-light"] .md-button {
+    color: var(--md-typeset-a-color)
+}
+
+[data-md-color-primary="custom-light"] .md-button--primary {
+    background-color: var(--md-typeset-a-color);
+    border-color: var(--md-typeset-a-color);
+    color: hsla(var(--md-hue),0%,100%,1)
+}
+
+@media screen and (min-width: 60em) {
+    [data-md-color-primary="custom-light"] .md-search__form {
+        background-color:hsla(var(--md-hue),0%,0%,.07)
+    }
+
+    [data-md-color-primary="custom-light"] .md-search__form:hover {
+        background-color: hsla(var(--md-hue),0%,0%,.32)
+    }
+
+    [data-md-color-primary="custom-light"] .md-search__input+.md-search__icon {
+        color: hsla(var(--md-hue),0%,0%,.87)
+    }
+}
+
+@media screen and (min-width: 76.25em) {
+    [data-md-color-primary="custom-light"] .md-tabs {
+        border-bottom:.05rem solid #00000012
+    }
+}
+
+[data-md-color-primary="custom-light"] .logo {
+    -webkit-filter: invert(100%); /* safari 6.0 - 9.0 */
+    filter: invert(100%);
+}
+
+[data-md-color-scheme="custom-light"] img[src$="#only-dark"],
+[data-md-color-scheme="custom-light"] img[src$="#gh-dark-mode-only"] {
+    display: none; /* Hide dark images in light mode */
+}
+
+[data-md-color-scheme="custom-light"] .only-dark {
+    display: none; /* Hide dark elements in light mode */
+}
+
+[data-md-color-scheme="custom-light"] {
+    --md-progress: #546d78;
+    --md-progress-stripe: rgba(0, 0, 0, 0.2);
+}

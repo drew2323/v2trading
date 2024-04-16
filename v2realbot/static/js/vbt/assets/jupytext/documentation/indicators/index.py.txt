@@ -1,0 +1,246 @@
+# ################################## HOW TO USE #################################### #
+#                                                                                    #
+# This is a Jupyter notebook formatted as a script                                   #
+# Format: https://jupytext.readthedocs.io/en/latest/formats.html#the-percent-format  #
+#                                                                                    #
+# Save this file and remove the '.txt' extension                                     #
+# In Jupyter Lab, right click on the Python file -> Open With -> Jupytext Notebook   #
+# Make sure to have Jupytext installed: https://github.com/mwouts/jupytext           #
+#                                                                                    #
+# ################################################################################## #
+
+# %% [markdown]
+# #  Indicators
+# ## Pipeline
+
+# %%
+from vectorbtpro import *
+
+def mov_avg_crossover(ts1, ts2, w1, w2):
+    ts1, ts2 = vbt.broadcast(ts1, ts2)
+
+    w1, w2 = vbt.broadcast(
+        vbt.to_1d_array(w1),
+        vbt.to_1d_array(w2))
+
+    ts1_mas = []
+    for w in w1:
+        ts1_mas.append(ts1.vbt.rolling_mean(w) / ts1)
+    ts2_mas = []
+    for w in w2:
+        ts2_mas.append(ts2.vbt.rolling_mean(w) / ts2)
+
+    ts1_ma = pd.concat(ts1_mas, axis=1)
+    ts2_ma = pd.concat(ts2_mas, axis=1)
+
+    ts1_ma.columns = vbt.combine_indexes((
+        pd.Index(w1, name="ts1_window"),
+        ts1.columns))
+    ts2_ma.columns = vbt.combine_indexes((
+        pd.Index(w2, name="ts2_window"),
+        ts2.columns))
+
+    return ts1_ma.vbt - ts2_ma
+
+def generate_index(n):
+    return pd.date_range("2020-01-01", periods=n)
+
+ts1 = pd.Series([1, 2, 3, 4, 5, 6, 7], index=generate_index(7))
+ts2 = pd.DataFrame({
+    'a': [5, 4, 3, 2, 3, 4, 5],
+    'b': [2, 3, 4, 5, 4, 3, 2]
+}, index=generate_index(7))
+w1 = 2
+w2 = [3, 4]
+
+mov_avg_crossover(ts1, ts2, w1, w2)
+
+# %%
+def custom_func(ts1, ts2, w1, w2):
+    ts1_mas = []
+    for w in w1:
+        ts1_mas.append(vbt.nb.rolling_mean_nb(ts1, w) / ts1)
+    ts2_mas = []
+    for w in w2:
+        ts2_mas.append(vbt.nb.rolling_mean_nb(ts2, w) / ts2)
+
+    ts1_ma = np.column_stack(ts1_mas)
+    ts2_ma = np.column_stack(ts2_mas)
+
+    return ts1_ma - ts2_ma
+
+outputs = vbt.IndicatorBase.run_pipeline(
+    num_ret_outputs=1,
+    custom_func=custom_func,
+    inputs=dict(ts1=ts1, ts2=ts2),
+    params=dict(w1=w1, w2=w2)
+)
+outputs
+
+# %% [markdown]
+# ## Factory
+
+# %%
+MADiff = vbt.IF(
+    class_name='MADiff',
+    input_names=['ts1', 'ts2'],
+    param_names=['w1', 'w2'],
+    output_names=['diff'],
+).with_custom_func(custom_func)
+
+madiff = MADiff.run(ts1, ts2, w1, w2)
+madiff.diff
+
+# %%
+madiff.diff_stats(column=(2, 3, 'a'))
+
+# %% [markdown]
+# ### Workflow
+
+# %%
+MADiff_factory = vbt.IF(
+    class_name='MADiff',
+    input_names=['ts1', 'ts2'],
+    param_names=['w1', 'w2'],
+    output_names=['diff'],
+)
+MADiff_factory.Indicator
+
+# %%
+MADiff_factory.Indicator.run()
+
+# %%
+MADiff = MADiff_factory.with_custom_func(custom_func)
+MADiff
+
+# %% [markdown]
+# ## Factory methods
+# ### From custom function
+# ### From apply function
+
+# %%
+def apply_func(ts1, ts2, w1, w2):
+    ts1_ma = vbt.nb.rolling_mean_nb(ts1, w1) / ts1
+    ts2_ma = vbt.nb.rolling_mean_nb(ts2, w2) / ts2
+    return ts1_ma - ts2_ma
+
+MADiff = vbt.IF(
+    class_name='MADiff',
+    input_names=['ts1', 'ts2'],
+    param_names=['w1', 'w2'],
+    output_names=['diff'],
+).with_apply_func(apply_func)
+
+madiff = MADiff.run(ts1, ts2, w1, w2)
+madiff.diff
+
+# %%
+RollCov = vbt.IF(
+    class_name='RollCov',
+    input_names=['ts1', 'ts2'],
+    param_names=['w'],
+    output_names=['rollcov'],
+).with_apply_func(vbt.nb.rolling_cov_nb)
+
+rollcov = RollCov.run(ts1, ts2, [2, 3])
+rollcov.rollcov
+
+# %% [markdown]
+# #### Custom iteration
+
+# %%
+from vectorbtpro.base.combining import apply_and_concat
+
+def apply_func(i, ts1, ts2, w):
+    return vbt.nb.rolling_cov_nb(ts1, ts2, w[i])
+
+def custom_func(ts1, ts2, w):
+    return apply_and_concat(len(w), apply_func, ts1, ts2, w)
+
+RollCov = vbt.IF(
+    class_name='RollCov',
+    input_names=['ts1', 'ts2'],
+    param_names=['w'],
+    output_names=['rollcov'],
+).with_custom_func(custom_func)
+
+# %%
+RollCov = vbt.IF(
+    class_name='RollCov',
+    input_names=['ts1', 'ts2'],
+    param_names=['w'],
+    output_names=['rollcov'],
+).with_apply_func(apply_func, select_params=False)
+
+# %% [markdown]
+# #### Execution
+
+# %%
+RollCov = vbt.IF(
+    class_name='RollCov',
+    input_names=['ts1', 'ts2'],
+    param_names=['w'],
+    output_names=['rollcov'],
+).with_apply_func(vbt.nb.rolling_cov_nb)
+
+RollCov.run(
+    ts1, ts2, np.full(100, 2),
+    execute_kwargs=dict(show_progress=True)
+)
+
+# %% [markdown]
+# #### Numba
+# #### Debugging
+
+# %%
+def apply_func(*args, **kwargs):
+    for i, arg in enumerate(args):
+        print("arg {}: {}".format(i, type(arg)))
+    for k, v in kwargs.items():
+        print("kwarg {}: {}".format(k, type(v)))
+    raise NotImplementedError
+
+RollCov = vbt.IF(
+    class_name='RollCov',
+    input_names=['ts1', 'ts2'],
+    param_names=['w'],
+    output_names=['rollcov'],
+).with_apply_func(apply_func, select_params=False)
+
+try:
+    RollCov.run(ts1, ts2, [2, 3], some_arg="some_value")
+except:
+    pass
+
+# %% [markdown]
+# ### From parsing
+
+# %%
+MADiff = vbt.IF.from_expr(
+    "rolling_mean(@in_ts1, @p_w1) / @in_ts1 - rolling_mean(@in_ts2, @p_w2) / @in_ts2",
+    factory_kwargs=dict(class_name="MADiff")
+)
+madiff = MADiff.run(ts1, ts2, w1, w2)
+madiff.out
+
+# %% [markdown]
+# ## Run methods
+
+# %%
+vbt.phelp(MADiff.run)
+
+# %%
+ts = pd.Series([3, 2, 1, 2, 3])
+fast_ma, slow_ma = vbt.MA.run_combs(
+    ts, [2, 3, 4],
+    short_names=['fast_ma', 'slow_ma'])
+fast_ma.ma_crossed_above(slow_ma)
+
+# %%
+windows = [2, 3, 4]
+fast_windows, slow_windows = zip(*combinations(windows, 2))
+fast_ma = vbt.MA.run(ts, fast_windows, short_name='fast_ma')
+slow_ma = vbt.MA.run(ts, slow_windows, short_name='slow_ma')
+fast_ma.ma_crossed_above(slow_ma)
+
+# %%

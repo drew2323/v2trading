@@ -1,0 +1,316 @@
+# ################################## HOW TO USE #################################### #
+#                                                                                    #
+# This is a Jupyter notebook formatted as a script                                   #
+# Format: https://jupytext.readthedocs.io/en/latest/formats.html#the-percent-format  #
+#                                                                                    #
+# Save this file and remove the '.txt' extension                                     #
+# In Jupyter Lab, right click on the Python file -> Open With -> Jupytext Notebook   #
+# Make sure to have Jupytext installed: https://github.com/mwouts/jupytext           #
+#                                                                                    #
+# ################################################################################## #
+
+# %% [markdown]
+# #  Data
+# ## Databento
+
+# %%
+vbt.BentoData.set_custom_settings(
+    client_config=dict(
+        key="YOUR_KEY"
+    )
+)
+params = dict(
+    symbols="ESH3",
+    dataset="GLBX.MDP3",
+    start=pd.Timestamp("2022-10-28 20:30:00"),
+    end=pd.Timestamp("2022-10-28 21:00:00"),
+    schema="tbbo"
+)
+vbt.BentoData.get_cost(**params)
+
+# %%
+data = vbt.BentoData.pull(**params)
+data.get()
+
+# %% [markdown]
+# ## SQL queries
+
+# %%
+data = vbt.TVData.pull(
+    "AAPL",
+    exchange="NASDAQ",
+    timeframe="1 minute",
+    tz="America/New_York"
+)
+
+data.sql("""
+    SELECT datetime, AVG(Close) OVER(
+        ORDER BY "datetime" ASC
+        RANGE BETWEEN INTERVAL 14 DAYS PRECEDING AND CURRENT ROW
+    ) AS "Moving Average"
+    FROM "AAPL";
+""")
+
+# %% [markdown]
+# ## DuckDB
+
+# %%
+data = vbt.TVData.pull(
+    "AAPL",
+    exchange="NASDAQ",
+    timeframe="1 minute",
+    tz="America/New_York"
+)
+
+URL = "database.duckdb"
+data.to_duckdb(connection=URL)
+
+day_data = vbt.DuckDBData.pull(
+    "AAPL",
+    start="2023-10-02 09:30:00",
+    end="2023-10-02 16:00:00",
+    tz="America/New_York",
+    connection=URL
+)
+day_data.get()
+
+# %% [markdown]
+# ## SQLAlchemy
+
+# %%
+data = vbt.TVData.pull(
+    "AAPL",
+    exchange="NASDAQ",
+    timeframe="1 minute",
+    tz="America/New_York"
+)
+
+URL = "postgresql://postgres:postgres@localhost:5432"
+data.to_sql(engine=URL)
+
+day_data = vbt.SQLData.pull(
+    "AAPL",
+    start="2023-10-02 09:30:00",
+    end="2023-10-02 16:00:00",
+    tz="America/New_York",
+    engine=URL
+)
+day_data.get()
+
+# %% [markdown]
+# ## PyArrow & FastParquet
+
+# %%
+data = vbt.TVData.pull(
+    "AAPL",
+    exchange="NASDAQ",
+    timeframe="1 minute",
+    tz="America/New_York"
+)
+
+data.to_parquet(partition_by="day")
+
+day_data = vbt.ParquetData.pull("AAPL", filters=[("group", "==", "2023-10-02")])
+day_data.get()
+
+# %% [markdown]
+# ## Feature-oriented data
+
+# %%
+data = vbt.YFData.pull(["AAPL", "MSFT", "GOOG"])
+pf = data.run("from_random_signals", n=[10, 20, 30])
+
+pf_data = vbt.Data.from_data(
+    vbt.feature_dict({
+        "cash": pf.cash,
+        "assets": pf.assets,
+        "asset_value": pf.asset_value,
+        "value": pf.value
+    })
+)
+pf_data.get(feature="cash", symbol=(10, "AAPL"))
+
+# %% [markdown]
+# ## Parallel data
+
+# %%
+symbols = ["SPY", "TLT", "XLF", "XLE", "XLU", "XLK", "XLB", "XLP", "XLY", "XLI", "XLV"]
+
+with vbt.Timer() as timer:
+    data = vbt.YFData.pull(symbols)
+print(timer.elapsed())
+
+# %%
+with vbt.Timer() as timer:
+    data = vbt.YFData.pull(symbols, execute_kwargs=dict(engine="threadpool"))
+print(timer.elapsed())
+
+# %% [markdown]
+# ## Trading View
+
+# %%
+data = vbt.TVData.pull(
+    "NASDAQ:AAPL",
+    timeframe="1 minute",
+    tz="US/Eastern"
+)
+data.get()
+
+# %% [markdown]
+# ## Symbol search
+
+# %%
+vbt.BinanceData.list_symbols("XRP*")
+
+# %% [markdown]
+# ## Symbol classes
+
+# %%
+classes = vbt.symbol_dict({
+    "MSFT": dict(sector="Technology"),
+    "GOOGL": dict(sector="Technology"),
+    "META": dict(sector="Technology"),
+    "JPM": dict(sector="Finance"),
+    "BAC": dict(sector="Finance"),
+    "WFC": dict(sector="Finance"),
+    "AMZN": dict(sector="Retail"),
+    "WMT": dict(sector="Retail"),
+    "BABA": dict(sector="Retail"),
+})
+data = vbt.YFData.pull(
+    list(classes.keys()),
+    classes=classes,
+    missing_index="drop"
+)
+pf = vbt.PF.from_orders(
+    data,
+    size=vbt.index_dict({0: 1 / 3}),
+    size_type="targetpercent",
+    group_by="sector",
+    cash_sharing=True
+)
+pf.value.vbt.plot().show()
+
+# %% [markdown]
+# ## Runnable data
+
+# %%
+data = vbt.YFData.pull("BTC-USD")
+stochrsi = data.run("stochrsi")
+stochrsi.fastd
+
+# %% [markdown]
+# ## Data transformation
+
+# %%
+data = vbt.YFData.pull(["BTC-USD", "ETH-USD"], start="2020-01", end="2020-14")
+new_data = data.transform(lambda df: df[~df.index.weekday.isin([5, 6])])
+new_data.close
+
+# %% [markdown]
+# ## Synthetic OHLC
+
+# %%
+data = vbt.GBMOHLCData.pull("R", start="2022-01", end="2022-04")
+data.plot().show()
+
+# %% [markdown]
+# ## Data saver
+
+# %% [markdown]
+# ## Polygon.io
+
+# %%
+vbt.PolygonData.set_custom_settings(
+    client_config=dict(
+        api_key="YOUR_API_KEY"
+    )
+)
+data = vbt.PolygonData.pull(
+    "AAPL",
+    start="2022-12-01",
+    end="2023-01-01",
+    timeframe="30 minutes",
+    tz="US/Eastern"
+)
+data.get()
+
+# %% [markdown]
+# ## Alpha Vantage
+
+# %%
+data = vbt.AVData.pull(
+    "IBM",
+    category="technical-indicators",
+    function="STOCHRSI",
+    params=dict(fastkperiod=14)
+)
+data.get()
+
+# %% [markdown]
+# ## Nasdaq Data Link
+
+# %%
+data = vbt.NDLData.pull("UMICH/SOC1")
+data.get()
+
+# %% [markdown]
+# ## Data merging
+
+# %%
+binance_data = vbt.CCXTData.pull("BTCUSDT", exchange="binance")
+bybit_data = vbt.CCXTData.pull("BTCUSDT", exchange="bybit")
+bitfinex_data = vbt.CCXTData.pull("BTC/USDT", exchange="bitfinex")
+kucoin_data = vbt.CCXTData.pull("BTC-USDT", exchange="kucoin")
+
+data = vbt.Data.merge([
+    binance_data.rename({"BTCUSDT": "Binance"}),
+    bybit_data.rename({"BTCUSDT": "Bybit"}),
+    bitfinex_data.rename({"BTC/USDT": "Bitfinex"}),
+    kucoin_data.rename({"BTC-USDT": "KuCoin"}),
+], missing_index="drop", silence_warnings=True)
+
+@njit
+def rescale_nb(x):
+    return (x - x.mean()) / x.mean()
+
+rescaled_close = data.close.vbt.row_apply(rescale_nb)
+rescaled_close = rescaled_close.vbt.rolling_mean(30)
+rescaled_close.loc["2023":"2023"].vbt.plot().show()
+
+# %% [markdown]
+# ## Alpaca
+
+# %%
+vbt.AlpacaData.set_custom_settings(
+    client_config=dict(
+        api_key="YOUR_API_KEY",
+        secret_key="YOUR_API_SECRET"
+    )
+)
+data = vbt.AlpacaData.pull(
+    "AAPL",
+    start="one week ago 00:00",
+    end="15 minutes ago",
+    timeframe="1 minute",
+    adjustment="all",
+    tz="US/Eastern"
+)
+data.get()
+
+# %% [markdown]
+# ## Local data
+
+# %%
+btc_data = vbt.BinanceData.pull("BTCUSDT")
+eth_data = vbt.BinanceData.pull("ETHUSDT")
+
+btc_data.to_hdf()
+eth_data.to_hdf()
+
+data = vbt.BinanceData.from_hdf(start="2020", end="2021")
+
+# %%
+data.close
+
+# %%

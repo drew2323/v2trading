@@ -1,0 +1,203 @@
+# ################################## HOW TO USE #################################### #
+#                                                                                    #
+# This is a Jupyter notebook formatted as a script                                   #
+# Format: https://jupytext.readthedocs.io/en/latest/formats.html#the-percent-format  #
+#                                                                                    #
+# Save this file and remove the '.txt' extension                                     #
+# In Jupyter Lab, right click on the Python file -> Open With -> Jupytext Notebook   #
+# Make sure to have Jupytext installed: https://github.com/mwouts/jupytext           #
+#                                                                                    #
+# ################################################################################## #
+
+# %% [markdown]
+# #  Pre-analysis
+# ## Ranking
+
+# %%
+@njit
+def rank_func_nb(c):
+    if c.sig_in_part_cnt == 1:
+        return 1
+    return 0
+
+sample_mask = pd.Series([True, True, False, True, True])
+ranked = sample_mask.vbt.signals.rank(rank_func_nb)
+ranked
+
+# %%
+ranked == 1
+
+# %%
+ranked = sample_mask.vbt.signals.rank(
+    rank_func_nb,
+    after_false=True
+)
+ranked == 1
+
+# %%
+sample_entries = pd.Series([True, True, True, True, True])
+sample_exits = pd.Series([False, False, True, False, False])
+ranked = sample_entries.vbt.signals.rank(
+    rank_func_nb,
+    reset_by=sample_exits
+)
+ranked == 1
+
+# %%
+ranked = sample_entries.vbt.signals.rank(
+    rank_func_nb,
+    reset_by=sample_exits,
+    after_reset=True
+)
+ranked == 1
+
+# %% [markdown]
+# ### Preset rankers
+
+# %%
+sample_mask = pd.Series([True, True, False, True, True])
+ranked = sample_mask.vbt.signals.pos_rank()
+ranked
+
+# %%
+ranked == 1
+
+# %%
+ranked = sample_mask.vbt.signals.pos_rank(allow_gaps=True)
+ranked
+
+# %%
+(ranked > -1) & (ranked % 2 == 1)
+
+# %%
+ranked = sample_mask.vbt.signals.partition_pos_rank(allow_gaps=True)
+ranked
+
+# %%
+ranked == 1
+
+# %%
+entry_cond1 = data.get("Low") < bb.lowerband
+entry_cond2 = bandwidth > 0.3
+entry_cond3 = data.get("High") > bb.upperband
+entry_cond4 = bandwidth < 0.15
+entries = (entry_cond1 & entry_cond2) | (entry_cond3 & entry_cond4)
+
+entries.vbt.signals.from_nth(0).sum()
+
+# %%
+entries.vbt.signals.from_nth(1).sum()
+
+# %%
+entries.vbt.signals.from_nth(2).sum()
+
+# %%
+exit_cond1 = data.get("High") > bb.upperband
+exit_cond2 = bandwidth > 0.3
+exit_cond3 = data.get("Low") < bb.lowerband
+exit_cond4 = bandwidth < 0.15
+exits = (exit_cond1 & exit_cond2) | (exit_cond3 & exit_cond4)
+
+# %%
+exits.vbt.signals.pos_rank_after(entries, reset_wait=0).max() + 1
+
+# %%
+entries.vbt.signals.pos_rank_after(exits).max() + 1
+
+# %%
+ranked = exits.vbt.signals.pos_rank_after(entries, reset_wait=0)
+highest_ranked = ranked == ranked.max()
+ranked[highest_ranked.any(axis=1)]
+
+# %%
+exits_after = exits.vbt.signals.from_nth_after(0, entries, reset_wait=0)
+(exits ^ exits_after).sum()
+
+# %% [markdown]
+# ### Mapped ranks
+
+# %%
+mask = bandwidth.vbt > vbt.Param(np.arange(1, 10) / 10, name="bw_th")
+mapped_ranks = mask.vbt.signals.pos_rank(as_mapped=True)
+mapped_ranks.max(group_by=vbt.ExceptLevel("symbol"))
+
+# %% [markdown]
+# ## Cleaning
+
+# %%
+new_exits = exits.vbt.signals.first_after(entries, reset_wait=0)
+new_entries = entries.vbt.signals.first_after(exits)
+
+# %%
+symbol = "ETHUSDT"
+fig = data.plot(
+    symbol=symbol,
+    ohlc_trace_kwargs=dict(opacity=0.5),
+    plot_volume=False
+)
+entries[symbol].vbt.signals.plot_as_entries(
+    y=data.get("Close", symbol), fig=fig)
+exits[symbol].vbt.signals.plot_as_exits(
+    y=data.get("Close", symbol), fig=fig)
+new_entries[symbol].vbt.signals.plot_as_entry_marks(
+    y=data.get("Close", symbol), fig=fig,
+    trace_kwargs=dict(name="New entries"))
+new_exits[symbol].vbt.signals.plot_as_exit_marks(
+    y=data.get("Close", symbol), fig=fig,
+    trace_kwargs=dict(name="New exits"))
+fig.show()
+
+# %%
+new_entries, new_exits = entries.vbt.signals.clean(exits)
+
+# %% [markdown]
+# ## Duration
+
+# %%
+ranges = entries.vbt.signals.between_ranges()
+ranges.records
+
+# %%
+ranges.start_idx.min(wrap_kwargs=dict(to_index=True))
+
+# %%
+ranges.duration.describe(wrap_kwargs=dict(to_timedelta=True))
+
+# %%
+ranges = entries.vbt.signals.between_ranges(target=exits)
+ranges.avg_duration
+
+# %%
+new_ranges = new_entries.vbt.signals.between_ranges(target=new_exits)
+new_ranges.avg_duration
+
+# %%
+ranges = entries.vbt.signals.between_ranges(target=exits, relation="manyone")
+ranges.avg_duration
+
+# %%
+new_ranges = new_entries.vbt.signals.between_ranges(target=new_exits, relation="manyone")
+new_ranges.avg_duration
+
+# %%
+ranges = entries.vbt.signals.partition_ranges()
+ranges.duration.describe()
+
+# %%
+new_ranges = new_entries.vbt.signals.partition_ranges()
+new_ranges.duration.describe()
+
+# %%
+ranges = entries.vbt.signals.between_partition_ranges()
+ranges.duration.describe(wrap_kwargs=dict(to_timedelta=True))
+
+# %% [markdown]
+# ## Overview
+
+# %%
+entries.vbt.signals.stats(column="BTCUSDT")
+
+# %%
+entries.vbt.signals.stats(column="BTCUSDT", settings=dict(target=exits))
+
+# %%

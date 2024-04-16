@@ -1,0 +1,398 @@
+# ################################## HOW TO USE #################################### #
+#                                                                                    #
+# This is a Jupyter notebook formatted as a script                                   #
+# Format: https://jupytext.readthedocs.io/en/latest/formats.html#the-percent-format  #
+#                                                                                    #
+# Save this file and remove the '.txt' extension                                     #
+# In Jupyter Lab, right click on the Python file -> Open With -> Jupytext Notebook   #
+# Make sure to have Jupytext installed: https://github.com/mwouts/jupytext           #
+#                                                                                    #
+# ################################################################################## #
+
+# %% [markdown]
+# #  Alignment
+# ## Pandas
+
+# %%
+h1_close = h1_data.get("Close")
+h4_close = h4_data.get("Close")
+
+h1_close.iloc[:4]
+
+# %%
+h4_close.iloc[:1]
+
+# %%
+h1_h4_ratio = h1_close / h4_close
+h1_h4_ratio.iloc[:4]
+
+# %%
+h4_close_shifted = h4_close.shift()
+h1_h4_ratio = h1_close / h4_close_shifted
+h1_h4_ratio.iloc[:8]
+
+# %%
+h1_h4_ratio.shift(-1).iloc[:8]
+
+# %%
+h4_h1_close = h4_close.shift(1).resample("1h").last().shift(-1).ffill()
+h4_h1_close.iloc[:8]
+
+# %%
+fig = h1_close.rename("H1").iloc[:16].vbt.plot()
+h4_h1_close.rename("H4_H1").iloc[:16].vbt.plot(fig=fig)
+fig.show()
+
+# %%
+h1_h4_ratio = h1_close / h4_h1_close
+h1_h4_ratio
+
+# %%
+h1_open = h1_data.get("Open")
+h4_open  = h4_data.get("Open")
+
+h1_open.iloc[:8]
+
+# %%
+h4_h1_open = h4_open.resample("1h").first().ffill()
+h4_h1_open.iloc[:8]
+
+# %% [markdown]
+# ## VBT
+
+# %%
+h4_close.vbt.realign_closing("1h")
+
+# %%
+h4_open.vbt.realign_opening("1h")
+
+# %% [markdown]
+# ### Resampler
+
+# %%
+h4_h1_resampler = h4_close.vbt.wrapper.get_resampler("1h")
+h4_h1_resampler.source_index
+
+# %%
+h4_h1_resampler.target_index
+
+# %%
+h4_h1_resampler.source_freq
+
+# %%
+h4_h1_resampler.target_freq
+
+# %%
+pd_resampler = h4_close.resample("1h")
+vbt.Resampler.from_pd_resampler(pd_resampler, source_freq="4h")
+
+# %%
+resampler = vbt.Resampler.from_date_range(
+    source_index=h4_close.index,
+    source_freq="4h",
+    start="2020-01-01 10:00:00",
+    end="2020-01-01 22:00:00",
+    freq="1h",
+)
+
+# %%
+h4_close.vbt.realign_closing(resampler)
+
+# %% [markdown]
+# ### Custom index
+
+# %%
+target_index = pd.Index([
+    "2020-01-01",
+    "2020-02-01",
+    "2020-03-01",
+    "2020-04-01",
+    "2020-05-01",
+    "2020-06-01",
+    "2020-07-01",
+    "2020-08-01",
+    "2020-09-01",
+    "2020-10-01",
+    "2020-11-01",
+    "2020-12-01",
+    "2021-01-01"
+])
+resampler = vbt.Resampler(h4_close.index, target_index, target_freq=False)
+h4_close.vbt.realign_closing(resampler)
+
+# %%
+h4_close[h4_close.index < "2020-09-01"].iloc[-1]
+
+# %%
+target_index = pd.Index([
+    "2020-01-01",
+    "2020-02-01",
+])
+resampler = vbt.Resampler(h4_close.index, target_index, target_freq=False)
+h4_close.vbt.realign_closing(resampler)
+
+# %%
+resampler = vbt.Resampler(h4_close.index, target_index, target_freq="30d")
+h4_close.vbt.realign_closing(resampler)
+
+# %%
+h4_open.vbt.realign("2020-06-07 12:15:00")
+
+# %%
+h4_close.vbt.realign(
+    "2020-06-07 12:15:00",
+    source_rbound=True
+)
+
+# %%
+h4_high = h4_data.get("High")
+h4_high.vbt.realign(
+    target_index,
+    source_rbound=True
+)
+
+# %%
+h4_high.index[h4_high.index < "2020-02-01"][-1]
+
+# %%
+h4_high.vbt.realign(
+    target_index,
+    source_rbound=True,
+    target_rbound=True
+)
+
+# %%
+resampler = vbt.Resampler(h4_high.index, target_index)
+resampler.target_rbound_index
+
+# %%
+resampler = vbt.Resampler(
+    h4_high.index,
+    target_index,
+    target_freq=pd.offsets.MonthBegin(1))
+resampler.target_rbound_index
+
+# %%
+h4_high.vbt.realign(
+    resampler.replace(
+        target_index=resampler.target_rbound_index,
+        target_freq=False
+    ),
+    wrap_kwargs=dict(index=target_index)
+)
+
+# %%
+h4_high.vbt.realign(
+    target_index,
+    freq=pd.offsets.MonthBegin(1),
+    target_rbound="pandas"
+)
+
+# %%
+h4_high[h4_high.index < "2020-03-01"].resample("MS").last()
+
+# %% [markdown]
+# ### Numeric index
+
+# %%
+resampler = vbt.Resampler(
+    source_index=np.arange(len(h4_high)),
+    target_index=np.arange(len(h4_high))[::6],
+    source_freq=1,
+    target_freq=6
+)
+h4_high.vbt.realign(
+    resampler,
+    source_rbound=True,
+    target_rbound=True
+)
+
+# %% [markdown]
+# ### Forward filling
+
+# %%
+min5_index = pd.date_range(start="2020", freq="5min", periods=3)
+min1_index = pd.date_range(start="2020", freq="1min", periods=15)
+min5_mask = pd.Series(False, index=min5_index)
+min5_mask.iloc[0] = True
+min5_mask.iloc[2] = True
+
+resampler = vbt.Resampler(min5_index, min1_index)
+min1_mask = min5_mask.vbt.realign_closing(resampler)
+min1_mask
+
+# %%
+min1_mask = min5_mask.vbt.realign_closing(resampler, ffill=False)
+min1_mask
+
+# %%
+min1_mask = min1_mask.fillna(False).astype(bool)
+min1_mask
+
+# %% [markdown]
+# ## Indicators
+
+# %%
+h4_sma = vbt.talib("SMA").run(
+    h4_data.get("Close"),
+    skipna=True
+).real
+d1_sma = vbt.talib("SMA").run(
+    d1_data.get("Close"),
+    skipna=True
+).real
+
+h4_sma = h4_sma.ffill()
+d1_sma = d1_sma.ffill()
+
+# %%
+resampler = vbt.Resampler(
+    d1_sma.index,
+    h4_sma.index,
+    source_freq="1d",
+    target_freq="4h"
+)
+d1_h4_sma = d1_sma.vbt.realign_closing(resampler)
+
+# %%
+d1_sma["2020-12-30":]
+
+# %%
+d1_h4_sma["2020-12-30":]
+
+# %%
+entries = h4_sma.vbt.crossed_above(d1_h4_sma)
+exits = h4_sma.vbt.crossed_below(d1_h4_sma)
+
+def plot_date_range(date_range):
+    fig = h4_sma[date_range].rename("H4").vbt.plot()
+    d1_h4_sma[date_range].rename("D1_H4").vbt.plot(fig=fig)
+    entries[date_range].rename("Entry").vbt.signals.plot_as_entries(
+        y=h4_sma[date_range], fig=fig)
+    exits[date_range].rename("Exit").vbt.signals.plot_as_exits(
+        y=h4_sma[date_range], fig=fig)
+    return fig
+
+plot_date_range(slice("2020-02-01", "2020-03-01")).show()
+
+# %%
+d1_open_sma = vbt.talib("SMA").run(
+    d1_data.get("Open"),
+    skipna=True
+).real
+d1_open_sma = d1_open_sma.ffill()
+
+d1_h4_open_sma = d1_open_sma.vbt.realign(
+    resampler,
+    source_rbound=False,
+    target_rbound=True,
+)
+
+# %%
+d1_open_sma["2020-12-30":]
+
+# %%
+d1_h4_open_sma["2020-12-30":]
+
+# %%
+def generate_bandwidths(freqs):
+    bandwidths = []
+    for freq in freqs:
+        close = h1_data.resample(freq).get("Close")
+        bbands = vbt.talib("BBANDS").run(close, skipna=True)
+        upperband = bbands.upperband.ffill()
+        middleband = bbands.middleband.ffill()
+        lowerband = bbands.lowerband.ffill()
+        bandwidth = (upperband - lowerband) / middleband
+        bandwidths.append(bandwidth.vbt.realign_closing("1h"))
+    df = pd.concat(bandwidths, axis=1, keys=pd.Index(freqs, name="timeframe"))
+    return df.ffill()
+
+bandwidths = generate_bandwidths(["1h", "4h", "1d", "7d"])
+bandwidths
+
+# %%
+bandwidths.loc[:, ::-1].vbt.ts_heatmap().show()
+
+# %%
+bbands = vbt.talib("BBANDS").run(
+    h1_data.get("Close"),
+    skipna=True,
+    timeframe=["1h", "4h", "1d", "7d"],
+    broadcast_kwargs=dict(wrapper_kwargs=dict(freq="1h"))
+)
+bandwidth = (bbands.upperband - bbands.lowerband) / bbands.middleband
+bandwidths
+
+# %% [markdown]
+# ## Testing
+
+# %%
+def generate_signals(data, freq, fast_window, slow_window):
+    open_price = data.resample(freq).get("Open")
+    fast_sma = vbt.talib("SMA")\
+        .run(
+            open_price,
+            fast_window,
+            skipna=True,
+            short_name="fast_sma"
+        )\
+        .real.ffill()\
+        .vbt.realign(data.wrapper.index)
+    slow_sma = vbt.talib("SMA")\
+        .run(
+            open_price,
+            slow_window,
+            skipna=True,
+            short_name="slow_sma"
+        )\
+        .real.ffill()\
+        .vbt.realign(data.wrapper.index)
+    entries = fast_sma.vbt.crossed_above(slow_sma)
+    exits = fast_sma.vbt.crossed_below(slow_sma)
+    return entries, exits
+
+fast_window = [10, 20]
+slow_window = [20, 30]
+h1_entries, h1_exits = generate_signals(h1_data, "1h", fast_window, slow_window)
+h4_entries, h4_exits = generate_signals(h1_data, "4h", fast_window, slow_window)
+d1_entries, d1_exits = generate_signals(h1_data, "1d", fast_window, slow_window)
+
+entries = pd.concat(
+    (h1_entries, h4_entries, d1_entries),
+    axis=1,
+    keys=pd.Index(["1h", "4h", "1d"], name="timeframe")
+)
+exits = pd.concat(
+    (h1_exits, h4_exits, d1_exits),
+    axis=1,
+    keys=pd.Index(["1h", "4h", "1d"], name="timeframe")
+)
+
+(entries.astype(int) - exits.astype(int))\
+    .resample("1d").sum()\
+    .vbt.ts_heatmap(
+        trace_kwargs=dict(
+            colorscale=["#ef553b", "rgba(0, 0, 0, 0)", "#17becf"],
+            colorbar=dict(
+                tickvals=[-1, 0, 1],
+                ticktext=["Exit", "", "Entry"]
+            )
+        )
+    ).show()
+
+# %%
+pf = vbt.Portfolio.from_signals(
+    h1_data,
+    entries,
+    exits,
+    sl_stop=0.1,
+    freq="1h"
+)
+
+pf.orders.count()
+
+# %%
+pf.sharpe_ratio
+
+# %%

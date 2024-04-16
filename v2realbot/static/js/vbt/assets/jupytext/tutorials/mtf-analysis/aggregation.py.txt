@@ -1,0 +1,239 @@
+# ################################## HOW TO USE #################################### #
+#                                                                                    #
+# This is a Jupyter notebook formatted as a script                                   #
+# Format: https://jupytext.readthedocs.io/en/latest/formats.html#the-percent-format  #
+#                                                                                    #
+# Save this file and remove the '.txt' extension                                     #
+# In Jupyter Lab, right click on the Python file -> Open With -> Jupytext Notebook   #
+# Make sure to have Jupytext installed: https://github.com/mwouts/jupytext           #
+#                                                                                    #
+# ################################################################################## #
+
+# %% [markdown]
+# #  Aggregation
+
+# %%
+ms_data = h1_data.resample("MS")
+ms_data.get("Low") / ms_data.get("High") - 1
+
+# %%
+h1_high = h1_data.get("High")
+h1_low = h1_data.get("Low")
+ms_high = h1_high.resample("MS").max()
+ms_low = h1_low.resample("MS").min()
+ms_low / ms_high - 1
+
+# %%
+ms_high = h1_high.vbt.resample_apply("MS", vbt.nb.max_reduce_nb)
+ms_low = h1_low.vbt.resample_apply("MS", vbt.nb.min_reduce_nb)
+ms_low / ms_high - 1
+
+# %% [markdown]
+# ## Custom index
+# ### Using target index
+
+# %%
+target_index = pd.Index([
+    "2020-01-01",
+    "2020-02-01",
+])
+h1_high.vbt.resample_to_index(
+    target_index,
+    vbt.nb.max_reduce_nb
+)
+
+# %%
+target_rbound_index = vbt.Resampler.get_rbound_index(
+    target_index,
+    pd.offsets.MonthBegin(1)
+)
+h1_high.vbt.resample_to_index(
+    target_index.append(target_rbound_index[[-1]]),
+    vbt.nb.max_reduce_nb
+).iloc[:-1]
+
+# %%
+h1_high[:"2020-03-01"].resample("MS").max().iloc[:-1]
+
+# %% [markdown]
+# ### Using group-by
+
+# %%
+pd_resampler = h1_high.resample("MS")
+ms_high = h1_high.vbt.groupby_apply(pd_resampler, vbt.nb.max_reduce_nb)
+ms_low = h1_low.vbt.groupby_apply(pd_resampler, vbt.nb.min_reduce_nb)
+ms_low / ms_high - 1
+
+# %%
+h1_high.vbt.groupby_apply(h1_high.index.month, vbt.nb.max_reduce_nb)
+
+# %%
+h1_high.groupby(h1_high.index.month).max()
+
+# %% [markdown]
+# ### Using bounds
+
+# %%
+target_lbound_index = pd.Index([
+    "2020-01-01",
+    "2020-02-01",
+])
+target_rbound_index = pd.Index([
+    "2020-02-01",
+    "2020-03-01",
+])
+h1_high.vbt.resample_between_bounds(
+    target_lbound_index,
+    target_rbound_index,
+    vbt.nb.max_reduce_nb
+)
+
+# %%
+h1_high.vbt.resample_between_bounds(
+    "2020-01-01",
+    pd.date_range("2020-01-02", "2021-01-01", freq="MS"),
+    vbt.nb.max_reduce_nb
+)
+
+# %%
+h1_high.expanding().max().resample("MS").max()
+
+# %% [markdown]
+# ## Meta methods
+
+# %%
+@njit
+def mdd_nb(from_i, to_i, col, high, low):
+    highest = np.nanmax(high[from_i:to_i, col])
+    lowest = np.nanmin(low[from_i:to_i, col])
+    return lowest / highest - 1
+
+vbt.pd_acc.resample_apply(
+    'MS',
+    mdd_nb,
+    vbt.Rep('high'),
+    vbt.Rep('low'),
+    broadcast_named_args=dict(
+        high=h1_high,
+        low=h1_low
+    )
+)
+
+# %%
+h1_high.iloc[0:744]
+
+# %%
+h1_low.iloc[0:744].min() / h1_high.iloc[0:744].max() - 1
+
+# %%
+target_lbound_index = pd.date_range("2020-01-01", "2020-12-01", freq="MS", tz="UTC")
+target_rbound_index = pd.date_range("2020-02-01", "2021-01-01", freq="MS", tz="UTC")
+vbt.pd_acc.resample_between_bounds(
+    target_lbound_index,
+    target_rbound_index,
+    mdd_nb,
+    vbt.Rep('high'),
+    vbt.Rep('low'),
+    broadcast_named_args=dict(
+        high=h1_high,
+        low=h1_low
+    )
+)
+
+# %% [markdown]
+# ## Numba
+
+# %%
+from vectorbtpro.base.resampling.nb import map_bounds_to_source_ranges_nb
+
+range_starts, range_ends = map_bounds_to_source_ranges_nb(
+    source_index=h1_high.index.values,
+    target_lbound_index=target_lbound_index.values,
+    target_rbound_index=target_rbound_index.values,
+    closed_lbound=True,
+    closed_rbound=False,
+)
+np.column_stack((range_starts, range_ends))
+
+# %%
+ms_mdd_arr = vbt.nb.reduce_index_ranges_meta_nb(
+    1,
+    range_starts,
+    range_ends,
+    mdd_nb,
+    vbt.to_2d_array(h1_high),
+    vbt.to_2d_array(h1_low)
+)
+ms_mdd_arr
+
+# %%
+pd.Series(ms_mdd_arr[:, 0], index=target_lbound_index)
+
+# %% [markdown]
+# ## Caveats
+
+# %%
+h4_close_2d = h4_close.iloc[:12]
+h4_close_2d
+
+# %%
+h4_close_2d.resample("1d").last()
+
+# %%
+h5_close = h1_close.resample("5h").last()
+h5_close_2d = h5_close.iloc[:10]
+h5_close_2d
+
+# %%
+h5_close_2d.resample("1d").last()
+
+# %%
+pd.Timedelta("1d") % pd.Timedelta("1h")
+
+# %%
+pd.Timedelta("1d") % pd.Timedelta("4h")
+
+# %%
+pd.Timedelta("1d") % pd.Timedelta("5h")
+
+# %%
+h5_close_time = h5_close_2d.index.shift("5h") - pd.Timedelta(nanoseconds=1)
+h5_close_time.name = "Close time"
+h5_close_2d.index = h5_close_time
+h5_close_2d
+
+# %%
+h5_close_2d.resample("1d").last()
+
+# %% [markdown]
+# ## Portfolio
+
+# %%
+fast_sma = vbt.talib("SMA").run(h1_close, timeperiod=vbt.Default(10))
+slow_sma = vbt.talib("SMA").run(h1_close, timeperiod=vbt.Default(20))
+entries = fast_sma.real_crossed_above(slow_sma.real)
+exits = fast_sma.real_crossed_below(slow_sma.real)
+
+pf = vbt.Portfolio.from_signals(h1_close, entries, exits)
+pf.plot().show()
+
+# %%
+ms_pf = pf.resample("MS")
+ms_pf.plot().show()
+
+# %%
+pf.total_return
+
+# %%
+ms_pf.total_return
+
+# %%
+(1 + pf.returns).resample("MS").apply(lambda x: x.prod() - 1)
+
+# %%
+ms_pf.returns
+
+# %%
+ms_pf.trades.pnl.to_pd(reduce_func_nb="sum")
+
+# %%

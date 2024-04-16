@@ -1,0 +1,53 @@
+# ################################## HOW TO USE #################################### #
+#                                                                                    #
+# This is a Jupyter notebook formatted as a script                                   #
+# Format: https://jupytext.readthedocs.io/en/latest/formats.html#the-percent-format  #
+#                                                                                    #
+# Save this file and remove the '.txt' extension                                     #
+# In Jupyter Lab, right click on the Python file -> Open With -> Jupytext Notebook   #
+# Make sure to have Jupytext installed: https://github.com/mwouts/jupytext           #
+#                                                                                    #
+# ################################################################################## #
+
+# %% [markdown]
+# #  Multithreading
+
+# %%
+SuperTrend = vbt.IF(
+    class_name='SuperTrend',
+    short_name='st',
+    input_names=['high', 'low', 'close'],
+    param_names=['period', 'multiplier'],
+    output_names=['supert', 'superd', 'superl', 'supers']
+).with_apply_func(
+    superfast_supertrend_nb,
+    takes_1d=True,
+    period=7,
+    multiplier=3
+)
+
+# %%
+%%timeit
+SuperTrend.run(
+    high, low, close,
+    period=periods,
+    multiplier=multipliers,
+    param_product=True,
+    execute_kwargs=dict(show_progress=False)
+)
+
+# %%
+%%timeit
+SuperTrend.run(
+    high, low, close,
+    period=periods,
+    multiplier=multipliers,
+    param_product=True,
+    execute_kwargs=dict(
+        engine='dask',
+        chunk_len='auto',
+        show_progress=False
+    )
+)
+
+# %%

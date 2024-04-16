@@ -1,0 +1,1785 @@
+# ################################## HOW TO USE #################################### #
+#                                                                                    #
+# This is a Jupyter notebook formatted as a script                                   #
+# Format: https://jupytext.readthedocs.io/en/latest/formats.html#the-percent-format  #
+#                                                                                    #
+# Save this file and remove the '.txt' extension                                     #
+# In Jupyter Lab, right click on the Python file -> Open With -> Jupytext Notebook   #
+# Make sure to have Jupytext installed: https://github.com/mwouts/jupytext           #
+#                                                                                    #
+# ################################################################################## #
+
+# %% [markdown]
+# #  Portfolio
+# ## Simulation
+# ## Primitive commands
+# ### Buying
+
+# %%
+from vectorbtpro import *
+
+account_state = vbt.pf_enums.AccountState(
+    cash=100.0,
+    position=0.0,
+    debt=0.0,
+    locked_cash=0.0,
+    free_cash=100.0
+)
+order_result, new_account_state = vbt.pf_nb.buy_nb(
+    account_state=account_state,
+    size=1.0,
+    price=15.0
+)
+vbt.pprint(order_result)
+
+# %%
+vbt.pprint(new_account_state)
+
+# %%
+vbt.pf_enums.OrderSide._fields[order_result.side]
+
+# %%
+vbt.pf_enums.OrderStatus._fields[order_result.status]
+
+# %%
+order_result, new_account_state2 = vbt.pf_nb.buy_nb(
+    account_state=new_account_state,
+    size=np.inf,
+    price=15.0
+)
+vbt.pprint(order_result)
+
+# %%
+vbt.pprint(new_account_state2)
+
+# %%
+order_result, new_account_state = vbt.pf_nb.buy_nb(
+    account_state,
+    size=np.inf,
+    price=15.0,
+    size_granularity=1
+)
+vbt.pprint(order_result)
+
+# %%
+vbt.pprint(new_account_state)
+
+# %%
+order_result, new_account_state2 = vbt.pf_nb.buy_nb(
+    new_account_state,
+    size=np.inf,
+    price=15.0,
+    size_granularity=1
+)
+vbt.pprint(order_result)
+
+# %%
+vbt.pprint(new_account_state2)
+
+# %%
+vbt.pf_enums.OrderStatus._fields[order_result.status]
+
+# %%
+vbt.pf_enums.OrderStatusInfo._fields[order_result.status_info]
+
+# %%
+vbt.pf_enums.status_info_desc[order_result.status_info]
+
+# %%
+order_result, new_account_state = vbt.pf_nb.buy_nb(
+    account_state=account_state,
+    size=1000.0,
+    price=15.0,
+    allow_partial=False
+)
+vbt.pprint(order_result)
+
+# %%
+vbt.pprint(new_account_state)
+
+# %%
+vbt.pf_enums.OrderStatus._fields[order_result.status]
+
+# %%
+vbt.pf_enums.status_info_desc[order_result.status_info]
+
+# %%
+order_result, new_account_state = vbt.pf_nb.buy_nb(
+    account_state=account_state,
+    size=np.inf,
+    price=15.0,
+    fees=0.01,
+    slippage=0.01,
+    percent=0.5
+)
+vbt.pprint(order_result)
+
+# %%
+vbt.pprint(new_account_state)
+
+# %%
+price_area = vbt.pf_enums.PriceArea(
+    open=10,
+    high=14,
+    low=8,
+    close=12
+)
+order_result, new_account_state = vbt.pf_nb.buy_nb(
+    account_state=account_state,
+    size=np.inf,
+    price=np.inf,
+    price_area=price_area,
+    price_area_vio_mode=vbt.pf_enums.PriceAreaVioMode.Error
+)
+
+# %% [markdown]
+# ### Selling
+
+# %%
+account_state = vbt.pf_enums.AccountState(
+    cash=0.0,
+    position=10.0,
+    debt=0.0,
+    locked_cash=0.0,
+    free_cash=0.0
+)
+order_result, new_account_state = vbt.pf_nb.sell_nb(
+    account_state=account_state,
+    size=2.0,
+    price=15.0
+)
+vbt.pprint(order_result)
+
+# %%
+vbt.pprint(new_account_state)
+
+# %%
+vbt.pf_enums.OrderSide._fields[order_result.side]
+
+# %% [markdown]
+# ### Shorting
+
+# %%
+account_state = vbt.pf_enums.AccountState(
+    cash=100.0,
+    position=0.0,
+    debt=0.0,
+    locked_cash=0.0,
+    free_cash=100.0
+)
+order_result, new_account_state = vbt.pf_nb.sell_nb(
+    account_state=account_state,
+    size=np.inf,
+    price=15.0
+)
+vbt.pprint(order_result)
+
+# %%
+vbt.pprint(new_account_state)
+
+# %%
+account_state = vbt.pf_enums.AccountState(
+    cash=100.0,
+    position=0.0,
+    debt=0.0,
+    locked_cash=0.0,
+    free_cash=100.0
+)
+order_result, new_account_state = vbt.pf_nb.sell_nb(
+    account_state=account_state,
+    size=np.inf,
+    price=15.0,
+    leverage=2
+)
+vbt.pprint(order_result)
+
+# %%
+vbt.pprint(new_account_state)
+
+# %%
+order_result, new_account_state2 = vbt.pf_nb.sell_nb(
+    account_state=new_account_state,
+    size=np.inf,
+    price=15.0,
+    leverage=2
+)
+vbt.pprint(order_result)
+
+# %%
+vbt.pprint(new_account_state2)
+
+# %%
+vbt.pf_enums.OrderStatus._fields[order_result.status]
+
+# %%
+vbt.pf_enums.status_info_desc[order_result.status_info]
+
+# %%
+order_result, new_account_state = vbt.pf_nb.sell_nb(
+    account_state=account_state,
+    size=1000,
+    price=15.0,
+    leverage=np.inf
+)
+vbt.pprint(order_result)
+
+# %%
+vbt.pprint(new_account_state)
+
+# %%
+new_account_state.debt / new_account_state.locked_cash
+
+# %%
+new_account_state.cash + new_account_state.position * order_result.price
+
+# %%
+order_result, new_account_state = vbt.pf_nb.sell_nb(
+    account_state=account_state,
+    size=10.0,
+    price=15.0,
+    leverage=2
+)
+vbt.pprint(order_result)
+
+# %%
+vbt.pprint(new_account_state)
+
+# %%
+order_result, new_account_state2 = vbt.pf_nb.buy_nb(
+    account_state=new_account_state,
+    size=5.0,
+    price=30.0
+)
+vbt.pprint(order_result)
+
+# %%
+vbt.pprint(new_account_state2)
+
+# %%
+new_account_state2.debt / abs(new_account_state2.position)
+
+# %%
+order_result, new_account_state2 = vbt.pf_nb.buy_nb(
+    account_state=new_account_state,
+    size=5.0,
+    price=10.0
+)
+vbt.pprint(order_result)
+
+# %%
+vbt.pprint(new_account_state2)
+
+# %%
+st0 = account_state
+st1 = new_account_state2
+avg_entry_price = st1.debt / abs(st1.position)
+new_equity = st1.cash + st1.position * avg_entry_price
+new_equity - st0.cash
+
+# %%
+order_result, new_account_state3 = vbt.pf_nb.buy_nb(
+    account_state=new_account_state2,
+    size=5.0,
+    price=10.0
+)
+vbt.pprint(order_result)
+
+# %%
+vbt.pprint(new_account_state3)
+
+# %%
+order_result, new_account_state3 = vbt.pf_nb.buy_nb(
+    account_state=new_account_state2,
+    size=5.0,
+    price=100.0
+)
+vbt.pprint(order_result)
+
+# %%
+vbt.pprint(new_account_state3)
+
+# %% [markdown]
+# ### Leverage
+
+# %%
+account_state = vbt.pf_enums.AccountState(
+    cash=100.0,
+    position=0.0,
+    debt=0.0,
+    locked_cash=0.0,
+    free_cash=100.0
+)
+order_result, new_account_state = vbt.pf_nb.buy_nb(
+    account_state=account_state,
+    size=20,
+    price=10.0,
+    leverage=np.inf
+)
+vbt.pprint(order_result)
+
+# %%
+vbt.pprint(new_account_state)
+
+# %%
+new_account_state.debt / new_account_state.locked_cash + 1
+
+# %%
+order_result, new_account_state = vbt.pf_nb.buy_nb(
+    account_state=account_state,
+    size=10,
+    price=10.0,
+    leverage=np.inf
+)
+vbt.pprint(order_result)
+
+# %%
+vbt.pprint(new_account_state)
+
+# %%
+order_result, new_account_state = vbt.pf_nb.buy_nb(
+    account_state=account_state,
+    size=10,
+    price=10.0,
+    leverage=3,
+    leverage_mode=vbt.pf_enums.LeverageMode.Eager
+)
+vbt.pprint(order_result)
+
+# %%
+vbt.pprint(new_account_state)
+
+# %%
+order_result, new_account_state = vbt.pf_nb.buy_nb(
+    account_state=account_state,
+    size=10,
+    price=20.0,
+    leverage=2
+)
+vbt.pprint(order_result)
+
+# %%
+vbt.pprint(new_account_state)
+
+# %%
+order_result, new_account_state2 = vbt.pf_nb.sell_nb(
+    account_state=new_account_state,
+    size=5.0,
+    price=5.0
+)
+vbt.pprint(order_result)
+
+# %%
+vbt.pprint(new_account_state2)
+
+# %%
+st0 = account_state
+st1 = new_account_state2
+avg_entry_price = (st1.debt + st1.locked_cash) / abs(st1.position)
+new_equity = st1.cash + st1.position * avg_entry_price
+new_equity - st0.cash
+
+# %%
+order_result, new_account_state2 = vbt.pf_nb.sell_nb(
+    account_state=new_account_state,
+    size=5.0,
+    price=40.0
+)
+vbt.pprint(order_result)
+
+# %%
+vbt.pprint(new_account_state2)
+
+# %%
+order_result, new_account_state2 = vbt.pf_nb.sell_nb(
+    account_state=new_account_state,
+    size=5.0,
+    price=40.0
+)
+vbt.pprint(order_result)
+
+# %%
+vbt.pprint(new_account_state2)
+
+# %%
+account_state = vbt.pf_enums.AccountState(
+    cash=200.0,
+    position=0.0,
+    debt=0.0,
+    locked_cash=0.0,
+    free_cash=200.0
+)
+_, new_account_state = vbt.pf_nb.buy_nb(
+    account_state=account_state,
+    size=10,
+    price=20.0
+)
+_, new_account_state2 = vbt.pf_nb.sell_nb(
+    account_state=new_account_state,
+    size=10.0,
+    price=40.0
+)
+new_account_state2.free_cash - account_state.free_cash
+
+# %% [markdown]
+# ### Symmetry
+
+# %%
+account_state = vbt.pf_enums.AccountState(
+    cash=100.0,
+    position=0.0,
+    debt=0.0,
+    locked_cash=0.0,
+    free_cash=100.0
+)
+
+_, new_account_state = vbt.pf_nb.buy_nb(
+    account_state=account_state,
+    direction=vbt.pf_enums.Direction.LongOnly,
+    size=np.inf,
+    price=10.0,
+    leverage=10
+)
+_, new_account_state = vbt.pf_nb.sell_nb(
+    account_state=new_account_state,
+    direction=vbt.pf_enums.Direction.LongOnly,
+    size=np.inf,
+    price=15.0
+)
+vbt.pprint(new_account_state)
+
+# %%
+_, new_account_state = vbt.pf_nb.sell_nb(
+    account_state=account_state,
+    direction=vbt.pf_enums.Direction.ShortOnly,
+    size=np.inf,
+    price=10.0,
+    leverage=10
+)
+_, new_account_state = vbt.pf_nb.buy_nb(
+    account_state=new_account_state,
+    direction=vbt.pf_enums.Direction.ShortOnly,
+    size=np.inf,
+    price=5.0
+)
+vbt.pprint(new_account_state)
+
+# %% [markdown]
+# ### Reversing
+
+# %%
+account_state = vbt.pf_enums.AccountState(
+    cash=0.0,
+    position=10.0,
+    debt=0.0,
+    locked_cash=0.0,
+    free_cash=0.0
+)
+order_result, new_account_state = vbt.pf_nb.sell_nb(
+    account_state=account_state,
+    size=np.inf,
+    price=15.0
+)
+vbt.pprint(order_result)
+
+# %%
+vbt.pprint(new_account_state)
+
+# %%
+order_result, new_account_state2 = vbt.pf_nb.buy_nb(
+    account_state=new_account_state,
+    size=np.inf,
+    price=15.0
+)
+vbt.pprint(order_result)
+
+# %%
+vbt.pprint(new_account_state2)
+
+# %% [markdown]
+# ### Closing
+
+# %%
+account_state = vbt.pf_enums.AccountState(
+    cash=0.0,
+    position=10.0,
+    debt=0.0,
+    locked_cash=0.0,
+    free_cash=0.0
+)
+order_result, new_account_state = vbt.pf_nb.sell_nb(
+    account_state=account_state,
+    size=np.inf,
+    price=15.0,
+    direction=vbt.pf_enums.Direction.LongOnly
+)
+vbt.pprint(order_result)
+
+# %%
+vbt.pprint(new_account_state)
+
+# %%
+account_state = vbt.pf_enums.AccountState(
+    cash=0.0,
+    position=10.0,
+    debt=0.0,
+    locked_cash=0.0,
+    free_cash=0.0
+)
+order_result, new_account_state = vbt.pf_nb.long_sell_nb(
+    account_state=account_state,
+    size=np.inf,
+    price=15.0
+)
+vbt.pprint(order_result)
+
+# %%
+vbt.pprint(new_account_state)
+
+# %% [markdown]
+# ### Pipeline/1
+
+# %%
+@njit
+def pipeline_1_nb(close, entries, exits, init_cash=100):
+    account_state = vbt.pf_enums.AccountState(
+        cash=float(init_cash),
+        position=0.0,
+        debt=0.0,
+        locked_cash=0.0,
+        free_cash=float(init_cash)
+    )
+    for i in range(close.shape[0]):
+        if entries[i]:
+            _, account_state = vbt.pf_nb.buy_nb(
+                account_state=account_state,
+                size=1 / close[i],
+                price=close[i]
+            )
+        if exits[i]:
+            _, account_state = vbt.pf_nb.sell_nb(
+                account_state=account_state,
+                size=1 / close[i],
+                price=close[i]
+            )
+    return account_state.cash + account_state.position * close[-1]
+
+data = vbt.YFData.pull("BTC-USD", end="2022-01-01")
+sma_50 = vbt.talib("SMA").run(data.get("Close"), 50)
+sma_200 = vbt.talib("SMA").run(data.get("Close"), 200)
+entries = sma_50.real_crossed_above(sma_200)
+exits = sma_50.real_crossed_below(sma_200)
+
+pipeline_1_nb(
+    data.get("Close").values,
+    entries.values,
+    exits.values
+)
+
+# %%
+vbt.Portfolio.from_orders(
+    data.get("Close"),
+    size=entries.astype(int) - exits.astype(int),
+    size_type="value"
+).final_value
+
+# %% [markdown]
+# ## Order execution
+# ### Order
+
+# %%
+order = vbt.pf_enums.Order()
+vbt.pprint(order)
+
+# %%
+order.direction
+
+# %%
+order[3]
+
+# %%
+tuple(order)
+
+# %%
+@njit
+def create_order_nb():
+    return vbt.pf_enums.Order()
+
+create_order_nb()
+
+# %%
+@njit
+def create_order_nb(size, price):
+    return vbt.pf_enums.Order(size=size, price=price)
+
+create_order_nb(1, 15)
+
+# %%
+@njit
+def create_order_nb(size, price, direction):
+    return vbt.pf_enums.Order(size=size, price=price, direction=direction)
+
+create_order_nb(1, 15, 2)
+
+# %%
+@njit
+def create_order_nb(size, price, direction):
+    return vbt.pf_nb.order_nb(size=size, price=price, direction=direction)
+
+create_order_nb(1, 15, 2)
+
+# %%
+vbt.pf_nb.close_position_nb(15)
+
+# %% [markdown]
+# ### Validation
+
+# %%
+exec_state = vbt.pf_enums.ExecState(
+    cash=100.0,
+    position=0.0,
+    debt=0.0,
+    locked_cash=0.0,
+    free_cash=100.0,
+    val_price=15.0,
+    value=100.0
+)
+vbt.pf_nb.execute_order_nb(
+    exec_state,
+    vbt.pf_nb.order_nb(price=-15)
+)
+
+# %% [markdown]
+# ### Price resolution
+
+# %%
+price_area = vbt.pf_enums.PriceArea(
+    open=10,
+    high=14,
+    low=8,
+    close=12
+)
+order_result, new_exec_state = vbt.pf_nb.execute_order_nb(
+    exec_state=exec_state,
+    order=vbt.pf_nb.order_nb(size=np.inf, price=-np.inf),
+    price_area=price_area
+)
+order_result.price
+
+# %%
+order_result, new_exec_state = vbt.pf_nb.execute_order_nb(
+    exec_state=exec_state,
+    order=vbt.pf_nb.order_nb(size=np.inf, price=np.inf),
+    price_area=price_area
+)
+order_result.price
+
+# %%
+order_result, new_exec_state = vbt.pf_nb.execute_order_nb(
+    exec_state=exec_state,
+    order=vbt.pf_nb.order_nb(size=np.inf, price=np.inf)
+)
+order_result.price
+
+# %% [markdown]
+# ### Size type conversion
+
+# %%
+order_result, new_exec_state = vbt.pf_nb.execute_order_nb(
+    exec_state=exec_state,
+    order=vbt.pf_nb.order_nb(
+        size=3,
+        size_type=vbt.pf_enums.SizeType.TargetAmount
+    ),
+    price_area=price_area
+)
+vbt.pprint(order_result)
+
+# %%
+vbt.pprint(new_exec_state)
+
+# %% [markdown]
+# ### Direction
+# ### Valuation
+
+# %%
+order_result, new_exec_state = vbt.pf_nb.execute_order_nb(
+    exec_state=exec_state,
+    order=vbt.pf_nb.order_nb(
+        size=1.0,
+        size_type=vbt.pf_enums.SizeType.TargetPercent
+    ),
+    price_area=price_area
+)
+vbt.pprint(order_result)
+
+# %%
+vbt.pprint(new_exec_state)
+
+# %%
+order_result, new_exec_state = vbt.pf_nb.execute_order_nb(
+    exec_state=exec_state,
+    order=vbt.pf_nb.order_nb(
+        size=1.0,
+        size_type=vbt.pf_enums.SizeType.TargetPercent,
+        fixed_fees=10,
+        slippage=0.01
+    ),
+    price_area=price_area,
+    update_value=True
+)
+vbt.pprint(order_result)
+
+# %%
+vbt.pprint(new_exec_state)
+
+# %% [markdown]
+# ### Pipeline/2
+
+# %%
+@njit
+def pipeline_2_nb(open, close, target_pct, init_cash=100):
+    asset_value_out = np.empty(close.shape, dtype=np.float_)
+    value_out = np.empty(close.shape, dtype=np.float_)
+    exec_state = vbt.pf_enums.ExecState(
+        cash=float(init_cash),
+        position=0.0,
+        debt=0.0,
+        locked_cash=0.0,
+        free_cash=float(init_cash),
+        val_price=np.nan,
+        value=np.nan
+    )
+
+    for i in range(close.shape[0]):
+        if not np.isnan(target_pct[i]):
+            val_price = open[i]
+            value = exec_state.cash + val_price * exec_state.position
+
+            exec_state = vbt.pf_enums.ExecState(
+                cash=exec_state.cash,
+                position=exec_state.position,
+                debt=exec_state.debt,
+                locked_cash=exec_state.locked_cash,
+                free_cash=exec_state.free_cash,
+                val_price=val_price,
+                value=value
+            )
+            order = vbt.pf_nb.order_nb(
+                size=target_pct[i],
+                price=close[i],
+                size_type=vbt.pf_enums.SizeType.TargetPercent
+            )
+            _, exec_state = vbt.pf_nb.execute_order_nb(
+                exec_state=exec_state,
+                order=order
+            )
+
+        asset_value_out[i] = exec_state.position * close[i]
+        value_out[i] = exec_state.cash + exec_state.position * close[i]
+
+    return asset_value_out, value_out
+
+# %%
+symbol_wrapper = data.get_symbol_wrapper()
+target_pct = symbol_wrapper.fill()
+target_pct.vbt.set(0.5, every="MS", inplace=True)
+
+asset_value, value = pipeline_2_nb(
+    data.get("Open").values,
+    data.get("Close").values,
+    target_pct.values
+)
+asset_value = symbol_wrapper.wrap(asset_value)
+value = symbol_wrapper.wrap(value)
+allocations = (asset_value / value).rename(None)
+allocations.vbt.scatterplot(trace_kwargs=dict(
+    marker=dict(
+        color=allocations,
+        colorscale="Temps",
+        size=3,
+        cmin=0.3,
+        cmid=0.5,
+        cmax=0.7
+    )
+)).show()
+
+# %%
+pf = vbt.Portfolio.from_orders(
+    data,
+    size=target_pct,
+    size_type="targetpercent"
+)
+pf.allocations.vbt.scatterplot(trace_kwargs=dict(
+    marker=dict(
+        color=allocations,
+        colorscale="Temps",
+        size=3,
+        cmin=0.3,
+        cmid=0.5,
+        cmax=0.7
+    )
+)).show()
+
+# %% [markdown]
+# ## Order processing
+# ### Order records
+
+# %%
+order_records = np.empty(2, dtype=vbt.pf_enums.order_dt)
+order_count = 0
+
+# %%
+order_records
+
+# %%
+exec_state = vbt.pf_enums.ExecState(
+    cash=100.0,
+    position=0.0,
+    debt=0.0,
+    locked_cash=0.0,
+    free_cash=100.0,
+    val_price=15.0,
+    value=100.0
+)
+order_result, new_exec_state = vbt.pf_nb.execute_order_nb(
+    exec_state=exec_state,
+    order=vbt.pf_nb.order_nb(size=np.inf, price=15.0)
+)
+if order_result.status == vbt.pf_enums.OrderStatus.Filled:
+    order_records["id"][order_count] = order_count
+    order_records["col"][order_count] = 0
+    order_records["idx"][order_count] = 678
+    order_records["size"][order_count] = order_result.size
+    order_records["price"][order_count] = order_result.price
+    order_records["fees"][order_count] = order_result.fees
+    order_records["side"][order_count] = order_result.side
+    order_count += 1
+
+order_records[0]
+
+# %%
+order_count
+
+# %%
+order_result, new_exec_state2 = vbt.pf_nb.execute_order_nb(
+    exec_state=new_exec_state,
+    order=vbt.pf_nb.order_nb(size=-np.inf, price=16.0)
+)
+if order_result.status == vbt.pf_enums.OrderStatus.Filled:
+    order_records["id"][order_count] = order_count
+    order_records["col"][order_count] = 0
+    order_records["idx"][order_count] = 679
+    order_records["size"][order_count] = order_result.size
+    order_records["price"][order_count] = order_result.price
+    order_records["fees"][order_count] = order_result.fees
+    order_records["side"][order_count] = order_result.side
+    order_count += 1
+
+order_records[1]
+
+# %%
+order_count
+
+# %%
+order_records
+
+# %%
+order_records = np.empty((2, 1), dtype=vbt.pf_enums.order_dt)
+order_counts = np.full(1, 0, dtype=np.int_)
+
+order_result1, new_exec_state1 = vbt.pf_nb.process_order_nb(
+    0, 0, 678,
+    exec_state=exec_state,
+    order=vbt.pf_nb.order_nb(size=np.inf, price=15.0),
+    order_records=order_records,
+    order_counts=order_counts
+)
+order_result2, new_exec_state2 = vbt.pf_nb.process_order_nb(
+    0, 0, 679,
+    exec_state=new_exec_state,
+    order=vbt.pf_nb.order_nb(size=-np.inf, price=16.0),
+    order_records=order_records,
+    order_counts=order_counts
+)
+
+order_records
+
+# %%
+order_counts
+
+# %% [markdown]
+# ### Log records
+
+# %%
+order_records = np.empty((2, 1), dtype=vbt.pf_enums.order_dt)
+order_counts = np.full(1, 0, dtype=np.int_)
+log_records = np.empty((2, 1), dtype=vbt.pf_enums.log_dt)
+log_counts = np.full(1, 0, dtype=np.int_)
+
+order_result1, new_exec_state1 = vbt.pf_nb.process_order_nb(
+    0, 0, 678,
+    exec_state=exec_state,
+    order=vbt.pf_nb.order_nb(size=np.inf, price=15.0, log=True),
+    order_records=order_records,
+    order_counts=order_counts,
+    log_records=log_records,
+    log_counts=log_counts
+)
+order_result2, new_exec_state2 = vbt.pf_nb.process_order_nb(
+    0, 0, 679,
+    exec_state=new_exec_state,
+    order=vbt.pf_nb.order_nb(size=-np.inf, price=16.0, log=True),
+    order_records=order_records,
+    order_counts=order_counts,
+    log_records=log_records,
+    log_counts=log_counts
+)
+
+log_records
+
+# %% [markdown]
+# ### Pipeline/3
+
+# %%
+@njit
+def pipeline_3_nb(open, close, target_pct, init_cash=100):
+    order_records = np.empty(close.shape, dtype=vbt.pf_enums.order_dt)
+    order_counts = np.full(close.shape[1], 0, dtype=np.int_)
+
+    for col in range(close.shape[1]):
+        exec_state = vbt.pf_enums.ExecState(
+            cash=float(init_cash),
+            position=0.0,
+            debt=0.0,
+            locked_cash=0.0,
+            free_cash=float(init_cash),
+            val_price=np.nan,
+            value=np.nan
+        )
+
+        for i in range(close.shape[0]):
+            if not np.isnan(target_pct[i, col]):
+                val_price = open[i, col]
+                value = exec_state.cash + val_price * exec_state.position
+
+                exec_state = vbt.pf_enums.ExecState(
+                    cash=exec_state.cash,
+                    position=exec_state.position,
+                    debt=exec_state.debt,
+                    locked_cash=exec_state.locked_cash,
+                    free_cash=exec_state.free_cash,
+                    val_price=val_price,
+                    value=value
+                )
+                order = vbt.pf_nb.order_nb(
+                    size=target_pct[i, col],
+                    price=close[i, col],
+                    size_type=vbt.pf_enums.SizeType.TargetPercent
+                )
+                _, exec_state = vbt.pf_nb.process_order_nb(
+                    col, col, i,
+                    exec_state=exec_state,
+                    order=order,
+                    order_records=order_records,
+                    order_counts=order_counts
+                )
+
+    return vbt.nb.repartition_nb(order_records, order_counts)
+
+# %%
+every = pd.Index(["MS", "Q", "Y"], name="every")
+
+open = data.get("Open").vbt.tile(3, keys=every)
+close = data.get("Close").vbt.tile(3, keys=every)
+close
+
+# %%
+target_pct = symbol_wrapper.fill().vbt.tile(3, keys=every)
+target_pct.vbt.set(0.5, every="MS", columns=["MS"], inplace=True)
+target_pct.vbt.set(0.5, every="Q", columns=["Q"], inplace=True)
+target_pct.vbt.set(0.5, every="Y", columns=["Y"], inplace=True)
+
+order_records = pipeline_3_nb(
+    open.values,
+    close.values,
+    target_pct.values
+)
+order_records
+
+# %% [markdown]
+# ### Wrapping
+
+# %%
+vbt.phelp(vbt.Portfolio)
+
+# %%
+pf = vbt.Portfolio(
+    close.vbt.wrapper,
+    order_records,
+    open=open,
+    close=close,
+    init_cash=100
+)
+
+# %%
+pf.sharpe_ratio
+
+# %% [markdown]
+# ## Flexible indexing
+
+# %%
+per_row_arr = np.array([1, 2, 3])
+per_col_arr = np.array([4, 5])
+per_elem_arr = np.array([
+    [6, 7],
+    [8, 9],
+    [10, 11]
+])
+
+vbt.flex_select_1d_pr_nb(per_row_arr, 2)
+
+# %%
+vbt.flex_select_1d_pc_nb(per_col_arr, 1)
+
+# %%
+vbt.flex_select_nb(per_elem_arr, 2, 1)
+
+# %%
+per_row_arr_2d = per_row_arr[:, None]
+per_row_arr_2d
+
+# %%
+vbt.flex_select_nb(per_row_arr_2d, 2, 1)
+
+# %%
+per_col_arr_2d = per_col_arr[None]
+per_col_arr_2d
+
+# %%
+vbt.flex_select_nb(per_col_arr_2d, 2, 1)
+
+# %%
+target_shape = (3, 2)
+
+vbt.broadcast_array_to(per_row_arr, target_shape[0])[2]
+
+# %%
+vbt.broadcast_array_to(per_col_arr, target_shape[1])[1]
+
+# %%
+vbt.broadcast_array_to(per_row_arr_2d, target_shape)[2, 1]
+
+# %%
+vbt.broadcast_array_to(per_col_arr_2d, target_shape)[2, 1]
+
+# %% [markdown]
+# ### Rotational indexing
+
+# %%
+vbt.flex_select_1d_pr_nb(per_row_arr, 100, rotate_rows=True)
+
+# %%
+vbt.flex_select_1d_pc_nb(per_col_arr, 100, rotate_cols=True)
+
+# %%
+vbt.flex_select_nb(per_elem_arr, 100, 100, rotate_rows=True, rotate_cols=True)
+
+# %% [markdown]
+# ### Pipeline/4
+
+# %%
+@njit
+def pipeline_4_nb(
+    target_shape,
+    open,
+    close,
+    target_pct,
+    init_cash=100,
+    rotate_cols=False
+):
+    init_cash_ = vbt.to_1d_array_nb(np.asarray(init_cash))
+    open_ = vbt.to_2d_array_nb(np.asarray(open))
+    close_ = vbt.to_2d_array_nb(np.asarray(close))
+    target_pct_ = vbt.to_2d_array_nb(np.asarray(target_pct))
+    order_records = np.empty(target_shape, dtype=vbt.pf_enums.order_dt)
+    order_counts = np.full(target_shape[1], 0, dtype=np.int_)
+
+    for col in range(target_shape[1]):
+        init_cash_elem = vbt.flex_select_1d_pc_nb(
+            init_cash_, col, rotate_cols=rotate_cols)
+
+        exec_state = vbt.pf_enums.ExecState(
+            cash=float(init_cash_elem),
+            position=0.0,
+            debt=0.0,
+            locked_cash=0.0,
+            free_cash=float(init_cash_elem),
+            val_price=np.nan,
+            value=np.nan
+        )
+
+        for i in range(target_shape[0]):
+            open_elem = vbt.flex_select_nb(
+                open_, i, col, rotate_cols=rotate_cols)
+            close_elem = vbt.flex_select_nb(
+                close_, i, col, rotate_cols=rotate_cols)
+            target_pct_elem = vbt.flex_select_nb(
+                target_pct_, i, col, rotate_cols=rotate_cols)
+
+            if not np.isnan(target_pct_elem):
+                value = exec_state.cash + open_elem * exec_state.position
+
+                exec_state = vbt.pf_enums.ExecState(
+                    cash=exec_state.cash,
+                    position=exec_state.position,
+                    debt=exec_state.debt,
+                    locked_cash=exec_state.locked_cash,
+                    free_cash=exec_state.free_cash,
+                    val_price=open_elem,
+                    value=value
+                )
+                order = vbt.pf_nb.order_nb(
+                    size=target_pct_elem,
+                    price=close_elem,
+                    size_type=vbt.pf_enums.SizeType.TargetPercent
+                )
+                _, exec_state = vbt.pf_nb.process_order_nb(
+                    col, col, i,
+                    exec_state=exec_state,
+                    order=order,
+                    order_records=order_records,
+                    order_counts=order_counts
+                )
+
+    return vbt.nb.repartition_nb(order_records, order_counts)
+
+# %%
+target_shape = vbt.broadcast_shapes(
+    data.get("Open").values.shape,
+    data.get("Close").values.shape,
+    target_pct.values.shape
+)
+target_shape
+
+# %%
+order_records = pipeline_4_nb(
+    target_shape,
+    data.get("Open").values,
+    data.get("Close").values,
+    target_pct.values
+)
+len(order_records)
+
+# %%
+target_shape = vbt.broadcast_shapes(
+    data.get("Open").values.shape,
+    data.get("Close").values.shape
+)
+target_shape
+
+# %%
+target_shape = vbt.to_2d_shape(target_shape)
+target_shape
+
+# %%
+order_records = pipeline_4_nb(
+    target_shape,
+    data.get("Open").values,
+    data.get("Close").values,
+    0.5
+)
+
+# %%
+np.product(symbol_wrapper.shape_2d)
+
+# %%
+mult_data = vbt.YFData.pull(
+    ["BTC-USD", "ETH-USD"],
+    end="2022-01-01",
+    missing_index="drop"
+)
+
+# %%
+mult_symbol_wrapper = mult_data.get_symbol_wrapper()
+mult_target_pct = pd.concat([
+    mult_symbol_wrapper.fill().vbt.set(0.5, every=every[i])
+    for i in range(len(every))
+], axis=1, keys=every)
+
+target_shape = vbt.broadcast_shapes(
+    vbt.tile_shape(mult_data.get("Open").values.shape, len(every)),
+    vbt.tile_shape(mult_data.get("Close").values.shape, len(every)),
+    mult_target_pct.values.shape
+)
+target_shape
+
+# %%
+order_records = pipeline_4_nb(
+    target_shape,
+    mult_data.get("Open").values,
+    mult_data.get("Close").values,
+    mult_target_pct.values,
+    rotate_cols=True
+)
+len(order_records)
+
+# %% [markdown]
+# ## Grouping
+# ### Group lengths
+
+# %%
+columns = pd.Index(["BTC-USD", "ETH-USD", "BNB-USD", "SOL-USD", "XRP-USD"])
+mono_grouper = vbt.Grouper(columns, group_by=[0, 0, 0, 1, 1])
+mono_grouper.get_group_lens()
+
+# %%
+dist_grouper = vbt.Grouper(columns, group_by=[0, 1, 0, 1, 1])
+dist_grouper.get_group_lens()
+
+# %%
+group_lens = mono_grouper.get_group_lens()
+
+group_end_idxs = np.cumsum(group_lens)
+group_start_idxs = group_end_idxs - group_lens
+
+for group in range(len(group_lens)):
+    from_col = group_start_idxs[group]
+    to_col = group_end_idxs[group]
+
+
+    for col in range(from_col, to_col):
+        pass
+
+# %% [markdown]
+# ### Group map
+
+# %%
+mono_grouper.get_group_map()
+
+# %%
+dist_grouper.get_group_map()
+
+# %%
+group_map = dist_grouper.get_group_map()
+
+group_idxs, group_lens = group_map
+group_start_idxs = np.cumsum(group_lens) - group_lens
+
+for group in range(len(group_lens)):
+    group_len = group_lens[group]
+    start_idx = group_start_idxs[group]
+    col_idxs = group_idxs[start_idx : start_idx + group_len]
+
+
+    for k in range(len(col_idxs)):
+        col = col_idxs[k]
+
+
+# %% [markdown]
+# ### Call sequence
+
+# %%
+position = np.array([0.0, -10.0, 10.0])
+val_price = np.array([10.0, 25.0, 15.0])
+debt = np.array([0.0, 100.0, 0.0])
+locked_cash = np.array([0.0, 100.0, 0.0])
+order_value = np.empty(3, dtype=np.float_)
+
+for col in range(len(position)):
+    exec_state = vbt.pf_enums.ExecState(
+        cash=200.0,
+        position=position[col],
+        debt=debt[col],
+        locked_cash=locked_cash[col],
+        free_cash=0.0,
+        val_price=val_price[col],
+        value=100.0
+    )
+    order_value[col] = vbt.pf_nb.approx_order_value_nb(
+        exec_state=exec_state,
+        size=0.,
+        size_type=vbt.pf_enums.SizeType.TargetAmount,
+        direction=vbt.pf_enums.Direction.Both
+    )
+
+order_value
+
+# %%
+from vectorbtpro.utils.array_ import insert_argsort_nb
+
+call_seq = np.array([0, 1, 2])
+insert_argsort_nb(order_value, call_seq)
+call_seq
+
+# %%
+for k in range(len(call_seq)):
+    c = call_seq[k]
+    col = from_col + c
+
+for k in range(len(call_seq)):
+    c = call_seq[k]
+    col = col_idxs[c]
+
+# %% [markdown]
+# ### Pipeline/5
+
+# %%
+@njit
+def pipeline_5_nb(
+    target_shape,
+    group_lens,
+    open,
+    close,
+    target_pct,
+    init_cash=100,
+    auto_call_seq=True,
+    rotate_cols=False
+):
+    init_cash_ = vbt.to_1d_array_nb(np.asarray(init_cash))
+    open_ = vbt.to_2d_array_nb(np.asarray(open))
+    close_ = vbt.to_2d_array_nb(np.asarray(close))
+    target_pct_ = vbt.to_2d_array_nb(np.asarray(target_pct))
+    alloc = np.empty(target_shape, dtype=np.float_)
+
+    group_end_idxs = np.cumsum(group_lens)
+    group_start_idxs = group_end_idxs - group_lens
+
+    for group in range(len(group_lens)):
+        group_len = group_lens[group]
+        from_col = group_start_idxs[group]
+        to_col = group_end_idxs[group]
+
+
+        init_cash_elem = vbt.flex_select_1d_pc_nb(
+            init_cash_, group, rotate_cols=rotate_cols)
+
+        last_position = np.full(group_len, 0.0, dtype=np.float_)
+        last_debt = np.full(group_len, 0.0, dtype=np.float_)
+        last_locked_cash = np.full(group_len, 0.0, dtype=np.float_)
+        cash_now = float(init_cash_elem)
+        free_cash_now = float(init_cash_elem)
+
+        order_value = np.empty(group_len, dtype=np.float_)
+        call_seq = np.empty(group_len, dtype=np.int_)
+
+        for i in range(target_shape[0]):
+
+            value_now = cash_now
+            for c in range(group_len):
+                col = from_col + c
+                open_elem = vbt.flex_select_nb(
+                    open_, i, col, rotate_cols=rotate_cols)
+                value_now += last_position[c] * open_elem
+
+
+            for c in range(group_len):
+                col = from_col + c
+                open_elem = vbt.flex_select_nb(
+                    open_, i, col, rotate_cols=rotate_cols)
+                target_pct_elem = vbt.flex_select_nb(
+                    target_pct_, i, col, rotate_cols=rotate_cols)
+                exec_state = vbt.pf_enums.ExecState(
+                    cash=cash_now,
+                    position=last_position[c],
+                    locked_cash=last_locked_cash[c],
+                    debt=last_debt[c],
+                    free_cash=free_cash_now,
+                    val_price=open_elem,
+                    value=value_now,
+                )
+                order_value[c] = vbt.pf_nb.approx_order_value_nb(
+                    exec_state=exec_state,
+                    size=target_pct_elem,
+                    size_type=vbt.pf_enums.SizeType.TargetPercent,
+                    direction=vbt.pf_enums.Direction.Both
+                )
+                call_seq[c] = c
+
+            if auto_call_seq:
+                vbt.pf_nb.insert_argsort_nb(order_value, call_seq)
+
+            for k in range(len(call_seq)):
+                c = call_seq[k]
+                col = from_col + c
+
+                open_elem = vbt.flex_select_nb(
+                    open_, i, col, rotate_cols=rotate_cols)
+                close_elem = vbt.flex_select_nb(
+                    close_, i, col, rotate_cols=rotate_cols)
+                target_pct_elem = vbt.flex_select_nb(
+                    target_pct_, i, col, rotate_cols=rotate_cols)
+
+                if not np.isnan(target_pct_elem):
+                    order = vbt.pf_nb.order_nb(
+                        size=target_pct_elem,
+                        price=close_elem,
+                        size_type=vbt.pf_enums.SizeType.TargetPercent,
+                        direction=vbt.pf_enums.Direction.Both
+                    )
+                    exec_state = vbt.pf_enums.ExecState(
+                        cash=cash_now,
+                        position=last_position[c],
+                        debt=last_debt[c],
+                        locked_cash=last_locked_cash[c],
+                        free_cash=free_cash_now,
+                        val_price=open_elem,
+                        value=value_now,
+                    )
+                    _, new_exec_state = vbt.pf_nb.process_order_nb(
+                        group=group,
+                        col=col,
+                        i=i,
+                        exec_state=exec_state,
+                        order=order
+                    )
+                    cash_now = new_exec_state.cash
+                    free_cash_now = new_exec_state.free_cash
+                    value_now = new_exec_state.value
+                    last_position[c] = new_exec_state.position
+                    last_debt[c] = new_exec_state.debt
+                    last_locked_cash[c] = new_exec_state.locked_cash
+
+
+            value_now = cash_now
+            for c in range(group_len):
+                col = from_col + c
+                close_elem = vbt.flex_select_nb(
+                    close_, i, col, rotate_cols=rotate_cols)
+                value_now += last_position[c] * close_elem
+
+
+            for c in range(group_len):
+                col = from_col + c
+                close_elem = vbt.flex_select_nb(
+                    close_, i, col, rotate_cols=rotate_cols)
+                alloc[i, col] = last_position[c] * close_elem / value_now
+
+    return alloc
+
+# %%
+mult_target_pct = mult_symbol_wrapper.fill()
+mult_target_pct.vbt.set([[0.7, 0.3]], every="MS", inplace=True)
+grouper = vbt.Grouper(mult_symbol_wrapper.columns, group_by=True)
+group_lens = grouper.get_group_lens()
+
+target_shape = vbt.broadcast_shapes(
+    mult_data.get("Open").values.shape,
+    mult_data.get("Close").values.shape,
+    mult_target_pct.values.shape
+)
+target_shape
+
+# %%
+alloc = pipeline_5_nb(
+    target_shape,
+    group_lens,
+    mult_data.get("Open").values,
+    mult_data.get("Close").values,
+    mult_target_pct.values
+)
+alloc = mult_symbol_wrapper.wrap(alloc)
+alloc.vbt.plot(
+   trace_kwargs=dict(stackgroup="one"),
+   use_gl=False
+).show()
+
+# %%
+alloc = pipeline_5_nb(
+    target_shape,
+    group_lens,
+    mult_data.get("Open").values,
+    mult_data.get("Close").values,
+    mult_target_pct.values,
+    auto_call_seq=False
+)
+alloc = mult_symbol_wrapper.wrap(alloc)
+alloc.vbt.plot(
+   trace_kwargs=dict(stackgroup="one"),
+   use_gl=False
+).show()
+
+# %%
+groups = pd.Index([0, 0, 1, 1], name="group")
+target_alloc = pd.Index([0.7, 0.3, 0.5, 0.5], name="target_alloc")
+
+final_columns = vbt.stack_indexes((
+    groups,
+    target_alloc,
+    vbt.tile_index(mult_symbol_wrapper.columns, 2)
+))
+final_wrapper = mult_symbol_wrapper.replace(
+    columns=final_columns,
+    group_by="group"
+)
+mult_target_pct = final_wrapper.fill(group_by=False)
+mult_target_pct.vbt.set(target_alloc.values[None], every="MS", inplace=True)
+group_lens = final_wrapper.grouper.get_group_lens()
+
+n_groups = final_wrapper.grouper.get_group_count()
+target_shape = vbt.broadcast_shapes(
+    vbt.tile_shape(mult_data.get("Open").values.shape, n_groups),
+    vbt.tile_shape(mult_data.get("Close").values.shape, n_groups),
+    mult_target_pct.values.shape
+)
+target_shape
+
+# %%
+alloc = pipeline_5_nb(
+    target_shape,
+    group_lens,
+    mult_data.get("Open").values,
+    mult_data.get("Close").values,
+    mult_target_pct.values,
+    rotate_cols=True
+)
+alloc = mult_target_pct.vbt.wrapper.wrap(alloc)
+alloc
+
+# %% [markdown]
+# ## Contexts
+# ### Pipeline/6
+
+# %%
+SimContext = namedtuple("SimContext", [
+    "open",
+    "high",
+    "low",
+    "close",
+    "init_cash",
+    "col",
+    "i",
+    "price_area",
+    "exec_state"
+])
+
+# %%
+@njit
+def pipeline_6_nb(
+    open, high, low, close,
+    order_func_nb, order_args=(),
+    init_cash=100
+):
+    order_records = np.empty(close.shape, dtype=vbt.pf_enums.order_dt)
+    order_counts = np.full(close.shape[1], 0, dtype=np.int_)
+
+    for col in range(close.shape[1]):
+        exec_state = vbt.pf_enums.ExecState(
+            cash=float(init_cash),
+            position=0.0,
+            debt=0.0,
+            locked_cash=0.0,
+            free_cash=float(init_cash),
+            val_price=np.nan,
+            value=np.nan
+        )
+
+        for i in range(close.shape[0]):
+            val_price = open[i, col]
+            value = exec_state.cash + val_price * exec_state.position
+
+            price_area = vbt.pf_enums.PriceArea(
+                open[i, col],
+                high[i, col],
+                low[i, col],
+                close[i, col]
+            )
+            exec_state = vbt.pf_enums.ExecState(
+                cash=exec_state.cash,
+                position=exec_state.position,
+                debt=exec_state.debt,
+                locked_cash=exec_state.locked_cash,
+                free_cash=exec_state.free_cash,
+                val_price=val_price,
+                value=value
+            )
+            sim_ctx = SimContext(
+                open=open,
+                high=high,
+                low=low,
+                close=close,
+                init_cash=init_cash,
+                col=col,
+                i=i,
+                price_area=price_area,
+                exec_state=exec_state
+            )
+            order = order_func_nb(sim_ctx, *order_args)
+            _, exec_state = vbt.pf_nb.process_order_nb(
+                col, col, i,
+                exec_state=exec_state,
+                order=order,
+                price_area=price_area,
+                order_records=order_records,
+                order_counts=order_counts
+            )
+
+    return vbt.nb.repartition_nb(order_records, order_counts)
+
+# %%
+@njit
+def signal_order_func_nb(c, entries, exits):
+    if entries[c.i, c.col] and c.exec_state.position == 0:
+        return vbt.pf_nb.order_nb()
+    if exits[c.i, c.col] and c.exec_state.position > 0:
+        return vbt.pf_nb.close_position_nb()
+    return vbt.pf_nb.order_nothing_nb()
+
+broadcasted_args = vbt.broadcast(
+    dict(
+        open=data.get("Open").values,
+        high=data.get("High").values,
+        low=data.get("Low").values,
+        close=data.get("Close").values,
+        entries=entries.values,
+        exits=exits.values
+    ),
+    min_ndim=2
+)
+
+pipeline_6_nb(
+    broadcasted_args["open"],
+    broadcasted_args["high"],
+    broadcasted_args["low"],
+    broadcasted_args["close"],
+    signal_order_func_nb,
+    order_args=(
+        broadcasted_args["entries"],
+        broadcasted_args["exits"]
+    )
+)
+
+# %% [markdown]
+# ## Performance
+# ### Benchmarking
+
+# %%
+test_data = vbt.RandomOHLCData.pull(
+    start="2020-01-01",
+    end="2021-01-01",
+    timeframe="1min",
+    std=0.0001,
+    symmetric=True
+)
+test_data.resample("1d").plot().show()
+
+# %%
+test_open = test_data.get("Open").values[:, None]
+test_high = test_data.get("High").values[:, None]
+test_low = test_data.get("Low").values[:, None]
+test_close = test_data.get("Close").values[:, None]
+test_entries = np.full(test_data.get_symbol_wrapper().shape, False)[:, None]
+test_exits = np.full(test_data.get_symbol_wrapper().shape, False)[:, None]
+test_entries[0::2] = True
+test_exits[1::2] = True
+del test_data
+
+test_entries.shape
+
+# %%
+%%timeit
+pipeline_6_nb(
+    test_open,
+    test_high,
+    test_low,
+    test_close,
+    signal_order_func_nb,
+    order_args=(
+        test_entries,
+        test_exits
+    )
+)
+
+# %%
+@njit
+def subopt_signal_order_func_nb(c, entries, exits):
+    _ = np.empty(0)
+
+    if entries[c.i, c.col] and c.exec_state.position == 0:
+        return vbt.pf_nb.order_nb()
+    if exits[c.i, c.col] and c.exec_state.position > 0:
+        return vbt.pf_nb.close_position_nb()
+    return vbt.pf_nb.order_nothing_nb()
+
+%%timeit
+pipeline_6_nb(
+    test_open,
+    test_high,
+    test_low,
+    test_close,
+    subopt_signal_order_func_nb,
+    order_args=(
+        test_entries,
+        test_exits
+    )
+)
+
+# %% [markdown]
+# ### Auto-parallelization
+
+# %%
+arr = np.random.uniform(size=(1000000, 10))
+
+@njit
+def expanding_max_nb(arr):
+    out = np.empty_like(arr, dtype=np.float_)
+    for col in range(arr.shape[1]):
+        maxv = -np.inf
+        for i in range(arr.shape[0]):
+            if arr[i, col] > maxv:
+                maxv = arr[i, col]
+            out[i, col] = maxv
+    return out
+
+%timeit expanding_max_nb(arr)
+
+# %%
+@njit(parallel=True)
+def parallel_expanding_max_nb(arr):
+    out = np.empty_like(arr, dtype=np.float_)
+    for col in prange(arr.shape[1]):
+        maxv = -np.inf
+        for i in range(arr.shape[0]):
+            if arr[i, col] > maxv:
+                maxv = arr[i, col]
+            out[i, col] = maxv
+    return out
+
+%timeit parallel_expanding_max_nb(arr)
+
+# %% [markdown]
+# ### Caching
+# ### AOT compilation
+
+# %%
+from numba.pycc import CC
+cc = CC('pipeline_5')
+
+sig = "f8[:, :](" \
+      "UniTuple(i8, 2), " \
+      "i8[:], " \
+      "f8[:, :], " \
+      "f8[:, :], " \
+      "f8[:, :], " \
+      "f8[:], " \
+      "b1, " \
+      "b1" \
+      ")"
+
+cc.export('pipeline_5_nb', sig)(pipeline_5_nb)
+cc.compile()
+
+# %%
+import pipeline_5
+
+mult_alloc = pipeline_5.pipeline_5_nb(
+    target_shape,
+    group_lens,
+    vbt.to_2d_array(mult_data.get("Open")).astype("f8", copy=False),
+    vbt.to_2d_array(mult_data.get("Close")).astype("f8", copy=False),
+    vbt.to_2d_array(mult_target_pct).astype("f8", copy=False),
+    vbt.to_1d_array(100).astype("f8", copy=False),
+    auto_call_seq=True,
+    rotate_cols=True
+)
+
+# %%

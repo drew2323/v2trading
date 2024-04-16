@@ -1,0 +1,838 @@
+# ################################## HOW TO USE #################################### #
+#                                                                                    #
+# This is a Jupyter notebook formatted as a script                                   #
+# Format: https://jupytext.readthedocs.io/en/latest/formats.html#the-percent-format  #
+#                                                                                    #
+# Save this file and remove the '.txt' extension                                     #
+# In Jupyter Lab, right click on the Python file -> Open With -> Jupytext Notebook   #
+# Make sure to have Jupytext installed: https://github.com/mwouts/jupytext           #
+#                                                                                    #
+# ################################################################################## #
+
+# %% [markdown]
+# #  Local
+# ## Pickling
+
+# %%
+from vectorbtpro import *
+
+yf_data = vbt.YFData.pull(
+    ["BTC-USD", "ETH-USD"],
+    start="2020-01-01",
+    end="2020-01-05"
+)
+
+# %%
+yf_data.save("yf_data")
+
+yf_data = vbt.YFData.load("yf_data")
+yf_data = yf_data.update(end="2020-01-06")
+yf_data.close
+
+# %%
+yf_data = vbt.YFData(**vbt.Configured.load("yf_data").config)
+
+# %% [markdown]
+# ## Saving
+# ### CSV
+
+# %%
+yf_data.to_csv()
+
+# %%
+vbt.list_files("*.csv")
+
+# %%
+vbt.remove_file("BTC-USD.csv")
+vbt.remove_file("ETH-USD.csv")
+
+yf_data.to_csv("data", mkdir_kwargs=dict(mkdir=True))
+
+# %%
+yf_data.to_csv("data", ext="tsv")
+
+vbt.list_files("data/*.tsv")
+
+# %%
+yf_data.to_csv(
+    vbt.key_dict({
+        "BTC-USD": "btc_data",
+        "ETH-USD": "eth_data"
+    }),
+    mkdir_kwargs=dict(mkdir=True)
+)
+
+# %%
+yf_data.to_csv(
+    vbt.key_dict({
+        "BTC-USD": "data/btc_usd.csv",
+        "ETH-USD": "data/eth_usd.csv"
+    }),
+    mkdir_kwargs=dict(mkdir=True)
+)
+
+# %%
+vbt.remove_dir("btc_data", with_contents=True)
+vbt.remove_dir("eth_data", with_contents=True)
+vbt.remove_dir("data", with_contents=True)
+
+# %% [markdown]
+# ### HDF
+
+# %%
+yf_data.to_hdf()
+
+vbt.list_files("*.h5")
+
+# %%
+with pd.HDFStore("YFData.h5") as store:
+    print(store.keys())
+
+# %%
+yf_data.to_hdf(
+    key=vbt.key_dict({
+        "BTC-USD": "btc_usd",
+        "ETH-USD": "eth_usd"
+    })
+)
+
+# %%
+yf_data.to_hdf(
+    vbt.key_dict({
+        "BTC-USD": "btc_usd.h5",
+        "ETH-USD": "eth_usd.h5"
+    })
+)
+
+# %% [markdown]
+# ### Feather & Parquet
+
+# %%
+yf_data.to_parquet()
+
+# %%
+yf_data.to_parquet(partition_by="2 days")
+
+# %%
+vbt.print_dir_tree("BTC-USD")
+
+# %% [markdown]
+# ### SQL
+
+# %%
+SQLITE_URL = "sqlite:///yf_data.db"
+
+yf_data.to_sql(SQLITE_URL)
+
+# %%
+engine = yf_data.to_sql(SQLITE_URL, if_exists="replace", return_engine=True)
+
+# %%
+POSTGRESQL_URL = "postgresql://postgres:postgres@localhost:5432"
+
+yf_data.to_sql(POSTGRESQL_URL, schema="yf_data")
+
+# %%
+yf_data.to_sql(
+    POSTGRESQL_URL,
+    table=vbt.key_dict({
+        "BTC-USD": "BTC_USD",
+        "ETH-USD": "ETH_USD"
+    })
+)
+
+# %% [markdown]
+# ### DuckDB
+
+# %%
+DUCKDB_URL = "database.duckdb"
+
+yf_data.to_duckdb(DUCKDB_URL)
+
+# %%
+yf_data.to_duckdb(DUCKDB_URL, schema="yf_data")
+
+# %%
+yf_data.to_duckdb(
+    DUCKDB_URL,
+    table=vbt.key_dict({
+        "BTC-USD": "BTC_USD",
+        "ETH-USD": "ETH_USD"
+    })
+)
+
+# %%
+yf_data.to_duckdb(
+    DUCKDB_URL,
+    write_path="data",
+    write_format="parquet",
+    mkdir_kwargs=dict(mkdir=True)
+)
+
+# %% [markdown]
+# ## Loading
+# ### CSV
+
+# %%
+yf_data.to_csv()
+
+pd.read_csv("BTC-USD.csv", index_col=0, parse_dates=True)
+
+# %%
+btc_usd = pd.read_csv("BTC-USD.csv", index_col=0, parse_dates=True)
+eth_usd = pd.read_csv("ETH-USD.csv", index_col=0, parse_dates=True)
+
+data = vbt.Data.from_data({"BTC-USD": btc_usd, "ETH-USD": eth_usd})
+data.close
+
+# %%
+vbt.make_dir("data", exist_ok=True)
+vbt.make_file("data/file1.csv")
+vbt.make_file("data/file2.tsv")
+vbt.make_file("data/file3")
+
+vbt.make_dir("data/sub-data", exist_ok=True)
+vbt.make_file("data/sub-data/file1.csv")
+vbt.make_file("data/sub-data/file2.tsv")
+vbt.make_file("data/sub-data/file3")
+
+# %%
+vbt.print_dir_tree("data")
+
+# %%
+vbt.FileData.match_path("data")
+
+# %%
+vbt.FileData.match_path("data/*.csv")
+
+# %%
+vbt.FileData.match_path("data/**/*.csv")
+
+# %%
+vbt.CSVData.pull("BTC-USD.csv").symbols
+
+# %%
+vbt.CSVData.pull(["BTC-USD.csv", "ETH-USD.csv"]).symbols
+
+# %%
+vbt.CSVData.pull("*.csv").symbols
+
+# %%
+vbt.CSVData.pull(["BTC/USD", "ETH/USD"], paths="*.csv").symbols
+
+# %%
+vbt.CSVData.pull(
+    ["BTC/USD", "ETH/USD"],
+    paths=["BTC-USD.csv", "ETH-USD.csv"]
+).symbols
+
+# %%
+vbt.CSVData.pull(
+    ["BTC/USD", "ETH/USD"],
+    paths=vbt.key_dict({
+        "BTC/USD": "BTC-USD.csv",
+        "ETH/USD": "ETH-USD.csv"
+    }),
+    match_paths=False
+).symbols
+
+# %%
+vbt.remove_dir("data", with_contents=True)
+
+yf_data.to_csv(
+    "data",
+    ext=vbt.key_dict({
+        "BTC-USD": "csv",
+        "ETH-USD": "tsv"
+    }),
+    mkdir_kwargs=dict(mkdir=True)
+)
+
+csv_data = vbt.CSVData.pull(["data/*.csv", "data/*.tsv"])
+
+# %%
+csv_data.close
+
+# %%
+vbt.CSVData.pull(
+    "data/**/*",
+    match_regex=r"^.*\.(csv|tsv)$"
+).close
+
+# %% [markdown]
+# #### Chunking
+
+# %%
+csv_data = vbt.CSVData.pull(
+    ["data/*.csv", "data/*.tsv"],
+    chunksize=1,
+    chunk_func=lambda iterator: pd.concat([
+        df
+        for df in iterator
+        if (df.index.day % 2 == 0).all()
+    ], axis=0)
+)
+
+# %%
+csv_data.close
+
+# %% [markdown]
+# ### HDF
+
+# %%
+yf_data.to_hdf()
+
+pd.read_hdf("YFData.h5", key="BTC-USD")
+
+# %%
+vbt.HDFData.match_path("YFData.h5")
+
+# %%
+vbt.HDFData.pull("YFData.h5/BTC-USD").symbols
+
+# %%
+vbt.HDFData.pull("YFData.h5").symbols
+
+# %%
+vbt.HDFData.pull("YFData.h5/BTC*").symbols
+
+# %%
+vbt.HDFData.pull("*.h5/BTC-*").symbols
+
+# %% [markdown]
+# #### Chunking
+
+# %%
+yf_data.to_hdf(format="table")
+
+hdf_data = vbt.HDFData.pull(
+    "YFData.h5",
+    chunksize=1,
+    chunk_func=lambda iterator: pd.concat([
+        df
+        for df in iterator
+        if (df.index.day % 2 == 0).all()
+    ], axis=0)
+)
+
+# %%
+hdf_data.close
+
+# %% [markdown]
+# ### Feather & Parquet
+
+# %%
+yf_data.to_parquet()
+
+pd.read_parquet("BTC-USD.parquet")
+
+# %%
+yf_data2 = vbt.YFData.pull(
+    ["BNB-USD", "XRP-USD"],
+    start="2020-01-01",
+    end="2020-01-05"
+)
+yf_data2.to_parquet(partition_by="2D")
+
+pd.read_parquet("BNB-USD")
+
+# %%
+vbt.ParquetData.list_paths()
+
+# %%
+vbt.ParquetData.is_parquet_file("BTC-USD.parquet")
+
+# %%
+vbt.ParquetData.is_parquet_dir("BNB-USD")
+
+# %%
+vbt.ParquetData.pull("BTC-USD.parquet").symbols
+
+# %%
+vbt.ParquetData.pull(["BTC-USD.parquet", "ETH-USD.parquet"]).symbols
+
+# %%
+vbt.ParquetData.pull("*.parquet").symbols
+
+# %%
+vbt.ParquetData.pull("BNB-USD").symbols
+
+# %%
+vbt.ParquetData.pull(["BNB-USD", "XRP-USD"]).symbols
+
+# %%
+vbt.ParquetData.pull().symbols
+
+# %%
+vbt.ParquetData.list_partition_cols("BNB-USD")
+
+# %%
+vbt.ParquetData.is_default_partition_col("group")
+
+# %%
+vbt.ParquetData.pull("BNB-USD").features
+
+# %%
+vbt.ParquetData.pull("BNB-USD", keep_partition_cols=True).features
+
+# %% [markdown]
+# ### SQL
+
+# %%
+pd.read_sql_table(
+    "BTC-USD",
+    POSTGRESQL_URL,
+    schema="yf_data",
+    index_col="Date",
+    parse_dates={"Date": dict(utc=True)}
+)
+
+# %%
+pd.read_sql_query(
+    'SELECT * FROM yf_data."BTC-USD"',
+    POSTGRESQL_URL,
+    index_col="Date",
+    parse_dates={"Date": dict(utc=True)}
+)
+
+# %%
+vbt.SQLData.list_schemas(engine=POSTGRESQL_URL)
+
+# %%
+vbt.SQLData.list_tables(engine=POSTGRESQL_URL)
+
+# %%
+vbt.SQLData.list_tables(engine=POSTGRESQL_URL, schema="yf_data")
+
+# %%
+vbt.SQLData.pull(engine=SQLITE_URL).symbols
+
+# %%
+vbt.SQLData.pull(["BTC-USD", "ETH-USD"], engine=SQLITE_URL).symbols
+
+# %%
+vbt.SQLData.pull(engine=POSTGRESQL_URL, schema="yf_data").symbols
+
+# %%
+vbt.SQLData.pull(["yf_data:BTC-USD", "yf_data:ETH-USD"], engine=POSTGRESQL_URL).symbols
+
+# %%
+vbt.SQLData.pull(
+    ["BTCUSD", "ETHUSD"],
+    schema="yf_data",
+    table=vbt.key_dict({
+        "BTCUSD": "BTC-USD",
+        "ETHUSD": "ETH-USD",
+    }),
+    engine=POSTGRESQL_URL
+).symbols
+
+# %%
+vbt.SQLData.pull(
+    ["BTC-USD", "ETH-USD"],
+    query=vbt.key_dict({
+        "BTC-USD": 'SELECT * FROM yf_data."BTC-USD"',
+        "ETH-USD": 'SELECT * FROM yf_data."ETH-USD"',
+    }),
+    index_col="Date",
+    engine=POSTGRESQL_URL
+).symbols
+
+# %%
+vbt.SQLData.set_engine_settings(
+    engine_name="sqlite",
+    populate_=True,
+    engine=SQLITE_URL
+)
+
+vbt.SQLData.set_engine_settings(
+    engine_name="postgresql",
+    populate_=True,
+    engine=POSTGRESQL_URL,
+    schema="yf_data"
+)
+
+# %%
+vbt.SQLData.pull(engine_name="sqlite").symbols
+
+# %%
+vbt.SQLData.pull(engine_name="postgresql").symbols
+
+# %%
+vbt.SQLData.set_custom_settings(engine_name="postgresql")
+
+vbt.SQLData.pull().symbols
+
+# %%
+vbt.SQLData.pull(columns=["High", "Low"]).features
+
+# %%
+vbt.SQLData.pull(start="2020-01-03").close
+
+# %%
+aapl_data = vbt.YFData.fetch("AAPL", start="2022", end="2023")
+aapl_data.close
+
+# %%
+aapl_data.to_sql("sqlite")
+aapl_data.to_sql("postgresql")
+
+vbt.SQLData.pull(
+    "AAPL",
+    engine_name="sqlite",
+    start="2022-12-23",
+    end="2022-12-30",
+    tz="America/New_York"
+).close
+
+# %%
+vbt.SQLData.pull(
+    "AAPL",
+    engine_name="postgresql",
+    start="2022-12-23",
+    end="2022-12-30",
+    tz="America/New_York"
+).close
+
+# %%
+vbt.SQLData.pull(
+    "AAPL",
+    start="2022-12-23",
+    end="2022-12-30",
+    tz="America/New_York",
+    align_dates=False
+).close
+
+# %%
+vbt.SQLData.pull(
+    "AAPL",
+    query="""
+        SELECT *
+        FROM yf_data."AAPL"
+        WHERE yf_data."AAPL"."Date" >= :start AND yf_data."AAPL"."Date" < :end
+    """,
+    tz="America/New_York",
+    index_col="Date",
+    params={
+        "start": pd.Timestamp("2022-12-23", tz="America/New_York").to_pydatetime(),
+        "end": pd.Timestamp("2022-12-30", tz="America/New_York").to_pydatetime()
+    }
+).close
+
+# %%
+aapl_data.to_sql("sqlite", attach_row_number=True, if_exists="replace")
+
+# %%
+vbt.SQLData.pull(
+    "AAPL",
+    start_row=5,
+    end_row=10,
+    tz="America/New_York"
+).close
+
+# %% [markdown]
+# #### Chunking
+
+# %%
+vbt.SQLData.pull(
+    "AAPL",
+    chunksize=1,
+    chunk_func=lambda iterator: pd.concat([
+        df
+        for df in iterator
+        if df.index.is_month_start.all()
+    ], axis=0),
+    tz="America/New_York"
+).close
+
+# %% [markdown]
+# ### DuckDB
+
+# %%
+vbt.remove_file(DUCKDB_URL)
+
+vbt.DuckDBData.set_custom_settings(
+    connection=DUCKDB_URL
+)
+
+yf_data.to_duckdb(schema="yf_data")
+
+vbt.DuckDBData.list_catalogs()
+
+# %%
+vbt.DuckDBData.list_schemas()
+
+# %%
+vbt.DuckDBData.list_tables()
+
+# %%
+vbt.DuckDBData.pull("yf_data:BTC-USD").symbols
+
+# %%
+vbt.DuckDBData.pull("BTC-USD", schema="yf_data").symbols
+
+# %%
+vbt.DuckDBData.pull(["BTC-USD", "ETH-USD"], schema="yf_data").symbols
+
+# %%
+vbt.DuckDBData.pull().symbols
+
+# %%
+vbt.DuckDBData.pull(
+    ["BTC", "ETH"],
+    table=vbt.key_dict(BTC="BTC-USD", ETH="ETH-USD"),
+    schema="yf_data"
+).symbols
+
+# %%
+vbt.DuckDBData.pull(
+    ["BTC-USD", "ETH-USD"],
+    query=vbt.key_dict({
+        "BTC-USD": 'SELECT * FROM yf_data."BTC-USD"',
+        "ETH-USD": 'SELECT * FROM yf_data."ETH-USD"'
+    })
+).symbols
+
+# %%
+vbt.DuckDBData.pull(read_path="data").symbols
+
+# %%
+vbt.DuckDBData.pull(
+    ["BTC-USD", "ETH-USD"],
+    read_path=vbt.key_dict({
+         "BTC-USD": "data/BTC-USD.parquet",
+         "ETH-USD": "data/ETH-USD.parquet"
+    })
+).symbols
+
+# %%
+vbt.DuckDBData.pull(
+    ["BTC-USD", "ETH-USD"],
+    query=vbt.key_dict({
+         "BTC-USD": "SELECT * FROM read_parquet('data/BTC-USD.parquet')",
+         "ETH-USD": "SELECT * FROM read_parquet('data/ETH-USD.parquet')"
+    })
+).symbols
+
+# %% [markdown]
+# ## Updating
+# ### CSV & HDF
+
+# %%
+yf_data_btc = vbt.YFData.pull(
+    "BTC-USD",
+    start="2020-01-01",
+    end="2020-01-03"
+)
+yf_data_eth = vbt.YFData.pull(
+    "ETH-USD",
+    start="2020-01-03",
+    end="2020-01-05"
+)
+
+yf_data_btc.to_hdf("data.h5", key="yf_data_btc")
+yf_data_eth.to_hdf("data.h5", key="yf_data_eth")
+
+hdf_data = vbt.HDFData.pull(["BTC-USD", "ETH-USD"], paths="data.h5")
+
+# %%
+hdf_data.close
+
+# %%
+hdf_data.returned_kwargs
+
+# %%
+yf_data_btc = yf_data_btc.update(end="2020-01-06")
+yf_data_btc.to_hdf("data.h5", key="yf_data_btc")
+
+hdf_data = hdf_data.update()
+hdf_data.close
+
+# %%
+hdf_data.returned_kwargs
+
+# %% [markdown]
+# ### Feather & Parquet
+
+# %%
+parquet_data = vbt.ParquetData.pull(
+    "BNB-USD",
+    filters=[("group", "<", "2020-01-03")]
+)
+parquet_data.close
+
+# %%
+parquet_data = parquet_data.update(
+    filters=[("group", ">=", "2020-01-03")]
+)
+parquet_data.close
+
+# %%
+parquet_data = vbt.ParquetData.pull(
+    "BNB-USD",
+    filters=[("Date", "<", pd.Timestamp("2020-01-03", tz="UTC"))]
+)
+parquet_data.close
+
+# %%
+parquet_data = parquet_data.update(
+    filters=[("Date", ">=", pd.Timestamp("2020-01-03", tz="UTC"))]
+)
+parquet_data.close
+
+# %% [markdown]
+# ### SQL
+
+# %%
+aapl_data.to_sql("postgresql", attach_row_number=True, if_exists="replace")
+
+sql_data = vbt.SQLData.pull(
+    "AAPL",
+    end_row=5,
+    tz="America/New_York"
+)
+sql_data.close
+
+# %%
+sql_data = sql_data.update(end_row=10)
+sql_data.close
+
+# %%
+aapl_data.to_sql("postgresql", attach_row_number=False, if_exists="replace")
+
+sql_data = vbt.SQLData.pull(
+    "AAPL",
+    end="2022-01-08",
+    tz="America/New_York"
+)
+sql_data.close
+
+# %%
+sql_data = sql_data.update(end="2022-01-15")
+sql_data.close
+
+# %%
+sql_data = vbt.SQLData.pull(
+    "AAPL",
+    query="""
+        SELECT *
+        FROM yf_data."AAPL"
+        WHERE yf_data."AAPL"."Date" >= :start AND yf_data."AAPL"."Date" < :end
+    """,
+    tz="America/New_York",
+    index_col="Date",
+    params={
+        "start": pd.Timestamp("2022-01-01", tz="America/New_York").to_pydatetime(),
+        "end": pd.Timestamp("2022-01-08", tz="America/New_York").to_pydatetime()
+    }
+)
+sql_data.close
+
+# %%
+sql_data = sql_data.update(
+    params={
+        "start": pd.Timestamp("2022-01-08", tz="America/New_York").to_pydatetime(),
+        "end": pd.Timestamp("2022-01-18", tz="America/New_York").to_pydatetime()
+    }
+)
+sql_data.close
+
+# %% [markdown]
+# ### DuckDB
+
+# %%
+duckdb_data = vbt.DuckDBData.pull(
+    ["BTC-USD", "ETH-USD"],
+    end="2020-01-03",
+    schema="yf_data"
+)
+duckdb_data.close
+
+# %%
+duckdb_data = duckdb_data.update(end=None)
+duckdb_data.close
+
+# %%
+duckdb_data = vbt.DuckDBData.pull(
+    ["BTC-USD", "ETH-USD"],
+    query=vbt.key_dict({
+        "BTC-USD": """
+            SELECT * FROM yf_data."BTC-USD"
+            WHERE "Date" < TIMESTAMP '2020-01-03 00:00:00.000000'
+        """,
+        "ETH-USD": """
+            SELECT * FROM yf_data."ETH-USD"
+            WHERE "Date" < TIMESTAMP '2020-01-03 00:00:00.000000'
+        """
+    })
+)
+duckdb_data.close
+
+# %%
+duckdb_data = duckdb_data.update(
+    query=vbt.key_dict({
+        "BTC-USD": """
+            SELECT * FROM yf_data."BTC-USD"
+            WHERE "Date" >= TIMESTAMP '2020-01-03 00:00:00.000000'
+        """,
+        "ETH-USD": """
+            SELECT * FROM yf_data."ETH-USD"
+            WHERE "Date" >= TIMESTAMP '2020-01-03 00:00:00.000000'
+        """
+    })
+)
+duckdb_data.close
+
+# %%
+duckdb_data = vbt.DuckDBData.pull(
+    ["BTC-USD", "ETH-USD"],
+    query=vbt.key_dict({
+        "BTC-USD": """
+            SELECT * FROM yf_data."BTC-USD"
+            WHERE "Date" >= $start AND "Date" < $end
+        """,
+        "ETH-USD": """
+            SELECT * FROM yf_data."ETH-USD"
+            WHERE "Date" >= $start AND "Date" < $end
+        """
+    }),
+    params=dict(
+        start=pd.Timestamp("2020-01-01").to_pydatetime(),
+        end=pd.Timestamp("2020-01-03").to_pydatetime()
+    )
+)
+duckdb_data.close
+
+# %%
+duckdb_data = duckdb_data.update(
+    params=dict(
+        start=pd.Timestamp("2020-01-03").to_pydatetime(),
+        end=pd.Timestamp("2020-01-05").to_pydatetime()
+    )
+)
+
+# %%
+duckdb_data = vbt.DuckDBData.pull(
+    ["BTC-USD", "ETH-USD"],
+    query=vbt.key_dict({
+        "BTC-USD": """
+            SELECT * EXCLUDE (Row) FROM (
+                SELECT row_number() OVER () AS "Row", * FROM yf_data."BTC-USD"
+            )
+            WHERE Row >= $start_row AND Row < $end_row
+        """,
+        "ETH-USD": """
+            SELECT * EXCLUDE (Row) FROM (
+                SELECT row_number() OVER () AS "Row", * FROM yf_data."ETH-USD"
+            )
+            WHERE Row >= $start_row AND Row < $end_row
+        """
+    }),
+    params=dict(start_row=1, end_row=3)
+)
+duckdb_data.close
+
+# %%
+duckdb_data = duckdb_data.update(params=dict(start_row=3, end_row=5))
+
+# %%

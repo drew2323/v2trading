@@ -1,0 +1,484 @@
+# ################################## HOW TO USE #################################### #
+#                                                                                    #
+# This is a Jupyter notebook formatted as a script                                   #
+# Format: https://jupytext.readthedocs.io/en/latest/formats.html#the-percent-format  #
+#                                                                                    #
+# Save this file and remove the '.txt' extension                                     #
+# In Jupyter Lab, right click on the Python file -> Open With -> Jupytext Notebook   #
+# Make sure to have Jupytext installed: https://github.com/mwouts/jupytext           #
+#                                                                                    #
+# ################################################################################## #
+
+# %% [markdown]
+# #  Portfolio
+# ## Index records
+
+# %%
+data = vbt.YFData.pull(["BTC-USD", "ETH-USD"], missing_index="drop")
+records = [
+    dict(date="2022", symbol="BTC-USD", long_entry=True),
+    dict(date="2022", symbol="ETH-USD", short_entry=True),
+    dict(row=-1, exit=True),
+]
+pf = vbt.PF.from_signals(data, records=records)
+pf.orders.records_readable
+
+# %% [markdown]
+# ## Portfolio preparers
+
+# %%
+data = vbt.YFData.pull("BTC-USD", end="2017-01")
+prep_result = vbt.PF.from_holding(
+    data,
+    stop_ladder="uniform",
+    tp_stop=vbt.Param([
+        [0.1, 0.2, 0.3, 0.4, 0.5],
+        [0.4, 0.5, 0.6],
+    ], keys=["tp_ladder_1", "tp_ladder_2"]),
+    return_prep_result=True
+)
+prep_result.target_args["tp_stop"]
+
+# %%
+new_tp_stop = prep_result.target_args["tp_stop"] + 0.1
+new_prep_result = prep_result.replace(target_args=dict(tp_stop=new_tp_stop), nested_=True)
+new_prep_result.target_args["tp_stop"]
+
+# %%
+pf = vbt.PF.from_signals(new_prep_result)
+pf.total_return
+
+# %%
+sim_out = new_prep_result.target_func(**new_prep_result.target_args)
+pf = vbt.PF(order_records=sim_out, **new_prep_result.pf_args)
+pf.total_return
+
+# %% [markdown]
+# ## Stop laddering
+
+# %%
+data = vbt.YFData.pull("BTC-USD", end="2017-01")
+pf = vbt.PF.from_holding(
+    data,
+    stop_ladder="uniform",
+    tp_stop=vbt.Param([
+        [0.1, 0.2, 0.3, 0.4, 0.5],
+        [0.4, 0.5, 0.6],
+    ], keys=["tp_ladder_1", "tp_ladder_2"])
+)
+pf.trades.plot(column="tp_ladder_1").show()
+
+# %% [markdown]
+# ## Staticization
+
+# %%
+data = vbt.YFData.pull("BTC-USD")
+pf = vbt.PF.from_signals(
+    data,
+    signal_func_nb="signal_func_nb.py",
+    signal_args=(vbt.Rep("fast_sma"), vbt.Rep("slow_sma")),
+    broadcast_named_args=dict(
+        fast_sma=data.run("sma", 20, hide_params=True, unpack=True),
+        slow_sma=data.run("sma", 50, hide_params=True, unpack=True)
+    ),
+    staticized=True
+)
+
+# %% [markdown]
+# ## Position info
+
+# %%
+@njit
+def signal_func_nb(c, entries, exits):
+    is_entry = vbt.pf_nb.select_nb(c, entries)
+    is_exit = vbt.pf_nb.select_nb(c, exits)
+    if is_entry:
+        return True, False, False, False
+    if is_exit:
+        pos_info = c.last_pos_info[c.col]
+        if pos_info["status"] == vbt.pf_enums.TradeStatus.Open:
+            if pos_info["pnl"] >= 0:
+                return False, True, False, False
+    return False, False, False, False
+
+data = vbt.YFData.pull("BTC-USD")
+entries, exits = data.run("RANDNX", n=10, unpack=True)
+pf = vbt.Portfolio.from_signals(
+    data,
+    signal_func_nb=signal_func_nb,
+    signal_args=(vbt.Rep("entries"), vbt.Rep("exits")),
+    broadcast_named_args=dict(entries=entries, exits=exits),
+    jitted=False
+)
+pf.trades.records_readable[["Entry Index", "Exit Index", "PnL"]]
+
+# %% [markdown]
+# ## Time stops
+
+# %%
+data = vbt.YFData.pull("BTC-USD", start="2022-01", end="2022-04")
+entries = vbt.pd_acc.signals.generate_random(data.symbol_wrapper, n=10)
+pf = vbt.PF.from_signals(data, entries, dt_stop="M")
+pf.orders.records_readable[["Fill Index", "Side", "Stop Type"]]
+
+# %% [markdown]
+# ## Target size to signals
+
+# %%
+data = vbt.YFData.pull(
+    ["SPY", "TLT", "XLF", "XLE", "XLU", "XLK", "XLB", "XLP", "XLY", "XLI", "XLV"],
+    start="2022",
+    end="2023",
+    missing_index="drop"
+)
+pfo = vbt.PFO.from_riskfolio(data.returns, every="MS")
+pf = pfo.simulate(
+    data,
+    pf_method="from_signals",
+    sl_stop=0.05,
+    tp_stop=0.1,
+    stop_exit_price="close"
+)
+pf.plot_allocations().show()
+
+# %% [markdown]
+# ## Target price
+
+# %%
+data = vbt.YFData.pull("BTC-USD")
+pf = vbt.PF.from_random_signals(
+    data,
+    n=100,
+    sl_stop=data.low.vbt.ago(1),
+    delta_format="target"
+)
+sl_orders = pf.orders.stop_type_sl
+signal_index = pf.wrapper.index[sl_orders.signal_idx.values]
+hit_index = pf.wrapper.index[sl_orders.idx.values]
+hit_after = hit_index - signal_index
+hit_after
+
+# %% [markdown]
+# ## Leverage
+
+# %%
+data = vbt.YFData.pull("BTC-USD", start="2020", end="2022")
+pf = vbt.PF.from_random_signals(
+    data,
+    n=100,
+    leverage=vbt.Param([0.5, 1, 2, 3]),
+)
+pf.value.vbt.plot().show()
+
+# %% [markdown]
+# ## Order delays
+
+# %%
+pf = vbt.PF.from_random_signals(
+    vbt.YFData.pull("BTC-USD", start="2021-01", end="2021-02"),
+    n=3,
+    price=vbt.Param(["close", "nextopen"])
+)
+fig = pf.orders["close"].plot(
+    buy_trace_kwargs=dict(name="Buy (close)", marker=dict(symbol="triangle-up-open")),
+    sell_trace_kwargs=dict(name="Buy (close)", marker=dict(symbol="triangle-down-open"))
+)
+pf.orders["nextopen"].plot(
+    plot_ohlc=False,
+    plot_close=False,
+    buy_trace_kwargs=dict(name="Buy (nextopen)"),
+    sell_trace_kwargs=dict(name="Sell (nextopen)"),
+    fig=fig
+)
+fig.show()
+
+# %% [markdown]
+# ## Signal callbacks
+
+# %%
+from collections import namedtuple
+
+InOutputs = namedtuple("InOutputs", ["fast_sma", "slow_sma"])
+
+def initialize_in_outputs(target_shape):
+    return InOutputs(
+        fast_sma=np.full(target_shape, np.nan),
+        slow_sma=np.full(target_shape, np.nan)
+    )
+
+@njit
+def signal_func_nb(c, fast_window, slow_window):
+    fast_sma = c.in_outputs.fast_sma
+    slow_sma = c.in_outputs.slow_sma
+    fast_start_i = c.i - fast_window + 1
+    slow_start_i = c.i - slow_window + 1
+    if fast_start_i >= 0 and slow_start_i >= 0:
+        fast_sma[c.i, c.col] = np.nanmean(c.close[fast_start_i : c.i + 1])
+        slow_sma[c.i, c.col] = np.nanmean(c.close[slow_start_i : c.i + 1])
+        is_entry = vbt.pf_nb.iter_crossed_above_nb(c, fast_sma, slow_sma)
+        is_exit = vbt.pf_nb.iter_crossed_below_nb(c, fast_sma, slow_sma)
+        return is_entry, is_exit, False, False
+    return False, False, False, False
+
+pf = vbt.PF.from_signals(
+    vbt.YFData.pull("BTC-USD"),
+    signal_func_nb=signal_func_nb,
+    signal_args=(50, 200),
+    in_outputs=vbt.RepFunc(initialize_in_outputs),
+)
+fig = pf.get_in_output("fast_sma").vbt.plot()
+pf.get_in_output("slow_sma").vbt.plot(fig=fig)
+pf.orders.plot(plot_ohlc=False, plot_close=False, fig=fig)
+fig.show()
+
+# %% [markdown]
+# ## Limit orders
+
+# %%
+pf = vbt.PF.from_random_signals(
+    vbt.YFData.pull("BTC-USD"),
+    n=100,
+    order_type="limit",
+    limit_delta=vbt.Param(np.arange(0.001, 0.1, 0.001)),
+)
+pf.orders.count().vbt.plot(
+    xaxis_title="Limit delta",
+    yaxis_title="Order count"
+).show()
+
+# %% [markdown]
+# ## Delta formats
+
+# %%
+data = vbt.YFData.pull("BTC-USD")
+atr = vbt.talib("ATR").run(data.high, data.low, data.close).real
+pf = vbt.PF.from_holding(
+    data.loc["2022-01-01":"2022-01-07"],
+    sl_stop=atr.loc["2022-01-01":"2022-01-07"],
+    delta_format="absolute"
+)
+pf.orders.plot().show()
+
+# %% [markdown]
+# ## Bar skipping
+
+# %%
+data = vbt.BinanceData.pull("BTCUSDT", start="one month ago UTC", timeframe="minute")
+size = data.symbol_wrapper.fill(np.nan)
+size[0] = np.inf
+
+# %%
+%%timeit
+vbt.PF.from_orders(data, size, ffill_val_price=True)
+
+# %%
+%%timeit
+vbt.PF.from_orders(data, size, ffill_val_price=False)
+
+# %% [markdown]
+# ## Signal contexts
+
+# %%
+@njit
+def entry_place_func_nb(c, index):
+    for i in range(c.from_i, c.to_i):
+        if i == 0:
+            return i - c.from_i
+        else:
+            index_before = index[i - 1]
+            index_now = index[i]
+            index_next_week = vbt.dt_nb.future_weekday_nb(index_before, 0)
+            if index_now >= index_next_week:
+                return i - c.from_i
+    return -1
+
+@njit
+def exit_place_func_nb(c, index):
+    for i in range(c.from_i, c.to_i):
+        if i == len(index) - 1:
+            return i - c.from_i
+        else:
+            index_now = index[i]
+            index_after = index[i + 1]
+            index_next_week = vbt.dt_nb.future_weekday_nb(index_now, 0)
+            if index_after >= index_next_week:
+                return i - c.from_i
+    return -1
+
+data = vbt.YFData.pull("BTC-USD", start="2020-01", end="2020-14")
+entries, exits = vbt.pd_acc.signals.generate_both(
+    data.symbol_wrapper.shape,
+    entry_place_func_nb=entry_place_func_nb,
+    entry_place_args=(data.index.vbt.to_ns(),),
+    exit_place_func_nb=exit_place_func_nb,
+    exit_place_args=(data.index.vbt.to_ns(),),
+    wrapper=data.symbol_wrapper
+)
+pd.concat((
+    entries.rename("Entries"),
+    exits.rename("Exits")
+), axis=1).to_period("W")
+
+# %% [markdown]
+# ## Pre-computation
+
+# %%
+data = vbt.YFData.pull("BTC-USD")
+
+# %%
+%%timeit
+for n in range(1000):
+    pf = vbt.PF.from_random_signals(data, n=n, save_returns=False)
+    pf.sharpe_ratio
+
+# %%
+%%timeit
+pf = vbt.PF.from_random_signals(data, n=np.arange(1000).tolist(), save_returns=False)
+pf.sharpe_ratio
+
+# %%
+%%timeit
+pf = vbt.PF.from_random_signals(data, n=np.arange(1000).tolist(), save_returns=True)
+pf.sharpe_ratio
+
+# %% [markdown]
+# ## Cash deposits
+
+# %%
+data = vbt.YFData.pull("BTC-USD")
+cash_deposits = data.symbol_wrapper.fill(0.0)
+month_start_mask = ~data.index.tz_convert(None).to_period("M").duplicated()
+cash_deposits[month_start_mask] = 10
+pf = vbt.PF.from_orders(
+    data.close,
+    init_cash=0,
+    cash_deposits=cash_deposits
+)
+
+pf.input_value
+
+# %%
+pf.final_value
+
+# %% [markdown]
+# ## Cash earnings
+
+# %%
+data = vbt.YFData.pull("AAPL", start="2010")
+
+pf_kept = vbt.PF.from_holding(
+    data.close,
+    cash_dividends=data.get("Dividends")
+)
+pf_kept.cash.iloc[-1]
+
+# %%
+pf_kept.assets.iloc[-1]
+
+# %%
+pf_reinvested = vbt.PF.from_orders(
+    data.close,
+    cash_dividends=data.get("Dividends")
+)
+pf_reinvested.cash.iloc[-1]
+
+# %%
+pf_reinvested.assets.iloc[-1]
+
+# %%
+fig = pf_kept.value.rename("Value (kept)").vbt.plot()
+pf_reinvested.value.rename("Value (reinvested)").vbt.plot(fig=fig)
+fig.show()
+
+# %% [markdown]
+# ## In-outputs
+
+# %%
+data = vbt.YFData.pull(["BTC-USD", "ETH-USD"], missing_index="drop")
+size = data.symbol_wrapper.fill(np.nan)
+rand_indices = np.random.choice(np.arange(len(size)), 10)
+size.iloc[rand_indices[0::2]] = -np.inf
+size.iloc[rand_indices[1::2]] = np.inf
+
+@njit
+def post_segment_func_nb(c):
+    for col in range(c.from_col, c.to_col):
+        col_debt = c.last_debt[col]
+        c.in_outputs.debt[c.i, col] = col_debt
+        if col_debt > c.in_outputs.max_debt[col]:
+            c.in_outputs.max_debt[col] = col_debt
+
+pf = vbt.PF.from_def_order_func(
+    data.close,
+    size=size,
+    post_segment_func_nb=post_segment_func_nb,
+    in_outputs=dict(
+        debt=vbt.RepEval("np.empty_like(close)"),
+        max_debt=vbt.RepEval("np.full(close.shape[1], 0.)")
+    )
+)
+print(pf.get_in_output("debt"))
+
+# %%
+pf.get_in_output("max_debt")
+
+# %% [markdown]
+# ## Flexible attributes
+
+# %%
+data = vbt.YFData.pull("BTC-USD")
+pf = vbt.PF.from_random_signals(data.close, n=100)
+value = pf.get_value()
+long_exposure = vbt.PF.get_gross_exposure(
+    asset_value=pf.get_asset_value(direction="longonly"),
+    value=value,
+    wrapper=pf.wrapper
+)
+short_exposure = vbt.PF.get_gross_exposure(
+    asset_value=pf.get_asset_value(direction="shortonly"),
+    value=value,
+    wrapper=pf.wrapper
+)
+del value
+net_exposure = vbt.PF.get_net_exposure(
+    long_exposure=long_exposure,
+    short_exposure=short_exposure,
+    wrapper=pf.wrapper
+)
+del long_exposure
+del short_exposure
+net_exposure
+
+# %% [markdown]
+# ## Shortcut properties
+
+# %%
+data = vbt.YFData.pull("BTC-USD")
+size = data.symbol_wrapper.fill(np.nan)
+rand_indices = np.random.choice(np.arange(len(size)), 10)
+size.iloc[rand_indices[0::2]] = -np.inf
+size.iloc[rand_indices[1::2]] = np.inf
+
+@njit
+def post_segment_func_nb(c):
+    for col in range(c.from_col, c.to_col):
+        return_now = c.last_return[col]
+        return_now = 0.5 * return_now if return_now > 0 else return_now
+        c.in_outputs.returns[c.i, col] = return_now
+
+pf = vbt.PF.from_def_order_func(
+    data.close,
+    size=size,
+    size_type="targetpercent",
+    post_segment_func_nb=post_segment_func_nb,
+    in_outputs=dict(
+        returns=vbt.RepEval("np.empty_like(close)")
+    )
+)
+
+pf.returns
+
+# %%
+pf.get_returns()
+
+# %%

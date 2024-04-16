@@ -1,0 +1,825 @@
+# ################################## HOW TO USE #################################### #
+#                                                                                    #
+# This is a Jupyter notebook formatted as a script                                   #
+# Format: https://jupytext.readthedocs.io/en/latest/formats.html#the-percent-format  #
+#                                                                                    #
+# Save this file and remove the '.txt' extension                                     #
+# In Jupyter Lab, right click on the Python file -> Open With -> Jupytext Notebook   #
+# Make sure to have Jupytext installed: https://github.com/mwouts/jupytext           #
+#                                                                                    #
+# ################################################################################## #
+
+# %% [markdown]
+# #  From orders
+# ## Numba
+# ### Order fields
+
+# %%
+from vectorbtpro import *
+
+sim_out = vbt.pf_nb.from_orders_nb(
+    target_shape=(3, 1),
+    group_lens=np.array([1]),
+    size=np.array([[0.1], [-0.1], [np.nan]]),
+    price=np.array([[11], [10], [12]])
+)
+sim_out.order_records
+
+# %%
+print(vbt.prettify(sim_out))
+
+# %%
+def print_orders(target_shape, order_records):
+    wrapper = vbt.ArrayWrapper.from_shape(target_shape)
+    print(vbt.Orders(wrapper, order_records).records_readable)
+
+print_orders((3, 1), sim_out.order_records)
+
+# %%
+sim_out = vbt.pf_nb.from_orders_nb(
+    target_shape=(3, 1),
+    group_lens=np.array([1]),
+    size=np.array([0.1, -0.1, np.nan]),
+    price=np.array([11, 10, 12]),
+    fees=0.01
+)
+print_orders((3, 1), sim_out.order_records)
+
+# %%
+sim_out = vbt.pf_nb.from_orders_nb(
+    target_shape=(3, 3),
+    group_lens=np.array([1, 1, 1]),
+    size=np.array([[np.inf, np.nan, -np.inf]]),
+    price=np.array([11, 10, 12]),
+    fees=0.01
+)
+print_orders((3, 3), sim_out.order_records)
+
+# %%
+size, price, fees = vbt.broadcast_arrays(
+    np.array([[np.inf, np.nan, -np.inf]]),
+    np.array([11, 10, 12]),
+    0.01
+)
+size
+
+# %%
+price
+
+# %%
+fees
+
+# %%
+sim_out = vbt.pf_nb.from_orders_nb(
+    target_shape=size.shape,
+    group_lens=np.full(size.shape[1], 1),
+    size=size,
+    price=price,
+    fees=fees
+)
+print_orders(size.shape, sim_out.order_records)
+
+# %% [markdown]
+# ### Grouping
+
+# %%
+sim_out = vbt.pf_nb.from_orders_nb(
+    target_shape=(1, 2),
+    group_lens=np.array([2]),
+    size=np.array([[np.inf, np.inf]]),
+    price=np.array([[10, 5]])
+)
+print_orders((1, 2), sim_out.order_records)
+
+# %% [markdown]
+# ### Call sequence
+
+# %%
+sim_out = vbt.pf_nb.from_orders_nb(
+    target_shape=(2, 2),
+    group_lens=np.array([2]),
+    size=np.array([[0, 1], [1, 0]]),
+    size_type=vbt.pf_enums.SizeType.TargetPercent,
+    price=np.array([[10, 5], [11, 4]])
+)
+print_orders((2, 2), sim_out.order_records)
+
+# %%
+sim_out = vbt.pf_nb.from_orders_nb(
+    target_shape=(2, 2),
+    group_lens=np.array([2]),
+    size=np.array([[0, 1], [1, 0]]),
+    size_type=vbt.pf_enums.SizeType.TargetPercent,
+    price=np.array([[10, 5], [11, 4]]),
+    call_seq=np.array([[0, 1], [1, 0]])
+)
+print_orders((2, 2), sim_out.order_records)
+
+# %%
+sim_out = vbt.pf_nb.from_orders_nb(
+    target_shape=(2, 2),
+    group_lens=np.array([2]),
+    size=np.array([[0, 1], [1, 0]]),
+    size_type=vbt.pf_enums.SizeType.TargetPercent,
+    price=np.array([[10, 5], [11, 4]]),
+    auto_call_seq=True
+)
+print_orders((2, 2), sim_out.order_records)
+
+# %%
+from vectorbtpro.portfolio.call_seq import build_call_seq
+
+call_seq = build_call_seq(
+    target_shape=(2, 2),
+    group_lens=np.array([2]),
+    call_seq_type=vbt.pf_enums.CallSeqType.Default
+)
+
+sim_out = vbt.pf_nb.from_orders_nb(
+    target_shape=(2, 2),
+    group_lens=np.array([2]),
+    size=np.array([[0, 1], [1, 0]]),
+    size_type=vbt.pf_enums.SizeType.TargetPercent,
+    price=np.array([[10, 5], [11, 4]]),
+    call_seq=call_seq,
+    auto_call_seq=True
+)
+sim_out.call_seq
+
+# %% [markdown]
+# ### Filling returns
+
+# %%
+data = vbt.YFData.pull("BTC-USD", end="2022-01-01")
+symbol_wrapper = data.get_symbol_wrapper()
+
+sim_out = vbt.pf_nb.from_orders_nb(
+    target_shape=symbol_wrapper.shape_2d,
+    group_lens=np.array([1]),
+    open=data.get("Open").values,
+    high=data.get("High").values,
+    low=data.get("Low").values,
+    close=data.get("Close").values,
+    save_returns=True
+)
+returns = symbol_wrapper.wrap(sim_out.in_outputs.returns)
+returns
+
+# %%
+data.get("Close").vbt.to_returns()
+
+# %%
+mult_data = vbt.YFData.pull(
+    ["BTC-USD", "ETH-USD"],
+    end="2022-01-01",
+    missing_index="drop"
+)
+mult_symbol_wrapper = mult_data.get_symbol_wrapper()
+
+sim_out = vbt.pf_nb.from_orders_nb(
+    target_shape=mult_symbol_wrapper.shape_2d,
+    group_lens=np.array([2]),
+    close=mult_data.get("Close").values,
+    size=np.array([[0.5, 0.5]]),
+    size_type=vbt.pf_enums.SizeType.TargetPercent,
+    save_returns=True
+)
+returns = mult_symbol_wrapper\
+    .replace(columns=["group"], ndim=1)\
+    .wrap(sim_out.in_outputs.returns)
+returns
+
+# %% [markdown]
+# ### Initial state
+
+# %%
+sim_out = vbt.pf_nb.from_orders_nb(
+    target_shape=(1, 4),
+    group_lens=np.array([2, 1, 1]),
+    init_cash=100,
+    size=np.array([[0.5, 0.5, 1.0, 1.0]]),
+    size_type=vbt.pf_enums.SizeType.TargetPercent,
+    price=np.array([[10, 11, 10, 11]]),
+)
+print_orders((1, 4), sim_out.order_records)
+
+# %%
+sim_out = vbt.pf_nb.from_orders_nb(
+    target_shape=(1, 4),
+    group_lens=np.array([2, 1, 1]),
+    init_cash=np.array([200, 100, 100]),
+    size=np.array([[0.5, 0.5, 1.0, 1.0]]),
+    size_type=vbt.pf_enums.SizeType.TargetPercent,
+    price=np.array([[10, 11, 10, 11]]),
+)
+print_orders((1, 4), sim_out.order_records)
+
+# %%
+sim_out = vbt.pf_nb.from_orders_nb(
+    target_shape=mult_symbol_wrapper.shape_2d,
+    group_lens=np.array([1, 1]),
+    init_position=np.array([1, 1]),
+    close=mult_data.get("Close").values,
+    save_returns=True
+)
+returns = mult_symbol_wrapper.wrap(sim_out.in_outputs.returns)
+returns
+
+# %%
+sim_out = vbt.pf_nb.from_orders_nb(
+    target_shape=mult_symbol_wrapper.shape_2d,
+    group_lens=np.array([1, 1]),
+    init_position=np.array([1, 1]),
+    init_price=mult_data.get("Open").values[0],
+    close=mult_data.get("Close").values,
+    save_returns=True
+)
+returns = mult_symbol_wrapper.wrap(sim_out.in_outputs.returns)
+returns
+
+# %% [markdown]
+# ### Cash deposits
+
+# %%
+cash_deposits = symbol_wrapper.fill(0)
+cash_deposits.vbt.set(100, every="YS", inplace=True)
+
+sim_out = vbt.pf_nb.from_orders_nb(
+    target_shape=symbol_wrapper.shape_2d,
+    group_lens=np.array([1]),
+    cash_deposits=cash_deposits.values,
+    close=data.get("Close").values
+)
+print_orders(symbol_wrapper.shape_2d, sim_out.order_records)
+
+# %%
+cash_deposits = mult_symbol_wrapper\
+    .replace(columns=["group"], ndim=1)\
+    .fill(0)
+cash_deposits.vbt.set(100, every="YS", inplace=True)
+size = mult_symbol_wrapper.fill(np.nan)
+size.vbt.set(0.5, every="YS", inplace=True)
+size.iloc[0] = 0.5
+
+sim_out = vbt.pf_nb.from_orders_nb(
+    target_shape=mult_symbol_wrapper.shape_2d,
+    group_lens=np.array([2]),
+    cash_deposits=cash_deposits.values,
+    close=mult_data.get("Close").values,
+    size=size.values,
+    size_type=vbt.pf_enums.SizeType.TargetPercent
+)
+print_orders(mult_symbol_wrapper.shape_2d, sim_out.order_records)
+
+# %%
+size = symbol_wrapper.fill(np.nan)
+size.vbt.set(-0.1, every="YS", inplace=True)
+
+sim_out = vbt.pf_nb.from_orders_nb(
+    target_shape=symbol_wrapper.shape_2d,
+    group_lens=np.array([1]),
+    init_position=1,
+    cash_deposits=-np.inf,
+    close=data.get("Close").values,
+    size=size.values,
+    size_type=vbt.pf_enums.SizeType.Percent,
+    direction=vbt.pf_enums.Direction.LongOnly
+)
+print_orders(symbol_wrapper.shape_2d, sim_out.order_records)
+
+# %%
+cash_deposits = symbol_wrapper.wrap(sim_out.cash_deposits)
+print(cash_deposits[cash_deposits != 0])
+
+# %% [markdown]
+# ### Cash earnings
+
+# %%
+aapl_data = vbt.YFData.pull("AAPL", end="2022-01-01")
+aapl_wrapper = aapl_data.get_symbol_wrapper()
+size = aapl_wrapper.fill()
+size.iloc[0] = np.inf
+
+sim_out = vbt.pf_nb.from_orders_nb(
+    target_shape=aapl_wrapper.shape_2d,
+    group_lens=np.array([1]),
+    close=aapl_data.get("Close").values,
+    cash_dividends=aapl_data.get("Dividends").values,
+    size=size.values
+)
+print_orders(aapl_wrapper.shape_2d, sim_out.order_records)
+
+# %%
+cash_earnings = aapl_wrapper.wrap(sim_out.cash_earnings)
+print(cash_earnings[cash_earnings != 0])
+
+# %% [markdown]
+# ### Max record count
+
+# %%
+target_shape = (1000000, 1)
+np.random.seed(42)
+rand_price = np.random.randint(8, 12, size=target_shape)
+size = np.full(target_shape, np.nan)
+size[0] = np.inf
+size[-1] = -np.inf
+
+sim_out = vbt.pf_nb.from_orders_nb(
+    target_shape=target_shape,
+    group_lens=np.array([1]),
+    price=rand_price,
+    size=size,
+    max_order_records=2
+)
+print_orders(target_shape, sim_out.order_records)
+
+# %%
+sim_out = vbt.pf_nb.from_orders_nb(
+    target_shape=target_shape,
+    group_lens=np.array([1]),
+    price=rand_price,
+    size=size,
+    max_order_records=1
+)
+
+# %%
+sim_out = vbt.pf_nb.from_orders_nb(
+    target_shape=target_shape,
+    group_lens=np.array([1]),
+    price=rand_price,
+    size=size,
+    max_order_records=0
+)
+print_orders(target_shape, sim_out.order_records)
+
+# %% [markdown]
+# ### Jitting
+
+# %%
+f_py = vbt.jit_reg.resolve_option(
+    task_id=vbt.pf_nb.from_orders_nb,
+    option=False
+)
+
+# %%
+f_no_cache = vbt.jit_reg.resolve_option(
+    task_id=vbt.pf_nb.from_orders_nb,
+    option=dict(cache=False)
+)
+
+# %%
+f_parallel = vbt.jit_reg.resolve_option(
+    task_id=vbt.pf_nb.from_orders_nb,
+    option=dict(parallel=True)
+)
+
+# %% [markdown]
+# ### Chunking
+
+# %%
+f_chunked = vbt.ch_reg.resolve_option(
+    setup_id_or_func=vbt.pf_nb.from_orders_nb,
+    option=True
+)
+print(vbt.prettify(f_chunked.options))
+
+# %%
+sim_out = f_chunked(
+    target_shape=mult_symbol_wrapper.shape_2d,
+    group_lens=np.array([1, 1]),
+    close=mult_data.get("Close").values,
+    _n_chunks=2,
+    _execute_kwargs=dict(engine="dask")
+)
+print_orders(mult_symbol_wrapper.shape_2d, sim_out.order_records)
+
+# %% [markdown]
+# ## Class method
+
+# %%
+pf = vbt.Portfolio.from_orders(
+    close=[11, 10, 12],
+    size=[0.1, -0.1, np.nan]
+)
+pf.orders.records_readable
+
+# %%
+pf = vbt.Portfolio.from_orders(10, 1)
+pf.orders.records_readable
+
+# %% [markdown]
+# ### Close price
+# ### Defaults
+
+# %%
+vbt.phelp(vbt.Portfolio.from_orders, incl_doc=False)
+
+# %%
+vbt.settings.portfolio["price"]
+
+# %%
+vbt.settings.portfolio["fixed_fees"] = 1
+
+pf = vbt.Portfolio.from_orders(
+    close=pd.Series([11, 10, 12]),
+    size=pd.Series([0.1, -0.1, np.nan])
+)
+pf.orders.records_readable
+
+# %%
+vbt.settings.portfolio.reset()
+
+vbt.settings.portfolio["fixed_fees"]
+
+# %% [markdown]
+# ### Enums
+
+# %%
+print(vbt.prettify(vbt.pf_enums.SizeType))
+
+# %%
+vbt.map_enum_fields("targetamount", vbt.pf_enums.SizeType)
+
+# %%
+vbt.map_enum_fields([
+    "amount",
+    "targetamount",
+    "targetpercent"
+], vbt.pf_enums.SizeType)
+
+# %%
+vbt.map_enum_fields(3, vbt.pf_enums.SizeType)
+
+# %%
+vbt.map_enum_fields("Target Amount", vbt.pf_enums.SizeType)
+
+# %%
+pf = vbt.Portfolio.from_orders(
+    close=pd.Series([10, 11]),
+    size=pd.Series([1, -0.5]),
+    size_type=pd.Series(["amount", "percent"]),
+    direction="longonly"
+)
+pf.orders.records_readable
+
+# %% [markdown]
+# ### Broadcasting
+
+# %%
+close = pd.Series(
+    [11, 10, 12],
+    index=pd.date_range("2020-01-01", "2020-01-03")
+)
+size = pd.DataFrame(
+    [[-np.inf, np.nan, np.inf]],
+    columns=pd.Index(["short", "nan", "long"], name="size")
+)
+fees = 0.01
+
+broadcasted = vbt.broadcast(dict(
+    close=close,
+    size=size,
+    fees=0.01
+))
+broadcasted["close"]
+
+# %%
+broadcasted["size"]
+
+# %%
+broadcasted["fees"]
+
+# %%
+broadcasted, wrapper = vbt.broadcast(dict(
+    close=close,
+    size=size,
+    fees=0.01
+), keep_flex=True, return_wrapper=True)
+broadcasted["close"]
+
+# %%
+broadcasted["size"]
+
+# %%
+broadcasted["fees"]
+
+# %%
+wrapper.fill()
+
+# %%
+init_position = 1
+new_init_position = vbt.broadcast_array_to(init_position, wrapper.shape_2d[1])
+new_init_position
+
+# %%
+pf = vbt.Portfolio.from_orders(
+    close=close,
+    size=size,
+    fees=fees,
+    init_position=init_position
+)
+pf.orders.records_readable
+
+# %%
+pf.value
+
+# %%
+pf = vbt.Portfolio.from_orders(
+    close=close,
+    size=size,
+    fees=fees,
+    init_position=init_position,
+    broadcast_kwargs=dict(columns_from=["a", "b", "c"])
+)
+pf.value
+
+# %%
+pf = vbt.Portfolio.from_orders(
+    close=close,
+    size=vbt.Param([-np.inf, np.inf]),
+    fees=vbt.Param([0, 0.01]),
+    init_position=init_position
+)
+pf.value
+
+# %%
+mult_close = mult_data.get("Close")
+mult_close
+
+# %%
+mult_price = pd.concat((
+    mult_data.get("Open"),
+    mult_data.get("Close")
+), axis=1, keys=pd.Index(["open", "close"], name="price"))
+mult_price
+
+# %%
+pf = vbt.Portfolio.from_orders(close=mult_close, price=mult_price)
+pf.value
+
+# %%
+print(vbt.prettify(f_chunked.options["arg_take_spec"]["close"]))
+
+# %%
+print(vbt.prettify(f_chunked.options["arg_take_spec"]["cash_deposits"]))
+
+# %% [markdown]
+# ### Grouping
+
+# %%
+pf = vbt.Portfolio.from_orders(
+    close=mult_data.get("Close")
+)
+pf.value
+
+# %%
+pf = vbt.Portfolio.from_orders(
+    close=mult_data.get("Close"),
+    group_by=True
+)
+pf.value
+
+# %%
+pf = vbt.Portfolio.from_orders(
+    close=mult_data.get("Close"),
+    group_by=True,
+    cash_sharing=True
+)
+pf.value
+
+# %%
+pf = vbt.Portfolio.from_orders(
+    close=mult_close,
+    price=mult_price,
+    group_by=pd.Index(["group1", "group1", "group2", "group2"])
+)
+pf.value
+
+# %%
+pf = vbt.Portfolio.from_orders(
+    close=mult_close,
+    price=mult_price,
+    group_by=["price"]
+)
+pf.value
+
+# %%
+pf = vbt.Portfolio.from_orders(
+    close=mult_close,
+    price=mult_price,
+    group_by=vbt.ExceptLevel("symbol")
+)
+pf.value
+
+# %% [markdown]
+# ### Call sequence
+
+# %%
+size = mult_symbol_wrapper.fill(np.nan)
+size.vbt.set(0.5, every="MS", inplace=True)
+size.iloc[0] = 0.5
+
+pf = vbt.Portfolio.from_orders(
+    close=mult_data.get("Close"),
+    size=size,
+    size_type="targetpercent",
+    group_by=vbt.ExceptLevel("symbol"),
+    cash_sharing=True,
+    call_seq="auto"
+)
+allocations = pf.get_asset_value(group_by=False).vbt / pf.value
+allocations.vbt.plot(
+   trace_kwargs=dict(stackgroup="one"),
+   use_gl=False
+).show()
+
+# %%
+pf = vbt.Portfolio.from_orders(
+    close=mult_data.get("Close"),
+    size=size,
+    size_type="targetpercent",
+    group_by=vbt.ExceptLevel("symbol"),
+    cash_sharing=True,
+    call_seq="auto",
+    attach_call_seq=True
+)
+pf.call_seq
+
+# %% [markdown]
+# ### Unlimited cash
+
+# %%
+size = mult_symbol_wrapper.fill(np.nan)
+size.vbt.set(1, every="YS", inplace=True)
+size.iloc[0] = 1
+
+pf = vbt.Portfolio.from_orders(
+    close=mult_data.get("Close"),
+    size=size,
+    init_cash="auto"
+)
+pf.init_cash
+
+# %%
+pf2 = vbt.Portfolio.from_orders(
+    close=mult_data.get("Close"),
+    size=size,
+    init_cash=pf.init_cash
+)
+pf2.cash.loc[~size.isnull().all(axis=1)]
+
+# %%
+pf2.orders.records_readable
+
+# %% [markdown]
+# ### Output arrays
+
+# %%
+size = symbol_wrapper.fill(np.nan)
+size.vbt.set(-0.1, every="YS", inplace=True)
+
+pf = vbt.Portfolio.from_orders(
+    close=data.get("Close"),
+    size=size,
+    size_type="percent",
+    direction="longonly",
+    init_position=1,
+    cash_deposits=-np.inf
+)
+pf.cash_deposits[pf.cash_deposits != 0]
+
+# %% [markdown]
+# ### Max record count
+# ### Data type checks
+
+# %%
+vbt.Portfolio.from_orders(True)
+
+# %% [markdown]
+# ### Jitting
+
+# %%
+big_target_shape = (1000, 1000)
+big_rand_price = np.random.randint(8, 12, size=big_target_shape)
+big_size = np.full(big_target_shape, 1)
+big_size[1::2] = -1
+
+# %%
+%%timeit
+vbt.Portfolio.from_orders(
+    close=big_rand_price,
+    size=big_size
+)
+
+# %%
+%%timeit
+vbt.Portfolio.from_orders(
+    close=big_rand_price,
+    size=big_size,
+    jitted=dict(parallel=True)
+)
+
+# %% [markdown]
+# ### Chunking
+
+# %%
+%%timeit
+vbt.Portfolio.from_orders(
+    close=big_rand_price,
+    size=big_size,
+    chunked=dict(engine="dask", n_chunks=4)
+)
+
+# %% [markdown]
+# ### Use cases
+
+# %%
+trade1 = dict(
+    timestamp="2022-01-22 12:39:26",
+    price=0.0027702,
+    size=4.99,
+    fixed_fees=1.01571e-05
+)
+trade2 = dict(
+    timestamp="2022-01-29 02:12:50",
+    price=0.00243,
+    size=-1.72,
+    fixed_fees=3.0549e-06
+)
+trade3 = dict(
+    timestamp="2022-01-29 02:52:54",
+    price=0.0024299,
+    size=-3.27,
+    fixed_fees=5.8102e-06
+)
+
+trades = pd.DataFrame([trade1, trade2, trade3])
+trades["timestamp"] = pd.to_datetime(trades["timestamp"], utc=True)
+trades.set_index("timestamp", inplace=True)
+trades
+
+# %%
+solbtc_data = vbt.BinanceData.pull(
+    "SOLBTC",
+    start=trades.index[0] - pd.Timedelta(days=1),
+    end=trades.index[-1] + pd.Timedelta(days=1),
+    timeframe="1h"
+)
+
+resampler = vbt.Resampler(
+    source_index=trades.index,
+    target_index=solbtc_data.wrapper.index,
+    source_freq=None,
+    target_freq="1h"
+)
+
+# (6)!
+
+@njit
+def avg_price_reduce_meta_nb(from_i, to_i, col, size, price):
+    _size = size[from_i:to_i, col]
+    _price = price[from_i:to_i, col]
+    return np.sum(_price * _size) / np.sum(_size)
+
+price = pd.Series.vbt.resample_to_index(
+    resampler,
+    avg_price_reduce_meta_nb,
+    vbt.to_2d_array(trades["size"]),
+    vbt.to_2d_array(trades["price"]),
+    wrapper=trades["price"].vbt.wrapper,
+)
+price.loc[~price.isnull()]
+
+# %%
+size = trades["size"].vbt.resample_to_index(
+    resampler,
+    vbt.nb.sum_reduce_nb
+)
+size.loc[~size.isnull()]
+
+# %%
+fixed_fees = trades["fixed_fees"].vbt.resample_to_index(
+    resampler,
+    vbt.nb.sum_reduce_nb
+)
+fixed_fees.loc[~fixed_fees.isnull()]
+
+# %%
+pf = vbt.Portfolio.from_orders(
+    open=solbtc_data.get("Open"),
+    high=solbtc_data.get("High"),
+    low=solbtc_data.get("Low"),
+    close=solbtc_data.get("Close"),
+    price=price,
+    size=size,
+    fixed_fees=fixed_fees,
+    init_cash=0.1,
+    ffill_val_price=False,
+    skipna=True
+)
+pf.orders.records_readable
+
+# %%
+pf.plot().show()
+
+# %%

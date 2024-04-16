@@ -1,0 +1,216 @@
+# ################################## HOW TO USE #################################### #
+#                                                                                    #
+# This is a Jupyter notebook formatted as a script                                   #
+# Format: https://jupytext.readthedocs.io/en/latest/formats.html#the-percent-format  #
+#                                                                                    #
+# Save this file and remove the '.txt' extension                                     #
+# In Jupyter Lab, right click on the Python file -> Open With -> Jupytext Notebook   #
+# Make sure to have Jupytext installed: https://github.com/mwouts/jupytext           #
+#                                                                                    #
+# ################################################################################## #
+
+# %% [markdown]
+# #  Remote
+# ## Arguments
+
+# %%
+from vectorbtpro import *
+
+vbt.phelp(vbt.CCXTData.fetch_symbol)
+
+# %% [markdown]
+# ### Settings
+
+# %%
+vbt.pprint(vbt.settings.data["custom"]["ccxt"])
+
+# %%
+vbt.pprint(vbt.CCXTData.get_settings(path_id="custom"))
+
+# %%
+vbt.settings.data["custom"]["ccxt"]["exchange"] = "bitmex"
+
+# %%
+vbt.CCXTData.set_settings(path_id="custom", exchange="bitmex")
+vbt.settings.data["custom"]["ccxt"]["exchange"]
+
+# %%
+vbt.CCXTData.reset_settings(path_id="custom")
+vbt.settings.data["custom"]["ccxt"]["exchange"]
+
+# %% [markdown]
+# ### Start and end
+
+# %%
+vbt.dt.to_tzaware_datetime("1 day ago")
+
+# %%
+ccxt_data = vbt.CCXTData.pull(
+    ["BTC/USDT", "ETH/USDT"],
+    start="10 minutes ago UTC",
+    end="now UTC",
+    timeframe="1m"
+)
+
+# %%
+ccxt_data.close
+
+# %% [markdown]
+# ### Timeframe
+
+# %%
+vbt.dt.split_freq_str("15 minutes")
+
+# %%
+vbt.dt.split_freq_str("daily")
+
+# %%
+vbt.dt.split_freq_str("1wk")
+
+# %%
+vbt.dt.split_freq_str("annually")
+
+# %%
+from pandas.tseries.frequencies import to_offset
+
+to_offset("1m")
+
+# %%
+pd.Timedelta("1m")
+
+# %%
+to_offset("1min")
+
+# %%
+pd.Timedelta("1min")
+
+# %%
+ccxt_data = vbt.CCXTData.pull(
+    "BTC/USDT",
+    start="today midnight UTC",
+    timeframe="30 minutes"
+)
+ccxt_data.get()
+
+# %% [markdown]
+# ### Client
+
+# %%
+binance_client = vbt.BinanceData.resolve_client()
+binance_client
+
+# %%
+binance_client = vbt.BinanceData.resolve_client(
+    api_key="YOUR_KEY",
+    api_secret="YOUR_SECRET"
+)
+binance_client
+
+# %%
+binance_data = vbt.BinanceData.pull(
+    "BTCUSDT",
+    client_config=dict(
+        api_key="YOUR_KEY",
+        api_secret="YOUR_SECRET"
+    )
+)
+binance_data.get()
+
+# %%
+binance_data = vbt.BinanceData.pull(
+    "BTCUSDT",
+    client=binance_client
+)
+
+# %%
+vbt.BinanceData.set_settings(
+    path_id="custom",
+    client=binance_client
+)
+
+# %% [markdown]
+# ### Saving
+
+# %%
+binance_data = vbt.BinanceData.pull(
+    "BTCUSDT",
+    start="today midnight UTC",
+    timeframe="1 hour"
+)
+binance_data.save("binance_data")
+
+binance_data = vbt.BinanceData.load("binance_data")
+vbt.pprint(binance_data.fetch_kwargs)
+
+# %%
+binance_data.to_csv()
+
+csv_data = vbt.CSVData.pull("BTCUSDT.csv")
+
+# %%
+vbt.pprint(csv_data.fetch_kwargs)
+
+# %%
+binance_data = csv_data.switch_class(
+    new_cls=vbt.BinanceData,
+    clear_fetch_kwargs=True,
+    clear_returned_kwargs=True
+)
+type(binance_data)
+
+# %%
+binance_data = binance_data.update_fetch_kwargs(timeframe="1 hour")
+vbt.pprint(binance_data.fetch_kwargs)
+
+# %%
+binance_data = vbt.BinanceData.from_csv(
+    "BTCUSDT.csv",
+    fetch_kwargs=dict(timeframe="1 hour")
+)
+
+type(binance_data)
+
+# %%
+vbt.pprint(binance_data.fetch_kwargs)
+
+# %% [markdown]
+# ### Updating
+
+# %%
+binance_data = binance_data.update()
+
+# %%
+binance_data = vbt.BinanceData.pull(
+    "BTCUSDT",
+    start="2020-01-01",
+    end="2021-01-01"
+)
+binance_data = binance_data.update(end="2022-01-01")
+binance_data.wrapper.index
+
+# %% [markdown]
+# ## From URL
+
+# %%
+url = "https://datahub.io/core/s-and-p-500/r/data.csv"
+csv_data = vbt.CSVData.pull(url, match_paths=False)
+csv_data.get()
+
+# %% [markdown]
+# ### AWS S3
+
+# %%
+import boto3
+s3_client = boto3.client("s3")
+
+symbols = ["BTCUSDT", "ETHUSDT"]
+paths = vbt.symbol_dict({
+    s: s3_client.get_object(
+        Bucket="binance",
+        Key=f"data/{s}.csv")["Body"]
+    for s in symbols
+})
+s3_data = vbt.CSVData.pull(symbols, paths=paths, match_paths=False)
+s3_data.close
+
+# %%

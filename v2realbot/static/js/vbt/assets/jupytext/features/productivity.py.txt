@@ -1,0 +1,451 @@
+# ################################## HOW TO USE #################################### #
+#                                                                                    #
+# This is a Jupyter notebook formatted as a script                                   #
+# Format: https://jupytext.readthedocs.io/en/latest/formats.html#the-percent-format  #
+#                                                                                    #
+# Save this file and remove the '.txt' extension                                     #
+# In Jupyter Lab, right click on the Python file -> Open With -> Jupytext Notebook   #
+# Make sure to have Jupytext installed: https://github.com/mwouts/jupytext           #
+#                                                                                    #
+# ################################################################################## #
+
+# %% [markdown]
+# #  Productivity
+# ## Annotations
+
+# %%
+@vbt.cv_split(
+    splitter="from_rolling",
+    splitter_kwargs=dict(length=365, split=0.5, set_labels=["train", "test"]),
+    execute_kwargs=dict(show_progress=True),
+    parameterized_kwargs=dict(random_subset=100),
+)
+def sma_crossover_cv(
+    data: vbt.Takeable,
+    fast_period: vbt.Param(condition="x < slow_period"),
+    slow_period: vbt.Param,
+    metric
+) -> vbt.MergeFunc("concat"):
+    fast_sma = data.run("sma", fast_period, hide_params=True)
+    slow_sma = data.run("sma", slow_period, hide_params=True)
+    entries = fast_sma.real_crossed_above(slow_sma)
+    exits = fast_sma.real_crossed_below(slow_sma)
+    pf = vbt.PF.from_signals(data, entries, exits, direction="both")
+    return pf.deep_getattr(metric)
+
+sma_crossover_cv(
+    vbt.YFData.pull("BTC-USD", start="4 years ago"),
+    np.arange(20, 50),
+    np.arange(20, 50),
+    "trades.expectancy"
+)
+
+# %% [markdown]
+# ## DataFrame product
+
+# %%
+data = vbt.YFData.pull(["BTC-USD", "ETH-USD"], missing_index="drop")
+sma = data.run("sma", timeperiod=[10, 20], unpack=True)
+ema = data.run("ema", timeperiod=[30, 40], unpack=True)
+wma = data.run("wma", timeperiod=[50, 60], unpack=True)
+sma, ema, wma = sma.vbt.x(ema, wma)
+entries = sma.vbt.crossed_above(wma)
+exits = ema.vbt.crossed_below(wma)
+
+entries.columns
+
+# %% [markdown]
+# ## Compression
+
+# %%
+data = vbt.RandomOHLCData.pull("RAND", start="2022", end="2023", timeframe="1 minute")
+
+file_path = data.save()
+print(vbt.file_size(file_path))
+
+# %%
+file_path = data.save(compression="blosc")
+print(vbt.file_size(file_path))
+
+# %% [markdown]
+# ## Faster loading
+
+# %%
+import time
+start = time.time()
+from vectorbtpro import *
+end = time.time()
+end - start
+
+# %% [markdown]
+# ## Configuration files
+
+# %%
+from vectorbtpro import *
+
+vbt.settings.portfolio["init_cash"]
+
+# %% [markdown]
+# ## Serialization
+
+# %%
+data = vbt.YFData.pull("BTC-USD", start="2022-01-01", end="2022-06-01")
+
+def backtest_month(close):
+    return vbt.PF.from_random_signals(close, n=10)
+
+month_pfs = data.close.resample("MS").apply(backtest_month)
+month_pfs
+
+# %%
+vbt.save(month_pfs, "month_pfs")
+
+month_pfs = vbt.load("month_pfs")
+month_pfs.apply(lambda pf: pf.total_return)
+
+# %% [markdown]
+# ## Data parsing
+
+# %%
+data = vbt.YFData.pull("BTC-USD", start="2020-01", end="2020-03")
+pf = vbt.PF.from_random_signals(data, n=10)
+
+# %% [markdown]
+# ## Index dictionaries
+
+# %%
+data = vbt.YFData.pull(["BTC-USD", "ETH-USD"])
+tile = pd.Index(["daily", "weekly"], name="strategy")
+pf = vbt.PF.from_orders(
+    data.close,
+    size=vbt.index_dict({
+        vbt.idx(
+            vbt.pointidx(every="D"),
+            vbt.colidx("daily", level="strategy")): 100,
+        vbt.idx(
+            vbt.pointidx(every="W-SUN"),
+            vbt.colidx("daily", level="strategy")): -np.inf,
+        vbt.idx(
+            vbt.pointidx(every="W-MON"),
+            vbt.colidx("weekly", level="strategy")): 100,
+        vbt.idx(
+            vbt.pointidx(every="M"),
+            vbt.colidx("weekly", level="strategy")): -np.inf,
+    }),
+    size_type="value",
+    direction="longonly",
+    init_cash="auto",
+    broadcast_kwargs=dict(tile=tile)
+)
+pf.sharpe_ratio
+
+# %% [markdown]
+# ## Slicing
+
+# %%
+data = vbt.YFData.pull("BTC-USD")
+pf = vbt.PF.from_holding(data, freq="d")
+
+pf.sharpe_ratio
+
+# %%
+pf.loc[:"2020"].sharpe_ratio
+
+# %%
+pf.loc["2021": "2021"].sharpe_ratio
+
+# %%
+pf.loc["2022":].sharpe_ratio
+
+# %% [markdown]
+# ## Column stacking
+
+# %%
+def strategy1(data):
+    fast_ma = vbt.MA.run(data.close, 50, short_name="fast_ma")
+    slow_ma = vbt.MA.run(data.close, 200, short_name="slow_ma")
+    entries = fast_ma.ma_crossed_above(slow_ma)
+    exits = fast_ma.ma_crossed_below(slow_ma)
+    return vbt.PF.from_signals(
+        data.close,
+        entries,
+        exits,
+        size=100,
+        size_type="value",
+        init_cash="auto"
+    )
+
+def strategy2(data):
+    bbands = vbt.BBANDS.run(data.close, window=14)
+    entries = bbands.close_crossed_below(bbands.lower)
+    exits = bbands.close_crossed_above(bbands.upper)
+    return vbt.PF.from_signals(
+        data.close,
+        entries,
+        exits,
+        init_cash=200
+    )
+
+data1 = vbt.BinanceData.pull("BTCUSDT")
+pf1 = strategy1(data1)
+pf1.sharpe_ratio
+
+# %%
+data2 = vbt.BinanceData.pull("ETHUSDT")
+pf2 = strategy2(data2)
+pf2.sharpe_ratio
+
+# %%
+pf_sep = vbt.PF.column_stack((pf1, pf2))
+pf_sep.sharpe_ratio
+
+# %%
+pf_join = vbt.PF.column_stack((pf1, pf2), group_by=True)
+pf_join.sharpe_ratio
+
+# %% [markdown]
+# ## Row stacking
+
+# %%
+def strategy(data, start=None, end=None):
+    fast_ma = vbt.MA.run(data.close, 50, short_name="fast_ma")
+    slow_ma = vbt.MA.run(data.close, 200, short_name="slow_ma")
+    entries = fast_ma.ma_crossed_above(slow_ma)
+    exits = fast_ma.ma_crossed_below(slow_ma)
+    return vbt.PF.from_signals(
+        data.close[start:end],
+        entries[start:end],
+        exits[start:end],
+        size=100,
+        size_type="value",
+        init_cash="auto"
+    )
+
+data = vbt.BinanceData.pull("BTCUSDT")
+
+pf_whole = strategy(data)
+pf_whole.sharpe_ratio
+
+# %%
+pf_sub1 = strategy(data, end="2019-12-31")
+pf_sub1.sharpe_ratio
+
+# %%
+pf_sub2 = strategy(data, start="2020-01-01")
+pf_sub2.sharpe_ratio
+
+# %%
+pf_join = vbt.PF.row_stack((pf_sub1, pf_sub2))
+pf_join.sharpe_ratio
+
+# %% [markdown]
+# ## Index alignment
+
+# %%
+btc_data = vbt.YFData.pull("BTC-USD")
+btc_data.wrapper.shape
+
+# %%
+eth_data = vbt.YFData.pull("ETH-USD")
+eth_data.wrapper.shape
+
+# %%
+ols = vbt.OLS.run(
+    btc_data.close,
+    eth_data.close
+)
+ols.pred
+
+# %% [markdown]
+# ## Numba datetime
+
+# %%
+@njit
+def month_start_pct_change_nb(arr, index):
+    out = np.full(arr.shape, np.nan)
+    for col in range(arr.shape[1]):
+        for i in range(arr.shape[0]):
+            if i == 0 or vbt.dt_nb.month_nb(index[i - 1]) != vbt.dt_nb.month_nb(index[i]):
+                month_start_value = arr[i, col]
+            else:
+                out[i, col] = (arr[i, col] - month_start_value) / month_start_value
+    return out
+
+data = vbt.YFData.pull(["BTC-USD", "ETH-USD"], start="2022", end="2023")
+pct_change = month_start_pct_change_nb(
+    vbt.to_2d_array(data.close),
+    data.index.vbt.to_ns()
+)
+pct_change = data.symbol_wrapper.wrap(pct_change)
+pct_change.vbt.plot().show()
+
+# %% [markdown]
+# ## Periods ago
+
+# %%
+data = vbt.YFData.pull("BTC-USD", start="2022-05", end="2022-08")
+mask = (data.close < data.close.vbt.ago(1)).vbt.all_ago(5)
+fig = data.plot(plot_volume=False)
+mask.vbt.signals.ranges.plot_shapes(
+    plot_close=False,
+    fig=fig,
+    shape_kwargs=dict(fillcolor="orangered")
+)
+fig.show()
+
+# %% [markdown]
+# ## Safe resampling
+
+# %%
+def mtf_sma(close, close_freq, target_freq, timeperiod=5):
+    target_close = close.vbt.realign_closing(target_freq)
+    target_sma = vbt.talib("SMA").run(target_close, timeperiod=timeperiod).real
+    target_sma = target_sma.rename(f"SMA ({target_freq})")
+    return target_sma.vbt.realign_closing(close.index, freq=close_freq)
+
+data = vbt.YFData.pull("BTC-USD", start="2020", end="2023")
+fig = mtf_sma(data.close, "D", "D").vbt.plot()
+mtf_sma(data.close, "D", "W-MON").vbt.plot(fig=fig)
+mtf_sma(data.close, "D", "MS").vbt.plot(fig=fig)
+fig.show()
+
+# %% [markdown]
+# ## Resamplable objects
+
+# %%
+import calendar
+
+data = vbt.YFData.pull("BTC-USD", start="2018", end="2023")
+pf = vbt.PF.from_random_signals(data, n=100, direction="both")
+mo_returns = pf.resample("MS").returns
+mo_return_matrix = pd.Series(
+    mo_returns.values,
+    index=pd.MultiIndex.from_arrays([
+        mo_returns.index.year,
+        mo_returns.index.month
+    ], names=["year", "month"])
+).unstack("month")
+mo_return_matrix.columns = mo_return_matrix.columns.map(lambda x: calendar.month_abbr[x])
+mo_return_matrix.vbt.heatmap(
+    is_x_category=True,
+    trace_kwargs=dict(zmid=0, colorscale="Spectral")
+).show()
+
+# %% [markdown]
+# ## Formatting engine
+
+# %%
+data = vbt.YFData.pull("BTC-USD", start="2020", end="2021")
+
+vbt.pprint(data)
+
+# %%
+vbt.pdir(data)
+
+# %%
+vbt.phelp(data.get)
+
+# %% [markdown]
+# ## Meta methods
+
+# %%
+@njit
+def zscore_nb(x):
+    return (x[-1] - np.mean(x)) / np.std(x)
+
+data = vbt.YFData.pull("BTC-USD", start="2020", end="2021")
+data.close.rolling(14).apply(zscore_nb, raw=True)
+
+# %%
+data.close.vbt.rolling_apply(14, zscore_nb)
+
+# %%
+@njit
+def corr_meta_nb(from_i, to_i, col, a, b):
+    a_window = a[from_i:to_i, col]
+    b_window = b[from_i:to_i, col]
+    return np.corrcoef(a_window, b_window)[1, 0]
+
+data2 = vbt.YFData.pull(["ETH-USD", "XRP-USD"], start="2020", end="2021")
+vbt.pd_acc.rolling_apply(
+    14,
+    corr_meta_nb,
+    vbt.Rep("a"),
+    vbt.Rep("b"),
+    broadcast_named_args=dict(a=data.close, b=data2.close)
+)
+
+# %% [markdown]
+# ## Array expressions
+
+# %%
+data = vbt.YFData.pull(["BTC-USD", "ETH-USD"])
+
+low = data.low
+high = data.high
+bb = vbt.talib("BBANDS").run(data.close)
+upperband = bb.upperband
+lowerband = bb.lowerband
+bandwidth = (bb.upperband - bb.lowerband) / bb.middleband
+up_th = vbt.Param([0.3, 0.4])
+low_th = vbt.Param([0.1, 0.2])
+
+expr = """
+narrow_bands = bandwidth < low_th
+above_upperband = high > upperband
+wide_bands = bandwidth > up_th
+below_lowerband = low < lowerband
+(narrow_bands & above_upperband) | (wide_bands & below_lowerband)
+"""
+mask = vbt.pd_acc.eval(expr)
+mask.sum()
+
+# %% [markdown]
+# ## Resource management
+
+# %%
+data = vbt.YFData.pull("BTC-USD")
+
+with (
+    vbt.Timer() as timer,
+    vbt.MemTracer() as mem_tracer
+):
+    print(vbt.PF.from_random_signals(data.close, n=100).sharpe_ratio)
+
+# %%
+print(timer.elapsed())
+
+# %%
+print(mem_tracer.peak_usage())
+
+# %% [markdown]
+# ## Templates
+
+# %%
+def resample_apply(index, by, apply_func, *args, template_context={}, **kwargs):
+    grouper = index.vbt.get_grouper(by)
+    results = {}
+    with vbt.get_pbar() as pbar:
+        for group, group_idxs in grouper:
+            group_index = index[group_idxs]
+            context = {"group": group, "group_index": group_index, **template_context}
+            final_apply_func = vbt.substitute_templates(apply_func, context, sub_id="apply_func")
+            final_args = vbt.substitute_templates(args, context, sub_id="args")
+            final_kwargs = vbt.substitute_templates(kwargs, context, sub_id="kwargs")
+            results[group] = final_apply_func(*final_args, **final_kwargs)
+            pbar.update(1)
+    return pd.Series(results)
+
+data = vbt.YFData.pull(["BTC-USD", "ETH-USD"], missing_index="drop")
+resample_apply(
+    data.index, "Y",
+    lambda x, y: x.corr(y),
+    vbt.RepEval("btc_close[group_index]"),
+    vbt.RepEval("eth_close[group_index]"),
+    template_context=dict(
+        btc_close=data.get("Close", "BTC-USD"),
+        eth_close=data.get("Close", "ETH-USD")
+    )
+)
+
+# %%

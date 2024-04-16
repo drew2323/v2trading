@@ -1,0 +1,84 @@
+# ################################## HOW TO USE #################################### #
+#                                                                                    #
+# This is a Jupyter notebook formatted as a script                                   #
+# Format: https://jupytext.readthedocs.io/en/latest/formats.html#the-percent-format  #
+#                                                                                    #
+# Save this file and remove the '.txt' extension                                     #
+# In Jupyter Lab, right click on the Python file -> Open With -> Jupytext Notebook   #
+# Make sure to have Jupytext installed: https://github.com/mwouts/jupytext           #
+#                                                                                    #
+# ################################################################################## #
+
+# %% [markdown]
+# #  MTF analysis
+# ## Resampling
+
+# %% [markdown]
+# ## Data
+
+# %%
+from vectorbtpro import *
+
+h1_data = vbt.BinanceData.pull(
+    "BTCUSDT",
+    start="2020-01-01 UTC",
+    end="2021-01-01 UTC",
+    timeframe="1h"
+)
+
+# %%
+h1_data.to_hdf()
+
+# %%
+h1_data = vbt.HDFData.pull("BinanceData.h5")
+
+# %%
+h1_data.wrapper.index
+
+# %%
+h1_resampler = h1_data.wrapper.get_resampler("1h")
+h1_resampler.index_difference(reverse=True)
+
+# %%
+h1_data.wrapper.columns
+
+# %%
+h1_ohlcv_data = h1_data[["Open", "High", "Low", "Close", "Volume"]]
+
+# %%
+h4_ohlcv = h1_ohlcv_data.get().resample("4h").agg({
+    "Open": "first",
+    "High": "max",
+    "Low": "min",
+    "Close": "last",
+    "Volume": "sum"
+})
+h4_ohlcv
+
+# %%
+h1_ohlcv_data.get().iloc[:4]
+
+# %%
+h4_ohlcv.iloc[[0]]
+
+# %%
+print(vbt.prettify(vbt.BinanceData.feature_config))
+
+# %%
+h1_data.use_feature_config_of(vbt.BinanceData)
+
+h4_data = h1_data.resample("4h")
+d1_data = h1_data.resample("1d")
+
+# %%
+d1_data.get().iloc[[0, -1]]
+
+# %%
+vbt.BinanceData.pull(
+    "BTCUSDT",
+    start="2020-01-01 UTC",
+    end="2021-01-01 UTC",
+    timeframe="1d"
+).get().iloc[[0, -1]]
+
+# %%

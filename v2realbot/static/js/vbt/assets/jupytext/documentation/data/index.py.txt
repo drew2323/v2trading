@@ -1,0 +1,582 @@
+# ################################## HOW TO USE #################################### #
+#                                                                                    #
+# This is a Jupyter notebook formatted as a script                                   #
+# Format: https://jupytext.readthedocs.io/en/latest/formats.html#the-percent-format  #
+#                                                                                    #
+# Save this file and remove the '.txt' extension                                     #
+# In Jupyter Lab, right click on the Python file -> Open With -> Jupytext Notebook   #
+# Make sure to have Jupytext installed: https://github.com/mwouts/jupytext           #
+#                                                                                    #
+# ################################################################################## #
+
+# %% [markdown]
+# #  Data
+
+# %% [markdown]
+# ## Fetching
+
+# %%
+from vectorbtpro import *
+
+def get_yf_symbol(symbol, period="max", start=None, end=None, **kwargs):
+    import yfinance as yf
+    if start is not None:
+        start = vbt.dt.to_tzaware_datetime(start, tz=vbt.dt.get_local_tz())
+    if end is not None:
+        end = vbt.dt.to_tzaware_datetime(end, tz=vbt.dt.get_local_tz())
+    return yf.Ticker(symbol).history(
+        period=period,
+        start=start,
+        end=end,
+        **kwargs
+    )
+
+get_yf_symbol("BTC-USD", start="2020-01-01", end="2020-01-05")
+
+# %%
+class YFData(vbt.Data):
+    @classmethod
+    def fetch_symbol(cls, symbol, **kwargs):
+        return get_yf_symbol(symbol, **kwargs)
+
+# %%
+yf_data = YFData.pull(
+    ["BTC-USD", "ETH-USD"],
+    start="2020-01-01",
+    end="2020-01-05"
+)
+
+# %%
+yf_data.data["ETH-USD"]
+
+# %% [markdown]
+# ### Exception handling
+# ### Custom context
+
+# %%
+class YFData(vbt.Data):
+    @classmethod
+    def fetch_symbol(cls, symbol, **kwargs):
+        returned_kwargs = dict(timestamp=pd.Timestamp.now())
+        return get_yf_symbol(symbol, **kwargs), returned_kwargs
+
+yf_data = YFData.pull("BTC-USD", start="2020-01-01", end="2020-01-05")
+yf_data.returned_kwargs
+
+# %% [markdown]
+# ## Alignment
+
+# %%
+yf_data = YFData.pull(
+    ["BTC-USD", "ETH-USD"],
+    start=vbt.symbol_dict({
+        "BTC-USD": "2020-01-01",
+        "ETH-USD": "2020-01-03"
+    }),
+    end=vbt.symbol_dict({
+        "BTC-USD": "2020-01-03",
+        "ETH-USD": "2020-01-05"
+    })
+)
+
+# %%
+yf_data.data["BTC-USD"]
+
+# %%
+yf_data.data["ETH-USD"]
+
+# %% [markdown]
+# ### NaNs
+
+# %%
+yf_data = YFData.pull(
+    ["BTC-USD", "ETH-USD"],
+    start=vbt.symbol_dict({
+        "BTC-USD": "2020-01-01",
+        "ETH-USD": "2020-01-03"
+    }),
+    end=vbt.symbol_dict({
+        "BTC-USD": "2020-01-03",
+        "ETH-USD": "2020-01-05"
+    }),
+    missing_index="drop"
+)
+
+# %%
+yf_data.data["BTC-USD"]
+
+# %%
+yf_data.data["ETH-USD"]
+
+# %% [markdown]
+# ## Updating
+
+# %%
+class YFData(vbt.Data):
+    @classmethod
+    def fetch_symbol(cls, symbol, **kwargs):
+        return get_yf_symbol(symbol, **kwargs)
+
+    def update_symbol(self, symbol, **kwargs):
+        defaults = self.select_fetch_kwargs(symbol)
+        defaults["start"] = self.select_last_index(symbol)
+        kwargs = vbt.merge_dicts(defaults, kwargs)
+        return self.fetch_symbol(symbol, **kwargs)
+
+# %%
+yf_data = YFData.pull(
+    ["BTC-USD", "ETH-USD"],
+    start=vbt.symbol_dict({
+        "BTC-USD": "2020-01-01",
+        "ETH-USD": "2020-01-03"
+    }),
+    end=vbt.symbol_dict({
+        "BTC-USD": "2020-01-03",
+        "ETH-USD": "2020-01-05"
+    })
+)
+
+# %%
+yf_data.last_index
+
+# %%
+yf_data.fetch_kwargs
+
+# %%
+yf_data_updated = yf_data.update(end="2020-01-06")
+
+yf_data_updated.data["BTC-USD"]
+
+# %%
+yf_data_updated.data["ETH-USD"]
+
+# %%
+yf_data_updated.last_index
+
+# %%
+yf_data_updated = yf_data_updated.update(start="2020-01-01", end="2020-01-02")
+
+yf_data_updated.data["BTC-USD"]
+
+# %%
+yf_data_updated.data["ETH-USD"]
+
+# %% [markdown]
+# ### Concatenation
+
+# %%
+yf_data_new = yf_data.update(end="2020-01-06", concat=False)
+
+yf_data_new.data["BTC-USD"]
+
+# %%
+yf_data_new.data["ETH-USD"]
+
+# %% [markdown]
+# ## Getting
+
+# %%
+yf_data = YFData.pull(
+    ["BTC-USD", "ETH-USD"],
+    start="2020-01-01",
+    end="2020-01-05"
+)
+
+# %%
+yf_data.get(symbols="BTC-USD")
+
+# %%
+yf_data.get(features=["High", "Low"], symbols="BTC-USD")
+
+# %%
+yf_data.get(features="Close")
+
+# %%
+open_price, close_price = yf_data.get(features=["Open", "Close"])
+
+# %% [markdown]
+# ### Magnet features
+
+# %%
+yf_data.close
+
+# %%
+yf_data.returns
+
+# %% [markdown]
+# ## Running
+
+# %%
+yf_data.run("sma", 3)
+
+# %%
+yf_data.run("talib_sma", 3)
+
+# %%
+yf_data.run("from_holding")
+
+# %% [markdown]
+# ## Features and symbols
+
+# %%
+yf_data.features
+
+# %%
+yf_data.symbols
+
+# %%
+yf_data.single_key
+
+# %% [markdown]
+# ### Dicts
+
+# %%
+yf_data.last_index["BTC-USD"]
+
+# %% [markdown]
+# ### Selecting
+
+# %%
+yf_data.select("BTC-USD")
+
+# %%
+yf_data.select("BTC-USD").get()
+
+# %% [markdown]
+# ### Renaming
+
+# %%
+yf_data.rename({
+    "BTC-USD": "BTC/USD",
+    "ETH-USD": "ETH/USD"
+}).get("Close")
+
+# %% [markdown]
+# ### Classes
+
+# %%
+cls_yfdata = vbt.YFData.pull(
+    ["META", "GOOGL", "NFLX", "BAC", "WFC", "TLT", "SHV"],
+    classes=[
+        dict(class1="Equity", class2="Technology"),
+        dict(class1="Equity", class2="Technology"),
+        dict(class1="Equity", class2="Technology"),
+        dict(class1="Equity", class2="Financial"),
+        dict(class1="Equity", class2="Financial"),
+        dict(class1="Fixed Income", class2="Treasury"),
+        dict(class1="Fixed Income", class2="Treasury"),
+    ],
+    start="2010-01-01",
+    missing_columns="nan"
+)
+cls_yfdata.close
+
+# %%
+new_cls_yfdata = cls_yfdata.replace(
+    classes=vbt.symbol_dict({
+        "META": dict(class1="Equity", class2="Technology"),
+        "GOOGL": dict(class1="Equity", class2="Technology"),
+        "NFLX": dict(class1="Equity", class2="Technology"),
+        "BAC": dict(class1="Equity", class2="Financial"),
+        "WFC": dict(class1="Equity", class2="Financial"),
+        "TLT": dict(class1="Fixed Income", class2="Treasury"),
+        "SHV": dict(class1="Fixed Income", class2="Treasury"),
+    })
+)
+
+# %%
+new_cls_yfdata = cls_yfdata.update_classes(
+    class1=vbt.symbol_dict({
+        "META": "Equity",
+        "GOOGL": "Equity",
+        "NFLX": "Equity",
+        "BAC": "Equity",
+        "WFC": "Equity",
+        "TLT": "Fixed Income",
+        "SHV": "Fixed Income",
+    }),
+    class2=vbt.symbol_dict({
+        "META": "Technology",
+        "GOOGL": "Technology",
+        "NFLX": "Technology",
+        "BAC": "Financial",
+        "WFC": "Financial",
+        "TLT": "Treasury",
+        "SHV": "Treasury",
+    })
+)
+
+# %% [markdown]
+# ## Wrapping
+
+# %%
+btc_df = pd.DataFrame({
+    "Open": [7194.89, 7202.55, 6984.42],
+    "High": [7254.33, 7212.15, 7413.71],
+    "Low": [7174.94, 6935.27, 6985.47],
+    "Close": [7200.17, 6985.47, 7344.88]
+}, index=pd.date_range("2020-01-01", periods=3))
+btc_df
+
+# %%
+my_data = vbt.Data.from_data(btc_df)
+my_data.hlc3
+
+# %%
+eth_df = pd.DataFrame({
+    "Open": [127.41, 134.16, 135.07],
+    "High": [134.55, 136.05, 139.41],
+    "Low": [126.49, 133.04, 135.04],
+    "Close": [134.17, 135.06, 136.27]
+}, index=pd.date_range("2020-01-03", periods=3))
+eth_df
+
+# %%
+my_data = vbt.Data.from_data({"BTCUSDT": btc_df, "ETHUSDT": eth_df})
+my_data.hlc3
+
+# %%
+hlc3_data = vbt.Data.from_data(my_data.hlc3, columns_are_symbols=True)
+hlc3_data.get()
+
+# %% [markdown]
+# ## Merging
+
+# %%
+yf_data_btc = YFData.pull(
+    "BTC-USD",
+    start="2020-01-01",
+    end="2020-01-03"
+)
+yf_data_eth = YFData.pull(
+    "ETH-USD",
+    start="2020-01-03",
+    end="2020-01-05"
+)
+merged_yf_data = YFData.merge(yf_data_btc, yf_data_eth)
+merged_yf_data.close
+
+# %%
+yf_data_btc1 = YFData.pull(
+    "BTC-USD",
+    start="2020-01-01",
+    end="2020-01-03"
+)
+yf_data_btc2 = YFData.pull(
+    "BTC-USD",
+    start="2020-01-05",
+    end="2020-01-07"
+)
+yf_data_eth = YFData.pull(
+    "ETH-USD",
+    start="2020-01-06",
+    end="2020-01-08"
+)
+merged_yf_data = YFData.merge(yf_data_btc1, yf_data_btc2, yf_data_eth)
+merged_yf_data.close
+
+# %% [markdown]
+# ### Subclassing
+
+# %%
+bn_data_btc = vbt.BinanceData.pull(
+    "BTCUSDT",
+    start="2020-01-01",
+    end="2020-01-04")
+bn_data_btc.close
+
+# %%
+ccxt_data_eth = vbt.CCXTData.pull(
+    "ETH/USDT",
+    start="2020-01-03",
+    end="2020-01-06")
+ccxt_data_eth.close
+
+# %%
+class MergedData(vbt.Data):
+    @classmethod
+    def fetch_symbol(cls, symbol, **kwargs):
+        if symbol.startswith("BN_"):
+            return vbt.BinanceData.fetch_symbol(symbol[3:], **kwargs)
+        if symbol.startswith("CCXT_"):
+            return vbt.CCXTData.fetch_symbol(symbol[5:], **kwargs)
+        raise ValueError(f"Unknown symbol '{symbol}'")
+
+    def update_symbol(self, symbol, **kwargs):
+        fetch_kwargs = self.select_fetch_kwargs(symbol)
+        fetch_kwargs["start"] = self.select_last_index(symbol)
+        kwargs = vbt.merge_dicts(fetch_kwargs, kwargs)
+        return self.fetch_symbol(symbol, **kwargs)
+
+merged_data = MergedData.merge(
+    bn_data_btc,
+    ccxt_data_eth,
+    rename={
+        "BTCUSDT": "BN_BTCUSDT",
+        "ETH/USDT": "CCXT_ETH/USDT"
+    },
+    missing_columns="drop"
+)
+
+# %%
+merged_data = merged_data.update(end="2020-01-07")
+merged_data.close
+
+# %% [markdown]
+# ## Resampling
+
+# %%
+vbt.pprint(vbt.BinanceData.feature_config)
+
+# %%
+full_yf_data = vbt.YFData.pull("BTC-USD")
+ms_yf_data = full_yf_data.resample("MS")
+ms_yf_data.close
+
+# %%
+resampler = vbt.Resampler.from_date_range(
+    full_yf_data.wrapper.index,
+    start=full_yf_data.wrapper.index[0],
+    end=full_yf_data.wrapper.index[-1],
+    freq="Y",
+    silence_warnings=True
+)
+y_yf_data = full_yf_data.resample(resampler)
+y_yf_data.close
+
+# %%
+data_btc = vbt.Data.from_data(bn_data_btc.data, single_key=True)
+data_btc.resample("MS")
+
+# %%
+for k, v in vbt.BinanceData.feature_config.items():
+    data_btc.feature_config[k] = v
+data_btc.resample("MS")
+
+# %%
+data_btc = vbt.Data.from_data(bn_data_btc.data, single_key=True)
+data_btc.use_feature_config_of(vbt.BinanceData)
+data_btc.resample("MS").close
+
+# %% [markdown]
+# ### Realignment
+
+# %%
+data = vbt.YFData.pull(
+    ["BTC-USD", "AAPL"],
+    start="2020-01-01",
+    end="2020-01-04"
+)
+data.close
+
+# %%
+new_index = data.index.ceil("D").drop_duplicates()
+new_data = data.realign(new_index, ffill=False)
+new_data.close
+
+# %% [markdown]
+# ## Transforming
+
+# %%
+full_yf_data = YFData.pull(["BTC-USD", "ETH-USD"])
+full_yf_data.close.info()
+
+# %%
+new_full_yf_data = full_yf_data.transform(lambda df: df.dropna())
+new_full_yf_data.close.info()
+
+# %% [markdown]
+# ## Analysis
+# ### Indexing
+
+# %%
+sub_yf_data = yf_data.loc["2020-01-01":"2020-01-03"]
+sub_yf_data
+
+# %%
+sub_yf_data = sub_yf_data[["Open", "High", "Low", "Close"]]
+sub_yf_data
+
+# %%
+sub_yf_data.data["BTC-USD"]
+
+# %%
+sub_yf_data.data["ETH-USD"]
+
+# %% [markdown]
+# ### Stats and plots
+
+# %%
+yf_data = YFData.pull(
+    ["BTC-USD", "ETH-USD"],
+    start=vbt.symbol_dict({
+        "BTC-USD": "2020-01-01",
+        "ETH-USD": "2020-01-03"
+    }),
+    end=vbt.symbol_dict({
+        "BTC-USD": "2020-01-03",
+        "ETH-USD": "2020-01-05"
+    })
+)
+
+# %%
+yf_data.data["BTC-USD"].info()
+
+# %%
+yf_data.data["BTC-USD"].describe()
+
+# %%
+yf_data.stats()
+
+# %%
+yf_data.stats(column="Volume")
+
+# %%
+yf_data = YFData.pull(
+    ["BTC-USD", "ETH-USD"],
+    start="2020-01-01",
+    end="2020-06-01"
+)
+
+# %%
+yf_data.plot(column="Close", base=100).show()
+
+# %%
+yf_data["Close"].get().vbt.rebase(100).vbt.plot()
+
+# %%
+yf_data.plots().show()
+
+# %%
+yf_data.plots(column="Close").show()
+
+# %%
+yf_data.plots(
+    column="Close",
+    template_context=dict(symbols=["BTC-USD"])
+).show()
+
+# %%
+from vectorbtpro.utils.colors import adjust_opacity
+
+fig = yf_data.plots(
+    column="Close",
+    subplot_settings=dict(
+        plot_0=dict(trace_kwargs=dict(line_color="mediumslateblue")),
+        plot_1=dict(trace_kwargs=dict(line_color="limegreen"))
+    )
+)
+sma = vbt.talib("SMA").run(yf_data.close, vbt.Default(10))
+sma["BTC-USD"].real.rename("SMA(10)").vbt.plot(
+    trace_kwargs=dict(line_color=adjust_opacity("mediumslateblue", 0.7)),
+    add_trace_kwargs=dict(row=1, col=1),
+    fig=fig
+)
+sma["ETH-USD"].real.rename("SMA(10)").vbt.plot(
+    trace_kwargs=dict(line_color=adjust_opacity("limegreen", 0.7)),
+    add_trace_kwargs=dict(row=2, col=1),
+    fig=fig
+)
+fig.show()
+
+# %%

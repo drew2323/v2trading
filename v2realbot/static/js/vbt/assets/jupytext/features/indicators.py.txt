@@ -1,0 +1,262 @@
+# ################################## HOW TO USE #################################### #
+#                                                                                    #
+# This is a Jupyter notebook formatted as a script                                   #
+# Format: https://jupytext.readthedocs.io/en/latest/formats.html#the-percent-format  #
+#                                                                                    #
+# Save this file and remove the '.txt' extension                                     #
+# In Jupyter Lab, right click on the Python file -> Open With -> Jupytext Notebook   #
+# Make sure to have Jupytext installed: https://github.com/mwouts/jupytext           #
+#                                                                                    #
+# ################################################################################## #
+
+# %% [markdown]
+# #  Indicators
+# ## Signal unraveling { .mdx-pulse title="Recently added" }
+
+# %%
+data = vbt.YFData.pull("BTC-USD")
+fast_sma = data.run("talib_func:sma", timeperiod=20)
+slow_sma = data.run("talib_func:sma", timeperiod=50)
+entries = fast_sma.vbt.crossed_above(slow_sma)
+exits = fast_sma.vbt.crossed_below(slow_sma)
+entries, exits = entries.vbt.signals.unravel_between(exits, relation="anychain")
+pf = vbt.PF.from_signals(
+    data,
+    long_entries=entries,
+    short_entries=exits,
+    size=100,
+    size_type="value",
+    init_cash="auto",
+    tp_stop=0.2,
+    sl_stop=0.1,
+    group_by=vbt.ExceptLevel("signal"),
+    cash_sharing=True
+)
+pf.positions.returns.to_pd(ignore_index=True).vbt.barplot(
+    trace_kwargs=dict(marker=dict(colorscale="Spectral"))
+).show()
+
+# %% [markdown]
+# ## Lightweight TA-Lib
+
+# %%
+data = vbt.YFData.pull("BTC-USD")
+run_rsi = vbt.talib_func("rsi")
+rsi = run_rsi(data.close, timeperiod=12, timeframe="M")
+rsi
+
+# %%
+plot_rsi = vbt.talib_plot_func("rsi")
+plot_rsi(rsi).show()
+
+# %% [markdown]
+# ## Indicator search
+
+# %%
+vbt.IF.list_indicators("*ma")
+
+# %%
+vbt.indicator("technical:ZLMA")
+
+# %% [markdown]
+# ## Indicators for ML
+
+# %%
+data = vbt.YFData.pull("BTC-USD")
+features = data.run("talib", mavp=vbt.run_arg_dict(periods=14))
+features.shape
+
+# %% [markdown]
+# ## Signal detection
+
+# %%
+data = vbt.YFData.pull("BTC-USD")
+fig = vbt.make_subplots(rows=2, cols=1, shared_xaxes=True)
+bbands = data.run("bbands")
+bbands.loc["2022"].plot(add_trace_kwargs=dict(row=1, col=1), fig=fig)
+sigdet = vbt.SIGDET.run(bbands.bandwidth, factor=5)
+sigdet.loc["2022"].plot(add_trace_kwargs=dict(row=2, col=1), fig=fig)
+fig.show()
+
+# %% [markdown]
+# ## Pivot detection
+
+# %%
+data = vbt.YFData.pull("BTC-USD", start="2020", end="2023")
+fig = data.plot(plot_volume=False)
+pivot_info = data.run("pivotinfo", up_th=1.0, down_th=0.5)
+pivot_info.plot(fig=fig, conf_value_trace_kwargs=dict(visible=False))
+fig.show()
+
+# %% [markdown]
+# ## Technical indicators
+
+# %%
+vbt.YFData.pull("BTC-USD").run("sumcon", smooth=100).plot().show()
+
+# %% [markdown]
+# ## Renko chart
+
+# %%
+data = vbt.YFData.pull("BTC-USD", start="2021", end="2022")
+renko_ohlc = data.close.vbt.to_renko_ohlc(1000, reset_index=True)
+renko_ohlc.vbt.ohlcv.plot().show()
+
+# %% [markdown]
+# ## Rolling OLS
+
+# %%
+data = vbt.YFData.pull(
+    ["BTC-USD", "ETH-USD"],
+    start="2022",
+    end="2023",
+    missing_index="drop"
+)
+ols = vbt.OLS.run(
+    data.get("Close", "BTC-USD"),
+    data.get("Close", "ETH-USD")
+)
+ols.plot_zscore().show()
+
+# %% [markdown]
+# ## TA-Lib time frames
+
+# %%
+h1_data = vbt.BinanceData.pull(
+    "BTCUSDT",
+    start="3 months ago UTC",
+    timeframe="1h"
+)
+mtf_sma = vbt.talib("SMA").run(
+    h1_data.close,
+    timeperiod=14,
+    timeframe=["1d", "4h", "1h"],
+    skipna=True
+)
+mtf_sma.real.vbt.ts_heatmap().show()
+
+# %% [markdown]
+# ## 1D-native indicators
+
+# %%
+import talib
+
+params = dict(
+    rsi_period=14,
+    fastk_period=5,
+    slowk_period=3,
+    slowk_matype=0,
+    slowd_period=3,
+    slowd_matype=0
+)
+
+def stochrsi_1d(close, *args):
+    rsi = talib.RSI(close, args[0])
+    k, d = talib.STOCH(rsi, rsi, rsi, *args[1:])
+    return rsi, k, d
+
+STOCHRSI = vbt.IF(
+    input_names=["close"],
+    param_names=list(params.keys()),
+    output_names=["rsi", "k", "d"]
+).with_apply_func(stochrsi_1d, takes_1d=True, **params)
+
+data = vbt.YFData.pull("BTC-USD", start="2022-01", end="2022-06")
+stochrsi = STOCHRSI.run(data.close)
+fig = stochrsi.k.rename("%K").vbt.plot()
+stochrsi.d.rename("%D").vbt.plot(fig=fig)
+fig.show()
+
+# %% [markdown]
+# ## Parallelizable indicators
+
+# %%
+@njit
+def minmax_nb(close, window):
+    return (
+        vbt.nb.rolling_min_nb(close, window),
+        vbt.nb.rolling_max_nb(close, window)
+    )
+
+MINMAX = vbt.IF(
+    class_name="MINMAX",
+    input_names=["close"],
+    param_names=["window"],
+    output_names=["min", "max"]
+).with_apply_func(minmax_nb, window=14)
+
+data = vbt.YFData.pull("BTC-USD")
+
+# %%
+%%timeit
+minmax = MINMAX.run(
+    data.close,
+    np.arange(2, 200),
+    jitted_loop=True
+)
+
+# %%
+%%timeit
+minmax = MINMAX.run(
+    data.close,
+    np.arange(2, 200),
+    jitted_loop=True,
+    jitted_warmup=True,
+    execute_kwargs=dict(engine="threadpool", n_chunks="auto")
+)
+
+# %% [markdown]
+# ## TA-Lib plotting
+
+# %%
+data = vbt.YFData.pull("BTC-USD", start="2020", end="2021")
+
+vbt.talib("MACD").run(data.close).plot().show()
+
+# %% [markdown]
+# ## Indicator expressions
+
+# %%
+data = vbt.YFData.pull("BTC-USD", start="2020", end="2021")
+
+expr = """
+MACD:
+fast_ema = @talib_ema(close, @p_fast_w)
+slow_ema = @talib_ema(close, @p_slow_w)
+macd = fast_ema - slow_ema
+signal = @talib_ema(macd, @p_signal_w)
+macd, signal
+"""
+MACD = vbt.IF.from_expr(expr, fast_w=12, slow_w=26, signal_w=9)
+macd = MACD.run(data.close)
+fig = macd.macd.rename("MACD").vbt.plot()
+macd.signal.rename("Signal").vbt.plot(fig=fig)
+fig.show()
+
+# %% [markdown]
+# ## WorldQuant Alphas
+
+# %%
+data = vbt.YFData.pull(["BTC-USD", "ETH-USD", "XRP-USD"], missing_index="drop")
+
+vbt.wqa101(1).run(data.close).out
+
+# %% [markdown]
+# ## Robust crossovers
+
+# %%
+data = vbt.YFData.pull("BTC-USD", start="2022-01", end="2022-03")
+fast_sma = vbt.talib("SMA").run(data.close, vbt.Default(5)).real
+slow_sma = vbt.talib("SMA").run(data.close, vbt.Default(10)).real
+fast_sma.iloc[np.random.choice(np.arange(len(fast_sma)), 5)] = np.nan
+slow_sma.iloc[np.random.choice(np.arange(len(slow_sma)), 5)] = np.nan
+crossed_above = fast_sma.vbt.crossed_above(slow_sma, dropna=True)
+crossed_below = fast_sma.vbt.crossed_below(slow_sma, dropna=True)
+
+fig = fast_sma.rename("Fast SMA").vbt.lineplot()
+slow_sma.rename("Slow SMA").vbt.lineplot(fig=fig)
+crossed_above.vbt.signals.plot_as_entries(fast_sma, fig=fig)
+crossed_below.vbt.signals.plot_as_exits(fast_sma, fig=fig)
+fig.show()
+
+# %%

@@ -698,6 +698,8 @@ def run_stratin(id: UUID, runReq: RunRequest, synchronous: bool = False, inter_b
                 db.runners.append(runner)
                 #print(db.runners)
                 #print(i)
+
+                
                 #print(enumerate())
 
                 #pokud spoustime v batch módu, tak čekáme na výsledek a pak pouštíme další run

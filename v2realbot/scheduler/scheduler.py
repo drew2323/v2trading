@@ -18,10 +18,10 @@ from v2realbot.config import WEB_API_KEY
 #naplanovany jako samostatni job a triggerován pouze jednou v daný čas pro start a stop 
 #novy kod v aps_scheduler.py
 
-def is_market_day(date):
+def is_US_market_day(date):
     cal_dates = fetch_calendar_data(date, date)
     if len(cal_dates) == 0:
-        print("No Market Day today")
+        print("Today is not a market day.")
         return False, cal_dates
     else:
         print("Market is open")
@@ -37,7 +37,7 @@ def get_todays_market_times(market, debug_date = None):
                 nowNY = datetime.now().astimezone(zoneNY)
             nowNY_date = nowNY.date()
             #is market open - nyni pouze US
-            stat, calendar_dates = is_market_day(nowNY_date)
+            stat, calendar_dates = is_US_market_day(nowNY_date)
             if stat:
             #zatim podpora pouze main session
             #pouze main session

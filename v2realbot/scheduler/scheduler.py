@@ -2,10 +2,10 @@ import json
 import datetime
 import v2realbot.controller.services as cs
 import v2realbot.controller.run_manager as rm
-from v2realbot.common.model import RunnerView, RunManagerRecord, StrategyInstance, Runner, RunRequest, Trade, RunArchive, RunArchiveView, RunArchiveViewPagination, RunArchiveDetail, Bar, RunArchiveChange, TestList, ConfigItem, InstantIndicator, DataTablesRequest, AnalyzerInputs
+from v2realbot.common.model import RunnerView, RunManagerRecord, StrategyInstance, Runner, RunRequest, Trade, RunArchive, RunArchiveView, RunArchiveViewPagination, RunArchiveDetail, Bar, RunArchiveChange, TestList, ConfigItem, InstantIndicator, DataTablesRequest, AnalyzerInputs, Market
 from uuid import uuid4, UUID
-from v2realbot.utils.utils import json_serial, send_to_telegram, zoneNY, zonePRG, fetch_calendar_data
-from datetime import datetime, timedelta
+from v2realbot.utils.utils import json_serial, send_to_telegram, zoneNY, zonePRG, zoneUTC, fetch_calendar_data
+from datetime import datetime, timedelta, time
 from traceback import format_exc
 from rich import print
 import requests
@@ -18,9 +18,18 @@ from v2realbot.config import WEB_API_KEY
 #naplanovany jako samostatni job a triggerován pouze jednou v daný čas pro start a stop 
 #novy kod v aps_scheduler.py
 
-def get_todays_market_times(market = "US", debug_date = None):
+def is_US_market_day(date):
+    cal_dates = fetch_calendar_data(date, date)
+    if len(cal_dates) == 0:
+        print("Today is not a market day.")
+        return False, cal_dates
+    else:
+        print("Market is open")
+        return True, cal_dates
+
+def get_todays_market_times(market, debug_date = None):
     try:
-        if market == "US":
+        if market == Market.US:
             #zjistit vsechny podminky - mozna loopovat - podminky jsou vlevo
             if debug_date is not None:
                 nowNY = debug_date
@@ -28,17 +37,20 @@ def get_todays_market_times(market = "US", debug_date = None):
                 nowNY = datetime.now().astimezone(zoneNY)
             nowNY_date = nowNY.date()
             #is market open - nyni pouze US
-            cal_dates = fetch_calendar_data(nowNY_date, nowNY_date)
-
-            if len(cal_dates) == 0:
-                print("No Market Day today")
-                return -1, "Market Closed"
+            stat, calendar_dates = is_US_market_day(nowNY_date)
+            if stat:
             #zatim podpora pouze main session
-
             #pouze main session
-            market_open_datetime = zoneNY.localize(cal_dates[0].open)
-            market_close_datetime = zoneNY.localize(cal_dates[0].close)
-            return 0, (nowNY, market_open_datetime, market_close_datetime)
+                market_open_datetime = zoneNY.localize(calendar_dates[0].open)
+                market_close_datetime = zoneNY.localize(calendar_dates[0].close)
+                return 0, (nowNY, market_open_datetime, market_close_datetime)
+            else:
+                return -1, "Market is closed."
+        elif market == Market.CRYPTO:
+            now_market_datetime = datetime.now().astimezone(zoneUTC)
+            market_open_datetime = datetime.combine(datetime.now(), time.min)
+            matket_close_datetime = datetime.combine(datetime.now(), time.max)
+            return 0, (now_market_datetime, market_open_datetime, matket_close_datetime)
         else:
             return -1, "Market not supported"
     except Exception as e:

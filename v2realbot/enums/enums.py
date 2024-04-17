@@ -104,3 +104,9 @@ class StartBarAlign(str, Enum):
     """ 
     ROUND = "round"
     RANDOM = "random"
+
+class Market(str, Enum):
+    US = "US"
+    CRYPTO = "CRYPTO"
+
+     

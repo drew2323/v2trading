@@ -172,14 +172,14 @@ def add_run_manager_record(new_record: RunManagerRecord):
         # Construct a suitable INSERT query based on your RunManagerRecord fields
         insert_query = """
             INSERT INTO run_manager (moddus, id, strat_id, symbol,account, mode, note,ilog_save,
-                                    bt_from, bt_to, weekdays_filter, batch_id,
+                                    market, bt_from, bt_to, weekdays_filter, batch_id,
                                     start_time, stop_time, status, last_processed,
                                     history, valid_from, valid_to, testlist_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?) 
         """
         values = [
             new_record.moddus, str(new_record.id), str(new_record.strat_id), new_record.symbol, new_record.account, new_record.mode, new_record.note,
-            int(new_record.ilog_save),
+            int(new_record.ilog_save), new_record.market,
             new_record.bt_from.isoformat() if new_record.bt_from is not None else None,
             new_record.bt_to.isoformat() if new_record.bt_to is not None else None,
             ",".join(str(x) for x in new_record.weekdays_filter) if new_record.weekdays_filter else None,

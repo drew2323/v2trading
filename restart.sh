@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # file: restart.sh
-
+ 
 # Usage: ./restart.sh [test|prod|all]
 
 # Define server addresses

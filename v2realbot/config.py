@@ -68,7 +68,7 @@ def get_key(mode: Mode, account: Account):
 #strategy instance main loop heartbeat
 HEARTBEAT_TIMEOUT=5
 
-WEB_API_KEY="david"
+WEB_API_KEY=os.environ.get('WEB_API_KEY')
 
 #PRIMARY PAPER
 ACCOUNT1_PAPER_API_KEY = os.environ.get('ACCOUNT1_PAPER_API_KEY')

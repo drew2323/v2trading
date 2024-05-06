@@ -16,6 +16,9 @@ RUNNER_DETAIL_DIRECTORY = Path(__file__).parent.parent.parent / "runner_detail"
 LOG_PATH = Path(__file__).parent.parent
 LOG_FILE = Path(__file__).parent.parent / "strat.log"
 JOB_LOG_FILE = Path(__file__).parent.parent / "job.log"
+DOTENV_DIRECTORY = Path(__file__).parent.parent.parent
+ENV_FILE = DOTENV_DIRECTORY / '.env'
+
 
 #stratvars that cannot be changed in gui
 STRATVARS_UNCHANGEABLES = ['pendingbuys', 'blockbuy', 'jevylozeno', 'limitka']

@@ -1,7 +1,8 @@
 import os,sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["KERAS_BACKEND"] = "jax"
-from v2realbot.config import WEB_API_KEY, DATA_DIR, MEDIA_DIRECTORY, LOG_PATH, MODEL_DIR
+from dotenv import load_dotenv
+from v2realbot.config import WEB_API_KEY, DATA_DIR, MEDIA_DIRECTORY, LOG_PATH, MODEL_DIR, ENV_FILE
 from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from datetime import datetime
 from rich import print
@@ -1024,6 +1025,7 @@ for i in cs.db.runners:
     i.run_thread.join()
 
 if __name__ == "__main__":
+    load_dotenv(ENV_FILE)
     try:
         #TOTO predelat na samostatnou tridu typu vlakna a dat do separatniho souboru, draft jiz na chatgpt
         #spusteni vlakna pro zapis logů (mame single write vlakno, thready dodávají pres queue)

@@ -9,7 +9,7 @@ from typing import List
 from enum import Enum
 import numpy as np
 import v2realbot.controller.services as cs
-from rich import print
+from rich import print as richprint
 from v2realbot.common.model import AnalyzerInputs
 from v2realbot.common.PrescribedTradeModel import TradeDirection, TradeStatus, Trade, TradeStoplossType
 from v2realbot.utils.utils import isrising, isfalling,zoneNY, price2dec, safe_get#, print
@@ -94,7 +94,11 @@ def convert_to_dataframe(ohlcv):
     
     return df
 
-def load_batch(runner_ids: List = None, batch_id: str = None, space_resolution_evenly = False, main_session_only = True, merge_ind2bars = True, bars_columns = ['Open', 'High', 'Low', 'Close', 'Volume', 'Vwap'], indicators_columns = []) -> Tuple[int, dict]:
+def print(v, *args, **kwargs):
+    if v:
+        richprint(*args, **kwargs)
+
+def load_batch(runner_ids: List = None, batch_id: str = None, space_resolution_evenly = False, main_session_only = True, merge_ind2bars = True, bars_columns = ['Open', 'High', 'Low', 'Close', 'Volume', 'Vwap'], indicators_columns = [], verbose = False) -> Tuple[int, dict]:
     """Load batches (all runners from single batch) into pandas dataframes
 
     Args:
@@ -136,7 +140,7 @@ def load_batch(runner_ids: List = None, batch_id: str = None, space_resolution_e
         
         if resolution is None:
             resolution  = sada["bars"]["resolution"][0]
-            print(f"Resolution : {resolution}")
+            print(verbose, f"Resolution : {resolution}")
 
         #add daily bars limited to required columns, we keep updated as its mapping column to indicators
         bars = convert_to_dataframe(sada["bars"])[bars_columns + ["updated"]]
@@ -169,11 +173,11 @@ def load_batch(runner_ids: List = None, batch_id: str = None, space_resolution_e
             num_duplicates = concat_df.index.duplicated().sum()
 
             if num_duplicates > 0:
-                print(f"NOTE: DUPLICATES {num_duplicates}/{len(concat_df)} in {key}. REMOVING.")
+                print(verbose, f"NOTE: DUPLICATES {num_duplicates}/{len(concat_df)} in {key}. REMOVING.")
                 concat_df = concat_df[~concat_df.index.duplicated()]
 
                 num_duplicates = concat_df.index.duplicated().sum()
-                print(f"Now there are {num_duplicates}/{len(concat_df)}")
+                print(verbose, f"Now there are {num_duplicates}/{len(concat_df)}")
 
             if space_resolution_evenly and key != "cbar_indicators":
                 # Apply rounding to the datetime index according to resolution (in seconds)

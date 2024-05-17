@@ -1,6 +1,11 @@
 from enum import Enum
 from alpaca.trading.enums import OrderSide, OrderStatus, OrderType
 
+class BarType(str, Enum):
+    TIME = "time"
+    VOLUME = "volume"
+    DOLLAR = "dollar"
+
 class Env(str, Enum):
     PROD = "prod"
     TEST = "test"

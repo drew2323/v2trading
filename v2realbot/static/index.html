@@ -131,6 +131,7 @@
 
         <!-- <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.41.0/min/vs/editor/editor.main.js"></script>  -->
         <!-- <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.41.0/min/vs/loader.min.js"></script>   -->
+        <script src="/static/js/systeminfo.js"> </script>
     </head>
     <body>
         <div id="main" class="mainConteiner flex-container content">
@@ -214,8 +215,21 @@
                     </div>
                 </div>
             </div>
+            <div id="disk-info" class="flex-items"> 
+                <span id="get_disk_info_btn">
+                    <button id="get_disk_info" onclick="get_system_status()"> Get Disk Info </button> 
+                </span>
+                <span class="free-space">Free: -- GB</span> | 
+                <span class="total-space">Total: -- GB</span> | 
+                <span class="used-percent">Used: -- %</span>
+            </div>
+            <div class="disk-gauge-container">
+                <div class="disk-gauge">
+                    <div class="disk-gauge-bar"></div>
+                </div>
+            </div>
             <div id="hist-trades" class="flex-items">
-                <div id="form-trades">
+                <div id="form-trades">               
                     <label data-bs-toggle="collapse" data-bs-target="#trades-data">
                         <h4>Trade History</h4>
                     </label>
@@ -229,7 +243,9 @@
                         <table id="trades-data-table" class="dataTable no-footer" style="width:300px; border-color: #dce1dc; display:contents"></table>
                         <!-- <table id="trades-data-table" class="dataTable no-footer" style="width: 300px;display: contents;"></table> -->
                 </div>
+                </div>
             </div>
+
             <div id="runner-table" class="flex-items">
                 <label data-bs-toggle="collapse" data-bs-target="#runner-table-inner">
                     <h4>Running Strategies</h4>

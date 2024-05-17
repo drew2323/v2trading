@@ -19,6 +19,7 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from v2realbot.enums.enums import Env, Mode
 from typing import Annotated
 import os
+import psutil
 import uvicorn
 import orjson
 from queue import Queue, Empty
@@ -988,7 +989,14 @@ def get_metadata(model_name: str):
     #         "last_modified": os.path.getmtime(model_path),
     #         # ... other metadata fields ...
     #     }
-
+@app.get("/system-info")
+def get_system_info():
+    """Get system info, e.g. disk free space, used percentage ... """
+    total = round(psutil.disk_usage('/').total / 1024**3, 1)
+    used = round(psutil.disk_usage('/').used / 1024**3, 1)
+    free = round(psutil.disk_usage('/').free / 1024**3, 1)
+    used_percentage = round(psutil.disk_usage('/').percent, 1)
+    return {"total": total, "used": used, "free" : free, "used_percentage" : used_percentage}
 
 # Thread function to insert data from the queue into the database
 def insert_queue2db():

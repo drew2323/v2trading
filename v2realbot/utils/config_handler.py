@@ -5,6 +5,7 @@ from alpaca.data.enums import DataFeed
 import v2realbot.utils.config_defaults as config_defaults
 from v2realbot.enums.enums import FillCondition
 from rich import print
+# from v2realbot.utils.utils import print
 
 def aggregate_configurations(module):
     return {key: getattr(module, key) for key in dir(module) if key.isupper()}
@@ -48,8 +49,8 @@ class ConfigHandler:
                     self.active_config = self.default_config.copy() 
                     self.active_config.update(override_configuration)
                     self.active_profile = profile_name
-                    print(f"Profile {profile_name} loaded successfully.")
-                    print("Current values:", self.active_config)
+                    #print(f"Profile {profile_name} loaded successfully.")
+                    #print("Current values:", self.active_config)
                 else:
                     print(f"Profile {profile_name} does not exist in config item: {config_directive}")
         except Exception as e:
@@ -102,8 +103,8 @@ class ConfigHandler:
 
 # Global configuratio - it is imported by modules that need it. In the future can be changed to Dependency Ingestion (each service will have the config instance  as input parameter)
 config_handler = ConfigHandler()
-print(f"{config_handler.active_profile=}")
-print("config handler initialized")
+#print(f"{config_handler.active_profile=}")
+#print("config handler initialized")
 
 #this is how to get value
 #config_handler.get_val('BT_FILL_PRICE_MARKET_ORDER_PREMIUM')

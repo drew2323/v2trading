@@ -371,9 +371,10 @@ function initialize_chart() {
     }
 
     chart = LightweightCharts.createChart(document.getElementById('chart'), chartOptions);
-    chart.applyOptions({ timeScale: { visible: true, timeVisible: true, secondsVisible: true }, crosshair: {
+    chart.applyOptions({ timeScale: { visible: true, timeVisible: true, secondsVisible: true, minBarSpacing: 0.003}, crosshair: {
         mode: LightweightCharts.CrosshairMode.Normal, labelVisible: true
     }})
+    console.log("chart intiialized")
 }
 
 //mozna atributy last value visible

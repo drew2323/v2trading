@@ -995,13 +995,13 @@ pre {
   background-color: #f2f2f2;
 }
 
-.disk-gauge-container {
+#disk-gauge-container {
   text-align: center;
   width: 300px;
-  height: 20px;
 }
 
-.disk-gauge {
+
+#disk-gauge {
   width: 100%;
   height: 20px;
   background-color: #ddd;
@@ -1009,7 +1009,7 @@ pre {
   overflow: hidden;
 }
 
-.disk-gauge-bar {
+#disk-gauge-bar {
   height: 100%;
   background-color: #4285F4;
   width: 0%; /* Initial state */

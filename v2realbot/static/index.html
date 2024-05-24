@@ -135,6 +135,19 @@
     </head>
     <body>
         <div id="main" class="mainConteiner flex-container content">
+            <div id="disk-info" class="flex-items"> 
+                <label data-bs-toggle="collapse" data-bs-target="#disk-gauge-container" aria-expanded="true">
+                    <h4>Disk Info </h4>
+                </label>
+                <div id="disk-gauge-container">
+                    <span id="free-space">Free: -- GB</span> | 
+                    <span id="total-space">Total: -- GB</span> | 
+                    <span id="used-percent">Used: -- %</span>
+                    <div id="disk-gauge">
+                        <div id="disk-gauge-bar"></div>
+                    </div>
+                </div>
+            </div>
             <div id="chartContainer" class="flex-items">
                 <label data-bs-toggle="collapse" data-bs-target="#chartContainerInner" aria-expanded="true">
                     <h4>Chart</h4>
@@ -213,19 +226,6 @@
                                 </div>
                             </div>
                     </div>
-                </div>
-            </div>
-            <div id="disk-info" class="flex-items"> 
-                <span id="get_disk_info_btn">
-                    <button id="get_disk_info" onclick="get_system_status()"> Get Disk Info </button> 
-                </span>
-                <span class="free-space">Free: -- GB</span> | 
-                <span class="total-space">Total: -- GB</span> | 
-                <span class="used-percent">Used: -- %</span>
-            </div>
-            <div class="disk-gauge-container">
-                <div class="disk-gauge">
-                    <div class="disk-gauge-bar"></div>
                 </div>
             </div>
             <div id="hist-trades" class="flex-items">

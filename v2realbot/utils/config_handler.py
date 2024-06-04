@@ -94,7 +94,9 @@ class ConfigHandler:
                 return FillCondition(value)
             case "BT_FILL_CONDITION_SELL_LIMIT":
                 return FillCondition(value)
-            # Add cases for other enumeration conversions as needed
+            case "AGG_EXCLUDED_TRADES":
+                return sorted(value)  # Convert to sorted
+            # Add cases for other enumeration conversions or transformations as needed
             case _:
                 return value
 

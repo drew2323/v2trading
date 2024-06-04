@@ -1,8 +1,7 @@
 import os,sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["KERAS_BACKEND"] = "jax"
-from dotenv import load_dotenv
-from v2realbot.config import WEB_API_KEY, DATA_DIR, MEDIA_DIRECTORY, LOG_PATH, MODEL_DIR, ENV_FILE
+from v2realbot.config import WEB_API_KEY, DATA_DIR, MEDIA_DIRECTORY, LOG_PATH, MODEL_DIR
 from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from datetime import datetime
 from rich import print
@@ -12,7 +11,7 @@ import uvicorn
 from uuid import UUID
 from v2realbot.utils.ilog import get_log_window
 from v2realbot.common.model import RunManagerRecord, StrategyInstance, RunnerView, RunRequest, Trade, RunArchive, RunArchiveView, RunArchiveViewPagination, RunArchiveDetail, Bar, RunArchiveChange, TestList, ConfigItem, InstantIndicator, DataTablesRequest, AnalyzerInputs
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status, WebSocketException, Cookie, Query
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status, WebSocketException, Cookie, Query, Request
 from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
@@ -36,7 +35,7 @@ from traceback import format_exc
 #from v2realbot.reporting.optimizecutoffs import find_optimal_cutoff
 import v2realbot.reporting.analyzer as ci
 import shutil
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, HTMLResponse, FileResponse, RedirectResponse
 import mlroom
 import mlroom.utils.mlutils as ml
 from typing import List
@@ -75,14 +74,52 @@ def api_key_auth(api_key: str = Depends(X_API_KEY)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Forbidden"
         )  
-     
+
+def authenticate_user(credentials: HTTPBasicCredentials = Depends(HTTPBasic())):
+    correct_username = "david"
+    correct_password = "david"
+    
+    if credentials.username == correct_username and credentials.password == correct_password:
+        return True
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+
+
 app = FastAPI()
 root = os.path.dirname(os.path.abspath(__file__))
-app.mount("/static", StaticFiles(html=True, directory=os.path.join(root, 'static')), name="static")
+#app.mount("/static", StaticFiles(html=True, directory=os.path.join(root, 'static')), name="static")
 app.mount("/media", StaticFiles(directory=str(MEDIA_DIRECTORY)), name="media")
 #app.mount("/", StaticFiles(html=True, directory=os.path.join(root, 'static')), name="www")
 
 security = HTTPBasic()
+@app.get("/static/{path:path}")
+async def static_files(request: Request, path: str, authenticated: bool = Depends(authenticate_user)):
+    root = os.path.dirname(os.path.abspath(__file__))
+    static_dir = os.path.join(root, 'static')
+
+    if not path or path == "/":
+        file_path = os.path.join(static_dir, 'index.html')
+    else:
+        file_path = os.path.join(static_dir, path)
+
+    # Check if path is a directory
+    if os.path.isdir(file_path):
+        # If it's a directory, try to serve index.html within that directory
+        index_path = os.path.join(file_path, 'index.html')
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+        else:
+            # Optionally, you can return a directory listing or a custom 404 page here
+            return HTMLResponse("Directory listing not enabled.", status_code=403) 
+
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+
+    return FileResponse(file_path)
 
 def get_current_username(
     credentials: Annotated[HTTPBasicCredentials, Depends(security)]
@@ -104,9 +141,9 @@ async def get_api_key(
     return session or api_key
 
 #TODO predelat z Async?
-@app.get("/static")
-async def get(username: Annotated[str, Depends(get_current_username)]):
-    return FileResponse("index.html")
+# @app.get("/static")
+# async def get(username: Annotated[str, Depends(get_current_username)]):
+#     return FileResponse("index.html")
 
 @app.websocket("/runners/{runner_id}/ws")
 async def websocket_endpoint(
@@ -1025,7 +1062,6 @@ for i in cs.db.runners:
     i.run_thread.join()
 
 if __name__ == "__main__":
-    load_dotenv(ENV_FILE)
     try:
         #TOTO predelat na samostatnou tridu typu vlakna a dat do separatniho souboru, draft jiz na chatgpt
         #spusteni vlakna pro zapis logů (mame single write vlakno, thready dodávají pres queue)

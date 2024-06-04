@@ -4,6 +4,7 @@ from appdirs import user_data_dir
 from pathlib import Path
 import os
 from collections import defaultdict
+from dotenv import load_dotenv
 # Global flag to track if the ml module has been imported (solution for long import times of tensorflow)
 #the first occurence of using it will load it globally
 _ml_module_loaded = False
@@ -28,6 +29,12 @@ MODEL_DIR = Path(DATA_DIR)/"models"
 #profiling
 PROFILING_NEXT_ENABLED = False
 PROFILING_OUTPUT_DIR = DATA_DIR
+
+#NALOADUJEME DOTENV ENV VARIABLES
+if load_dotenv(ENV_FILE, verbose=True) is False:
+    raise Exception(f"Error loading.env file {ENV_FILE}")
+else:
+    print(f"Loaded env variables from file {ENV_FILE}")
 
 #WIP - FILL CONFIGURATION CLASS FOR BACKTESTING
 class BT_FILL_CONF:

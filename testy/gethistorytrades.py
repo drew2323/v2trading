@@ -1,7 +1,9 @@
 import os,sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 print(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from alpaca.data.historical import CryptoHistoricalDataClient, StockHistoricalDataClient
+import pandas as pd
+import numpy as np
+from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import CryptoLatestTradeRequest, StockLatestTradeRequest, StockLatestBarRequest, StockTradesRequest
 from alpaca.data.enums import DataFeed
 from v2realbot.config import ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY

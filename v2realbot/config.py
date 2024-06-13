@@ -32,7 +32,7 @@ PROFILING_OUTPUT_DIR = DATA_DIR
 
 #NALOADUJEME DOTENV ENV VARIABLES
 if load_dotenv(ENV_FILE, verbose=True) is False:
-    raise Exception(f"Error loading.env file {ENV_FILE}")
+    print(f"Error loading.env file {ENV_FILE}. Now depending on ENV VARIABLES set externally.")
 else:
     print(f"Loaded env variables from file {ENV_FILE}")
 

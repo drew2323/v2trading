@@ -994,3 +994,24 @@ pre {
 #datepicker:disabled {
   background-color: #f2f2f2;
 }
+
+#disk-gauge-container {
+  text-align: center;
+  width: 400px;
+}
+
+
+#disk-gauge {
+  width: 100%;
+  height: 20px;
+  background-color: #ddd;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+#disk-gauge-bar {
+  height: 100%;
+  background-color: #4285F4;
+  width: 0%; /* Initial state */
+  border-radius: 10px;
+}

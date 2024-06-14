@@ -18,6 +18,7 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from v2realbot.enums.enums import Env, Mode
 from typing import Annotated
 import os
+import psutil
 import uvicorn
 import orjson
 from queue import Queue, Empty
@@ -1025,7 +1026,24 @@ def get_metadata(model_name: str):
     #         "last_modified": os.path.getmtime(model_path),
     #         # ... other metadata fields ...
     #     }
-
+@app.get("/system-info")
+def get_system_info():
+    """Get system info, e.g. disk free space, used percentage ... """
+    disk_total = round(psutil.disk_usage('/').total / 1024**3, 1)
+    disk_used = round(psutil.disk_usage('/').used / 1024**3, 1)
+    disk_free = round(psutil.disk_usage('/').free / 1024**3, 1)
+    disk_used_percentage = round(psutil.disk_usage('/').percent, 1)
+    memory_total = round(psutil.virtual_memory().total / 1024**3, 1)
+    memory_perc = round(psutil.virtual_memory().percent, 1)
+    cpu_time_user = round(psutil.cpu_times().user,1)
+    cpu_time_system = round(psutil.cpu_times().system,1)
+    cpu_time_idle = round(psutil.cpu_times().idle,1)
+    network_sent = round(psutil.net_io_counters().bytes_sent / 1024**3, 6)
+    network_recv = round(psutil.net_io_counters().bytes_recv / 1024**3, 6)
+    return {"disk_space": {"total": disk_total, "used": disk_used, "free" : disk_free, "used_percentage" : disk_used_percentage},
+            "memory": {"total": memory_total, "used_percentage": memory_perc},
+            "cpu_time" : {"user": cpu_time_user, "system": cpu_time_system, "idle": cpu_time_idle},
+            "network": {"sent": network_sent, "received": network_recv}}
 
 # Thread function to insert data from the queue into the database
 def insert_queue2db():

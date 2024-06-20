@@ -21,7 +21,7 @@ records = [
     dict(row=-1, exit=True),
 ]
 pf = vbt.PF.from_signals(data, records=records)
-pf.orders.records_readable
+pf.orders.readable
 
 # %% [markdown]
 # ## Portfolio preparers
@@ -110,7 +110,7 @@ pf = vbt.Portfolio.from_signals(
     broadcast_named_args=dict(entries=entries, exits=exits),
     jitted=False
 )
-pf.trades.records_readable[["Entry Index", "Exit Index", "PnL"]]
+pf.trades.readable[["Entry Index", "Exit Index", "PnL"]]
 
 # %% [markdown]
 # ## Time stops
@@ -119,7 +119,7 @@ pf.trades.records_readable[["Entry Index", "Exit Index", "PnL"]]
 data = vbt.YFData.pull("BTC-USD", start="2022-01", end="2022-04")
 entries = vbt.pd_acc.signals.generate_random(data.symbol_wrapper, n=10)
 pf = vbt.PF.from_signals(data, entries, dt_stop="M")
-pf.orders.records_readable[["Fill Index", "Side", "Stop Type"]]
+pf.orders.readable[["Fill Index", "Side", "Stop Type"]]
 
 # %% [markdown]
 # ## Target size to signals
@@ -131,7 +131,7 @@ data = vbt.YFData.pull(
     end="2023",
     missing_index="drop"
 )
-pfo = vbt.PFO.from_riskfolio(data.returns, every="MS")
+pfo = vbt.PFO.from_riskfolio(data.returns, every="M")
 pf = pfo.simulate(
     data,
     pf_method="from_signals",
@@ -196,8 +196,6 @@ fig.show()
 # ## Signal callbacks
 
 # %%
-from collections import namedtuple
-
 InOutputs = namedtuple("InOutputs", ["fast_sma", "slow_sma"])
 
 def initialize_in_outputs(target_shape):
@@ -305,7 +303,7 @@ def exit_place_func_nb(c, index):
                 return i - c.from_i
     return -1
 
-data = vbt.YFData.pull("BTC-USD", start="2020-01", end="2020-14")
+data = vbt.YFData.pull("BTC-USD", start="2020-01-01", end="2020-01-14")
 entries, exits = vbt.pd_acc.signals.generate_both(
     data.symbol_wrapper.shape,
     entry_place_func_nb=entry_place_func_nb,

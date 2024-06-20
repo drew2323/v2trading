@@ -356,8 +356,7 @@ st = SuperTrend.run(
     high, low, close,
     period=periods,
     multiplier=multipliers,
-    param_product=True,
-    execute_kwargs=dict(show_progress=True)
+    param_product=True
 )
 
 # %%

@@ -43,7 +43,7 @@ def mov_avg_crossover(ts1, ts2, w1, w2):
     return ts1_ma.vbt - ts2_ma
 
 def generate_index(n):
-    return pd.date_range("2020-01-01", periods=n)
+    return vbt.date_range("2020-01-01", periods=n)
 
 ts1 = pd.Series([1, 2, 3, 4, 5, 6, 7], index=generate_index(7))
 ts2 = pd.DataFrame({
@@ -185,7 +185,7 @@ RollCov = vbt.IF(
 
 RollCov.run(
     ts1, ts2, np.full(100, 2),
-    execute_kwargs=dict(show_progress=True)
+    execute_kwargs=dict(show_progress=False)
 )
 
 # %% [markdown]

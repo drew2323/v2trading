@@ -14,7 +14,7 @@
 # ## Data
 
 # %%
->>> from vectorbtpro import *
+from vectorbtpro import *
 
 data = vbt.BinanceData.pull(
     ["BTCUSDT", "ETHUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT"],
@@ -34,12 +34,12 @@ data = vbt.HDFData.pull("BinanceData.h5")
 # #### Index points
 
 # %%
-ms_points = data.wrapper.get_index_points(every="MS")
+ms_points = data.wrapper.get_index_points(every="M")
 ms_points
 
 # %%
 data.wrapper.index.get_indexer(
-    pd.Series(index=data.wrapper.index).resample("MS").asfreq().index,
+    pd.Series(index=data.wrapper.index).resample(vbt.offset("M")).asfreq().index,
     method="bfill"
 )
 
@@ -61,7 +61,7 @@ data.wrapper.index[example_points]
 # %%
 example_points = data.wrapper.get_index_points(
     start="April 1st 2020",
-    every="MS"
+    every="M"
 )
 data.wrapper.index[example_points]
 
@@ -130,7 +130,7 @@ np.random.seed(42)
 pfo = vbt.PortfolioOptimizer.from_allocate_func(
     symbol_wrapper,
     random_allocate_func,
-    every="MS"
+    every="M"
 )
 
 # %%
@@ -165,9 +165,18 @@ pf.sharpe_ratio
 def const_allocate_func(target_alloc):
     return target_alloc
 
-pfo = vbt.PortfolioOptimizer.from_initial(
+pfo = vbt.PortfolioOptimizer.from_allocate_func(
     symbol_wrapper,
     const_allocate_func,
+    [0.5, 0.2, 0.1, 0.1, 0.1],
+    on=0
+)
+
+pfo.plot().show()
+
+# %%
+pfo = vbt.PortfolioOptimizer.from_initial(
+    symbol_wrapper,
     [0.5, 0.2, 0.1, 0.1, 0.1]
 )
 
@@ -177,7 +186,7 @@ pfo.plot().show()
 # #### Custom array
 
 # %%
-custom_index = pd.date_range("2020-01-01", "2021-01-01", freq="Q")
+custom_index = vbt.date_range("2020-01-01", "2021-01-01", freq="Q")
 custom_allocations = pd.DataFrame(
     [
         [0.5, 0.2, 0.1, 0.1, 0.1],
@@ -226,7 +235,7 @@ pfo = vbt.PortfolioOptimizer.from_allocate_func(
     rotation_allocate_func,
     vbt.Rep("wrapper"),
     vbt.Rep("i"),
-    every="MS"
+    every="M"
 )
 
 pfo.plot().show()
@@ -240,7 +249,7 @@ pfo = vbt.PortfolioOptimizer.from_allocate_func(
     rotation_allocate_func,
     vbt.RepEval("wrapper.columns"),
     vbt.RepEval("wrapper.columns[i % len(wrapper.columns)]"),
-    every="MS"
+    every="M"
 )
 
 pfo.allocations
@@ -253,7 +262,7 @@ pfo = vbt.PortfolioOptimizer.from_allocate_func(
     symbol_wrapper,
     const_allocate_func,
     [0.5, 0.2, 0.1, 0.1, 0.1],
-    every=vbt.Param(["1MS", "2MS", "3MS"])
+    every=vbt.Param(["1M", "2M", "3M"])
 )
 
 pf = pfo.simulate(data, freq="1h")
@@ -267,7 +276,7 @@ pfo = vbt.PortfolioOptimizer.from_allocate_func(
         [0.5, 0.2, 0.1, 0.1, 0.1],
         [0.2, 0.1, 0.1, 0.1, 0.5]
     ], keys=pd.Index(["w1", "w2"], name="weights")),
-    every=vbt.Param(["1MS", "2MS", "3MS"])
+    every=vbt.Param(["1M", "2M", "3M"])
 )
 
 # %%
@@ -277,19 +286,19 @@ pfo.wrapper.grouper.get_index()
 pfo.wrapper.columns
 
 # %%
-pfo[("3MS", "w2")].stats()
+pfo[("3M", "w2")].stats()
 
 # %%
 pfo = vbt.PortfolioOptimizer.from_allocate_func(
     symbol_wrapper,
     const_allocate_func,
     group_configs=[
-        dict(args=([0.5, 0.2, 0.1, 0.1, 0.1],), every="1MS"),
-        dict(args=([0.2, 0.1, 0.1, 0.1, 0.5],), every="2MS"),
-        dict(args=([0.1, 0.1, 0.1, 0.5, 0.2],), every="3MS"),
-        dict(args=([0.1, 0.1, 0.5, 0.2, 0.1],), every="1MS"),
-        dict(args=([0.1, 0.5, 0.2, 0.1, 0.1],), every="2MS"),
-        dict(args=([0.5, 0.2, 0.1, 0.1, 0.1],), every="3MS"),
+        dict(args=([0.5, 0.2, 0.1, 0.1, 0.1],), every="1M"),
+        dict(args=([0.2, 0.1, 0.1, 0.1, 0.5],), every="2M"),
+        dict(args=([0.1, 0.1, 0.1, 0.5, 0.2],), every="3M"),
+        dict(args=([0.1, 0.1, 0.5, 0.2, 0.1],), every="1M"),
+        dict(args=([0.1, 0.5, 0.2, 0.1, 0.1],), every="2M"),
+        dict(args=([0.5, 0.2, 0.1, 0.1, 0.1],), every="3M"),
     ]
 )
 
@@ -305,7 +314,7 @@ pfo = vbt.PortfolioOptimizer.from_allocate_func(
         ),
         dict(
             allocate_func=random_allocate_func,
-            every="MS",
+            every="M",
             _name="random"
         ),
     ]
@@ -325,7 +334,7 @@ pfo = vbt.PortfolioOptimizer.from_allocate_func(
             allocate_func=random_allocate_func,
         ),
     },
-    every=vbt.Param(["1MS", "2MS", "3MS"])
+    every=vbt.Param(["1M", "2M", "3M"])
 )
 pfo.wrapper.grouper.get_index()
 
@@ -470,7 +479,7 @@ discrete_pfo.plot().show()
 # ### Index ranges
 
 # %%
-example_ranges = data.wrapper.get_index_ranges(every="MS")
+example_ranges = data.wrapper.get_index_ranges(every="M")
 example_ranges[0]
 
 # %%
@@ -481,8 +490,8 @@ data.wrapper.index[example_ranges[0][0]:example_ranges[1][0]]
 
 # %%
 example_ranges = data.wrapper.get_index_ranges(
-    every="MS",
-    lookback_period="3MS"
+    every="M",
+    lookback_period="3M"
 )
 
 def get_index_bounds(range_starts, range_ends):
@@ -536,10 +545,25 @@ pfo = vbt.PortfolioOptimizer.from_optimize_func(
     inv_rank_optimize_func,
     data.get("Close"),
     vbt.Rep("index_slice"),
-    every="MS"
+    every="M"
 )
 
 pfo.allocations
+
+# %%
+def inv_rank_optimize_func(price):
+    first_price = price.iloc[0]
+    last_price = price.iloc[-1]
+    ret = (last_price - first_price) / first_price
+    ranks = ret.rank(ascending=False)
+    return ranks / ranks.sum()
+
+pfo = vbt.PortfolioOptimizer.from_optimize_func(
+    symbol_wrapper,
+    inv_rank_optimize_func,
+    vbt.Takeable(data.get("Close")),
+    every="M"
+)
 
 # %%
 pfo.alloc_records.records_readable
@@ -563,8 +587,7 @@ pfo.plots().show()
 pfo = vbt.PortfolioOptimizer.from_optimize_func(
     symbol_wrapper,
     inv_rank_optimize_func,
-    data.get("Close"),
-    vbt.Rep("index_slice")
+    vbt.Takeable(data.get("Close"))
 )
 pfo.allocations
 
@@ -572,8 +595,7 @@ pfo.allocations
 pfo = vbt.PortfolioOptimizer.from_optimize_func(
     symbol_wrapper,
     inv_rank_optimize_func,
-    data.get("Close"),
-    vbt.Rep("index_slice"),
+    vbt.Takeable(data.get("Close")),
     alloc_wait=0
 )
 pfo.allocations
@@ -595,7 +617,7 @@ pfo = vbt.PortfolioOptimizer.from_optimize_func(
     symbol_wrapper,
     inv_rank_optimize_func_nb,
     data.get("Close").values,
-    every="MS",
+    every="M",
     jitted_loop=True
 )
 

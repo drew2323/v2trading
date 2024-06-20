@@ -21,9 +21,9 @@ from vectorbtpro import *
 def get_yf_symbol(symbol, period="max", start=None, end=None, **kwargs):
     import yfinance as yf
     if start is not None:
-        start = vbt.dt.to_tzaware_datetime(start, tz=vbt.dt.get_local_tz())
+        start = vbt.local_datetime(start)
     if end is not None:
-        end = vbt.dt.to_tzaware_datetime(end, tz=vbt.dt.get_local_tz())
+        end = vbt.local_datetime(end)
     return yf.Ticker(symbol).history(
         period=period,
         start=start,
@@ -57,7 +57,7 @@ yf_data.data["ETH-USD"]
 class YFData(vbt.Data):
     @classmethod
     def fetch_symbol(cls, symbol, **kwargs):
-        returned_kwargs = dict(timestamp=pd.Timestamp.now())
+        returned_kwargs = dict(timestamp=vbt.timestamp())
         return get_yf_symbol(symbol, **kwargs), returned_kwargs
 
 yf_data = YFData.pull("BTC-USD", start="2020-01-01", end="2020-01-05")
@@ -315,7 +315,7 @@ btc_df = pd.DataFrame({
     "High": [7254.33, 7212.15, 7413.71],
     "Low": [7174.94, 6935.27, 6985.47],
     "Close": [7200.17, 6985.47, 7344.88]
-}, index=pd.date_range("2020-01-01", periods=3))
+}, index=vbt.date_range("2020-01-01", periods=3))
 btc_df
 
 # %%
@@ -328,7 +328,7 @@ eth_df = pd.DataFrame({
     "High": [134.55, 136.05, 139.41],
     "Low": [126.49, 133.04, 135.04],
     "Close": [134.17, 135.06, 136.27]
-}, index=pd.date_range("2020-01-03", periods=3))
+}, index=vbt.date_range("2020-01-03", periods=3))
 eth_df
 
 # %%
@@ -430,7 +430,7 @@ vbt.pprint(vbt.BinanceData.feature_config)
 
 # %%
 full_yf_data = vbt.YFData.pull("BTC-USD")
-ms_yf_data = full_yf_data.resample("MS")
+ms_yf_data = full_yf_data.resample("M")
 ms_yf_data.close
 
 # %%
@@ -446,17 +446,17 @@ y_yf_data.close
 
 # %%
 data_btc = vbt.Data.from_data(bn_data_btc.data, single_key=True)
-data_btc.resample("MS")
+data_btc.resample("M")
 
 # %%
 for k, v in vbt.BinanceData.feature_config.items():
     data_btc.feature_config[k] = v
-data_btc.resample("MS")
+data_btc.resample("M")
 
 # %%
 data_btc = vbt.Data.from_data(bn_data_btc.data, single_key=True)
 data_btc.use_feature_config_of(vbt.BinanceData)
-data_btc.resample("MS").close
+data_btc.resample("M").close
 
 # %% [markdown]
 # ### Realignment

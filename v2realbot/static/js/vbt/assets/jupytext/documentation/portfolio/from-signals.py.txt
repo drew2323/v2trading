@@ -148,18 +148,18 @@ vbt.pf_nb.signal_to_size_nb(
 vbt.pf_nb.check_limit_expired_nb(
     creation_idx=0,
     i=1,
-    tif=vbt.dt.to_ns(pd.Timedelta("36h")),
-    index=vbt.dt.to_ns(pd.date_range("2020-01-01", periods=3)),
-    freq=vbt.dt.to_ns(pd.Timedelta("1d"))
+    tif=vbt.dt.to_ns(vbt.timedelta("36h")),
+    index=vbt.dt.to_ns(vbt.date_range("2020-01-01", periods=3)),
+    freq=vbt.dt.to_ns(vbt.timedelta("1d"))
 )
 
 # %%
 vbt.pf_nb.check_limit_expired_nb(
     creation_idx=0,
     i=1,
-    tif=vbt.dt.to_ns(pd.Timedelta("24h")),
-    index=vbt.dt.to_ns(pd.date_range("2020-01-01", periods=3)),
-    freq=vbt.dt.to_ns(pd.Timedelta("1d"))
+    tif=vbt.dt.to_ns(vbt.timedelta("24h")),
+    index=vbt.dt.to_ns(vbt.date_range("2020-01-01", periods=3)),
+    freq=vbt.dt.to_ns(vbt.timedelta("1d"))
 )
 
 # %% [markdown]
@@ -292,7 +292,7 @@ pf = vbt.Portfolio.from_signals(
     entries=entries,
     exits=exits
 )
-pf.orders.records_readable
+pf.orders.readable
 
 # %%
 pf.assets
@@ -440,10 +440,10 @@ pf = vbt.Portfolio.from_signals(
 pf.assets
 
 # %%
-entries = pd.Series({pd.Timestamp("2021-02-18 00:00:00+00:00"): True})
-exits = pd.Series({pd.Timestamp("2021-02-21 00:00:00+00:00"): True})
-short_entries = pd.Series({pd.Timestamp("2021-02-22 00:00:00+00:00"): True})
-short_exits = pd.Series({pd.Timestamp("2021-02-24 00:00:00+00:00"): True})
+entries = pd.Series({vbt.utc_timestamp("2021-02-18"): True})
+exits = pd.Series({vbt.utc_timestamp("2021-02-21"): True})
+short_entries = pd.Series({vbt.utc_timestamp("2021-02-22"): True})
+short_exits = pd.Series({vbt.utc_timestamp("2021-02-24"): True})
 
 pf = vbt.Portfolio.from_signals(
     sub_data,
@@ -872,8 +872,8 @@ pf = vbt.Portfolio.from_signals(
 )
 
 # %%
-index_td = vbt.dt.to_timedelta("1 minute")
-tif_td = vbt.dt.to_timedelta("1 day")
+index_td = vbt.timedelta("1 minute")
+tif_td = vbt.timedelta("1 day")
 int(tif_td / index_td)
 
 # %% [markdown]
@@ -888,12 +888,12 @@ pf = vbt.Portfolio.from_signals(
     entries=pd.Series([O, O, X, O, O, O, O]),
     price=sub_data.low.vbt.fshift(),
     order_type="limit",
-    limit_expiry="W-MON"
+    limit_expiry="monday"
 )
 pf.orders.price.to_pd()
 
 # %%
-sub_data.symbol_wrapper.index.to_period("W-MON")
+sub_data.symbol_wrapper.index.to_period(vbt.offset("monday"))
 
 # %%
 pf = vbt.Portfolio.from_signals(
@@ -901,12 +901,12 @@ pf = vbt.Portfolio.from_signals(
     entries=pd.Series([O, O, X, O, O, O, O]),
     price=sub_data.low.vbt.fshift(),
     order_type="limit",
-    limit_expiry="W-SUN"
+    limit_expiry="sunday"
 )
 pf.orders.price.to_pd()
 
 # %%
-sub_data.symbol_wrapper.index.to_period("W-SUN")
+sub_data.symbol_wrapper.index.to_period(vbt.offset("sunday"))
 
 # %%
 pf = vbt.Portfolio.from_signals(
@@ -1077,7 +1077,7 @@ pf = vbt.Portfolio.from_signals(
 pf.orders.price.to_pd()
 
 # %%
-pf.orders.records_readable
+pf.orders.readable
 
 # %%
 pf.orders.stop_type.to_pd(mapping=True)

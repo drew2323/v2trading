@@ -72,11 +72,10 @@ chunked_pipeline(
     period_product[:4],
     multiplier_product[:4],
     _n_chunks=2,
-    _execute_kwargs=dict(show_progress=True)
 )
 
 # %%
-chunk_meta, funcs_args = chunked_pipeline(
+chunk_meta, tasks = chunked_pipeline(
     data,
     period_product[:4],
     multiplier_product[:4],
@@ -87,7 +86,7 @@ chunk_meta, funcs_args = chunked_pipeline(
 chunk_meta
 
 # %%
-list(funcs_args)
+list(tasks)
 
 # %%
 %%timeit
@@ -210,7 +209,6 @@ chunked_pipeline_nb(
     multipliers=multiplier_product[:4],
     ann_factor=ann_factor,
     _n_chunks=2,
-    _execute_kwargs=dict(show_progress=True),
     _merge_kwargs=dict(input_columns=close.columns)
 )
 
@@ -525,7 +523,6 @@ chunked_ctx_pipeline_nb(
     multipliers=multiplier_product[:4],
     ann_factor=ann_factor,
     _n_chunks=2,
-    _execute_kwargs=dict(show_progress=True),
     _merge_kwargs=dict(input_columns=close.columns)
 )
 
@@ -720,7 +717,7 @@ chunked_raw_pipeline_nb(
 )
 
 # %%
-range_len = int(pd.Timedelta('365d') / pd.Timedelta('1h'))
+range_len = int(vbt.timedelta('365d') / vbt.timedelta('1h'))
 splitter = vbt.Splitter.from_n_rolling(
     high.index,
     n=100,

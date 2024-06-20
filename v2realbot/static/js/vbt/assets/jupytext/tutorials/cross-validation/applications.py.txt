@@ -160,7 +160,6 @@ train_perf = set_sma_crossover_perf(
     vbt.Param(np.arange(5, 50)),
     data.index.freq,
     _execute_kwargs=dict(
-        show_progress=True,
         clear_cache=50,
         collect_garbage=50
     )
@@ -262,7 +261,7 @@ sample_cumrets.vbt.plot().show()
 
 # %%
 samples_rets_list = []
-for i in tqdm(range(1000)):
+for i in vbt.ProgressBar(range(1000)):
     sample_spl = block_splitter.shuffle_splits(size=size, replace=True)
     sample_rets = sample_spl.take(returns, into="stacked", stack_axis=0)
     sample_rets.index = returns.index[:len(sample_rets)]
@@ -339,13 +338,11 @@ train_perf = splitter.apply(
     vbt.Param(np.arange(5, 50), condition="x < slow_window"),
     vbt.Param(np.arange(5, 50)),
     _execute_kwargs=dict(
-        show_progress=False,
         clear_cache=50,
         collect_garbage=50
     ),
     set_="train",
-    merge_func="concat",
-    execute_kwargs=dict(show_progress=True)
+    merge_func="concat"
 )
 
 # %%
@@ -388,7 +385,6 @@ def cv_sma_crossover(
             vbt.Param(fast_windows, condition="x < slow_window"),
             vbt.Param(slow_windows),
             _execute_kwargs=dict(
-                show_progress=False,
                 clear_cache=50,
                 collect_garbage=50
             )
@@ -416,8 +412,7 @@ cv_perf = splitter.apply(
     vbt.Rep("set_idx"),
     train_perf_list,
     iteration="set_major",
-    merge_func="concat",
-    execute_kwargs=dict(show_progress=True)
+    merge_func="concat"
 )
 
 # %%
@@ -591,7 +586,6 @@ cv_sma_crossover_perf = vbt.split(
     splitter_kwargs=dict(split=0.6, set_labels=["train", "test"]),
     takeable_args=["data"],
     merge_func="concat",
-    execute_kwargs=dict(show_progress=True)
 )
 
 # %%
@@ -657,11 +651,9 @@ cv_sma_crossover_perf = vbt.cv_split(
     ),
     takeable_args=["close"],
     merge_func="concat",
-    execute_kwargs=dict(show_progress=True),
     parameterized_kwargs=dict(
         engine="dask",
         chunk_len="auto",
-        show_progress=False
     )
 )
 
@@ -748,7 +740,7 @@ from sklearn.ensemble import RandomForestClassifier
 clf = RandomForestClassifier(random_state=42)
 
 # %%
-cv = vbt.SKLSplitter(
+cv = vbt.SplitterCV(
     "from_expanding",
     min_length=360,
     offset=180,

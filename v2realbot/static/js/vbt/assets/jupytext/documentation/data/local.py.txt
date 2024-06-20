@@ -514,8 +514,8 @@ vbt.SQLData.pull(
     tz="America/New_York",
     index_col="Date",
     params={
-        "start": pd.Timestamp("2022-12-23", tz="America/New_York").to_pydatetime(),
-        "end": pd.Timestamp("2022-12-30", tz="America/New_York").to_pydatetime()
+        "start": vbt.datetime("2022-12-23", tz="America/New_York"),
+        "end": vbt.datetime("2022-12-30", tz="America/New_York")
     }
 ).close
 
@@ -670,13 +670,13 @@ parquet_data.close
 # %%
 parquet_data = vbt.ParquetData.pull(
     "BNB-USD",
-    filters=[("Date", "<", pd.Timestamp("2020-01-03", tz="UTC"))]
+    filters=[("Date", "<", vbt.timestamp("2020-01-03", tz="UTC"))]
 )
 parquet_data.close
 
 # %%
 parquet_data = parquet_data.update(
-    filters=[("Date", ">=", pd.Timestamp("2020-01-03", tz="UTC"))]
+    filters=[("Date", ">=", vbt.timestamp("2020-01-03", tz="UTC"))]
 )
 parquet_data.close
 
@@ -722,8 +722,8 @@ sql_data = vbt.SQLData.pull(
     tz="America/New_York",
     index_col="Date",
     params={
-        "start": pd.Timestamp("2022-01-01", tz="America/New_York").to_pydatetime(),
-        "end": pd.Timestamp("2022-01-08", tz="America/New_York").to_pydatetime()
+        "start": vbt.datetime("2022-01-01", tz="America/New_York"),
+        "end": vbt.datetime("2022-01-08", tz="America/New_York")
     }
 )
 sql_data.close
@@ -731,8 +731,8 @@ sql_data.close
 # %%
 sql_data = sql_data.update(
     params={
-        "start": pd.Timestamp("2022-01-08", tz="America/New_York").to_pydatetime(),
-        "end": pd.Timestamp("2022-01-18", tz="America/New_York").to_pydatetime()
+        "start": vbt.datetime("2022-01-08", tz="America/New_York"),
+        "end": vbt.datetime("2022-01-18", tz="America/New_York")
     }
 )
 sql_data.close
@@ -797,8 +797,8 @@ duckdb_data = vbt.DuckDBData.pull(
         """
     }),
     params=dict(
-        start=pd.Timestamp("2020-01-01").to_pydatetime(),
-        end=pd.Timestamp("2020-01-03").to_pydatetime()
+        start=vbt.datetime("2020-01-01"),
+        end=vbt.datetime("2020-01-03")
     )
 )
 duckdb_data.close
@@ -806,8 +806,8 @@ duckdb_data.close
 # %%
 duckdb_data = duckdb_data.update(
     params=dict(
-        start=pd.Timestamp("2020-01-03").to_pydatetime(),
-        end=pd.Timestamp("2020-01-05").to_pydatetime()
+        start=vbt.datetime("2020-01-03"),
+        end=vbt.datetime("2020-01-05")
     )
 )
 

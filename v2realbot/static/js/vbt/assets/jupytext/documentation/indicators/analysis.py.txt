@@ -43,7 +43,7 @@ CrossSig = vbt.IF(
 ).with_apply_func(apply_func)
 
 def generate_index(n):
-    return pd.date_range("2020-01-01", periods=n)
+    return vbt.date_range("2020-01-01", periods=n)
 
 ts = pd.DataFrame({
     'a': [1, 2, 3, 2, 1, 2, 3],

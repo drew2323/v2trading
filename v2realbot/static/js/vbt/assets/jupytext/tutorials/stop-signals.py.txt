@@ -22,10 +22,10 @@ symbols = [
     "BTC-USD", "ETH-USD", "XRP-USD", "BCH-USD", "LTC-USD",
     "BNB-USD", "EOS-USD", "XLM-USD", "XMR-USD", "ADA-USD"
 ]
-start_date = pd.Timestamp("2018-01-01", tz="utc")
-end_date = pd.Timestamp("2021-01-01", tz="utc")
+start_date = vbt.utc_timestamp("2018-01-01")
+end_date = vbt.utc_timestamp("2021-01-01")
 time_delta = end_date - start_date
-window_len = pd.Timedelta(days=180)
+window_len = vbt.timedelta("180d")
 window_cnt = 400
 exit_types = ["SL", "TS", "TP", "Random", "Holding"]
 step = 0.01
@@ -311,7 +311,7 @@ total_return.shape
 
 # %%
 total_returns = []
-for i in vbt.get_pbar(range(len(exit_types))):
+for i in vbt.ProgressBar(range(len(exit_types))):
     exit_type_columns = exits.columns.get_level_values("exit_type")
     chunk_mask = exit_type_columns == exit_types[i]
     chunk_pf = vbt.Portfolio.from_signals(
@@ -399,7 +399,7 @@ def bin_return(return_by_type):
     classes = pd.cut(return_by_type["Holding"], bins=bins, right=True)
     new_level = np.array(classes.apply(lambda x: x.right))
     new_level = pd.Index(new_level, name="bin_right")
-    return return_by_type.vbt.stack_index(new_level, axis=0)
+    return return_by_type.vbt.add_levels(new_level, axis=0)
 
 binned_return_by_type = bin_return(return_by_type)
 

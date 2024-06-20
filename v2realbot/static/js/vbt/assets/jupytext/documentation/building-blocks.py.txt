@@ -67,7 +67,7 @@ class CorrStats(vbt.Configured):
         return self.obj1.rolling(window).corr(self.obj2)
 
 # %%
-index = [datetime(2020, 1, 1) + timedelta(days=i) for i in range(5)]
+index = vbt.date_range("2020", periods=5)
 df1 = pd.DataFrame({
     'a': [1, 5, 2, 4, 3],
     'b': [3, 2, 4, 1, 5]
@@ -221,7 +221,7 @@ big_df = pd.DataFrame(np.random.uniform(size=(1000, 1000)))
 def sum_per_group(df, group_by):
     wrapper = vbt.ArrayWrapper.from_obj(df, group_by=group_by)
     results = []
-    for group_idxs in wrapper.grouper.yield_group_idxs():
+    for group_idxs in wrapper.grouper.iter_group_idxs():
         group_result = np.sum(df.values[:, group_idxs])
         results.append(group_result)
     return wrapper.wrap_reduced(results)
@@ -428,12 +428,12 @@ df.vbt.stats(column='a')
 dd_df = pd.DataFrame({
     'a': [10, 11, 12, 11, 12, 13, 12],
     'b': [14, 13, 12, 11, 12, 13, 14]
-}, index=[datetime(2020, 1, 1) + timedelta(days=i) for i in range(7)])
+}, index=vbt.date_range("2020", periods=7))
 drawdowns = dd_df.vbt.drawdowns
-drawdowns.records_readable
+drawdowns.readable
 
 # %%
-drawdowns['b'].records_readable
+drawdowns['b'].readable
 
 # %%
 drawdowns.status.values

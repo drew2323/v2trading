@@ -11,7 +11,47 @@
 
 # %% [markdown]
 # #  Indicators
-# ## Signal unraveling { .mdx-pulse title="Recently added" }
+# ## Hurst exponent { .mdx-pulse title="Recently added" }
+
+# %%
+data = vbt.YFData.pull("BTC-USD", start="12 months ago")
+hurst = vbt.HURST.run(data.close, method=["standard", "logrs", "rs", "dma", "dsod"])
+fig = vbt.make_subplots(specs=[[dict(secondary_y=True)]])
+data.plot(plot_volume=False, ohlc_trace_kwargs=dict(opacity=0.3), fig=fig)
+fig = hurst.hurst.vbt.plot(fig=fig, add_trace_kwargs=dict(secondary_y=True))
+fig = fig.select_range(start=hurst.param_defaults["window"])
+fig.show()
+
+# %% [markdown]
+# ## Smart Money Concepts { .mdx-pulse title="Recently added" }
+
+# %%
+data = vbt.YFData.pull("BTC-USD", start="6 months ago")
+phl = vbt.smc("previous_high_low").run(
+    data.open,
+    data.high,
+    data.low,
+    data.close,
+    data.volume,
+    time_frame=vbt.Default("7D")
+)
+fig = data.plot()
+phl.previous_high.rename("previous_high").vbt.plot(fig=fig)
+phl.previous_low.rename("previous_low").vbt.plot(fig=fig)
+(phl.broken_high == 1).rename("broken_high").vbt.signals.plot_as_markers(
+    y=phl.previous_high,
+    trace_kwargs=dict(marker=dict(color="limegreen")),
+    fig=fig
+)
+(phl.broken_low == 1).rename("broken_high").vbt.signals.plot_as_markers(
+    y=phl.previous_low,
+    trace_kwargs=dict(marker=dict(color="orangered")),
+    fig=fig
+)
+fig.show()
+
+# %% [markdown]
+# ## Signal unraveling
 
 # %%
 data = vbt.YFData.pull("BTC-USD")

@@ -11,6 +11,30 @@
 
 # %% [markdown]
 # #  Performance
+# ## Chunk caching
+
+# %%
+@vbt.parameterized(cache_chunks=True, chunk_len=1)
+def basic_iterator(i):
+    print("i:", i)
+    rand_number = np.random.uniform()
+    if rand_number < 0.2:
+        print("failed ⛔")
+        raise ValueError
+    return i
+
+attempt = 0
+while True:
+    attempt += 1
+    print("attempt", attempt)
+    try:
+        basic_iterator(vbt.Param(np.arange(10)))
+        print("completed 🎉")
+        break
+    except ValueError:
+        pass
+
+# %% [markdown]
 # ## Accumulators
 
 # %%
@@ -53,7 +77,6 @@ data.symbol_wrapper.wrap(rolling_zscore)
     chunk_len=100,
     merge_func="concat",
     execute_kwargs=dict(
-        show_progress=True,
         clear_cache=True,
         collect_garbage=True
     )
@@ -167,7 +190,7 @@ pf.get_ca_setup().get_status_overview(
 # %%
 import quantstats as qs
 
-index = pd.date_range("2020", periods=100000, freq="1min")
+index = vbt.date_range("2020", periods=100000, freq="1min")
 returns = pd.Series(np.random.normal(0, 0.001, size=len(index)), index=index)
 
 %timeit qs.stats.rolling_sortino(returns, rolling_period=10)

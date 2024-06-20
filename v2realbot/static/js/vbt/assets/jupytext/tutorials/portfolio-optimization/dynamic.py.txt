@@ -435,7 +435,7 @@ def sharpe_optimize_func_nb(
 
 # %%
 range_starts, range_ends = data.wrapper.get_index_ranges(every="W")
-ann_factor = pd.Timedelta("365d") / pd.Timedelta("1h")
+ann_factor = vbt.timedelta("365d") / vbt.timedelta("1h")
 init_cash = 100
 num_tests = 30
 fees = 0.005
@@ -478,7 +478,7 @@ def merge_func(order_records_list, param_index):
             cash_sharing=True,
             init_cash=init_cash
         )
-        sharpe_ratios[i] = pf.sharpe_ratio
+        sharpe_ratios.iloc[i] = pf.sharpe_ratio
     return sharpe_ratios
 
 # %%
@@ -491,7 +491,7 @@ param_optimize_portfolio_nb = vbt.parameterized(
 )
 
 # %%
-every_index = pd.Index(["D", "W", "MS"], name="every")
+every_index = pd.Index(["D", "W", "M"], name="every")
 num_tests_index = pd.Index([30, 50, 100], name="num_tests")
 fees_index = pd.Index([0.0, 0.005, 0.01], name="fees")
 

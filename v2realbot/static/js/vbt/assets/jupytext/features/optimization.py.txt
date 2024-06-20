@@ -11,6 +11,39 @@
 
 # %% [markdown]
 # #  Optimization
+# ## Purged CV
+
+# %%
+splitter = vbt.Splitter.from_purged_kfold(
+    vbt.date_range("2024", "2025"),
+    n_folds=10,
+    n_test_folds=2,
+    purge_td="3 days",
+    embargo_td="3 days"
+)
+splitter.plots().show()
+
+# %% [markdown]
+# ## Paramables
+
+# %%
+@vbt.parameterized(merge_func="column_stack")
+def get_signals(fast_sma, slow_sma):
+    entries = fast_sma.crossed_above(slow_sma)
+    exits = fast_sma.crossed_below(slow_sma)
+    return entries, exits
+
+data = vbt.YFData.pull(["BTC-USD", "ETH-USD"])
+sma = data.run("talib:sma", timeperiod=range(20, 50, 2))
+fast_sma = sma.rename_levels({"sma_timeperiod": "fast"})
+slow_sma = sma.rename_levels({"sma_timeperiod": "slow"})
+entries, exits = get_signals(
+    vbt.Param(fast_sma, condition="__fast__ < __slow__"),
+    vbt.Param(slow_sma)
+)
+entries.columns
+
+# %% [markdown]
 # ## Lazy parameter grids
 
 # %%
@@ -49,7 +82,6 @@ test_combination(
     mono_chunk_len=100,
     chunk_len="auto",
     engine="threadpool",
-    show_progress=True,
     warmup=True
 )
 @njit(nogil=True)
@@ -85,7 +117,6 @@ sharpe_ratios.vbt.heatmap().show()
     splitter="from_rolling",
     splitter_kwargs=dict(length=365, split=0.5, set_labels=["train", "test"]),
     takeable_args=["data"],
-    execute_kwargs=dict(show_progress=True),
     parameterized_kwargs=dict(random_subset=100),
     merge_func="concat"
 )
@@ -176,7 +207,15 @@ pf.total_return.sort_values(ascending=False)
 # ## Parameterized decorator
 
 # %%
-@vbt.parameterized(merge_func="concat", show_progress=True)
+@vbt.parameterized(merge_func="column_stack")
+def sma(close, window):
+    return close.rolling(window).mean()
+
+data = vbt.YFData.pull("BTC-USD")
+sma(data.close, vbt.Param(range(20, 50)))
+
+# %%
+@vbt.parameterized(merge_func="concat")
 def bbands_sharpe(data, timeperiod=14, nbdevup=2, nbdevdn=2, thup=0.3, thdn=0.1):
     bb = data.run(
         "talib_bbands",
@@ -215,7 +254,7 @@ data = vbt.YFData.pull(
 pfo = vbt.PFO.from_riskfolio(
     returns=data.close.vbt.to_returns(),
     port_cls="hc",
-    every="MS"
+    every="M"
 )
 pfo.plot().show()
 
@@ -295,7 +334,7 @@ pfo = vbt.PFO.from_optimize_func(
     data.symbol_wrapper,
     regime_change_optimize_func,
     vbt.RepEval("data[index_slice]", context=dict(data=data)),
-    every="MS"
+    every="M"
 )
 pfo.plot().show()
 
@@ -313,7 +352,7 @@ pfo = vbt.PFO.from_pypfopt(
     returns=data.returns,
     optimizer="hrp",
     target="optimize",
-    every="MS"
+    every="M"
 )
 pfo.plot().show()
 

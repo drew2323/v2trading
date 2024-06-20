@@ -281,7 +281,7 @@ mask.sum()
 
 # %%
 def exactly_ago(sr):
-    if sr.index[0] == sr.index[-1] - pd.Timedelta("7d"):
+    if sr.index[0] == sr.index[-1] - vbt.timedelta("7d"):
         return sr.iloc[0]
     return np.nan
 
@@ -302,7 +302,7 @@ cond_7d_ago = vbt.pd_acc.rolling_apply(
     "8d",
     exactly_ago_meta_nb,
     bandwidth.index.values,
-    pd.Timedelta("7d").to_timedelta64(),
+    vbt.timedelta("7d").to_timedelta64(),
     vbt.to_2d_array(bandwidth),
     wrapper=bandwidth.vbt.wrapper
 )
@@ -353,7 +353,7 @@ mask.sum()
 
 # %%
 anchor_points = data.wrapper.get_index_points(
-    every="MS",
+    every="M",
     start=0,
     exact_start=True
 )
@@ -409,25 +409,25 @@ tuesday_1730_index = index[
 tuesday_1730_index
 
 # %%
-index.get_indexer([pd.Timestamp("2021-01-07", tz=index.tz)])
+index.get_indexer([vbt.timestamp("2021-01-07", tz=index.tz)])
 
 # %%
-index.get_indexer([pd.Timestamp("2021-01-07 17:30:00", tz=index.tz)])
+index.get_indexer([vbt.timestamp("2021-01-07 17:30:00", tz=index.tz)])
 
 # %%
 index[index.get_indexer(
-    [pd.Timestamp("2021-01-07 17:30:00", tz=index.tz)],
+    [vbt.timestamp("2021-01-07 17:30:00", tz=index.tz)],
     method="ffill"
 )]
 
 # %%
 index[index.get_indexer(
-    [pd.Timestamp("2021-01-07 17:30:00", tz=index.tz)],
+    [vbt.timestamp("2021-01-07 17:30:00", tz=index.tz)],
     method="bfill"
 )]
 
 # %%
-each_tuesday = pd.date_range(index[0], index[-1], freq="W-TUE")
+each_tuesday = vbt.date_range(index[0], index[-1], freq="tuesday")
 each_tuesday_1730 = each_tuesday + pd.Timedelta(hours=17, minutes=30)
 each_tuesday_1730
 
@@ -455,7 +455,7 @@ mask[mask.any(axis=1)].index.strftime("%A %T")
 mask = min_symbol_wrapper.fill(False)
 mask.vbt.set(
     True,
-    every="W-TUE",
+    every="tuesday",
     at_time="17:30",
     inplace=True
 )
@@ -465,9 +465,9 @@ mask[mask.any(axis=1)].index.strftime("%A %T")
 mask = min_symbol_wrapper.fill(False)
 mask.vbt.set(
     True,
-    every="W-TUE",
+    every="tuesday",
     at_time="18:00",
-    add_delta=pd.Timedelta(1, "ns"),
+    add_delta=pd.Timedelta(nanoseconds=1),
     inplace=True
 )
 mask[mask.any(axis=1)].index.strftime("%A %T")
@@ -476,7 +476,7 @@ mask[mask.any(axis=1)].index.strftime("%A %T")
 mask = min_symbol_wrapper.fill(False)
 mask.vbt.set_between(
     True,
-    every="W-MON",
+    every="monday",
     start_time="12:00",
     end_time="17:00",
     add_end_delta=pd.Timedelta(days=1),
@@ -508,7 +508,7 @@ mask[mask.any(axis=1)].index
 mask = min_symbol_wrapper.fill(False)
 mask.vbt.set_between(
     True,
-    every="W-MON",
+    every="monday",
     split_every=False,
     add_end_delta="2h",
     inplace=True
@@ -643,8 +643,8 @@ def any_in_var_window_1d_nb(arr, index, freq):
     return out
 
 arr = np.array([False, True, True, False, False])
-index = pd.date_range("2020", freq="5min", periods=len(arr)).values
-freq = pd.Timedelta("10min").to_timedelta64()
+index = vbt.date_range("2020", freq="5min", periods=len(arr)).values
+freq = vbt.timedelta("10min").to_timedelta64()
 any_in_var_window_1d_nb(arr, index, freq)
 
 # %%
@@ -789,7 +789,7 @@ def exit_place_func_nb(c, index, wait_td):
 exits = entries.vbt.signals.generate_exits(
     exit_place_func_nb,
     vbt.dt.to_ns(entries.index),
-    vbt.dt.to_ns(pd.Timedelta("7d")),
+    vbt.dt.to_ns(vbt.timedelta("7d")),
     wait=0
 )
 exits.index[exits.any(axis=1)]
@@ -800,7 +800,7 @@ entries.vbt.set(True, every="5d", inplace=True)
 exits = entries.vbt.signals.generate_exits(
     exit_place_func_nb,
     vbt.dt.to_ns(entries.index),
-    vbt.dt.to_ns(pd.Timedelta("7d")),
+    vbt.dt.to_ns(vbt.timedelta("7d")),
     wait=0
 )
 exits.index[exits.any(axis=1)]
@@ -809,7 +809,7 @@ exits.index[exits.any(axis=1)]
 exits = entries.vbt.signals.generate_exits(
     exit_place_func_nb,
     vbt.dt.to_ns(entries.index),
-    vbt.dt.to_ns(pd.Timedelta("7d")),
+    vbt.dt.to_ns(vbt.timedelta("7d")),
     wait=0,
     until_next=False
 )
@@ -819,7 +819,7 @@ exits.index[exits.any(axis=1)]
 exits = entries.vbt.signals.generate_exits(
     exit_place_func_nb,
     vbt.dt.to_ns(entries.index),
-    vbt.dt.to_ns(pd.Timedelta("7d")),
+    vbt.dt.to_ns(vbt.timedelta("7d")),
     wait=0,
     until_next=False,
     skip_until_exit=True
@@ -849,15 +849,15 @@ ExitGenerator = vbt.SignalFactory(
     skip_until_exit=True,
     param_settings=dict(
         wait_td=dict(
-            post_index_func=lambda x: x.map(lambda y: str(pd.Timedelta(y)))
+            post_index_func=lambda x: x.map(lambda y: str(vbt.timedelta(y)))
         )
     ),
 )
 exit_generator = ExitGenerator.run(
     entries,
     [
-        pd.Timedelta("3d").to_timedelta64(),
-        pd.Timedelta("7d").to_timedelta64()
+        vbt.timedelta("3d").to_timedelta64(),
+        vbt.timedelta("7d").to_timedelta64()
     ],
     symbol_wrapper.index.values
 )
@@ -1041,7 +1041,7 @@ mask_index = mask.index[mask]
 
 # %%
 monday_mask = btcusdt_wrapper.fill(False)
-monday_mask.vbt.set(True, every="W-MON", inplace=True)
+monday_mask.vbt.set(True, every="monday", inplace=True)
 mask = monday_mask.vbt.signals.generate_random_exits(wait=0)
 mask_index = mask.index[mask]
 mask_index.strftime("%W %A")

@@ -1033,17 +1033,18 @@ def get_system_info():
     disk_used = round(psutil.disk_usage('/').used / 1024**3, 1)
     disk_free = round(psutil.disk_usage('/').free / 1024**3, 1)
     disk_used_percentage = round(psutil.disk_usage('/').percent, 1)
-    memory_total = round(psutil.virtual_memory().total / 1024**3, 1)
-    memory_perc = round(psutil.virtual_memory().percent, 1)
-    cpu_time_user = round(psutil.cpu_times().user,1)
-    cpu_time_system = round(psutil.cpu_times().system,1)
-    cpu_time_idle = round(psutil.cpu_times().idle,1)
-    network_sent = round(psutil.net_io_counters().bytes_sent / 1024**3, 6)
-    network_recv = round(psutil.net_io_counters().bytes_recv / 1024**3, 6)
+    # memory_total = round(psutil.virtual_memory().total / 1024**3, 1)
+    # memory_perc = round(psutil.virtual_memory().percent, 1)
+    # cpu_time_user = round(psutil.cpu_times().user,1)
+    # cpu_time_system = round(psutil.cpu_times().system,1)
+    # cpu_time_idle = round(psutil.cpu_times().idle,1)
+    # network_sent = round(psutil.net_io_counters().bytes_sent / 1024**3, 6)
+    # network_recv = round(psutil.net_io_counters().bytes_recv / 1024**3, 6)
     return {"disk_space": {"total": disk_total, "used": disk_used, "free" : disk_free, "used_percentage" : disk_used_percentage},
-            "memory": {"total": memory_total, "used_percentage": memory_perc},
-            "cpu_time" : {"user": cpu_time_user, "system": cpu_time_system, "idle": cpu_time_idle},
-            "network": {"sent": network_sent, "received": network_recv}}
+            # "memory": {"total": memory_total, "used_percentage": memory_perc},
+            # "cpu_time" : {"user": cpu_time_user, "system": cpu_time_system, "idle": cpu_time_idle},
+            # "network": {"sent": network_sent, "received": network_recv}
+            }
 
 # Thread function to insert data from the queue into the database
 def insert_queue2db():

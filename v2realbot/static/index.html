@@ -136,18 +136,20 @@
     <body>
         <div id="main" class="mainConteiner flex-container content">
             <div id="system-info" class="flex-items"> 
-                <label data-bs-toggle="collapse" data-bs-target="#disk-gauge-container" aria-expanded="true">
+                <label data-bs-toggle="collapse" data-bs-target="#system-info-inner" aria-expanded="true">
                     <h4>System Info </h4>
                 </label>
-                <div id="system-info-output"> </div>
-                <div id="graphical-output"> 
-                    <div id="disk-gauge-container">
-                        <span id="title"> Disk Space: </span>
-                        <span id="free-space">Free: -- GB</span> | 
-                        <span id="total-space">Total: -- GB</span> | 
-                        <span id="used-percent">Used: -- %</span>
-                        <div id="disk-gauge">
-                        <div id="disk-gauge-bar"></div>
+                <div id="system-info-inner" class="collapse">
+                    <div id="system-info-output"></div>
+                    <div id="graphical-output"> 
+                        <div id="disk-gauge-container">
+                            <span id="title"> Disk Space: </span>
+                            <span id="free-space">Free: -- GB</span> | 
+                            <span id="total-space">Total: -- GB</span> | 
+                            <span id="used-percent">Used: -- %</span>
+                            <div id="disk-gauge">
+                            <div id="disk-gauge-bar"></div>
+                            </div>
                         </div>
                     </div>
                 </div>

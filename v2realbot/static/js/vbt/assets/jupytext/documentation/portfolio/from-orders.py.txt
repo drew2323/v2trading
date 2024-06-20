@@ -31,7 +31,7 @@ print(vbt.prettify(sim_out))
 # %%
 def print_orders(target_shape, order_records):
     wrapper = vbt.ArrayWrapper.from_shape(target_shape)
-    print(vbt.Orders(wrapper, order_records).records_readable)
+    print(vbt.Orders(wrapper, order_records).readable)
 
 print_orders((3, 1), sim_out.order_records)
 
@@ -242,7 +242,7 @@ returns
 
 # %%
 cash_deposits = symbol_wrapper.fill(0)
-cash_deposits.vbt.set(100, every="YS", inplace=True)
+cash_deposits.vbt.set(100, every="Y", inplace=True)
 
 sim_out = vbt.pf_nb.from_orders_nb(
     target_shape=symbol_wrapper.shape_2d,
@@ -256,9 +256,9 @@ print_orders(symbol_wrapper.shape_2d, sim_out.order_records)
 cash_deposits = mult_symbol_wrapper\
     .replace(columns=["group"], ndim=1)\
     .fill(0)
-cash_deposits.vbt.set(100, every="YS", inplace=True)
+cash_deposits.vbt.set(100, every="Y", inplace=True)
 size = mult_symbol_wrapper.fill(np.nan)
-size.vbt.set(0.5, every="YS", inplace=True)
+size.vbt.set(0.5, every="Y", inplace=True)
 size.iloc[0] = 0.5
 
 sim_out = vbt.pf_nb.from_orders_nb(
@@ -273,7 +273,7 @@ print_orders(mult_symbol_wrapper.shape_2d, sim_out.order_records)
 
 # %%
 size = symbol_wrapper.fill(np.nan)
-size.vbt.set(-0.1, every="YS", inplace=True)
+size.vbt.set(-0.1, every="Y", inplace=True)
 
 sim_out = vbt.pf_nb.from_orders_nb(
     target_shape=symbol_wrapper.shape_2d,
@@ -401,11 +401,11 @@ pf = vbt.Portfolio.from_orders(
     close=[11, 10, 12],
     size=[0.1, -0.1, np.nan]
 )
-pf.orders.records_readable
+pf.orders.readable
 
 # %%
 pf = vbt.Portfolio.from_orders(10, 1)
-pf.orders.records_readable
+pf.orders.readable
 
 # %% [markdown]
 # ### Close price
@@ -424,7 +424,7 @@ pf = vbt.Portfolio.from_orders(
     close=pd.Series([11, 10, 12]),
     size=pd.Series([0.1, -0.1, np.nan])
 )
-pf.orders.records_readable
+pf.orders.readable
 
 # %%
 vbt.settings.portfolio.reset()
@@ -460,7 +460,7 @@ pf = vbt.Portfolio.from_orders(
     size_type=pd.Series(["amount", "percent"]),
     direction="longonly"
 )
-pf.orders.records_readable
+pf.orders.readable
 
 # %% [markdown]
 # ### Broadcasting
@@ -468,7 +468,7 @@ pf.orders.records_readable
 # %%
 close = pd.Series(
     [11, 10, 12],
-    index=pd.date_range("2020-01-01", "2020-01-03")
+    index=vbt.date_range("2020-01-01", periods=3)
 )
 size = pd.DataFrame(
     [[-np.inf, np.nan, np.inf]],
@@ -518,7 +518,7 @@ pf = vbt.Portfolio.from_orders(
     fees=fees,
     init_position=init_position
 )
-pf.orders.records_readable
+pf.orders.readable
 
 # %%
 pf.value
@@ -616,7 +616,7 @@ pf.value
 
 # %%
 size = mult_symbol_wrapper.fill(np.nan)
-size.vbt.set(0.5, every="MS", inplace=True)
+size.vbt.set(0.5, every="M", inplace=True)
 size.iloc[0] = 0.5
 
 pf = vbt.Portfolio.from_orders(
@@ -650,7 +650,7 @@ pf.call_seq
 
 # %%
 size = mult_symbol_wrapper.fill(np.nan)
-size.vbt.set(1, every="YS", inplace=True)
+size.vbt.set(1, every="Y", inplace=True)
 size.iloc[0] = 1
 
 pf = vbt.Portfolio.from_orders(
@@ -669,14 +669,14 @@ pf2 = vbt.Portfolio.from_orders(
 pf2.cash.loc[~size.isnull().all(axis=1)]
 
 # %%
-pf2.orders.records_readable
+pf2.orders.readable
 
 # %% [markdown]
 # ### Output arrays
 
 # %%
 size = symbol_wrapper.fill(np.nan)
-size.vbt.set(-0.1, every="YS", inplace=True)
+size.vbt.set(-0.1, every="Y", inplace=True)
 
 pf = vbt.Portfolio.from_orders(
     close=data.get("Close"),
@@ -817,7 +817,7 @@ pf = vbt.Portfolio.from_orders(
     ffill_val_price=False,
     skipna=True
 )
-pf.orders.records_readable
+pf.orders.readable
 
 # %%
 pf.plot().show()

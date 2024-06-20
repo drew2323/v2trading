@@ -115,6 +115,6 @@
 }
 
 [data-md-color-scheme="custom-light"] {
-    --md-progress: #546d78;
-    --md-progress-stripe: rgba(0, 0, 0, 0.2);
+    --md-progress: #7894a1;
+    --md-progress-stripe: rgba(0, 0, 0, 0.15);
 }

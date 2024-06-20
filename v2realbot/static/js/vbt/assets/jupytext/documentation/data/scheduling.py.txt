@@ -46,7 +46,7 @@ class OHLCFigUpdater(vbt.DataUpdater):
         self._writer = writer
         self._display_last = display_last
         self._stop_after = stop_after
-        self._start_dt = vbt.dt.to_tzaware_datetime("now UTC")
+        self._start_dt = vbt.utc_datetime()
 
     @property
     def fig(self):
@@ -88,7 +88,7 @@ class OHLCFigUpdater(vbt.DataUpdater):
             self.writer.append_data(fig_data)
 
         if self.stop_after is not None:
-            now_dt = vbt.dt.to_tzaware_datetime("now UTC")
+            now_dt = vbt.utc_datetime()
             if now_dt - self.start_dt >= self.stop_after:
                 raise vbt.CancelledError
 

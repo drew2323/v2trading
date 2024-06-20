@@ -44,7 +44,7 @@ oos_splitter.splits
 # ### Range format
 
 # %%
-index = pd.date_range("2020", periods=14)
+index = vbt.date_range("2020", periods=14)
 index[slice(1, 7)]
 
 # %%
@@ -64,7 +64,7 @@ rel_range.to_slice(total_len=len(splitter.index), prev_end=100)
 # ### Array format
 
 # %%
-index = pd.date_range("2020", "2021", freq="1min")
+index = vbt.date_range("2020", "2021", freq="1min")
 range_ = np.arange(len(index))
 range_.nbytes / 1024 / 1024
 
@@ -323,7 +323,7 @@ vbt.Splitter.from_n_expanding(
 # %%
 vbt.Splitter.from_ranges(
     data.index,
-    every="AS",
+    every="Y",
     split=0.5
 ).plot().show()
 
@@ -331,8 +331,7 @@ vbt.Splitter.from_ranges(
 vbt.Splitter.from_ranges(
     data.index,
     every="Q",
-    closed_end=True,
-    lookback_period="AS",
+    lookback_period="Y",
     split=0.5
 ).plot().show()
 
@@ -340,8 +339,7 @@ vbt.Splitter.from_ranges(
 vbt.Splitter.from_ranges(
     data.index,
     every="Q",
-    closed_end=True,
-    lookback_period="AS",
+    lookback_period="Y",
     split=(
         vbt.RepEval("index.month != index.month[-1]"),
         vbt.RepEval("index.month == index.month[-1]")
@@ -367,7 +365,7 @@ vbt.Splitter.from_ranges(
 # %%
 vbt.Splitter.from_grouper(
     data.index,
-    by="AS",
+    by="Y",
     split=0.5
 ).plot().show()
 
@@ -381,7 +379,7 @@ def is_split_complete(index, split):
 
 vbt.Splitter.from_grouper(
     data.index,
-    by="AS",
+    by="Y",
     split=0.5,
     split_check_template=vbt.RepFunc(is_split_complete)
 ).plot().show()
@@ -393,7 +391,7 @@ def format_split_labels(index, splits_arr):
 
 vbt.Splitter.from_grouper(
     data.index,
-    by="AS",
+    by="Y",
     split=0.5,
     split_check_template=vbt.RepFunc(is_split_complete),
     split_labels=vbt.RepFunc(format_split_labels)
@@ -451,7 +449,7 @@ from sklearn.model_selection import KFold
 
 vbt.Splitter.from_sklearn(
     data.index,
-    splitter=KFold(n_splits=5)
+    KFold(n_splits=5)
 ).plot().show()
 
 # %% [markdown]
@@ -501,7 +499,7 @@ def split_func(index, bounds):
     return train_range, test_range
 
 vbt.Splitter.from_split_func(
-    pd.date_range("2020-01", "2020-03", freq="15min"),
+    vbt.date_range("2020-01", "2020-03", freq="15min"),
     split_func=split_func,
     split_args=(vbt.Rep("index"), vbt.Rep("bounds")),
     range_bounds_kwargs=dict(index_bounds=True)
@@ -513,7 +511,7 @@ vbt.Splitter.from_split_func(
 # %%
 splitter = vbt.Splitter.from_ranges(
     data.index,
-    every="AS",
+    every="Y",
     closed_end=True,
     split=0.5,
     set_labels=["IS", "OOS"]
@@ -557,12 +555,12 @@ mask
 mask["2021":"2021"].any()
 
 # %%
-mask.resample("AS").sum()
+mask.resample(vbt.offset("Y")).sum()
 
 # %%
 results = []
 for mask in splitter.get_iter_split_masks():
-    results.append(mask.resample("AS").sum())
+    results.append(mask.resample(vbt.offset("Y")).sum())
 pd.concat(results, axis=1, keys=splitter.split_labels)
 
 # %% [markdown]

@@ -189,7 +189,7 @@ h4_high.vbt.realign(
 )
 
 # %%
-h4_high[h4_high.index < "2020-03-01"].resample("MS").last()
+h4_high[h4_high.index < "2020-03-01"].resample(vbt.offset("M")).last()
 
 # %% [markdown]
 # ### Numeric index
@@ -211,8 +211,8 @@ h4_high.vbt.realign(
 # ### Forward filling
 
 # %%
-min5_index = pd.date_range(start="2020", freq="5min", periods=3)
-min1_index = pd.date_range(start="2020", freq="1min", periods=15)
+min5_index = vbt.date_range(start="2020", freq="5min", periods=3)
+min1_index = vbt.date_range(start="2020", freq="1min", periods=15)
 min5_mask = pd.Series(False, index=min5_index)
 min5_mask.iloc[0] = True
 min5_mask.iloc[2] = True

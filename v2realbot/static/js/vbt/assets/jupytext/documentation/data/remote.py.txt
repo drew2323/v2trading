@@ -42,7 +42,7 @@ vbt.settings.data["custom"]["ccxt"]["exchange"]
 # ### Start and end
 
 # %%
-vbt.dt.to_tzaware_datetime("1 day ago")
+vbt.local_datetime("1 day ago")
 
 # %%
 ccxt_data = vbt.CCXTData.pull(
@@ -79,10 +79,10 @@ to_offset("1m")
 pd.Timedelta("1m")
 
 # %%
-to_offset("1min")
+vbt.offset("1m")
 
 # %%
-pd.Timedelta("1min")
+vbt.timedelta("1m")
 
 # %%
 ccxt_data = vbt.CCXTData.pull(

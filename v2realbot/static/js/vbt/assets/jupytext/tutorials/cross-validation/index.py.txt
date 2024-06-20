@@ -35,7 +35,6 @@ perf = sma_crossover_perf(
     vbt.Param(np.arange(5, 50), condition="x < slow_window"),
     vbt.Param(np.arange(5, 50)),
     _execute_kwargs=dict(
-        show_progress=True,
         clear_cache=50,
         collect_garbage=50
     )
@@ -68,12 +67,12 @@ all_oos_perf = {}
 split_idx = 0
 period_idx = 0
 
-with vbt.get_pbar() as pbar:
+with vbt.ProgressBar() as pbar:
     while start_index + 2 * period <= data.index[-1]:
-        pbar.set_description(str(start_index))
+        pbar.set_prefix(str(start_index))
 
         is_start_index = start_index
-        is_end_index = start_index + period - pd.Timedelta(1)
+        is_end_index = start_index + period - pd.Timedelta(nanoseconds=1)
         is_data = data[is_start_index : is_end_index]
         is_bl_perf = is_data.run("from_holding").sharpe_ratio
         is_perf = sma_crossover_perf(
@@ -87,7 +86,7 @@ with vbt.get_pbar() as pbar:
         )
 
         oos_start_index = start_index + period
-        oos_end_index = start_index + 2 * period - pd.Timedelta(1)
+        oos_end_index = start_index + 2 * period - pd.Timedelta(nanoseconds=1)
         oos_data = data[oos_start_index : oos_end_index]
         oos_bl_perf = oos_data.run("from_holding").sharpe_ratio
         best_fw, best_sw = is_perf.idxmax()
@@ -104,7 +103,7 @@ with vbt.get_pbar() as pbar:
         start_index = start_index + period
         split_idx += 1
         period_idx += 1
-        pbar.update(1)
+        pbar.update()
 
 # %%
 is_period_ranges = pd.DataFrame.from_dict(

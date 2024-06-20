@@ -11,6 +11,37 @@
 
 # %% [markdown]
 # #  Analysis
+# ## Simulation ranges
+
+# %%
+@njit
+def post_segment_func_nb(c):
+    value = vbt.pf_nb.get_group_value_nb(c, c.group)
+    if value <= 0:
+        vbt.pf_nb.stop_group_sim_nb(c, c.group)
+
+pf = vbt.PF.from_random_signals(
+    "BTC-USD",
+    n=10,
+    seed=42,
+    sim_start="auto",
+    post_segment_func_nb=post_segment_func_nb,
+    leverage=10,
+)
+pf.plot_value()
+
+# %%
+pf = vbt.PF.from_random_signals("BTC-USD", n=10, seed=42)
+
+pf.get_sharpe_ratio(sim_start="2023", sim_end="2024")
+
+# %%
+pf.get_sharpe_ratio(sim_start="2023", sim_end="2024", rec_sim_range=True)
+
+# %%
+pf.returns_stats(settings=dict(sim_start="2023", sim_end="2024"))
+
+# %% [markdown]
 # ## Expanding trade metrics
 
 # %%

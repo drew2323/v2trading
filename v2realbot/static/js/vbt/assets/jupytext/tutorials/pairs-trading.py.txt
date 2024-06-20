@@ -25,7 +25,7 @@ END = "2023"
 vbt.make_dir("temp")
 
 if not vbt.file_exists(POOL_FILE):
-    with vbt.get_pbar(total=len(SYMBOLS)) as pbar:
+    with vbt.ProgressBar(total=len(SYMBOLS)) as pbar:
         collected = 0
         for symbol in SYMBOLS:
             try:
@@ -40,8 +40,8 @@ if not vbt.file_exists(POOL_FILE):
                 collected += 1
             except Exception:
                 pass
-            pbar.set_description(f"{symbol} ({collected})")
-            pbar.update(1)
+            pbar.set_prefix(f"{symbol} ({collected})")
+            pbar.update()
 
 # %%
 SELECT_START = "2020"
@@ -516,7 +516,6 @@ pt_pipeline_nb(
 param_pt_pipeline = vbt.parameterized(
     pt_pipeline_nb,
     merge_func="concat",
-    show_progress=True,
     seed=42,
     engine="threadpool",
     chunk_len="auto"
@@ -624,8 +623,7 @@ chunked_pt_pipeline = vbt.chunked(
     merge_func="concat",
     execute_kwargs=dict(
         chunk_len="auto",
-        engine="threadpool",
-        show_progress=True
+        engine="threadpool"
     )
 )
 
@@ -692,12 +690,12 @@ if vbt.file_exists(FOUND_FILE):
 else:
     found = None
 with (
-    vbt.get_pbar(
+    vbt.ProgressBar(
         desc="Found",
         initial=0 if found is None else len(found),
         total=BEST_N
     ) as pbar1,
-    vbt.get_pbar(
+    vbt.ProgressBar(
         desc="Processed"
     ) as pbar2
 ):
@@ -734,7 +732,7 @@ with (
                 found = pd.concat((found, best))
                 found = found[~found.index.duplicated(keep="first")]
             vbt.save(found, FOUND_FILE)
-            pbar1.n = len(found)
+            pbar1.update_to(len(found))
             pbar1.refresh()
         pbar2.update(len(expectancy))
 

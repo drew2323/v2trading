@@ -782,7 +782,7 @@ def pipeline_2_nb(open, close, target_pct, init_cash=100):
 # %%
 symbol_wrapper = data.get_symbol_wrapper()
 target_pct = symbol_wrapper.fill()
-target_pct.vbt.set(0.5, every="MS", inplace=True)
+target_pct.vbt.set(0.5, every="M", inplace=True)
 
 asset_value, value = pipeline_2_nb(
     data.get("Open").values,
@@ -987,7 +987,7 @@ def pipeline_3_nb(open, close, target_pct, init_cash=100):
     return vbt.nb.repartition_nb(order_records, order_counts)
 
 # %%
-every = pd.Index(["MS", "Q", "Y"], name="every")
+every = pd.Index(["M", "Q", "Y"], name="every")
 
 open = data.get("Open").vbt.tile(3, keys=every)
 close = data.get("Close").vbt.tile(3, keys=every)
@@ -995,7 +995,7 @@ close
 
 # %%
 target_pct = symbol_wrapper.fill().vbt.tile(3, keys=every)
-target_pct.vbt.set(0.5, every="MS", columns=["MS"], inplace=True)
+target_pct.vbt.set(0.5, every="M", columns=["M"], inplace=True)
 target_pct.vbt.set(0.5, every="Q", columns=["Q"], inplace=True)
 target_pct.vbt.set(0.5, every="Y", columns=["Y"], inplace=True)
 
@@ -1458,7 +1458,7 @@ def pipeline_5_nb(
 
 # %%
 mult_target_pct = mult_symbol_wrapper.fill()
-mult_target_pct.vbt.set([[0.7, 0.3]], every="MS", inplace=True)
+mult_target_pct.vbt.set([[0.7, 0.3]], every="M", inplace=True)
 grouper = vbt.Grouper(mult_symbol_wrapper.columns, group_by=True)
 group_lens = grouper.get_group_lens()
 
@@ -1512,7 +1512,7 @@ final_wrapper = mult_symbol_wrapper.replace(
     group_by="group"
 )
 mult_target_pct = final_wrapper.fill(group_by=False)
-mult_target_pct.vbt.set(target_alloc.values[None], every="MS", inplace=True)
+mult_target_pct.vbt.set(target_alloc.values[None], every="M", inplace=True)
 group_lens = final_wrapper.grouper.get_group_lens()
 
 n_groups = final_wrapper.grouper.get_group_count()

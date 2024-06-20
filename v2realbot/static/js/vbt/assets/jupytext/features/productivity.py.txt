@@ -11,13 +11,109 @@
 
 # %% [markdown]
 # #  Productivity
+# ## Iterated decorator { .mdx-pulse title="Recently added" }
+
+# %%
+import calendar
+
+@vbt.iterated(over_arg="year", merge_func="column_stack", engine="pathos")
+@vbt.iterated(over_arg="month", merge_func="concat")
+def get_year_month_sharpe(data, year, month):
+    mask = (data.index.year == year) & (data.index.month == month)
+    if not mask.any():
+        return np.nan
+    year_returns = data.loc[mask].returns
+    return year_returns.vbt.returns.sharpe_ratio()
+
+years = data.index.year.unique().sort_values().rename("year")
+months = data.index.month.unique().sort_values().rename("month")
+sharpe_matrix = get_year_month_sharpe(
+    data,
+    years,
+    {calendar.month_abbr[month]: month for month in months},
+)
+sharpe_matrix.transpose().vbt.heatmap(
+    trace_kwargs=dict(colorscale="RdBu", zmid=0),
+    yaxis=dict(autorange="reversed")
+).show()
+
+# %% [markdown]
+# ## Tasks { .mdx-pulse title="Recently added" }
+
+# %%
+data = vbt.YFData.pull("BTC-USD")
+
+task1 = vbt.Task(
+    vbt.PF.from_random_signals,
+    data,
+    n=100, seed=42,
+    sl_stop=vbt.Param(np.arange(1, 51) / 100)
+)
+task2 = vbt.Task(
+    vbt.PF.from_random_signals,
+    data,
+    n=100, seed=42,
+    tsl_stop=vbt.Param(np.arange(1, 51) / 100)
+)
+task3 = vbt.Task(
+    vbt.PF.from_random_signals,
+    data,
+    n=100, seed=42,
+    tp_stop=vbt.Param(np.arange(1, 51) / 100)
+)
+pf1, pf2, pf3 = vbt.execute([task1, task2, task3], engine="pathos")
+
+fig = pf1.trades.expectancy.rename("SL").vbt.plot()
+pf2.trades.expectancy.rename("TSL").vbt.plot(fig=fig)
+pf3.trades.expectancy.rename("TP").vbt.plot(fig=fig)
+fig.show()
+
+# %% [markdown]
+# ## Nested progress bars
+
+# %%
+symbols = ["BTC-USD", "ETH-USD"]
+fast_windows = range(5, 105, 5)
+slow_windows = range(5, 105, 5)
+sharpe_ratios = dict()
+
+with vbt.ProgressBar(total=len(symbols), bar_id="pbar1") as pbar1:
+    for symbol in symbols:
+        pbar1.set_description(dict(symbol=symbol), refresh=True)
+        data = vbt.YFData.pull(symbol)
+
+        with vbt.ProgressBar(total=len(fast_windows), bar_id="pbar2") as pbar2:
+            for fast_window in fast_windows:
+                pbar2.set_description(dict(fast_window=fast_window), refresh=True)
+
+                with vbt.ProgressBar(total=len(slow_windows), bar_id="pbar3") as pbar3:
+                    for slow_window in slow_windows:
+                        if fast_window < slow_window:
+                            pbar3.set_description(dict(slow_window=slow_window), refresh=True)
+                            fast_sma = data.run("talib_func:sma", fast_window)
+                            slow_sma = data.run("talib_func:sma", slow_window)
+                            entries = fast_sma.vbt.crossed_above(slow_sma)
+                            exits = fast_sma.vbt.crossed_below(slow_sma)
+                            pf = vbt.PF.from_signals(data, entries, exits)
+                            sharpe_ratios[(symbol, fast_window, slow_window)] = pf.sharpe_ratio
+                        pbar3.update()
+
+                pbar2.update()
+
+        pbar1.update()
+
+# %%
+sharpe_ratios = pd.Series(sharpe_ratios)
+sharpe_ratios.index.names = ["symbol", "fast_window", "slow_window"]
+sharpe_ratios
+
+# %% [markdown]
 # ## Annotations
 
 # %%
 @vbt.cv_split(
     splitter="from_rolling",
     splitter_kwargs=dict(length=365, split=0.5, set_labels=["train", "test"]),
-    execute_kwargs=dict(show_progress=True),
     parameterized_kwargs=dict(random_subset=100),
 )
 def sma_crossover_cv(
@@ -71,10 +167,9 @@ print(vbt.file_size(file_path))
 # ## Faster loading
 
 # %%
-import time
-start = time.time()
+start = utc_time()
 from vectorbtpro import *
-end = time.time()
+end = utc_time()
 end - start
 
 # %% [markdown]
@@ -94,7 +189,7 @@ data = vbt.YFData.pull("BTC-USD", start="2022-01-01", end="2022-06-01")
 def backtest_month(close):
     return vbt.PF.from_random_signals(close, n=10)
 
-month_pfs = data.close.resample("MS").apply(backtest_month)
+month_pfs = data.close.resample(vbt.offset("M")).apply(backtest_month)
 month_pfs
 
 # %%
@@ -120,16 +215,16 @@ pf = vbt.PF.from_orders(
     data.close,
     size=vbt.index_dict({
         vbt.idx(
-            vbt.pointidx(every="D"),
+            vbt.pointidx(every="day"),
             vbt.colidx("daily", level="strategy")): 100,
         vbt.idx(
-            vbt.pointidx(every="W-SUN"),
+            vbt.pointidx(every="sunday"),
             vbt.colidx("daily", level="strategy")): -np.inf,
         vbt.idx(
-            vbt.pointidx(every="W-MON"),
+            vbt.pointidx(every="monday"),
             vbt.colidx("weekly", level="strategy")): 100,
         vbt.idx(
-            vbt.pointidx(every="M"),
+            vbt.pointidx(every="monthend"),
             vbt.colidx("weekly", level="strategy")): -np.inf,
     }),
     size_type="value",
@@ -304,9 +399,9 @@ def mtf_sma(close, close_freq, target_freq, timeperiod=5):
     return target_sma.vbt.realign_closing(close.index, freq=close_freq)
 
 data = vbt.YFData.pull("BTC-USD", start="2020", end="2023")
-fig = mtf_sma(data.close, "D", "D").vbt.plot()
-mtf_sma(data.close, "D", "W-MON").vbt.plot(fig=fig)
-mtf_sma(data.close, "D", "MS").vbt.plot(fig=fig)
+fig = mtf_sma(data.close, "D", "daily").vbt.plot()
+mtf_sma(data.close, "D", "weekly").vbt.plot(fig=fig)
+mtf_sma(data.close, "D", "monthly").vbt.plot(fig=fig)
 fig.show()
 
 # %% [markdown]
@@ -317,7 +412,7 @@ import calendar
 
 data = vbt.YFData.pull("BTC-USD", start="2018", end="2023")
 pf = vbt.PF.from_random_signals(data, n=100, direction="both")
-mo_returns = pf.resample("MS").returns
+mo_returns = pf.resample("M").returns
 mo_return_matrix = pd.Series(
     mo_returns.values,
     index=pd.MultiIndex.from_arrays([
@@ -425,15 +520,15 @@ print(mem_tracer.peak_usage())
 def resample_apply(index, by, apply_func, *args, template_context={}, **kwargs):
     grouper = index.vbt.get_grouper(by)
     results = {}
-    with vbt.get_pbar() as pbar:
+    with vbt.ProgressBar() as pbar:
         for group, group_idxs in grouper:
             group_index = index[group_idxs]
             context = {"group": group, "group_index": group_index, **template_context}
-            final_apply_func = vbt.substitute_templates(apply_func, context, sub_id="apply_func")
-            final_args = vbt.substitute_templates(args, context, sub_id="args")
-            final_kwargs = vbt.substitute_templates(kwargs, context, sub_id="kwargs")
+            final_apply_func = vbt.substitute_templates(apply_func, context, eval_id="apply_func")
+            final_args = vbt.substitute_templates(args, context, eval_id="args")
+            final_kwargs = vbt.substitute_templates(kwargs, context, eval_id="kwargs")
             results[group] = final_apply_func(*final_args, **final_kwargs)
-            pbar.update(1)
+            pbar.update()
     return pd.Series(results)
 
 data = vbt.YFData.pull(["BTC-USD", "ETH-USD"], missing_index="drop")

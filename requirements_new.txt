@@ -236,7 +236,7 @@ tzlocal==4.3
 uri-template==1.3.0
 urllib3==1.26.14
 uvicorn==0.21.1
--e git+https://github.com/drew2323/v2trading.git@78f2162d59753c243e374dd52c305e111affebb9#egg=v2realbot
+-e git+https://github.com/drew2323/v2trading.git@1f85b271dba2b9baf2c61b591a08849e9d684374#egg=v2realbot
 validators==0.20.0
 vectorbtpro @ file:///Users/davidbrazda/Downloads/vectorbt.pro-2024.2.22
 wcwidth==0.2.9

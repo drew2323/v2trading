@@ -13,19 +13,19 @@
 # #  Aggregation
 
 # %%
-ms_data = h1_data.resample("MS")
+ms_data = h1_data.resample("M")
 ms_data.get("Low") / ms_data.get("High") - 1
 
 # %%
 h1_high = h1_data.get("High")
 h1_low = h1_data.get("Low")
-ms_high = h1_high.resample("MS").max()
-ms_low = h1_low.resample("MS").min()
+ms_high = h1_high.resample(vbt.offset("M")).max()
+ms_low = h1_low.resample(vbt.offset("M")).min()
 ms_low / ms_high - 1
 
 # %%
-ms_high = h1_high.vbt.resample_apply("MS", vbt.nb.max_reduce_nb)
-ms_low = h1_low.vbt.resample_apply("MS", vbt.nb.min_reduce_nb)
+ms_high = h1_high.vbt.resample_apply("M", vbt.nb.max_reduce_nb)
+ms_low = h1_low.vbt.resample_apply("M", vbt.nb.min_reduce_nb)
 ms_low / ms_high - 1
 
 # %% [markdown]
@@ -53,13 +53,13 @@ h1_high.vbt.resample_to_index(
 ).iloc[:-1]
 
 # %%
-h1_high[:"2020-03-01"].resample("MS").max().iloc[:-1]
+h1_high[:"2020-03-01"].resample(vbt.offset("M")).max().iloc[:-1]
 
 # %% [markdown]
 # ### Using group-by
 
 # %%
-pd_resampler = h1_high.resample("MS")
+pd_resampler = h1_high.resample(vbt.offset("M"))
 ms_high = h1_high.vbt.groupby_apply(pd_resampler, vbt.nb.max_reduce_nb)
 ms_low = h1_low.vbt.groupby_apply(pd_resampler, vbt.nb.min_reduce_nb)
 ms_low / ms_high - 1
@@ -91,12 +91,12 @@ h1_high.vbt.resample_between_bounds(
 # %%
 h1_high.vbt.resample_between_bounds(
     "2020-01-01",
-    pd.date_range("2020-01-02", "2021-01-01", freq="MS"),
+    vbt.date_range("2020-01-02", "2021-01-01", freq="M", inclusive="both"),
     vbt.nb.max_reduce_nb
 )
 
 # %%
-h1_high.expanding().max().resample("MS").max()
+h1_high.expanding().max().resample(vbt.offset("M")).max()
 
 # %% [markdown]
 # ## Meta methods
@@ -126,8 +126,8 @@ h1_high.iloc[0:744]
 h1_low.iloc[0:744].min() / h1_high.iloc[0:744].max() - 1
 
 # %%
-target_lbound_index = pd.date_range("2020-01-01", "2020-12-01", freq="MS", tz="UTC")
-target_rbound_index = pd.date_range("2020-02-01", "2021-01-01", freq="MS", tz="UTC")
+target_lbound_index = vbt.date_range("2020-01-01", "2020-12-01", freq="M", tz="UTC", inclusive="both")
+target_rbound_index = vbt.date_range("2020-02-01", "2021-01-01", freq="M", tz="UTC", inclusive="both")
 vbt.pd_acc.resample_between_bounds(
     target_lbound_index,
     target_rbound_index,
@@ -188,13 +188,13 @@ h5_close_2d
 h5_close_2d.resample("1d").last()
 
 # %%
-pd.Timedelta("1d") % pd.Timedelta("1h")
+vbt.timedelta("1d") % vbt.timedelta("1h")
 
 # %%
-pd.Timedelta("1d") % pd.Timedelta("4h")
+vbt.timedelta("1d") % vbt.timedelta("4h")
 
 # %%
-pd.Timedelta("1d") % pd.Timedelta("5h")
+vbt.timedelta("1d") % vbt.timedelta("5h")
 
 # %%
 h5_close_time = h5_close_2d.index.shift("5h") - pd.Timedelta(nanoseconds=1)
@@ -218,7 +218,7 @@ pf = vbt.Portfolio.from_signals(h1_close, entries, exits)
 pf.plot().show()
 
 # %%
-ms_pf = pf.resample("MS")
+ms_pf = pf.resample("M")
 ms_pf.plot().show()
 
 # %%
@@ -228,7 +228,7 @@ pf.total_return
 ms_pf.total_return
 
 # %%
-(1 + pf.returns).resample("MS").apply(lambda x: x.prod() - 1)
+(1 + pf.returns).resample(vbt.offset("M")).apply(lambda x: x.prod() - 1)
 
 # %%
 ms_pf.returns

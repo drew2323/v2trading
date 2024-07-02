@@ -9,7 +9,7 @@ import decimal
 from v2realbot.enums.enums import RecordType, Mode, StartBarAlign
 import pickle
 import os
-from v2realbot.common.model import StrategyInstance, Runner, RunArchive, RunArchiveDetail, Intervals, SLHistory, InstantIndicator
+from v2realbot.common.model import StrategyInstance, Runner, RunArchive, RunArchiveDetail, Intervals, SLHistory, InstantIndicator, Calendar
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
 from typing import List
 import tomli
@@ -35,6 +35,7 @@ import tempfile
 import shutil
 from filelock import FileLock
 import v2realbot.utils.config_handler as cfh
+import pandas_market_calendars as mcal
 
 def validate_and_format_time(time_string):
     """
@@ -59,8 +60,27 @@ def validate_and_format_time(time_string):
     else:
         return None
 
+def fetch_calendar_data(start, end):
+    nyse = mcal.get_calendar('NYSE')
+    cal_dates = []
+    schedule = nyse.schedule(start_date=start, end_date=end, tz='America/New_York')
+    schedule_dict = schedule.reset_index().rename(columns={"index": "date", 
+                                                           "market_open": "open",
+                                                           "market_close": "close"}).to_dict(orient="records")
+    print(schedule_dict)
+
+    for day in schedule_dict:
+        date = pd.to_datetime(day["date"]).replace(tzinfo=None).date()
+        open = pd.to_datetime(day["open"]).replace(tzinfo=None)
+        close = pd.to_datetime(day["close"]).replace(tzinfo=None)
+
+        calendar = Calendar(date=date, open=open, close=close)
+        cal_dates.append(calendar)
+    print(cal_dates)
+    return cal_dates
+
 #Alpaca Calendar wrapper with retry
-def fetch_calendar_data(start, end, max_retries=5, backoff_factor=1):
+def fetch_calendar_data_from_alpaca(start, end, max_retries=5, backoff_factor=1):
     """
     Attempts to fetch calendar data with exponential backoff. Raises an exception if all retries fail.
 

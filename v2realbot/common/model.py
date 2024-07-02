@@ -365,3 +365,7 @@ class InstantIndicator(BaseModel):
     toml: str
 
 
+class Calendar(BaseModel):
+    date: date
+    open: datetime
+    close: datetime

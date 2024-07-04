@@ -9,7 +9,7 @@ import decimal
 from v2realbot.enums.enums import RecordType, Mode, StartBarAlign
 import pickle
 import os
-from v2realbot.common.model import StrategyInstance, Runner, RunArchive, RunArchiveDetail, Intervals, SLHistory, InstantIndicator, Calendar
+from v2realbot.common.model import StrategyInstance, Runner, RunArchive, RunArchiveDetail, Intervals, SLHistory, InstantIndicator
 from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
 from typing import List
 import tomli
@@ -20,7 +20,7 @@ from uuid import UUID
 from enum import Enum
 #from v2realbot.enums.enums import Order
 from v2realbot.common.model import Order as btOrder, TradeUpdate as btTradeUpdate
-from alpaca.trading.models import Order, TradeUpdate
+from alpaca.trading.models import Order, TradeUpdate, Calendar
 import numpy as np
 import pandas as pd
 from collections import deque
@@ -62,21 +62,13 @@ def validate_and_format_time(time_string):
 
 def fetch_calendar_data(start, end):
     nyse = mcal.get_calendar('NYSE')
-    cal_dates = []
     schedule = nyse.schedule(start_date=start, end_date=end, tz='America/New_York')
-    schedule_dict = schedule.reset_index().rename(columns={"index": "date", 
-                                                           "market_open": "open",
-                                                           "market_close": "close"}).to_dict(orient="records")
-    print(schedule_dict)
-
-    for day in schedule_dict:
-        date = pd.to_datetime(day["date"]).replace(tzinfo=None).date()
-        open = pd.to_datetime(day["open"]).replace(tzinfo=None)
-        close = pd.to_datetime(day["close"]).replace(tzinfo=None)
-
-        calendar = Calendar(date=date, open=open, close=close)
-        cal_dates.append(calendar)
-    print(cal_dates)
+    schedule = (schedule.reset_index()
+                        .rename(columns={"index": "date", "market_open": "open", "market_close": "close"})
+                        .assign(open=lambda day: pd.to_datetime(day['open']).dt.tz_localize(None),
+                                close=lambda day: pd.to_datetime(day['close']).dt.tz_localize(None))
+                        .to_dict(orient="records"))
+    cal_dates = [Calendar(**record) for record in schedule]
     return cal_dates
 
 #Alpaca Calendar wrapper with retry

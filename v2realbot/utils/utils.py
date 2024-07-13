@@ -60,16 +60,29 @@ def validate_and_format_time(time_string):
     else:
         return None
 
-def fetch_calendar_data(start, end):
+def fetch_calendar_data(start: datetime, end: datetime) -> List[Calendar]:
+    """
+    Fetches the trading schedule for the NYSE (New York Stock Exchange) between the specified start and end dates.
+    Args:
+        start (datetime): The start date for the trading schedule.
+        end (datetime): The end date for the trading schedule.
+    Returns:
+        List[Calendar]: A list of Calendar objects containing the trading dates and market open/close times. 
+                        Returns an empty list if no trading days are found within the specified range.
+    """ 
     nyse = mcal.get_calendar('NYSE')
     schedule = nyse.schedule(start_date=start, end_date=end, tz='America/New_York')
-    schedule = (schedule.reset_index()
+    if not schedule.empty: 
+        schedule = (schedule.reset_index()
                         .rename(columns={"index": "date", "market_open": "open", "market_close": "close"})
-                        .assign(open=lambda day: pd.to_datetime(day['open']).dt.tz_localize(None),
-                                close=lambda day: pd.to_datetime(day['close']).dt.tz_localize(None))
+                        .assign(date=lambda day: day['date'].dt.date.astype(str),
+                                open=lambda day: day['open'].dt.strftime('%H:%M'), 
+                                close=lambda day: day['close'].dt.strftime('%H:%M'))
                         .to_dict(orient="records"))
-    cal_dates = [Calendar(**record) for record in schedule]
-    return cal_dates
+        cal_dates = [Calendar(**record) for record in schedule]
+        return cal_dates
+    else:
+        return cal_dates
 
 #Alpaca Calendar wrapper with retry
 def fetch_calendar_data_from_alpaca(start, end, max_retries=5, backoff_factor=1):

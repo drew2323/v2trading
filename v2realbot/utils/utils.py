@@ -82,6 +82,7 @@ def fetch_calendar_data(start: datetime, end: datetime) -> List[Calendar]:
         cal_dates = [Calendar(**record) for record in schedule]
         return cal_dates
     else:
+        cal_dates=[]
         return cal_dates
 
 #Alpaca Calendar wrapper with retry

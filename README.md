@@ -57,12 +57,10 @@ This document outlines the steps for installing and setting up the necessary env
 ## Prerequisites
 Before beginning the installation process, ensure the following prerequisites are met:
 
-- Git Bash: Required for cloning the repository and executing shell commands.
 - TA-Lib Library:
   - Windows: Download and build the TA-Lib library. Install Visual Studio Community with the Visual C++ feature. Navigate to `C:\ta-lib\c\make\cdr\win32\msvc` in the command prompt and build the library using the available makefile.
   - Linux: Install TA-Lib using your distribution's package manager or compile from source following the instructions available on the TA-Lib GitHub repository.
  
-- VSCode: Ensure VSCode is installed and the Python interpreter is properly set.
 - Alpaca Paper Trading Account: Create an account at [Alpaca Markets](https://alpaca.markets/) and generate `API_KEY` and `SECRET_KEY` for your paper trading account.
 
 ## Installation Steps

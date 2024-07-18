@@ -236,7 +236,7 @@ tzlocal
 uri-template
 urllib3
 uvicorn
--e git+https://github.com/drew2323/v2trading.git
+#git+https://github.com/drew2323/v2trading.git#egg=v2trading
 validators
 wcwidth
 webcolors

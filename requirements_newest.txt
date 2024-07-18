@@ -160,10 +160,6 @@ pydeck
 Pygments
 pyinstrument
 Pympler
-pyobjc-core
-pyobjc-framework-Cocoa
-pyobjc-framework-Security
-pyobjc-framework-WebKit
 pyparsing
 pyrsistent
 pysos

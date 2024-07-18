@@ -159,7 +159,6 @@ pydantic_core
 pydeck
 Pygments
 pyinstrument
-Pympler
 pyparsing
 pyrsistent
 pysos

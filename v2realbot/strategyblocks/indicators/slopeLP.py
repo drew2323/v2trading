@@ -46,6 +46,10 @@ def populate_dynamic_slopeLP_indicator(data, state: StrategyState, name):
             #typ leveho bodu [lastbuy - cena posledniho nakupu, baropen - cena otevreni baru]
             leftpoint = safe_get(options, 'leftpoint', "lastbuy")
 
+            #REFACTOR multiaccount
+            #avgp bereme z primarni accountu (state.account)
+            avgp = state.account_variables[state.account].avgp          
+
             #lookback has to be even
             if lookback_offset % 2 != 0:
                 lookback_offset += 1
@@ -65,8 +69,8 @@ def populate_dynamic_slopeLP_indicator(data, state: StrategyState, name):
 
                     #pokud mame aktivni pozice, nastavime lookbackprice a time podle posledniho tradu
                     #pokud se ale dlouho nenakupuje (uplynulo od posledniho nakupu vic nez back_to_standard_after baru), tak se vracime k prumeru
-                    if state.avgp > 0 and state.bars.index[-1] < int(state.vars.last_buy_index)+back_to_standard_after:
-                        lb_index = -1 - (state.bars.index[-1] - int(state.vars.last_buy_index))
+                    if avgp > 0 and state.bars.index[-1] < int(state.vars.last_entry_index)+back_to_standard_after:
+                        lb_index = -1 - (state.bars.index[-1] - int(state.vars.last_entry_index))
                         lookbackprice = state.bars.vwap[lb_index]
                         state.ilog(lvl=0,e=f"IND {name} slope {leftpoint}- LEFT POINT OVERRIDE bereme ajko cenu lastbuy {lookbackprice=} {lookbacktime=} {lb_index=}")
                     else:

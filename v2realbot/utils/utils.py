@@ -9,8 +9,8 @@ import decimal
 from v2realbot.enums.enums import RecordType, Mode, StartBarAlign
 import pickle
 import os
-from v2realbot.common.model import StrategyInstance, Runner, RunArchive, RunArchiveDetail, Intervals, SLHistory, InstantIndicator
-from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
+from v2realbot.common.model import StrategyInstance, Runner, RunArchive, RunArchiveDetail, Intervals, SLHistory, InstantIndicator, AccountVariables
+from v2realbot.common.model import Trade, TradeDirection, TradeStatus, TradeStoplossType
 from typing import List
 import tomli
 from v2realbot.config import DATA_DIR, ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY
@@ -36,6 +36,220 @@ import shutil
 from filelock import FileLock
 import v2realbot.utils.config_handler as cfh
 import pandas_market_calendars as mcal
+from typing import Dict, Any, Callable, Optional
+from pydantic import BaseModel
+
+def get_attribute(obj: Any, attr: str) -> Any:
+    """
+    Returns the value of given attribute from the object being it dict or BaseModel
+    """
+    if isinstance(obj, dict):
+        return obj.get(attr)
+    if isinstance(obj, BaseModel):
+        return getattr(obj, attr, None)
+    return None
+
+def gaka(
+    account_variables: Dict[str, Any],
+    name_of_attribute: str,
+    transform_function: Optional[Callable[[Any], Any]] = None,
+    condition_function: Optional[Callable[[Any], bool]] = None
+) -> Dict[str, Any]:
+    """
+    Gets Account Keyed Attribute
+    Extracts the specified attribute from each account variable in the given dictionary.
+    It also contains transformation function and condition function.
+
+    ```
+    avgps = gaka(account_variables, "avgp", 
+                 transform_function=lambda x: round(x, 3),
+                 condition_function=lambda x: x > 3)
+
+    returns:
+    {
+        'account2': 5000.654,
+        'account3': 3000.789,
+        'account4': 8000.235
+    }
+    ```
+
+    Args:
+        account_variables (Dict[str, BaseModel]): A dictionary of account variables.
+        name_of_attribute (str): The name of the attribute to extract.
+        transform_function (Optional[Callable[[Any], Any]]): Optional function to transform the attribute value.
+        condition_function (Optional[Callable[[Any], bool]]): Optional function to filter the results.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the extracted attribute for each account that meets the condition.
+    """
+    result = {}
+    for account_str, acc_vars in account_variables.items():
+        value = get_attribute(acc_vars, name_of_attribute)
+        
+        if value is None and not hasattr(acc_vars, name_of_attribute):
+            continue
+
+        transformed_value = transform_function(value) if transform_function else value
+        
+        if condition_function is None or condition_function(transformed_value):
+            result[account_str] = transformed_value
+
+    return result
+
+def gaka_unoptimized(
+    account_variables: Dict[str, Any],
+    name_of_attribute: str,
+    transform_function: Optional[Callable[[Any], Any]] = None,
+    condition_function: Optional[Callable[[Any], bool]] = None
+) -> Dict[str, Any]:
+    """
+    Gets Account Keyed Attribute
+    Extracts the specified attribute from each account variable in the given dictionary.
+    It also contains transformation function and condition function.
+
+        ```
+    avgps = gaka(account_variables, "avgp", 
+                 transform_function=lambda x: round(x, 3),
+                 condition_function=lambda x: x > 3)
+
+    returns:
+    {
+        'account2': 5000.654,
+        'account3': 3000.789,
+        'account4': 8000.235
+    }
+    ```
+
+    Args:
+        account_variables (Dict[str, BaseModel]): A dictionary of account variables.
+        name_of_attribute (str): The name of the attribute to extract.
+        transform_function (Optional[Callable[[Any], Any]]): Optional function to transform the attribute value.
+        condition_function (Optional[Callable[[Any], bool]]): Optional function to filter the results.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the extracted attribute for each account that meets the condition.
+    """
+    result = {}
+    for account, acc_vars in account_variables.items():
+        if isinstance(acc_vars, BaseModel):
+            value = getattr(acc_vars, name_of_attribute, None)
+        elif isinstance(acc_vars, dict):
+            value = acc_vars.get(name_of_attribute, None)
+        else:
+            continue  # Skip if acc_vars is neither BaseModel nor dict
+
+        if value is None and not hasattr(acc_vars, name_of_attribute):
+            continue  # Skip if attribute doesn't exist
+
+        transformed_value = transform_function(value) if transform_function else value
+
+        if condition_function is None or condition_function(transformed_value):
+            result[account] = transformed_value
+
+    return result
+
+def gaka_old_with_comprehesion(
+    account_variables: Dict[str, Any],
+    name_of_attribute: str,
+    transform_function: Optional[Callable[[Any], Any]] = None,
+    condition_function: Optional[Callable[[Any], bool]] = None
+) -> Dict[str, Any]:
+    """
+    Gets Account Keyed Attribute
+    Extracts the specified attribute from each account variable in the given dictionary.
+
+    It also contains transformation function and condition function.
+
+    ```
+    avgps = gaka(account_variables, "avgp", 
+                 transform_function=lambda x: round(x, 3),
+                 condition_function=lambda x: x > 3)
+
+    returns:
+    {
+        'account2': 5000.654,
+        'account3': 3000.789,
+        'account4': 8000.235
+    }
+    ```
+
+    Args:
+        account_variables (Dict[str, BaseModel]): A dictionary of account variables.
+        name_of_attribute (str): The name of the attribute to extract.
+        transform_function (Optional[Callable[[Any], Any]]): Optional function to transform the attribute value.
+        condition_function (Optional[Callable[[Any], bool]]): Optional function to filter the results.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the extracted attribute for each account that meets the condition.
+    """
+    return {
+        account: transformed_value
+        for account, acc_vars in account_variables.items()
+        if (value := (
+            getattr(acc_vars, name_of_attribute, None) 
+            if isinstance(acc_vars, BaseModel) 
+            else acc_vars.get(name_of_attribute, None) 
+            if isinstance(acc_vars, dict) 
+            else None
+        )) is not None or name_of_attribute in acc_vars.__dict__
+        and (transformed_value := (
+            transform_function(value) if transform_function else value
+        )) is not None
+        and (not condition_function or condition_function(transformed_value))
+    }
+
+def gaka_old(account_variables: Dict[str, Any], name_of_attribute: str, transform_function: Optional[Callable[[Any], Any]] = None) -> Dict[str, Any]:
+    """
+    Gets Account Keyed Attribute
+    Extracts the specified attribute from each account variable in the given dictionary.
+
+    It also contain transformation function.
+
+    ```
+    avgps = extract_attribute(account_variables, "avgp", lambda x: round(x, 3))
+
+    returns:
+    {
+        'account1': 1000.123,
+        'account2': 5000.654,
+        'account3': 3000.789,
+        'account4': 8000.235
+    }
+    ```
+
+    Args:
+        account_variables (Dict[str, BaseModel]): A dictionary of account variables.
+        name_of_attribute (str): The name of the attribute to extract.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the extracted attribute for each account.
+    """
+    #return {account: getattr(acc_vars, name_of_attribute) for account, acc_vars in account_variables.items()}
+    return {
+        account: (
+            transform_function(value) if transform_function and value is not None else value
+        )
+        for account, acc_vars in account_variables.items()
+        if (value := (
+            getattr(acc_vars, name_of_attribute, None) 
+            if isinstance(acc_vars, BaseModel) 
+            else acc_vars.get(name_of_attribute, None) 
+            if isinstance(acc_vars, dict) 
+            else None
+        )) is not None
+    }
+
+def empty_lists_in_dict(d: dict):
+    """
+    Assumes all values of dict are list. Returns true if all lists are empty.
+
+    Args:
+        d (dict): The dictionary to check.
+
+    Returns:
+        bool: True if all lists in the dictionary are empty, False otherwise.
+    """
+    return all(len(v) == 0 for v in d.values())     
 
 def validate_and_format_time(time_string):
     """
@@ -675,6 +889,7 @@ def json_serial(obj):
         SLHistory: lambda obj: obj.__dict__,
         InstantIndicator: lambda obj: obj.__dict__,
         StrategyInstance: lambda obj: obj.__dict__,
+        AccountVariables: lambda obj: obj.__dict__
     }
 
     serializer = type_map.get(type(obj))

@@ -1,7 +1,7 @@
 from v2realbot.strategy.base import StrategyState
 from v2realbot.strategy.StrategyOrderLimitVykladaciNormalizedMYSELL import StrategyOrderLimitVykladaciNormalizedMYSELL
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, Followup
-from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus
+from v2realbot.common.model import Trade, TradeDirection, TradeStatus
 from v2realbot.utils.utils import isrising, isfalling,zoneNY, price2dec, print, safe_get, is_still, is_window_open, eval_cond_dict, crossed_down, crossed_up, crossed, is_pivot, json_serial, pct_diff, create_new_bars, slice_dict_lists
 from v2realbot.utils.directive_utils import get_conditions_from_configuration
 from v2realbot.common.model import SLHistory

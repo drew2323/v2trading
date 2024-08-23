@@ -1,8 +1,8 @@
 import numpy as np
-from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus
+from v2realbot.common.model import Trade, TradeDirection, TradeStatus
 from typing import Tuple
 from copy import deepcopy
-from v2realbot.strategyblocks.activetrade.helpers import get_override_for_active_trade
+from v2realbot.strategyblocks.activetrade.helpers import get_signal_section_directive
 from v2realbot.utils.utils import safe_get
 # FIBONACCI PRO PROFIT A SL
 
@@ -49,8 +49,8 @@ class SLOptimizer:
     #      self.exit_levels = self.init_exit_levels
     #      self.exit_sizes = self.init_exit_sizes
 
-    def get_trade_details(self, state):
-        trade: Trade = state.vars.activeTrade
+    def get_trade_details(self, state, activeTrade):
+        trade: Trade = activeTrade
         #jde o novy trade - resetujeme levely
         if trade.id != self.last_trade:
             #inicializujeme a vymazeme pripadne puvodni
@@ -58,14 +58,14 @@ class SLOptimizer:
                 return None, None
             self.last_trade = trade.id
         #return cost_price, sl_price
-        return  state.avgp, trade.stoploss_value
+        return  state.account_variables[trade.account.name].avgp, trade.stoploss_value
 
     def initialize_levels(self, state):
         directive_name = 'SL_opt_exit_levels_'+str(self.direction.value)
-        SL_opt_exit_levels = get_override_for_active_trade(state=state, directive_name=directive_name, default_value=safe_get(state.vars, directive_name, None))
+        SL_opt_exit_levels = get_signal_section_directive(state=state, directive_name=directive_name, default_value=safe_get(state.vars, directive_name, None))
 
         directive_name = 'SL_opt_exit_sizes_'+str(self.direction.value)
-        SL_opt_exit_sizes = get_override_for_active_trade(state=state, directive_name=directive_name, default_value=safe_get(state.vars, directive_name, None))
+        SL_opt_exit_sizes = get_signal_section_directive(state=state, directive_name=directive_name, default_value=safe_get(state.vars, directive_name, None))
 
         if SL_opt_exit_levels is None or SL_opt_exit_sizes is None:
             #print("no directives found: SL_opt_exit_levels/SL_opt_exit_sizes")
@@ -83,11 +83,11 @@ class SLOptimizer:
         print(f"new levels initialized {self.exit_levels=} {self.exit_sizes=}")
         return True
 
-    def get_initial_abs_levels(self, state):
+    def get_initial_abs_levels(self, state, activeTrade):
          """
          Returns price levels corresponding to initial setting of exit_levels
          """
-         cost_price, sl_price = self.get_trade_details(state)
+         cost_price, sl_price = self.get_trade_details(state, activeTrade)
          if cost_price is None or sl_price is None:
              return []
          curr_sl_distance = np.abs(cost_price - sl_price)
@@ -96,11 +96,11 @@ class SLOptimizer:
          else:
             return [cost_price - exit_level * curr_sl_distance for exit_level in self.init_exit_levels]
 
-    def get_remaining_abs_levels(self, state):
+    def get_remaining_abs_levels(self, state, activeTrade):
          """
          Returns price levels corresponding to remaing exit_levels for current trade
          """
-         cost_price, sl_price = self.get_trade_details(state)
+         cost_price, sl_price = self.get_trade_details(state, activeTrade)
          if cost_price is None or sl_price is None:
              return []
          curr_sl_distance = np.abs(cost_price - sl_price)
@@ -109,7 +109,7 @@ class SLOptimizer:
          else:
             return [cost_price - exit_level * curr_sl_distance for exit_level in self.exit_levels]
 
-    def eval_position(self, state, data) -> Tuple[float, float]:
+    def eval_position(self, state, data, activeTrade) -> Tuple[float, float]:
         """Evaluates optimalization for current position and returns if the given level was
            met and how to adjust exit position.
         """    

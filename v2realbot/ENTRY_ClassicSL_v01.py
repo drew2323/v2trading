@@ -59,25 +59,12 @@ Hlavní loop:
 
 """
 def next(data, state: StrategyState):
-    ##print(10*"*","NEXT START",10*"*")
-    # important vars state.avgp, state.positions, state.vars, data
-    
-    #indicators moved to call_next in upper class
+    print(10*"*", state.account_variables)
 
-    #pokud mame prazdne pozice a neceka se na nic
-    if state.positions == 0 and state.vars.pending is None:
-        #vykoname trady ve fronte
-        execute_prescribed_trades(state, data)
-        #pokud se neaktivoval nejaky trade, poustime signal search - ale jen jednou za bar?
-        #if conf_bar == 1:
-        if state.vars.pending is None:
-            signal_search(state, data)
-            #pro jistotu ihned zpracujeme
-            execute_prescribed_trades(state, data)
-
-    #mame aktivni trade a neceka se n anic
-    elif state.vars.activeTrade and state.vars.pending is None:
-            manage_active_trade(state, data)
+    execute_prescribed_trades(state, data)
+    signal_search(state, data)
+    execute_prescribed_trades(state, data) #pro jistotu ihned zpracujeme
+    manage_active_trade(state, data)
 
 def init(state: StrategyState):
     #place to declare new vars
@@ -88,13 +75,13 @@ def init(state: StrategyState):
 
     #nove atributy na rizeni tradu
     #identifikuje provedenou změnu na Tradu (neděláme změny dokud nepřijde potvrzeni z notifikace)
-    state.vars.pending = None
+    #state.vars.pending = None #nahrazeno pebnding pod accountem state.account_variables[account.name].pending
     #obsahuje aktivni Trade a jeho nastaveni
-    state.vars.activeTrade = None #pending/Trade
+    #state.vars.activeTrade = None #pending/Trade moved to account_variables
     #obsahuje pripravene Trady ve frontě
     state.vars.prescribedTrades = []
     #flag pro reversal
-    state.vars.requested_followup = None
+    #state.vars.requested_followup = None #nahrazeno pod accountem
 
     #TODO presunout inicializaci work_dict u podminek - sice hodnoty nepujdou zmenit, ale zlepsi se performance
     #pripadne udelat refresh kazdych x-iterací
@@ -102,9 +89,8 @@ def init(state: StrategyState):
     state.vars.mode = None
     state.vars.last_50_deltas = []
     state.vars.next_new = 0
-    state.vars.last_buy_index = None
-    state.vars.last_exit_index = None
-    state.vars.last_in_index = None
+    state.vars.last_entry_index = None #mponechano obecne pro vsechny accounty
+    state.vars.last_exit_index = None #obecna varianta ponechana
     state.vars.last_update_time = 0
     state.vars.reverse_position_waiting_amount = 0
     #INIT promenne, ktere byly zbytecne ve stratvars

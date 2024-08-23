@@ -10,7 +10,7 @@ from fastapi.security import APIKeyHeader
 import uvicorn
 from uuid import UUID
 from v2realbot.utils.ilog import get_log_window
-from v2realbot.common.model import RunManagerRecord, StrategyInstance, RunnerView, RunRequest, Trade, RunArchive, RunArchiveView, RunArchiveViewPagination, RunArchiveDetail, Bar, RunArchiveChange, TestList, ConfigItem, InstantIndicator, DataTablesRequest, AnalyzerInputs
+from v2realbot.common.model import RunManagerRecord, StrategyInstance, RunnerView, RunRequest, TradeView, RunArchive, RunArchiveView, RunArchiveViewPagination, RunArchiveDetail, Bar, RunArchiveChange, TestList, ConfigItem, InstantIndicator, DataTablesRequest, AnalyzerInputs
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status, WebSocketException, Cookie, Query, Request
 from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -334,7 +334,7 @@ def stop_all_runners():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Error: {res}:{id}")
 
 @app.get("/tradehistory/{symbol}", dependencies=[Depends(api_key_auth)])
-def get_trade_history(symbol: str, timestamp_from: float, timestamp_to:float) -> list[Trade]:
+def get_trade_history(symbol: str, timestamp_from: float, timestamp_to:float) -> list[TradeView]:
     res, set = cs.get_trade_history(symbol, timestamp_from, timestamp_to)
     if res == 0:
         return set

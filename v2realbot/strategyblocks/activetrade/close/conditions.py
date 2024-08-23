@@ -1,7 +1,7 @@
 from v2realbot.strategy.base import StrategyState
 from v2realbot.strategy.StrategyOrderLimitVykladaciNormalizedMYSELL import StrategyOrderLimitVykladaciNormalizedMYSELL
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, Followup
-from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus
+from v2realbot.common.model import Trade, TradeDirection, TradeStatus
 from v2realbot.utils.utils import isrising, isfalling,zoneNY, price2dec, print, safe_get, is_still, is_window_open, eval_cond_dict, crossed_down, crossed_up, crossed, is_pivot, json_serial, pct_diff, create_new_bars, slice_dict_lists
 from v2realbot.utils.directive_utils import get_conditions_from_configuration
 from v2realbot.common.model import SLHistory
@@ -12,9 +12,9 @@ from threading import Event
 import os
 from traceback import format_exc
 from v2realbot.strategyblocks.indicators.helpers import evaluate_directive_conditions
-from v2realbot.strategyblocks.activetrade.helpers import get_override_for_active_trade, normalize_tick
+from v2realbot.strategyblocks.activetrade.helpers import get_signal_section_directive, normalize_tick
 
-def dontexit_protection_met(state, data, direction: TradeDirection):
+def dontexit_protection_met(state, activeTrade: Trade, data, direction: TradeDirection):
     if direction == TradeDirection.LONG:
         smer = "long"
     else:
@@ -24,58 +24,64 @@ def dontexit_protection_met(state, data, direction: TradeDirection):
     #vyreseno pri kazde aktivaci se vyplni flag already_activated
     #pri naslednem false podminky se v pripade, ze je aktivovany flag posle True - 
     #take se vyrusi v closu
-    def process_result(result):
+    def process_result(result, account):
         if result:
-            state.dont_exit_already_activated = True
+            state.account_variables[account.name].dont_exit_already_activated = True
             return True
         else:
             return False
 
     def evaluate_result():
-        mother_signal = state.vars.activeTrade.generated_by
+        mother_signal = activeTrade.generated_by
+        dont_exit_already_activated = state.account_variables[activeTrade.account.name].dont_exit_already_activated
 
         if mother_signal is not None:
             #TESTUJEME DONT_EXIT_
             cond_dict = state.vars.conditions[KW.dont_exit][mother_signal][smer]
             #OR 
             result, conditions_met = evaluate_directive_conditions(state, cond_dict, "OR")
-            state.ilog(lvl=1,e=f"DONT_EXIT {mother_signal} {smer} =OR= {result}", **conditions_met, cond_dict=cond_dict, already_activated=str(state.dont_exit_already_activated))
+            state.ilog(lvl=1,e=f"DONT_EXIT {mother_signal} {smer} =OR= {result}", **conditions_met, cond_dict=cond_dict, already_activated=str(dont_exit_already_activated))
             if result:
                 return True
             
             #OR neprosly testujeme AND
             result, conditions_met = evaluate_directive_conditions(state, cond_dict, "AND")
-            state.ilog(lvl=1,e=f"DONT_EXIT {mother_signal}  {smer} =AND= {result}", **conditions_met, cond_dict=cond_dict, already_activated=str(state.dont_exit_already_activated))
+            state.ilog(lvl=1,e=f"DONT_EXIT {mother_signal}  {smer} =AND= {result}", **conditions_met, cond_dict=cond_dict, already_activated=str(dont_exit_already_activated))
             if result:
                 return True
             
         cond_dict = state.vars.conditions[KW.dont_exit]["common"][smer]            
         #OR 
         result, conditions_met = evaluate_directive_conditions(state, cond_dict, "OR")
-        state.ilog(lvl=1,e=f"DONT_EXIT common {smer} =OR= {result}", **conditions_met, cond_dict=cond_dict, already_activated=str(state.dont_exit_already_activated))
+        state.ilog(lvl=1,e=f"DONT_EXIT common {smer} =OR= {result}", **conditions_met, cond_dict=cond_dict, already_activated=str(dont_exit_already_activated))
         if result:
             return True
         
         #OR neprosly testujeme AND
         result, conditions_met = evaluate_directive_conditions(state, cond_dict, "AND")
-        state.ilog(lvl=1,e=f"DONT_EXIT common {smer} =AND= {result}", **conditions_met, cond_dict=cond_dict, already_activated=str(state.dont_exit_already_activated))
+        state.ilog(lvl=1,e=f"DONT_EXIT common {smer} =AND= {result}", **conditions_met, cond_dict=cond_dict, already_activated=str(dont_exit_already_activated))
         return result
 
     #nejprve evaluujeme vsechny podminky
     result = evaluate_result()
 
     #pak evaluujeme vysledek a vracíme
-    return process_result(result)
+    return process_result(result, activeTrade.account)
 
 
-def exit_conditions_met(state, data, direction: TradeDirection):
+def exit_conditions_met(state: StrategyState, activeTrade: Trade, data, direction: TradeDirection):
     if direction == TradeDirection.LONG:
         smer = "long"
     else:
         smer = "short"
 
+    signal_name = activeTrade.generated_by
+    last_entry_index = state.account_variables[activeTrade.account.name].last_entry_index
+    avgp = state.account_variables[activeTrade.account.name].avgp
+    positions = state.account_variables[activeTrade.account.name].positions
+
     directive_name = "exit_cond_only_on_confirmed"
-    exit_cond_only_on_confirmed = get_override_for_active_trade(state, directive_name=directive_name, default_value=safe_get(state.vars, directive_name, False))
+    exit_cond_only_on_confirmed = get_signal_section_directive(state, signal_name=signal_name, directive_name=directive_name, default_value=safe_get(state.vars, directive_name, False))
 
     if exit_cond_only_on_confirmed and data['confirmed'] == 0:
         state.ilog(lvl=0,e="EXIT COND ONLY ON CONFIRMED BAR")
@@ -83,20 +89,20 @@ def exit_conditions_met(state, data, direction: TradeDirection):
     
     ## minimální počet barů od vstupu
     directive_name = "exit_cond_req_bars"
-    exit_cond_req_bars = get_override_for_active_trade(state, directive_name=directive_name, default_value=safe_get(state.vars, directive_name, 1))
+    exit_cond_req_bars = get_signal_section_directive(state, signal_name=signal_name, directive_name=directive_name, default_value=safe_get(state.vars, directive_name, 1))
 
-    if state.vars.last_in_index is not None:
-        index_to_compare = int(state.vars.last_in_index)+int(exit_cond_req_bars) 
+    if last_entry_index is not None:
+        index_to_compare = int(last_entry_index)+int(exit_cond_req_bars) 
         if int(data["index"]) < index_to_compare:
-            state.ilog(lvl=1,e=f"EXIT COND WAITING on required bars from IN {exit_cond_req_bars} TOO SOON", currindex=data["index"], index_to_compare=index_to_compare, last_in_index=state.vars.last_in_index)
+            state.ilog(lvl=1,e=f"EXIT COND WAITING on required bars from IN {exit_cond_req_bars} TOO SOON", currindex=data["index"], index_to_compare=index_to_compare, last_entry_index=last_entry_index)
             return False
 
     #POKUD je nastaven MIN PROFIT, zkontrolujeme ho a az pripadne pustime CONDITIONY
     directive_name = "exit_cond_min_profit"
-    exit_cond_min_profit_nodir = get_override_for_active_trade(state, directive_name=directive_name, default_value=safe_get(state.vars, directive_name, None))
+    exit_cond_min_profit_nodir = get_signal_section_directive(state, signal_name=signal_name, directive_name=directive_name, default_value=safe_get(state.vars, directive_name, None))
 
     directive_name = "exit_cond_min_profit_" + str(smer)
-    exit_cond_min_profit = get_override_for_active_trade(state, directive_name=directive_name, default_value=exit_cond_min_profit_nodir)
+    exit_cond_min_profit = get_signal_section_directive(state, signal_name=signal_name,directive_name=directive_name, default_value=exit_cond_min_profit_nodir)
 
 
     #máme nastavený exit_cond_min_profit
@@ -105,10 +111,10 @@ def exit_conditions_met(state, data, direction: TradeDirection):
 
     if exit_cond_min_profit is not None:
         exit_cond_min_profit_normalized = normalize_tick(state, data, float(exit_cond_min_profit))
-        exit_cond_goal_price = price2dec(float(state.avgp)+exit_cond_min_profit_normalized,3) if int(state.positions) > 0 else price2dec(float(state.avgp)-exit_cond_min_profit_normalized,3) 
+        exit_cond_goal_price = price2dec(float(avgp)+exit_cond_min_profit_normalized,3) if int(positions) > 0 else price2dec(float(avgp)-exit_cond_min_profit_normalized,3) 
         curr_price = float(data["close"])
         state.ilog(lvl=1,e=f"EXIT COND min profit {exit_cond_goal_price=} {exit_cond_min_profit=} {exit_cond_min_profit_normalized=} {curr_price=}")
-        if (int(state.positions) < 0 and curr_price<=exit_cond_goal_price) or (int(state.positions) > 0 and curr_price>=exit_cond_goal_price):
+        if (int(positions) < 0 and curr_price<=exit_cond_goal_price) or (int(positions) > 0 and curr_price>=exit_cond_goal_price):
             state.ilog(lvl=1,e=f"EXIT COND min profit PASS - POKRACUJEME")
         else:
             state.ilog(lvl=1,e=f"EXIT COND min profit NOT PASS")
@@ -137,10 +143,10 @@ def exit_conditions_met(state, data, direction: TradeDirection):
     #bereme bud exit condition signalu, ktery activeTrade vygeneroval+ fallback na general
     state.ilog(lvl=0,e=f"EXIT CONDITIONS ENTRY {smer}", conditions=state.vars.conditions[KW.exit])
 
-    mother_signal = state.vars.activeTrade.generated_by
+    mother_signal = signal_name
 
     if mother_signal is not None:
-        cond_dict = state.vars.conditions[KW.exit][state.vars.activeTrade.generated_by][smer]
+        cond_dict = state.vars.conditions[KW.exit][signal_name][smer]
         result, conditions_met = evaluate_directive_conditions(state, cond_dict, "OR")
         state.ilog(lvl=1,e=f"EXIT CONDITIONS of {mother_signal} =OR= {result}", **conditions_met, cond_dict=cond_dict)
         if result:

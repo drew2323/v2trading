@@ -1,5 +1,5 @@
 from v2realbot.strategy.base import StrategyState
-from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus
+from v2realbot.common.model import Trade, TradeDirection, TradeStatus
 import v2realbot.utils.utils as utls
 from v2realbot.config import KW
 from uuid import uuid4
@@ -99,7 +99,8 @@ def get_multiplier(state: StrategyState, data, signaloptions: dict, direction: T
 
     if probe_enabled:
         #zatim pouze probe number 1 natvrdo, tzn. nesmi byt trade pro aktivace
-        if state.vars.last_in_index is None:
+        #zatim funguje pouze pro primarni
+        if state.account_variables[state.account].last_entry_index is None:
             #probe_number = utls.safe_get(options, "probe_number",1)
             probe_size = float(utls.safe_get(options, "probe_size", 0.1))
             state.ilog(lvl=1,e=f"SIZER - PROBE - setting multiplier to {probe_size}", options=options)

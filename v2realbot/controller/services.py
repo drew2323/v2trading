@@ -8,9 +8,9 @@ from alpaca.data.timeframe import TimeFrame
 from v2realbot.strategy.base import StrategyState
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Account, OrderSide
 from v2realbot.common.model import RunDay, StrategyInstance, Runner, RunRequest, RunArchive, RunArchiveView, RunArchiveViewPagination, RunArchiveDetail, RunArchiveChange, Bar, TradeEvent, TestList, Intervals, ConfigItem, InstantIndicator, DataTablesRequest
-from v2realbot.utils.utils import AttributeDict, zoneNY, zonePRG, safe_get, dict_replace_value, Store, parse_toml_string, json_serial, is_open_hours, send_to_telegram, concatenate_weekdays, transform_data
+from v2realbot.utils.utils import AttributeDict, zoneNY, zonePRG, safe_get, dict_replace_value, Store, parse_toml_string, json_serial, is_open_hours, send_to_telegram, concatenate_weekdays, transform_data, gaka
 from v2realbot.utils.ilog import delete_logs
-from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
+from v2realbot.common.model import Trade, TradeDirection, TradeStatus, TradeStoplossType
 from datetime import datetime
 from v2realbot.loader.trade_offline_streamer import Trade_Offline_Streamer
 from threading import Thread, current_thread, Event, enumerate
@@ -71,8 +71,8 @@ def get_all_runners():
             if i.run_instance:
                 i.run_profit = round(float(i.run_instance.state.profit),2)
                 i.run_trade_count = len(i.run_instance.state.tradeList)
-                i.run_positions = i.run_instance.state.positions
-                i.run_avgp = round(float(i.run_instance.state.avgp),3)
+                i.run_positions = gaka(i.run_instance.state.account_variables, "positions")
+                i.run_avgp = gaka(i.run_instance.state.account_variables, "avgp", lambda x: round(float(x),3))
         return (0, db.runners)
     else:
         return (0, [])
@@ -94,8 +94,8 @@ def get_runner(id: UUID):
         if str(i.id) == str(id):
             i.run_profit = round(float(i.run_instance.state.profit),2)
             i.run_trade_count = len(i.run_instance.state.tradeList)
-            i.run_positions = i.run_instance.state.positions
-            i.run_avgp = round(float(i.run_instance.state.avgp),3)
+            i.run_positions =gaka(i.run_instance.state.account_variables, "positions")
+            i.run_avgp = gaka(i.run_instance.state.account_variables, "avgp", lambda x: round(float(x),3))
             return (0, i)
     return (-2, "not found")
 
@@ -738,13 +738,14 @@ def populate_metrics_output_directory(strat: StrategyInstance, inter_batch_param
 
     tradeList = strat.state.tradeList
 
-    trade_dict = AttributeDict(orderid=[],timestamp=[],symbol=[],side=[],order_type=[],qty=[],price=[],position_qty=[])
+    trade_dict = AttributeDict(account=[],orderid=[],timestamp=[],symbol=[],side=[],order_type=[],qty=[],price=[],position_qty=[])
     if strat.mode == Mode.BT:
         trade_dict["value"] = []
         trade_dict["cash"] = []
         trade_dict["pos_avg_price"] = []
     for t in tradeList:
         if t.event == TradeEvent.FILL:
+            trade_dict.account.append(t.account)
             trade_dict.orderid.append(str(t.order.id))
             trade_dict.timestamp.append(t.timestamp)
             trade_dict.symbol.append(t.order.symbol)
@@ -768,10 +769,12 @@ def populate_metrics_output_directory(strat: StrategyInstance, inter_batch_param
     max_positions = max_positions[max_positions['side'] == OrderSide.SELL]
     max_positions = max_positions.drop(columns=['side'], axis=1)
 
-    res = dict(profit={})
+    res = dict(account_variables={}, profit={})
     #filt = max_positions['side'] == 'OrderSide.BUY'
-    res["pos_cnt"] = dict(zip(str(max_positions['qty']), max_positions['count']))
 
+    res["account_variables"] = transform_data(strat.state.account_variables, json_serial)
+
+    res["pos_cnt"] = dict(zip(str(max_positions['qty']), max_positions['count']))
     #naplneni batch sum profitu
     if inter_batch_params is not None:
         res["profit"]["batch_sum_profit"] = int(inter_batch_params["batch_profit"])
@@ -923,8 +926,8 @@ def archive_runner(runner: Runner, strat: StrategyInstance, inter_batch_params: 
                                             settings = settings,
                                             profit=round(float(strat.state.profit),2),
                                             trade_count=len(strat.state.tradeList),
-                                            end_positions=strat.state.positions,
-                                            end_positions_avgp=round(float(strat.state.avgp),3),
+                                            end_positions=gaka(strat.state.account_variables, "positions"),
+                                            end_positions_avgp=gaka(strat.state.account_variables, "avgp", lambda x: round(float(x),3)),
                                             metrics=results_metrics,
                                             stratvars_toml=runner.run_stratvars_toml,
                                             transferables=strat.state.vars["transferables"]
@@ -1264,6 +1267,7 @@ def insert_archive_header(archeader: RunArchive):
     try:
         c = conn.cursor()
         #json_string = orjson.dumps(archeader, default=json_serial, option=orjson.OPT_PASSTHROUGH_DATETIME)
+        print(archeader)
 
         res = c.execute("""
             INSERT INTO runner_header 
@@ -1271,7 +1275,7 @@ def insert_archive_header(archeader: RunArchive):
             VALUES
             (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (str(archeader.id), str(archeader.strat_id), archeader.batch_id, archeader.symbol, archeader.name, archeader.note, archeader.started, archeader.stopped, archeader.mode, archeader.account, archeader.bt_from, archeader.bt_to, orjson.dumps(archeader.strat_json).decode('utf-8'), orjson.dumps(archeader.settings).decode('utf-8'), archeader.ilog_save, archeader.profit, archeader.trade_count, archeader.end_positions, archeader.end_positions_avgp, orjson.dumps(archeader.metrics, default=json_serial, option=orjson.OPT_PASSTHROUGH_DATETIME).decode('utf-8'), archeader.stratvars_toml, orjson.dumps(archeader.transferables).decode('utf-8')))
+            (str(archeader.id), str(archeader.strat_id), archeader.batch_id, archeader.symbol, archeader.name, archeader.note, archeader.started, archeader.stopped, archeader.mode, archeader.account, archeader.bt_from, archeader.bt_to, orjson.dumps(archeader.strat_json).decode('utf-8'), orjson.dumps(archeader.settings).decode('utf-8'), archeader.ilog_save, archeader.profit, archeader.trade_count, orjson.dumps(archeader.end_positions).decode('utf-8'), orjson.dumps(archeader.end_positions_avgp).decode('utf-8'), orjson.dumps(archeader.metrics, default=json_serial, option=orjson.OPT_PASSTHROUGH_DATETIME).decode('utf-8'), archeader.stratvars_toml, orjson.dumps(archeader.transferables).decode('utf-8')))
 
         #retry not yet supported for statement format above
         #res = execute_with_retry(c,statement)

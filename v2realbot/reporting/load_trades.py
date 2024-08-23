@@ -11,7 +11,7 @@ import numpy as np
 import v2realbot.controller.services as cs
 from rich import print
 from v2realbot.common.model import AnalyzerInputs
-from v2realbot.common.PrescribedTradeModel import TradeDirection, TradeStatus, Trade, TradeStoplossType
+from v2realbot.common.model import TradeDirection, TradeStatus, Trade, TradeStoplossType
 from v2realbot.utils.utils import isrising, isfalling,zoneNY, price2dec, safe_get#, print
 from pathlib import Path
 from v2realbot.config import WEB_API_KEY, DATA_DIR, MEDIA_DIRECTORY
@@ -23,7 +23,7 @@ from collections import defaultdict
 from scipy.stats import zscore
 from io import BytesIO
 from typing import Tuple, Optional, List
-from v2realbot.common.PrescribedTradeModel import TradeDirection, TradeStatus, Trade, TradeStoplossType
+from v2realbot.common.model import TradeDirection, TradeStatus, Trade, TradeStoplossType
 
 def load_trades(runner_ids: List = None, batch_id: str = None) -> Tuple[int, List[Trade], int]:
     if runner_ids is None and batch_id is None:

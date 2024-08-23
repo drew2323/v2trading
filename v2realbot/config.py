@@ -66,10 +66,10 @@ def get_key(mode: Mode, account: Account):
         return None
     dict = globals()
     try:
-        API_KEY = dict[str.upper(str(account.value)) + "_" + str.upper(str(mode.value)) + "_API_KEY" ]
-        SECRET_KEY = dict[str.upper(str(account.value)) + "_" + str.upper(str(mode.value)) + "_SECRET_KEY" ]
-        PAPER = dict[str.upper(str(account.value)) + "_" + str.upper(str(mode.value)) + "_PAPER" ]
-        FEED = dict[str.upper(str(account.value)) + "_" + str.upper(str(mode.value)) + "_FEED" ]
+        API_KEY = dict[str.upper(str(account.name)) + "_" + str.upper(str(mode.name)) + "_API_KEY" ]
+        SECRET_KEY = dict[str.upper(str(account.name)) + "_" + str.upper(str(mode.name)) + "_SECRET_KEY" ]
+        PAPER = dict[str.upper(str(account.name)) + "_" + str.upper(str(mode.name)) + "_PAPER" ]
+        FEED = dict[str.upper(str(account.name)) + "_" + str.upper(str(mode.name)) + "_FEED" ]
         return Keys(API_KEY, SECRET_KEY, PAPER, FEED)
     except KeyError:
         print("Not valid combination to get keys for", mode, account)
@@ -93,7 +93,7 @@ data_feed_type_str = os.environ.get('ACCOUNT1_PAPER_FEED', 'iex')  # Default to 
 # Convert the string to DataFeed enum
 try:
     ACCOUNT1_PAPER_FEED = DataFeed(data_feed_type_str)
-except ValueError:
+except nameError:
     # Handle the case where the environment variable does not match any enum member
     print(f"Invalid data feed type: {data_feed_type_str} in ACCOUNT1_PAPER_FEED defaulting to 'iex'")
     ACCOUNT1_PAPER_FEED = DataFeed.SIP
@@ -111,7 +111,7 @@ data_feed_type_str = os.environ.get('ACCOUNT1_LIVE_FEED', 'iex')  # Default to '
 # Convert the string to DataFeed enum
 try:
     ACCOUNT1_LIVE_FEED = DataFeed(data_feed_type_str)
-except ValueError:
+except nameError:
     # Handle the case where the environment variable does not match any enum member
     print(f"Invalid data feed type: {data_feed_type_str} in ACCOUNT1_LIVE_FEED defaulting to 'iex'")
     ACCOUNT1_LIVE_FEED = DataFeed.IEX
@@ -129,7 +129,7 @@ data_feed_type_str = os.environ.get('ACCOUNT2_PAPER_FEED', 'iex')  # Default to 
 # Convert the string to DataFeed enum
 try:
     ACCOUNT2_PAPER_FEED = DataFeed(data_feed_type_str)
-except ValueError:
+except nameError:
     # Handle the case where the environment variable does not match any enum member
     print(f"Invalid data feed type: {data_feed_type_str} in ACCOUNT2_PAPER_FEED defaulting to 'iex'")
     ACCOUNT2_PAPER_FEED = DataFeed.IEX
@@ -148,7 +148,7 @@ except ValueError:
 # # Convert the string to DataFeed enum
 # try:
 #     ACCOUNT2_LIVE_FEED = DataFeed(data_feed_type_str)
-# except ValueError:
+# except nameError:
 #     # Handle the case where the environment variable does not match any enum member
 #     print(f"Invalid data feed type: {data_feed_type_str} in ACCOUNT2_LIVE_FEED defaulting to 'iex'")
 #     ACCOUNT2_LIVE_FEED = DataFeed.IEX

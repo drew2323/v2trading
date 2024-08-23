@@ -3,7 +3,7 @@ from uuid import UUID, uuid4
 from v2realbot.common.model import RunManagerRecord, StrategyInstance, RunDay, StrategyInstance, Runner, RunRequest, RunArchive, RunArchiveView, RunArchiveViewPagination, RunArchiveDetail, RunArchiveChange, Bar, TradeEvent, TestList, Intervals, ConfigItem, InstantIndicator, DataTablesRequest
 from v2realbot.utils.utils import validate_and_format_time, AttributeDict, zoneNY, zonePRG, safe_get, dict_replace_value, Store, parse_toml_string, json_serial, is_open_hours, send_to_telegram, concatenate_weekdays, transform_data
 from v2realbot.utils.ilog import delete_logs
-from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus, TradeStoplossType
+from v2realbot.common.model import Trade, TradeDirection, TradeStatus, TradeStoplossType
 from datetime import datetime
 from v2realbot.loader.trade_offline_streamer import Trade_Offline_Streamer
 from threading import Thread, current_thread, Event, enumerate

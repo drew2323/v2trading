@@ -54,18 +54,18 @@ class SLOptimizer:
         #jde o novy trade - resetujeme levely
         if trade.id != self.last_trade:
             #inicializujeme a vymazeme pripadne puvodni
-            if self.initialize_levels(state) is False:
+            if self.initialize_levels(state, activeTrade) is False:
                 return None, None
             self.last_trade = trade.id
         #return cost_price, sl_price
         return  state.account_variables[trade.account.name].avgp, trade.stoploss_value
 
-    def initialize_levels(self, state):
+    def initialize_levels(self, state, activeTrade):
         directive_name = 'SL_opt_exit_levels_'+str(self.direction.value)
-        SL_opt_exit_levels = get_signal_section_directive(state=state, directive_name=directive_name, default_value=safe_get(state.vars, directive_name, None))
+        SL_opt_exit_levels = get_signal_section_directive(state=state, signal_name=activeTrade.generated_by, directive_name=directive_name, default_value=safe_get(state.vars, directive_name, None))
 
         directive_name = 'SL_opt_exit_sizes_'+str(self.direction.value)
-        SL_opt_exit_sizes = get_signal_section_directive(state=state, directive_name=directive_name, default_value=safe_get(state.vars, directive_name, None))
+        SL_opt_exit_sizes = get_signal_section_directive(state=state,  signal_name=activeTrade.generated_by, directive_name=directive_name, default_value=safe_get(state.vars, directive_name, None))
 
         if SL_opt_exit_levels is None or SL_opt_exit_sizes is None:
             #print("no directives found: SL_opt_exit_levels/SL_opt_exit_sizes")
@@ -113,7 +113,7 @@ class SLOptimizer:
         """Evaluates optimalization for current position and returns if the given level was
            met and how to adjust exit position.
         """    
-        cost_price, sl_price = self.get_trade_details(state)
+        cost_price, sl_price = self.get_trade_details(state, activeTrade)
         if cost_price is None or sl_price is None:
              #print("no settings found")
              return (None, None)

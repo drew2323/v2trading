@@ -105,8 +105,7 @@ class Backtester:
         self.cash = cash
         self.cash_reserved_for_shorting = 0
         self.trades = []
-        def_acc_value = {self.symbol: [0, 0]}
-        self.internal_account = { account.name:def_acc_value for account in accounts }
+        self.internal_account = { account.name:{self.symbol: [0, 0]} for account in accounts }
         # { "ACCOUNT1": {}"BAC": [avgp, size]}, .... }
         self.open_orders =[] #open orders shared for all accounts, account being an attribute
 
@@ -377,12 +376,12 @@ class Backtester:
                                 event = TradeEvent.FILL,
                                 execution_id = str(uuid4()),
                                 timestamp = datetime.fromtimestamp(fill_time),
-                                position_qty= self.internal_account[o.symbol][0],
+                                position_qty= self.internal_account[o.account.name][o.symbol][0],
                                 price=float(fill_price),
                                 qty = o.qty,
                                 value = float(o.qty*fill_price),
                                 cash = self.cash,
-                                pos_avg_price = self.internal_account[o.symbol][1])
+                                pos_avg_price = self.internal_account[o.account.name][o.symbol][1])
             
             self.trades.append(trade)
 
@@ -418,7 +417,7 @@ class Backtester:
             elif newsize < 0: newavgp = self.internal_account[o.account.name][o.symbol][1]
             #JDE O LONG (avgp nove)
             else:
-                newavgp = ((self.internal_account[o.account.name][o.symbol][0] * self.internal_account[o.account.name][o.symbol][1]) + (o.qty * o.filled_avg_price)) / (self.internal_account[account.name][o.symbol][0] + o.qty)
+                newavgp = ((self.internal_account[o.account.name][o.symbol][0] * self.internal_account[o.account.name][o.symbol][1]) + (o.qty * o.filled_avg_price)) / (self.internal_account[o.account.name][o.symbol][0] + o.qty)
             
             self.internal_account[o.account.name][o.symbol] = [newsize, newavgp]
             self.cash = self.cash - (o.qty * o.filled_avg_price)

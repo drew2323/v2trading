@@ -266,7 +266,7 @@ class StrategyClassicSL(Strategy):
             print(data)
             #dostavame zde i celkové akutální množství - ukládáme
             self.state.account_variables[account.name].positions = data.position_qty
-            self.state.account_variables[account.name].avgp, self.state.account_variables[account.name].positions = self.state.interface.pos()
+            self.state.account_variables[account.name].avgp, self.state.account_variables[account.name].positions = self.state.interface[account.name].pos()
 
         if o.status == OrderStatus.FILLED or o.status == OrderStatus.CANCELED:
             #davame pryc pending
@@ -431,7 +431,7 @@ class StrategyClassicSL(Strategy):
         if data.event == TradeEvent.FILL or data.event == TradeEvent.CANCELED:
             print("Příchozí SELL notifikace - complete FILL nebo CANCEL", data.event)
             self.state.account_variables[account.name].pending = None
-            a,p = self.interface.pos()
+            a,p = self.interface[account.name].pos()
             #pri chybe api nechavame puvodni hodnoty
             if a != -1:
                 self.state.account_variables[account.name].avgp, self.state.account_variables[account.name].positions = a,p

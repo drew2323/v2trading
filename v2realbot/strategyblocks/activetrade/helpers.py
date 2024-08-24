@@ -154,7 +154,7 @@ def get_profit_target_price(state, data, activeTrade, direction: TradeDirection)
         smer = "short"
 
     directive_name = "profit"
-    def_profit_both_directions = get_signal_section_directive(state, activeTrade=activeTrade, directive_name=directive_name, default_value=safe_get(state.vars, directive_name, 0.50))
+    def_profit_both_directions = get_signal_section_directive(state, signal_name=activeTrade.generated_by, directive_name=directive_name, default_value=safe_get(state.vars, directive_name, 0.50))
 
     #profit pro dany smer
     directive_name = 'profit_'+str(smer)
@@ -162,7 +162,7 @@ def get_profit_target_price(state, data, activeTrade, direction: TradeDirection)
 
     #mame v direktivve ticky
     if isinstance(def_profit, (float, int)):
-        to_return = get_normalized_profitprice_from_tick(state, data, activeTrade.account, def_profit, direction)
+        to_return = get_normalized_profitprice_from_tick(state, data, def_profit, activeTrade.account, direction)
     #mame v direktive indikator
     elif isinstance(def_profit, str):
         to_return = float(value_or_indicator(state, def_profit))
@@ -170,7 +170,7 @@ def get_profit_target_price(state, data, activeTrade, direction: TradeDirection)
         #min profit (ochrana extremnich hodnot indikatoru)
         directive_name = 'profit_min_ind_tick_value'
         profit_min_ind_tick_value = get_signal_section_directive(state, signal_name=activeTrade.generated_by, directive_name=directive_name, default_value=def_profit_both_directions)
-        profit_min_ind_price_value = get_normalized_profitprice_from_tick(state, data, activeTrade.account, profit_min_ind_tick_value, direction)
+        profit_min_ind_price_value = get_normalized_profitprice_from_tick(state, data, profit_min_ind_tick_value, activeTrade.account, direction)
 
         #ochrana pri nastaveni profitu prilis nizko
         if direction == TradeDirection.LONG and to_return < profit_min_ind_price_value or direction == TradeDirection.SHORT and to_return > profit_min_ind_price_value:
@@ -181,7 +181,7 @@ def get_profit_target_price(state, data, activeTrade, direction: TradeDirection)
     return to_return
 
 ##based on tick a direction, returns normalized prfoit price (LONG = avgp(nebo currprice)+norm.tick, SHORT=avgp(or currprice)-norm.tick)
-def get_normalized_profitprice_from_tick(state, data, tick, account, direction: TradeDirection):
+def get_normalized_profitprice_from_tick(state, data, tick, account: Account, direction: TradeDirection):
         avgp = state.account_variables[account.name].avgp
         normalized_tick = normalize_tick(state, data, float(tick))
         base_price = avgp if avgp != 0 else data["close"]

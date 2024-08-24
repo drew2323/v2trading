@@ -1267,7 +1267,7 @@ def insert_archive_header(archeader: RunArchive):
     try:
         c = conn.cursor()
         #json_string = orjson.dumps(archeader, default=json_serial, option=orjson.OPT_PASSTHROUGH_DATETIME)
-        print(archeader)
+        #print(archeader)
 
         res = c.execute("""
             INSERT INTO runner_header 

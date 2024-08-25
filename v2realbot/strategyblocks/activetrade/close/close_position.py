@@ -26,20 +26,20 @@ def close_position(state: StrategyState, activeTrade: Trade, data, direction: Tr
     positions = state.account_variables[activeTrade.account.name].positions
     state.ilog(lvl=1,e=f"CLOSING TRADE {followup_text} {reason} {str(direction)}", curr_price=data["close"], trade=activeTrade)
     if direction == TradeDirection.SHORT:
-        res = state.buy(size=abs(int(positions)))
+        res = state.buy(account=activeTrade.account, size=abs(int(positions)))
         if isinstance(res, int) and res < 0:
             raise Exception(f"error in required operation {reason} {res}")
 
     elif direction == TradeDirection.LONG:
-        res = state.sell(size=positions)
+        res = state.sell(account=activeTrade.account, size=positions)
         if isinstance(res, int) and res < 0:
-            raise Exception(f"error in required operation STOPLOSS SELL {res}")
+            raise Exception(f"error in required operation STOPLOSS SELL {res}") #TBD error handling
     
     else:
         raise Exception(f"unknow TradeDirection in close_position")
     
     #pri uzavreni tradu zapisujeme SL history - lepsi zorbazeni v grafu
-    insert_SL_history(state)
+    insert_SL_history(state, activeTrade)
     state.account_variables[activeTrade.account.name].pending = activeTrade.id
     state.account_variables[activeTrade.account.name].activeTrade = None
     #state.account_variables[activeTrade.account.name].last_exit_index = data["index"]
@@ -56,19 +56,19 @@ def close_position_partial(state, activeTrade: Trade,data, direction: TradeDirec
     size_abs = abs(int(int(positions)*size))
     state.ilog(lvl=1,e=f"CLOSING TRADE PART: {size_abs} {size} {reason} {str(direction)}", curr_price=data["close"], trade=activeTrade)
     if direction == TradeDirection.SHORT:
-        res = state.buy(size=size_abs)
+        res = state.buy(account=activeTrade.account, size=size_abs)
         if isinstance(res, int) and res < 0:
             raise Exception(f"error in required operation STOPLOSS PARTIAL BUY {reason} {res}")
 
     elif direction == TradeDirection.LONG:
-        res = state.sell(size=size_abs)
+        res = state.sell(account=activeTrade.account, size=size_abs)
         if isinstance(res, int) and res < 0:
             raise Exception(f"error in required operation STOPLOSS PARTIAL SELL {res}")
     else:
         raise Exception(f"unknow TradeDirection in close_position")
     
     #pri uzavreni tradu zapisujeme SL history - lepsi zorbazeni v grafu
-    insert_SL_history(state)
+    insert_SL_history(state, activeTrade)
     state.account_variables[activeTrade.account.name].pending = activeTrade.id
     state.account_variables[activeTrade.account.name].activeTrade = None
     state.account_variables[activeTrade.account.name].dont_exit_already_activated = False

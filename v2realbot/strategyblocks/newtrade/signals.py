@@ -34,7 +34,7 @@ def signal_search(state: StrategyState, data):
     accountsWithNoActiveTrade = gaka(state.account_variables, "activeTrade", None, lambda x: x is None)
 
     if len(accountsWithNoActiveTrade.values()) == 0:
-        print("active trades on all accounts")
+        #print("active trades on all accounts")
         return
 
     for signalname, signalsettings in state.vars.signals.items():

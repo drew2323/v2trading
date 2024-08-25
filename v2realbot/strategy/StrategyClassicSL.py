@@ -344,7 +344,7 @@ class StrategyClassicSL(Strategy):
                         self.state.vars["transferables"]["martingale"]["cont_loss_series_cnt"] = 0 if rel_profit > 0 else self.state.vars["transferables"]["martingale"]["cont_loss_series_cnt"]+1
                         self.state.ilog(lvl=1, e=f"update cont_loss_series_cnt na {self.state.vars['transferables']['martingale']['cont_loss_series_cnt']}")
 
-                self.state.ilog(e=f"SELL notif {account}- LONG PROFIT {partial_exit=} {partial_last=}:{round(float(trade_profit),3)} celkem:{round(float(self.state.profit),3)} rel:{float(rel_profit)} rel_cum:{round(rel_profit_cum_calculated,7)}", msg=str(data.event), rel_profit_cum = str(self.state.rel_profit_cum), sold_amount=sold_amount, avg_costs=avg_costs, trade_qty=data.qty, trade_price=data.price, orderid=str(data.order.id))
+                self.state.ilog(e=f"SELL notif {account.name}- LONG PROFIT {partial_exit=} {partial_last=}:{round(float(trade_profit),3)} celkem:{round(float(self.state.profit),3)} rel:{float(rel_profit)} rel_cum:{round(rel_profit_cum_calculated,7)}", msg=str(data.event), rel_profit_cum = str(self.state.rel_profit_cum), sold_amount=sold_amount, avg_costs=avg_costs, trade_qty=data.qty, trade_price=data.price, orderid=str(data.order.id))
 
                 #zapsat profit do prescr.trades
                 for trade in self.state.vars.prescribedTrades:
@@ -431,7 +431,7 @@ class StrategyClassicSL(Strategy):
         if data.event == TradeEvent.FILL or data.event == TradeEvent.CANCELED:
             print("Příchozí SELL notifikace - complete FILL nebo CANCEL", data.event)
             self.state.account_variables[account.name].pending = None
-            a,p = self.interface[account.name].pos()
+            a,p = self.interface[account.name].pos() #TBD maybe optimize for speed
             #pri chybe api nechavame puvodni hodnoty
             if a != -1:
                 self.state.account_variables[account.name].avgp, self.state.account_variables[account.name].positions = a,p

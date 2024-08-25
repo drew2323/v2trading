@@ -87,12 +87,12 @@ def trail_SL_management(state: StrategyState, accountsWithActiveTrade, data):
                     state.ilog(lvl=1,e=f"SL TRAIL EVAL {smer} SL:{round(activeTrade.stoploss_value,3)} TRAILGOAL:{move_SL_threshold}", def_SL=def_SL, offset=offset, offset_normalized=offset_normalized, step_normalized=step_normalized, def_SL_normalized=def_SL_normalized)
                     if (move_SL_threshold) < data['close']:
                         activeTrade.stoploss_value += step_normalized
-                        insert_SL_history(state)
+                        insert_SL_history(state, activeTrade)
                         state.ilog(lvl=1,e=f"SL TRAIL TH {smer} reached {move_SL_threshold} SL moved to {activeTrade.stoploss_value}", offset_normalized=offset_normalized, step_normalized=step_normalized, def_SL_normalized=def_SL_normalized)
                 elif direction == TradeDirection.SHORT:
                     move_SL_threshold = activeTrade.stoploss_value - offset_normalized - def_SL_normalized
                     state.ilog(lvl=0,e=f"SL TRAIL EVAL {smer} SL:{round(activeTrade.stoploss_value,3)} TRAILGOAL:{move_SL_threshold}", def_SL=def_SL, offset=offset, offset_normalized=offset_normalized, step_normalized=step_normalized, def_SL_normalized=def_SL_normalized)
                     if (move_SL_threshold) > data['close']:
                         activeTrade.stoploss_value -= step_normalized
-                        insert_SL_history(state)
+                        insert_SL_history(state, activeTrade)
                         state.ilog(lvl=1,e=f"SL TRAIL GOAL {smer} reached {move_SL_threshold} SL moved to {activeTrade.stoploss_value}", offset_normalized=offset_normalized, step_normalized=step_normalized, def_SL_normalized=def_SL_normalized)                            

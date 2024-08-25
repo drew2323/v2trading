@@ -111,7 +111,7 @@ def keyword_conditions_met(state, data, activeTrade: Trade, direction: TradeDire
 #mozna do SL helpers tuto
 def insert_SL_history(state, activeTrade: Trade):
 #insert stoploss history as key sl_history into runner archive extended data
-    state.extData["sl_history"].append(SLHistory(id=activeTrade.id, time=state.time, sl_val=activeTrade.stoploss_value))
+    state.extData["sl_history"].append(SLHistory(id=activeTrade.id, time=state.time, sl_val=activeTrade.stoploss_value, direction=activeTrade.direction, account=activeTrade.account))
 
 
 def get_default_sl_value(state, signal_name, direction: TradeDirection):

@@ -40,9 +40,9 @@ def eval_close_position(state: StrategyState, accountsWithActiveTrade, data):
                 if activeTrade.goal_price is not None:
                     goal_price = activeTrade.goal_price
                 else:
-                    goal_price = get_profit_target_price(state, data, TradeDirection.SHORT, activeTrade)
+                    goal_price = get_profit_target_price(state,  data, activeTrade, TradeDirection.SHORT)
 
-                max_price = get_max_profit_price(state, data, TradeDirection.SHORT, activeTrade)
+                max_price = get_max_profit_price(state, activeTrade, data, TradeDirection.SHORT)
                 state.ilog(lvl=1,e=f"Def Goal price {str(TradeDirection.SHORT)} {goal_price} max price {max_price}")                
                 
                 #SL OPTIMALIZATION - PARTIAL EXIT
@@ -63,7 +63,7 @@ def eval_close_position(state: StrategyState, accountsWithActiveTrade, data):
                     if reverse_for_SL_exit == "always":
                         followup_action = Followup.REVERSE
                     elif reverse_for_SL_exit == "cond":
-                        followup_action = Followup.REVERSE if keyword_conditions_met(state, data=data, activeTrade=activeTrade.generated_by, direction=TradeDirection.SHORT, keyword=KW.slreverseonly, skip_conf_validation=True) else None
+                        followup_action = Followup.REVERSE if keyword_conditions_met(state, data=data, activeTrade=activeTrade, direction=TradeDirection.SHORT, keyword=KW.slreverseonly, skip_conf_validation=True) else None
                     else:
                         followup_action = None
                     close_position(state=state, activeTrade=activeTrade, data=data, direction=TradeDirection.SHORT, reason="SL REACHED", followup=followup_action)
@@ -71,28 +71,28 @@ def eval_close_position(state: StrategyState, accountsWithActiveTrade, data):
                     
                 
                 #REVERSE BASED ON REVERSE CONDITIONS
-                if keyword_conditions_met(state, data, activeTrade=activeTrade.generated_by, direction=TradeDirection.SHORT, keyword=KW.reverse):
+                if keyword_conditions_met(state, data, activeTrade=activeTrade, direction=TradeDirection.SHORT, keyword=KW.reverse):
                         close_position(state=state, activeTrade=activeTrade,data=data, direction=TradeDirection.SHORT, reason="REVERSE COND MET", followup=Followup.REVERSE)
                         return  
 
                 #EXIT ADD CONDITIONS MET (exit and add)
-                if keyword_conditions_met(state, data, activeTrade=activeTrade.generated_by, direction=TradeDirection.SHORT, keyword=KW.exitadd):
+                if keyword_conditions_met(state, data, activeTrade=activeTrade, direction=TradeDirection.SHORT, keyword=KW.exitadd):
                         close_position(state=state, activeTrade=activeTrade, data=data, direction=TradeDirection.SHORT, reason="EXITADD COND MET", followup=Followup.ADD)
                         return  
 
                 #CLOSING BASED ON EXIT CONDITIONS
-                if exit_conditions_met(state, data, TradeDirection.SHORT):
+                if exit_conditions_met(state, activeTrade, data, TradeDirection.SHORT):
                         directive_name = 'reverse_for_cond_exit_short'
-                        reverse_for_cond_exit_short = get_signal_section_directive(state=state, signal_name=activeTrade.signal_name, directive_name=directive_name, default_value=safe_get(state.vars, directive_name, False))
+                        reverse_for_cond_exit_short = get_signal_section_directive(state=state, signal_name=activeTrade.generated_by, directive_name=directive_name, default_value=safe_get(state.vars, directive_name, False))
                         directive_name = 'add_for_cond_exit_short'
-                        add_for_cond_exit_short = get_signal_section_directive(state=state, signal_name=activeTrade.signal_name, directive_name=directive_name, default_value=safe_get(state.vars, directive_name, False))
+                        add_for_cond_exit_short = get_signal_section_directive(state=state, signal_name=activeTrade.generated_by, directive_name=directive_name, default_value=safe_get(state.vars, directive_name, False))
                         if reverse_for_cond_exit_short:
                             followup_action = Followup.REVERSE
                         elif add_for_cond_exit_short: 
                             followup_action = Followup.ADD
                         else:
                             followup_action = None
-                        close_position(state=state, data=data, direction=TradeDirection.SHORT, reason="EXIT COND MET", followup=followup_action)
+                        close_position(state=state, activeTrae=activeTrade, data=data, direction=TradeDirection.SHORT, reason="EXIT COND MET", followup=followup_action)
                         return                   
 
                 #PROFIT
@@ -102,7 +102,7 @@ def eval_close_position(state: StrategyState, accountsWithActiveTrade, data):
                     #TODO pripadne pokud dosahne TGTBB prodat ihned
                     max_price_signal = curr_price<=max_price
                     #OPTIMALIZACE pri stoupajícím angle
-                    if max_price_signal or dontexit_protection_met(state=state, data=data,direction=TradeDirection.SHORT) is False:
+                    if max_price_signal or dontexit_protection_met(state=state, activeTrade=activeTrade, data=data,direction=TradeDirection.SHORT) is False:
                         close_position(state=state, activeTrade=activeTrade, data=data, direction=TradeDirection.SHORT, reason=f"PROFIT or MAXPROFIT REACHED {max_price_signal=}")
                         return
                 #pokud je cena horsi, ale byla uz dont exit aktivovany - pak prodavame také
@@ -137,7 +137,7 @@ def eval_close_position(state: StrategyState, accountsWithActiveTrade, data):
                     position = positions * exit_adjustment
                     state.ilog(lvl=1,e=f"SL OPTIMIZATION ENGAGED {str(TradeDirection.LONG)} {position=} {level_met=} {exit_adjustment}", initial_levels=str(state.sl_optimizer_long.get_initial_abs_levels(state, activeTrade)), rem_levels=str(state.sl_optimizer_long.get_remaining_abs_levels(state, activeTrade)), exit_levels=str(state.sl_optimizer_long.exit_levels), exit_sizes=str(state.sl_optimizer_long.exit_sizes))
                     printanyway(f"SL OPTIMIZATION ENGAGED {str(TradeDirection.LONG)} {position=} {level_met=} {exit_adjustment}")
-                    close_position_partial(state=state, data=data, direction=TradeDirection.LONG, reason=f"SL OPT LEVEL {level_met} REACHED", size=exit_adjustment)
+                    close_position_partial(state=state, activeTrade=activeTrade, data=data, direction=TradeDirection.LONG, reason=f"SL OPT LEVEL {level_met} REACHED", size=exit_adjustment)
                     return
 
                 #SL FULL execution
@@ -190,7 +190,7 @@ def eval_close_position(state: StrategyState, accountsWithActiveTrade, data):
                     #TODO pripadne pokud dosahne TGTBB prodat ihned
                     max_price_signal = curr_price>=max_price
                     #OPTIMALIZACE pri stoupajícím angle
-                    if max_price_signal or dontexit_protection_met(state, data, direction=TradeDirection.LONG) is False:
+                    if max_price_signal or dontexit_protection_met(state, activeTrade=activeTrade, data=data, direction=TradeDirection.LONG) is False:
                         close_position(state=state, activeTrade=activeTrade, data=data, direction=TradeDirection.LONG, reason=f"PROFIT or MAXPROFIT REACHED {max_price_signal=}")
                         return
                 #pokud je cena horsi, ale byl uz dont exit aktivovany - pak prodavame také

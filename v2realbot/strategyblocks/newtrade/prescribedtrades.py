@@ -19,7 +19,8 @@ def execute_prescribed_trades(state: StrategyState, data):
     accountsWithNoActiveTrade = gaka(state.account_variables, "activeTrade", None, lambda x: x is None)
 
     if len(accountsWithNoActiveTrade.values()) == 0:
-        print("active trades on all accounts")
+        #print("active trades on all accounts")
+        return
 
     #returns true if all values are not None
     #all(v is not None for v in d.keys())

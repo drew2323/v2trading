@@ -414,6 +414,8 @@ class SLHistory(BaseModel):
     id: Optional[UUID] = None
     time: datetime
     sl_val: float
+    direction: TradeDirection
+    account: Account
 
 #Contains archive of running strategies (runner) - detail data
 class RunArchiveDetail(BaseModel):

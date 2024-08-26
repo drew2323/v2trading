@@ -58,7 +58,7 @@ def eval_close_position(state: StrategyState, accountsWithActiveTrade, data):
                 if curr_price > activeTrade.stoploss_value:
 
                     directive_name = 'reverse_for_SL_exit_short'
-                    reverse_for_SL_exit = get_signal_section_directive(state=state, activeTrade=activeTrade, directive_name=directive_name, default_value=safe_get(state.vars, directive_name, "no"))
+                    reverse_for_SL_exit = get_signal_section_directive(state=state, signal_name=activeTrade.generated_by, directive_name=directive_name, default_value=safe_get(state.vars, directive_name, "no"))
 
                     if reverse_for_SL_exit == "always":
                         followup_action = Followup.REVERSE

@@ -1650,13 +1650,14 @@ def preview_indicator_byTOML(id: UUID, indicator: InstantIndicator, save: bool =
         new_inds = AttributeDict(**new_inds)
         new_tick_inds = {key: [] for key in detail.indicators[1].keys()}
         new_tick_inds = AttributeDict(**new_tick_inds)
-        interface = BacktestInterface(symbol="X", bt=None)
+        def_account = Account("ACCOUNT1")
+        interface = BacktestInterface(symbol="X", bt=None, account=def_account)
 
         ##dame nastaveni indikatoru do tvaru, ktery stratvars ocekava (pro dynmaicke inicializace)
         stratvars = AttributeDict(indicators=AttributeDict(**{jmeno:toml_parsed}))
         #print("stratvars", stratvars)
 
-        state = StrategyState(name="XX", symbol = "X", stratvars = AttributeDict(**stratvars), interface=interface)
+        state = StrategyState(name="XX", symbol = "X", stratvars = AttributeDict(**stratvars), interface=interface, accounts=[def_account], account=def_account)
 
         #inicializujeme stavove promenne a novy indikator v cilovem dict
         if output == "bar":

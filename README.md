@@ -48,6 +48,8 @@ Custom-built algorithmic trading platform for research, backtesting and live tra
 **Backend and API:** The backbone of the platform is built with Python, utilizing libraries such as FastAPI, NumPy, Keras, and JAX, ensuring high performance and scalability.
 **Frontend:** The client-side is developed with Vanilla JavaScript and jQuery, employing LightweightCharts for charting purposes. Additional modules enhance the platform's functionality. The frontend is slated for a future refactoring to modern frameworks like Vue.js and Vuetify for a more robust user interface.
 
+**Documentation** Public docs in in progress. Some can be found on [knowledge base](trading.mujdenik.eu) but first please request access. Some analysis documents can be found on [shared google doc folder](https://drive.google.com/drive/folders/1WmYG8oDGXO-lVTLVs9knAmMTmQL4dZt6?usp=drive_link).
+
 # Installation Instructions
 This document outlines the steps for installing and setting up the necessary environment for the application. These instructions are applicable for both Windows and Linux operating systems. Please follow the steps carefully to ensure a smooth setup.
 

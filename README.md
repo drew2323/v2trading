@@ -1,4 +1,4 @@
-# V2TRADING - Advanced Algorithmic Trading Platform
+# V2TRADING - Algorithmic Trading Platform with Frontend
 
 ## Overview
 Custom-built algorithmic trading platform for research, backtesting and live trading. Trading engine capable of processing tick data, providing custom aggregation, managing trades, and supporting backtesting in a highly accurate and efficient manner.

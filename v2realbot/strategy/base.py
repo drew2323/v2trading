@@ -150,9 +150,9 @@ class Strategy:
                 key = get_key(mode=mode, account=Account(account))
                 self.interface[account.name] = LiveInterface(symbol=self.symbol, key=key)
                 # order notif thread
-                self.order_notifs = LiveOrderUpdatesStreamer(key=key, name="WS-STRMR-" + account.name + "-" + self.name, account=account)
+                self.order_notifs[account.name] = LiveOrderUpdatesStreamer(key=key, name="WS-STRMR-" + account.name + "-" + self.name, account=account)
                 #propojujeme notifice s interfacem (pro callback)
-                self.order_notifs.connect_callback(self)
+                self.order_notifs[account.name].connect_callback(self)
 
             self.state = StrategyState(name=self.name, accounts=self.accounts, account=self.account, symbol = self.symbol, stratvars = self.stratvars, interface=self.interface, rectype=self.rectype, runner_id=self.runner_id, ilog_save=self.ilog_save)
 

@@ -1,4 +1,4 @@
-from threading import Thread
+from threading import Thread, current_thread
 from alpaca.trading.stream import TradingStream
 from v2realbot.config import Keys
 from v2realbot.common.model import Account
@@ -41,6 +41,6 @@ class LiveOrderUpdatesStreamer(Thread):
             print("connect strategy first")
             return
         self.client.subscribe_trade_updates(self.distributor)
-        print("*"*10, "WS Order Update Streamer started for", self.strategy.name, "*"*10)
+        print("*"*10, "WS Order Update Streamer started for", current_thread().name,"*"*10)
         self.client.run()
         

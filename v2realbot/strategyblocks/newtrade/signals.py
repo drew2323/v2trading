@@ -84,6 +84,7 @@ def execute_signal_generator(state: StrategyState, data, name):
             state.ilog(lvl=1,e=f"{name} SHORT DISABLED")
         if long_enabled is False:
             state.ilog(lvl=1,e=f"{name} LONG DISABLED")
+        trade_made = None
         #predkontroloa zda neni pending na accountu nebo aktivni trade
         if state.account_variables[account_long].pending is None and state.account_variables[account_long].activeTrade is None and long_enabled and go_conditions_met(state, data,signalname=name, direction=TradeDirection.LONG):
             multiplier = get_multiplier(state, data, options, TradeDirection.LONG)
@@ -98,7 +99,9 @@ def execute_signal_generator(state: StrategyState, data, name):
                                     direction=TradeDirection.LONG,
                                     entry_price=None,
                                     stoploss_value = None))
-        elif state.account_variables[account_short].pending is None and state.account_variables[account_short].activeTrade is None and short_enabled and go_conditions_met(state, data, signalname=name, direction=TradeDirection.SHORT):
+            trade_made = account_long
+        #pri multiaccountu muzeme udelat v jedne iteraci vice tradu avsak vzdy na ruznych accountech
+        if (trade_made is None or trade_made != account_short) and state.account_variables[account_short].pending is None and state.account_variables[account_short].activeTrade is None and short_enabled and go_conditions_met(state, data, signalname=name, direction=TradeDirection.SHORT):
             multiplier = get_multiplier(state, data, options, TradeDirection.SHORT)
             state.vars.prescribedTrades.append(Trade(
                     account=account_short,
@@ -111,5 +114,5 @@ def execute_signal_generator(state: StrategyState, data, name):
                     direction=TradeDirection.SHORT,
                     entry_price=None,
                     stoploss_value = None))
-        else:
-            state.ilog(lvl=0,e=f"{name} NO SIGNAL")
+            return
+        state.ilog(lvl=0,e=f"{name} NO SIGNAL")

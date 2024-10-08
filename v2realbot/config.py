@@ -17,9 +17,6 @@ RUNNER_DETAIL_DIRECTORY = Path(__file__).parent.parent.parent / "runner_detail"
 LOG_PATH = Path(__file__).parent.parent
 LOG_FILE = Path(__file__).parent.parent / "strat.log"
 JOB_LOG_FILE = Path(__file__).parent.parent / "job.log"
-DOTENV_DIRECTORY = Path(__file__).parent.parent.parent
-ENV_FILE = DOTENV_DIRECTORY / '.env'
-
 
 #stratvars that cannot be changed in gui
 STRATVARS_UNCHANGEABLES = ['pendingbuys', 'blockbuy', 'jevylozeno', 'limitka']
@@ -29,6 +26,26 @@ MODEL_DIR = Path(DATA_DIR)/"models"
 #profiling
 PROFILING_NEXT_ENABLED = False
 PROFILING_OUTPUT_DIR = DATA_DIR
+
+def find_dotenv(start_path):
+    """
+    Searches for a .env file in the given directory or its parents and returns the path.
+
+    Args:
+        start_path: The directory to start searching from.
+
+    Returns:
+        Path to the .env file if found, otherwise None.
+    """
+    current_path = Path(start_path)
+    for _ in range(6):  # Limit search depth to 5 levels
+        dotenv_path = current_path / '.env'
+        if dotenv_path.exists():
+            return dotenv_path
+        current_path = current_path.parent
+    return None
+
+ENV_FILE = find_dotenv(__file__)
 
 #NALOADUJEME DOTENV ENV VARIABLES
 if load_dotenv(ENV_FILE, verbose=True) is False:

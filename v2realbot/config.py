@@ -11,6 +11,7 @@ _ml_module_loaded = False
 
 #directory for generated images and basic reports
 MEDIA_DIRECTORY = Path(__file__).parent.parent.parent / "media"
+VBT_DOC_DIRECTORY = Path(__file__).parent.parent.parent / "vbt-doc" #directory for vbt doc
 RUNNER_DETAIL_DIRECTORY = Path(__file__).parent.parent.parent / "runner_detail"
 
 #location of strat.log - it is used to fetch by gui

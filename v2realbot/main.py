@@ -1,7 +1,7 @@
 import os,sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["KERAS_BACKEND"] = "jax"
-from v2realbot.config import WEB_API_KEY, DATA_DIR, MEDIA_DIRECTORY, LOG_PATH, MODEL_DIR
+from v2realbot.config import WEB_API_KEY, DATA_DIR, MEDIA_DIRECTORY, LOG_PATH, MODEL_DIR, VBT_DOC_DIRECTORY
 from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from datetime import datetime
 from rich import print
@@ -121,6 +121,22 @@ async def static_files(request: Request, path: str, authenticated: bool = Depend
         raise HTTPException(status_code=404, detail="File not found")
 
     return FileResponse(file_path)
+
+@app.get("/vbt-doc/{file_path:path}")
+async def serve_protected_docs(file_path: str, credentials: HTTPBasicCredentials = Depends(authenticate_user)):
+    file_location = VBT_DOC_DIRECTORY / file_path
+
+    if file_location.is_dir():  # If it's a directory, serve index.html
+        index_file = file_location / "index.html"
+        if index_file.exists():
+            return FileResponse(index_file)
+        else:
+            raise HTTPException(status_code=404, detail="Index file not found")
+    elif file_location.exists():
+        return FileResponse(file_location)
+    else:
+        raise HTTPException(status_code=404, detail="File not found")
+
 
 def get_current_username(
     credentials: Annotated[HTTPBasicCredentials, Depends(security)]

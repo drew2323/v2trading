@@ -1,7 +1,7 @@
 """
     Strategy base class
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 from v2realbot.utils.utils import AttributeDict, zoneNY, is_open_rush, is_close_rush, json_serial, print
 from v2realbot.utils.tlog import tlog
 from v2realbot.utils.ilog import insert_log, insert_log_multiple_queue
@@ -398,6 +398,51 @@ class Strategy:
                 profiler.stop()
             self.after_iteration(item)
 
+
+    def save_to_15min_bar(self, item, id=None, temp_bar=None):  
+        
+        def initiate_temp_bar(bar_item):
+            update_minutes = bar_item["time"].minute - bar_item["time"].minute % 15
+            round_start_time = bar_item["time"].replace(minute = update_minutes, second = 0, microsecond = 0)
+            end_time = round_start_time + timedelta(minutes=15) - timedelta(microseconds=1)
+
+            new_temp_bar = {
+                "high": bar_item["high"],
+                "low": bar_item["low"],
+                "open": bar_item["open"],
+                "close": bar_item["close"],
+                "updated": bar_item["time"],
+                "start_time": round_start_time,
+                "end_time": end_time
+                }  
+            return new_temp_bar
+
+        if temp_bar is None:
+            self.state.extData["bar_15min"] = {}
+            self.state.extData["bar_15min"]["id"] = []
+            self.state.extData["bar_15min"]["open"] = []
+            self.state.extData["bar_15min"]["close"] = []
+            self.state.extData["bar_15min"]["high"] = []
+            self.state.extData["bar_15min"]["low"] = []
+            self.state.extData["bar_15min"]["updated"] = []
+
+            return initiate_temp_bar(item)
+        
+        else:
+            if temp_bar["end_time"] > item["time"]:
+                temp_bar["high"] = max(temp_bar["high"], item["high"])
+                temp_bar["low"] = min(temp_bar["low"],  item["low"])
+                temp_bar["close"] = item["close"]
+                temp_bar["updated"] = item["time"]
+                return temp_bar
+            else: 
+                self.state.extData["bar_15min"]["open"].append(temp_bar["open"])
+                self.state.extData["bar_15min"]["close"].append(temp_bar["close"])
+                self.state.extData["bar_15min"]["high"].append(temp_bar["high"])
+                self.state.extData["bar_15min"]["low"].append(temp_bar["low"])
+                self.state.extData["bar_15min"]["updated"].append(temp_bar["updated"])
+                return initiate_temp_bar(item)
+            
     #toto si mohu ve strategy classe overridnout a pridat dalsi kroky
     def call_next(self, item):
         self.next(item, self.state)

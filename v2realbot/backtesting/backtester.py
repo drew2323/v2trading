@@ -88,7 +88,7 @@ class Backtester:
     Returns:
         None
     """
-    def __init__(self, symbol: str, accounts: Set, order_fill_callback: callable, btdata: list, bp_from: datetime, bp_to: datetime, cash: float = 100000):
+    def __init__(self, symbol: str, accounts: Set, order_fill_callback: callable, btdata: list, bp_from: datetime, bp_to: datetime, cash: float = 1000000):
         #this TIME value determines true time for submit, replace, cancel order should happen (allowing past)
         #it is set by every iteration of BT or before fill callback - allowing past events to happen
         self.time = None

@@ -211,7 +211,7 @@ class RunRequest(BaseModel):
     test_batch_id: Optional[str] = None
     #GENERATED ID v ramci runu, vaze vsechny runnery v batchovem behu
     batch_id: Optional[str] = None
-    cash: int = 100000
+    cash: int = 1000000
     skip_cache: Optional[bool] = False
 
 #Trida, která je nadstavbou runrequestu a pouzivame ji v scheduleru, je zde navic jen par polí

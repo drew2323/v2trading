@@ -13,16 +13,25 @@ from traceback import format_exc
 
 def normalize_tick(state, data, tick: float, price: float = None, return_two_decimals: bool = False):
     """
-    Pokud je nastaveno v direktive:
-    #zda normalizovat vsechyn ticky (tzn. profit, maxprofit, SL atp.)
-    Normalize_ticks= true
-    Normalized Tick base price = 30
+    In stratvars directives the values can be either in ticks, relative ticks based on base price or in percentage.
 
-    prevede normalizovany tick na tick odpovidajici vstupni cene
-    vysledek je zaokoruhleny na 2 des.mista
+    This function converts all those types to absolute values considering the type and current price.
+    Returns absolute value of tick with required precision.
 
-    u cen pod 30, vrací 0.01. U cen nad 30 vrací pomerne zvetsene, 
+    How are each variants recognized:
+    - ticks - absolute ticks regargless of asset price
+        - When: value is positive and normalize_ticks = False
+    
+    - relative ticks based on base price (number of ticks in relation of base price)
+        - When: value is positive, normalize_ticks = True and normalized_base_price is set (default is 30)
+        - Returns relative absolute tick based on base price vs current price.
+        - When price is under base price, it considers price = base price
 
+    - relative percentages from the asset price
+        - When: value is negative
+        - Returns percentage from the current price
+
+    Applies to directive like profit, maxprofit, SL etc. 
     """
     #nemusime dodavat cenu, bereme aktualni
     if price is None:
@@ -30,7 +39,8 @@ def normalize_tick(state, data, tick: float, price: float = None, return_two_dec
 
     normalize_ticks = safe_get(state.vars, "normalize_ticks",False)
     normalized_base_price = safe_get(state.vars, "normalized_base_price",30)
-    if normalize_ticks:
+
+    if tick > 0 and normalize_ticks:
         if price<normalized_base_price:
             return tick
         else:
@@ -38,5 +48,8 @@ def normalize_tick(state, data, tick: float, price: float = None, return_two_dec
             ratio = price/normalized_base_price
             normalized_tick = ratio*tick
         return price2dec(normalized_tick) if return_two_decimals else normalized_tick
+    elif tick < 0:
+        value = abs(tick) * price / 100.0
+        return price2dec(value) if return_two_decimals else value
     else:
         return tick

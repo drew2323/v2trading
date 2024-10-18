@@ -2,6 +2,7 @@
     Strategy base class
 """
 from datetime import datetime, timedelta
+from typing import Union
 from v2realbot.utils.utils import AttributeDict, zoneNY, is_open_rush, is_close_rush, json_serial, print
 from v2realbot.utils.tlog import tlog
 from v2realbot.utils.ilog import insert_log, insert_log_multiple_queue
@@ -376,7 +377,8 @@ class Strategy:
 
         self.save_item_history(item)
         #nevyhodit ten refresh do TypeLimit? asi ANO
-
+        temp_bar = None
+        temp_bar = self.save_to_15min_bar(item, temp_bar = temp_bar)
         #pro prep nedelame refresh pozic
         if self.mode != Mode.PREP:
             self.refresh_positions(item)
@@ -398,51 +400,119 @@ class Strategy:
                 profiler.stop()
             self.after_iteration(item)
 
-
-    def save_to_15min_bar(self, item, id=None, temp_bar=None):  
         
-        def initiate_temp_bar(bar_item):
-            update_minutes = bar_item["time"].minute - bar_item["time"].minute % 15
-            round_start_time = bar_item["time"].replace(minute = update_minutes, second = 0, microsecond = 0)
-            end_time = round_start_time + timedelta(minutes=15) - timedelta(microseconds=1)
+                    
+    def save_to_15min_bar(self, item: dict, temp_bar: dict=None, config=dict(align=StartBarAlign.ROUND, BarType=RecordType.BAR, resolution='15M')): 
+          
+        def set_storage():
+            self.state.extData["bar_15min"] = {}
+            self.state.extData["bar_15min"]["high"] = []
+            self.state.extData["bar_15min"]["low"] = []
+            self.state.extData["bar_15min"]["volume"] = []
+            self.state.extData["bar_15min"]["close"] = []
+            self.state.extData["bar_15min"]["hlcc4"] = []
+            self.state.extData["bar_15min"]["open"] = []
+            self.state.extData["bar_15min"]["time"] = []
+            self.state.extData["bar_15min"]["trades"] = []
+            self.state.extData["bar_15min"]["resolution"] = []
+            self.state.extData["bar_15min"]["confirmed"] = []
+            self.state.extData["bar_15min"]["vwap"] = []
+            self.state.extData["bar_15min"]["updated"] = []
+            self.state.extData["bar_15min"]["index"] = []
 
+        def parse_resolution(res_input):
+            if isinstance(res_input, int):
+                return res_input
+            if isinstance(res_input, str):
+                TimeUnit = ''.join(char.lower() for char in res_input if char.isalpha())
+                TimeInterval = int(''.join(char for char in res_input if char.isdigit()))
+                print(type(TimeInterval))
+                
+                match TimeUnit:
+                    case 's':
+                        return int(TimeInterval)
+                    case 'h':
+                        return int(TimeInterval*3600)
+                    case 'm':
+                        return int(TimeInterval*60)
+                    case _:
+                        return int(900)
+                    
+
+        def initiate_temp_bar(bar_item, TypeAlign, resolution):
+            if TypeAlign == StartBarAlign.ROUND:
+                typ=type(bar_item["time"])
+                print(typ)
+                update_minutes = int(bar_item["time"].minute - bar_item["time"].minute % (resolution/60))
+                start_time = bar_item["time"].replace(minute = update_minutes, second = 0, microsecond = 0)
+                end_time = start_time + timedelta(minutes=resolution/60) - timedelta(microseconds=1)
+            
+            if TypeAlign == StartBarAlign.RANDOM: 
+                start_time = bar_item["time"]
+                end_time = start_time + timedelta(minutes=resolution/60) - timedelta(microseconds=1)
+            
             new_temp_bar = {
                 "high": bar_item["high"],
                 "low": bar_item["low"],
-                "open": bar_item["open"],
+                "volume": bar_item["volume"],
                 "close": bar_item["close"],
-                "updated": bar_item["time"],
-                "start_time": round_start_time,
+                "hlcc4": bar_item["hlcc4"],
+                "open": bar_item["open"],
+                "time": bar_item["time"],
+                "trades": bar_item["trades"],
+                "resolution": bar_item["resolution"],
+                "confirmed": bar_item["confirmed"],
+                "vwap": bar_item["vwap"],
+                "updated": bar_item["updated"],
+                "index": bar_item["index"],
+                "start_time": start_time,
                 "end_time": end_time
                 }  
-            return new_temp_bar
+            return new_temp_bar            
 
-        if temp_bar is None:
-            self.state.extData["bar_15min"] = {}
-            self.state.extData["bar_15min"]["id"] = []
-            self.state.extData["bar_15min"]["open"] = []
-            self.state.extData["bar_15min"]["close"] = []
-            self.state.extData["bar_15min"]["high"] = []
-            self.state.extData["bar_15min"]["low"] = []
-            self.state.extData["bar_15min"]["updated"] = []
 
-            return initiate_temp_bar(item)
+        if config["BarType"]==RecordType.BAR:
+            if temp_bar is None:
+                set_storage()
+                return initiate_temp_bar(item, config["align"], parse_resolution(config["resolution"]))
         
-        else:
-            if temp_bar["end_time"] > item["time"]:
-                temp_bar["high"] = max(temp_bar["high"], item["high"])
-                temp_bar["low"] = min(temp_bar["low"],  item["low"])
-                temp_bar["close"] = item["close"]
-                temp_bar["updated"] = item["time"]
-                return temp_bar
-            else: 
+            else:
+                if temp_bar["end_time"] > item["time"]:
+                    temp_bar["high"] = max(temp_bar["high"], item["high"])
+                    temp_bar["low"] = min(temp_bar["low"],  item["low"])
+                    temp_bar["close"] = item["close"]
+                    temp_bar["updated"] = item["updated"]
+                    return temp_bar
+                else: 
+                    self.state.extData["bar_15min"]["open"].append(temp_bar["open"])
+                    self.state.extData["bar_15min"]["close"].append(temp_bar["close"])
+                    self.state.extData["bar_15min"]["high"].append(temp_bar["high"])
+                    self.state.extData["bar_15min"]["low"].append(temp_bar["low"])
+                    self.state.extData["bar_15min"]["time"].append(temp_bar["time"])
+                    self.state.extData["bar_15min"]["updated"].append(temp_bar["updated"])
+                    return initiate_temp_bar(item)
+                
+
+        if config["BarType"]==RecordType.CBAR:
+            if temp_bar is None:
+                set_storage()
+                temp_bar = initiate_temp_bar(item, config["align"], parse_resolution(config["resolution"]))
                 self.state.extData["bar_15min"]["open"].append(temp_bar["open"])
                 self.state.extData["bar_15min"]["close"].append(temp_bar["close"])
                 self.state.extData["bar_15min"]["high"].append(temp_bar["high"])
                 self.state.extData["bar_15min"]["low"].append(temp_bar["low"])
+                self.state.extData["bar_15min"]["time"].append(temp_bar["time"])
                 self.state.extData["bar_15min"]["updated"].append(temp_bar["updated"])
-                return initiate_temp_bar(item)
-            
+            else:
+                if temp_bar["end_time"] > item["time"]:
+                    self.state.extData["bar_15min"]["high"][-1] = max(self.state.extData["bar_15min"]["high"][-1], item["high"])
+                    self.state.extData["bar_15min"]["low"][-1] = min(self.state.extData["bar_15min"]["low"][-1], item["low"])
+                    self.state.extData["bar_15min"]["close"][-1] = item["close"]
+                    self.state.extData["bar_15min"]["updated"][-1] = item["updated"]
+                else: 
+                    return initiate_temp_bar(item)
+
+
     #toto si mohu ve strategy classe overridnout a pridat dalsi kroky
     def call_next(self, item):
         self.next(item, self.state)

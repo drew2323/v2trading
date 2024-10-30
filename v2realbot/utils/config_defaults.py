@@ -22,7 +22,11 @@ NORMALIZED_TICK_BASE_PRICE = 30.00
 
 #DEFAULT AGGREGATOR filter trades
 #NOTE pridana F - Inter Market Sweep Order - obcas vytvarela spajky
-AGG_EXCLUDED_TRADES = ['C','O','4','B','7','V','P','W','U','Z','F']
+AGG_EXCLUDED_TRADES = ['C','O','4','B','7','V','P','W','U','Z','F','9','M','6']
+#added 9 - correction, M - Official Close, T- extended hours, 6 - Cancel Trade
+#https://docs.dxfeed.com/misc/dxFeed_TimeAndSale_Sale_Conditions.htm
+
+
 #how many consecutive trades with the fill price are necessary for LIMIT fill to happen in backtesting
 #0 - optimistic, every knot high will fill the order
 #N - N consecutive trades required

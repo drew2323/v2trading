@@ -1,10 +1,18 @@
 from enum import Enum
 from alpaca.trading.enums import OrderSide, OrderStatus, OrderType
 
-class BarType(str, Enum):
-    TIME = "time"
-    VOLUME = "volume"
-    DOLLAR = "dollar"
+class AggType(str, Enum):
+    """
+    Enum class for aggregation types.
+    ohlcv - time based ohlcv (time as resolution)
+    ohlcv_vol - volume based ohlcv (volume as resolution)
+    ohlcv_dol - dollar volume based ohlcv (dollar amount as resolution)
+    ohlcv_renko - renko based ohlcv (brick size as resolution)
+    """
+    OHLCV = 'ohlcv'
+    OHLCV_VOL = 'ohlcv_vol'
+    OHLCV_DOL = 'ohlcv_dol'
+    OHLCV_RENKO = 'ohlcv_renko'
 
 class Env(str, Enum):
     PROD = "prod"

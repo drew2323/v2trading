@@ -5,9 +5,14 @@ from pathlib import Path
 import os
 from collections import defaultdict
 from dotenv import load_dotenv
+from datetime import timedelta
 # Global flag to track if the ml module has been imported (solution for long import times of tensorflow)
 #the first occurence of using it will load it globally
 _ml_module_loaded = False
+
+# Define pre-market and post-market offsets
+PRE_MARKET_OFFSET = timedelta(hours=5, minutes=30)     # 4:00 AM
+POST_MARKET_OFFSET = timedelta(hours=4)   # 8:00 PM
 
 #directory for generated images and basic reports
 MEDIA_DIRECTORY = Path(__file__).parent.parent.parent / "media"
@@ -20,12 +25,8 @@ JOB_LOG_FILE = Path(__file__).parent.parent / "job.log"
 
 #stratvars that cannot be changed in gui
 STRATVARS_UNCHANGEABLES = ['pendingbuys', 'blockbuy', 'jevylozeno', 'limitka']
-DATA_DIR = user_data_dir("v2realbot", False)
-MODEL_DIR = Path(DATA_DIR)/"models"
-#BT DELAYS
-#profiling
-PROFILING_NEXT_ENABLED = False
-PROFILING_OUTPUT_DIR = DATA_DIR
+#DATA dirs are stored in dotenv files so it can be shared amongs other libraries
+
 
 def find_dotenv(start_path):
     """
@@ -49,10 +50,20 @@ ENV_FILE = find_dotenv(__file__)
 
 #NALOADUJEME DOTENV ENV VARIABLES
 if load_dotenv(ENV_FILE, verbose=True) is False:
-    print(f"Error loading.env file {ENV_FILE}. Now depending on ENV VARIABLES set externally.")
+    print(f"!Error loading.env file {ENV_FILE}. Now depending on ENV VARIABLES set externally.")
 else:
-    print(f"Loaded env variables from file {ENV_FILE}")
+    print(f"!Loaded env variables from file {ENV_FILE}")
 
+DATA_DIR = user_data_dir("v2realbot", False)
+MODEL_DIR = Path(DATA_DIR)/"models"
+TRADE_CACHE = Path(DATA_DIR)/"tradecache"
+AGG_CACHE = Path(DATA_DIR)/"aggcache"
+
+#profiling
+PROFILING_NEXT_ENABLED = False
+PROFILING_OUTPUT_DIR = DATA_DIR
+
+#BT DELAYS
 #WIP - FILL CONFIGURATION CLASS FOR BACKTESTING
 class BT_FILL_CONF:
     """"
@@ -110,7 +121,7 @@ data_feed_type_str = os.environ.get('ACCOUNT1_PAPER_FEED', 'iex')  # Default to 
 # Convert the string to DataFeed enum
 try:
     ACCOUNT1_PAPER_FEED = DataFeed(data_feed_type_str)
-except nameError:
+except NameError:
     # Handle the case where the environment variable does not match any enum member
     print(f"Invalid data feed type: {data_feed_type_str} in ACCOUNT1_PAPER_FEED defaulting to 'iex'")
     ACCOUNT1_PAPER_FEED = DataFeed.SIP

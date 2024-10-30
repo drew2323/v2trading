@@ -1,39 +1,31 @@
-from v2realbot.loader.aggregator import TradeAggregator, TradeAggregator2List, TradeAggregator2Queue
-#from v2realbot.loader.cacher import get_cached_agg_data
-from alpaca.trading.requests import GetCalendarRequest
-from alpaca.data.live import StockDataStream
-from v2realbot.config import ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, DATA_DIR
+
+# TADY JSEM SKONCIL
+##moved loader and vectorized aggregator out to ttools, so ite can be shaerd
+#continue with the steps and include ttools, make sure that DIRS are aligned
+#file moved to todel dir
+
+from v2realbot.loader.aggregator import TradeAggregator
+from ttools.loaders import fetch_daily_stock_trades
 from alpaca.data.enums import DataFeed
-from alpaca.data.historical import StockHistoricalDataClient
-from alpaca.data.requests import StockLatestQuoteRequest, StockBarsRequest, StockTradesRequest
 from threading import Thread, current_thread
-from v2realbot.utils.utils import parse_alpaca_timestamp, ltp, zoneNY, send_to_telegram, fetch_calendar_data
-from v2realbot.utils.tlog import tlog
-from datetime import datetime, timedelta, date
+from v2realbot.utils.utils import fetch_calendar_data, ltp, zoneNY
+from datetime import datetime
 from threading import Thread
 import asyncio
 from msgpack.ext import Timestamp
 from msgpack import packb
-from pandas import to_datetime
-import gzip
-import pickle
-import os
+import numpy as np
 from rich import print
 import queue
 from alpaca.trading.models import Calendar
 from tqdm import tqdm
-import time
 from traceback import format_exc
 from collections import defaultdict
-import requests
 import v2realbot.utils.config_handler as cfh
 """
     Trade offline data streamer, based on Alpaca historical data.
 """
 class Trade_Offline_Streamer(Thread):
-    #pro BT se pripojujeme vzdy k primarnimu uctu - pouze tahame historicka data + calendar
-    client =  StockHistoricalDataClient(ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, raw_data=True)
-    #clientTrading = TradingClient(ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, raw_data=False)
     def __init__(self, time_from: datetime, time_to: datetime, btdata) -> None:
        # Call the Thread class's init function
        Thread.__init__(self)
@@ -44,8 +36,20 @@ class Trade_Offline_Streamer(Thread):
        self.time_to = time_to
        self.btdata = btdata
        self.cache_used = defaultdict(list)
+       self.main_session_only = True
  
     def add_stream(self, obj: TradeAggregator):
+
+        #WORKAROUND - exthours on each add_data creates main_session_only attribute
+        #if any of stream has ext_hours True, it populates global params
+        # and apply to all streams
+        if obj.exthours != (not self.main_session_only):
+            self.main_session_only = not obj.exthours
+
+        #when new stream is added with exthours update it on all existing streams - TODO add as instance parameter
+        for stream in self.streams:
+            stream.exthours = obj.exthours
+
         self.streams.append(obj)
 
     def remove_stream(self, obj):
@@ -64,35 +68,6 @@ class Trade_Offline_Streamer(Thread):
 
     def stop(self):
         pass
-
-    def fetch_stock_trades(self, symbol, start, end, max_retries=5, backoff_factor=1):
-        """
-        Attempts to fetch stock trades with exponential backoff. Raises an exception if all retries fail.
-
-        :param symbol: The stock symbol to fetch trades for.
-        :param start: The start time for the trade data.
-        :param end: The end time for the trade data.
-        :param max_retries: Maximum number of retries.
-        :param backoff_factor: Factor to determine the next sleep time.
-        :return: TradesResponse object.
-        :raises: ConnectionError if all retries fail.
-        """
-        stockTradeRequest = StockTradesRequest(symbol_or_symbols=symbol, start=start, end=end)
-        last_exception = None
-
-        for attempt in range(max_retries):
-            try:
-                tradesResponse = self.client.get_stock_trades(stockTradeRequest)
-                print("Remote Fetch DAY DATA Complete", start, end)
-                return tradesResponse
-            except Exception as e:
-                print(f"Attempt {attempt + 1} failed: {e}")
-                last_exception = e
-                time.sleep(backoff_factor * (2 ** attempt))
-
-        print("All attempts to fetch data failed.")
-        send_to_telegram(f"Failed to fetch stock trades after {max_retries} retries. Last exception: {str(last_exception)} and {format_exc()}")
-        raise ConnectionError(f"Failed to fetch stock trades after {max_retries} retries. Last exception: {str(last_exception)} and {format_exc()}")
 
    # Override the run() function of Thread class
    #odebrano async
@@ -137,6 +112,11 @@ class Trade_Offline_Streamer(Thread):
         #agregator2list bude mit vstup list
 
         #datetime.fromtimestamp(data['updated']).astimezone(zoneNY))
+
+
+        #na GUI no_cache
+        #na uroven strategie typ behu - bud day by day(N runners) nebo continuous
+
         #REFACTOR STARTS HERE
         #print(f"{self.time_from=} {self.time_to=}")
  
@@ -150,7 +130,7 @@ class Trade_Offline_Streamer(Thread):
             end_date = self.time_to  # Assuming this is your end date
             cal_dates = fetch_calendar_data(start_date, end_date)
 
-            #zatim podpora pouze main session
+        #zatim podpora pouze main session
         
         live_data_feed = cfh.config_handler.get_val('LIVE_DATA_FEED')
 
@@ -173,7 +153,7 @@ class Trade_Offline_Streamer(Thread):
             #print("dayopentimestamp", day.open.timestamp())      
             #print("dayclosetimestamp", day.close.timestamp())     
             ##pokud datum do je mensi day.open, tak tento den neresime
-            if self.time_to < day.open:
+            if self.time_to < day.open: #issue #260 adapt to extended horus when needed
                 print("time_to je pred zacatkem marketu. Vynechavame tento den.")
                 continue
 
@@ -181,95 +161,60 @@ class Trade_Offline_Streamer(Thread):
                 print("Tento den je v budoucnu. Vynechavame tento den.")
                 continue                
 
-            
-            #check if we have  data in aggregator cache - for all streams
-            #zatim jednoduse
-            # predpokladame ze [0] jsou btdata a [1] hlavni add_data
-            # - pokud jsou oba, jedeme z cache ,pokud jeden nebo zadny - jedeme trady
-            # - cache pokryva cely den
+            #main_session_only = False #TODO issue #260 currently strat wide
+            force_remote = False #bring to frontend issue #258
+            exthours = not self.main_session_only
 
-            #musim zajistit, ze BT data tam jdou drive nez cache
-            # to_rem = []
-            # for stream in self.to_run[symbpole[0]]:
-            #     cache = stream.get_cache(day.open, day.close)
-            #     if cache is not None:
-            #         stream.send_cache_to_output(cache)
-            #         to_rem.append(stream)
+            #RESOLVE daily times
+            day_date = day.open.date()
+            min_day_time = zoneNY.localize(datetime.combine(day_date, datetime.min.time()))
+            max_day_time = zoneNY.localize(datetime.combine(day_date, datetime.max.time()))          
 
-            #cache resime jen kdyz backtestujeme cely den a mame sip datapoint (iex necachujeme)
-            #pokud ne tak ani necteme, ani nezapisujeme do cache
+            #cut first day to time_from and last day to time_to
+            start = max(self.time_from, min_day_time)
+            end = min(self.time_to, max_day_time)
 
-            if (self.time_to >= day.close and self.time_from <= day.open) and live_data_feed == DataFeed.SIP:
+            #AGG daily CACHE HERE (from-to period enters cache)
+            #we cache daily cache files, including partial days - identified by exact time from - to
+            #we assume single add_data here
+            symbol = symbpole[0]  # Assuming symbpole[0] is your target symbol
+            #AGG CACHE zatim neupravujeme, zde je zatim zapiklovany MAIN SESSION a dany objekt
+            #TODO v budoucnu predelat, na daily, parquet a reuse i pro vbt, jako tradecache
+            if live_data_feed == DataFeed.SIP :
                 #tento odstavec obchazime pokud je nastaveno "dont_use_cache"
-                stream_btdata = self.to_run[symbpole[0]][0]
-                cache_btdata, file_btdata = stream_btdata.get_cache(day.open, day.close)
-                stream_main = self.to_run[symbpole[0]][1]
-                cache_main, file_main = stream_main.get_cache(day.open, day.close)
-                if cache_btdata is not None and cache_main is not None:
-                    stream_btdata.send_cache_to_output(cache_btdata)
-                    stream_main.send_cache_to_output(cache_main)
-                    #ukladame nazvy souboru pro pozdejsi ulozeni ke strategii
-                    self.cache_used[str(day.date)].append(file_btdata)
-                    self.cache_used[str(day.date)].append(file_main)
-                    continue
+                stream_btdata = self.to_run[symbol][0]
+                cache_btdata = None
+                cache_main = None
+                if force_remote is False:
+                    cache_btdata, file_btdata = stream_btdata.get_cache(start, end, exthours)
+                    stream_main = self.to_run[symbol][1]
+                    cache_main, file_main = stream_main.get_cache(start, end, exthours)
+                    if cache_btdata is not None and cache_main is not None:
+                        stream_btdata.send_cache_to_output(cache_btdata)
+                        stream_main.send_cache_to_output(cache_main)
+                        #ukladame nazvy souboru pro pozdejsi ulozeni ke strategii
+                        self.cache_used[str(day.date)].append(str(file_btdata))
+                        self.cache_used[str(day.date)].append(str(file_main))
+                        continue
 
-                #TBD pokud se jede na cache a testovaci obdobi je mensi nez den
-                #    - bud disablujeme cashovani
-                #    - nebo nechavame dobehnout cely den
-
-                #pokud cache neexistuje, pak ji zapiname
-                if day.open < datetime.now().astimezone(zoneNY) < day.close:
+                #IF CACHE NOT FOUND, THEN ENABLE CACHING (except for todays records)
+                if min_day_time< datetime.now().astimezone(zoneNY) < max_day_time:
                     print("not saving the aggregating cache, market still open today")
                 else:
                     if cache_btdata is None:
-                        stream_btdata.enable_cache_output(day.open, day.close)
+                        stream_btdata.enable_cache_output(start, end, exthours) #AGG CACHE on main data now only
                     if cache_main is None:
-                        stream_main.enable_cache_output(day.open, day.close)
+                        stream_main.enable_cache_output(start, end, exthours)
 
-            #trade daily file
-            daily_file = str(symbpole[0]) + '-' + str(int(day.open.timestamp())) + '-' + str(int(day.close.timestamp())) + '.cache.gz'
-            print(daily_file)
-            file_path = DATA_DIR + "/tradecache/"+daily_file
-        
-            if os.path.exists(file_path):
-                ##denní file existuje
-                #loadujeme ze souboru
-                #pokud je start_time < trade < end_time 
-                    #odesíláme do queue
-                    #jinak pass
-                with gzip.open (file_path, 'rb') as fp:
-                    tradesResponse = pickle.load(fp)
-                    print("Loading from Trade CACHE", file_path)
-            #daily file doesnt exist
-            else:
-
-                #implement retry mechanism
-                symbol = symbpole[0]  # Assuming symbpole[0] is your target symbol
-                day_open = day.open  # Assuming day.open is the start time
-                day_close = day.close  # Assuming day.close is the end time
-
-                tradesResponse = self.fetch_stock_trades(symbol, day_open, day_close)
-
-                # # TODO refactor pro zpracovani vice symbolu najednou(multithreads), nyni predpokladame pouze 1 
-                # stockTradeRequest = StockTradesRequest(symbol_or_symbols=symbpole[0], start=day.open,end=day.close)
-                # tradesResponse = self.client.get_stock_trades(stockTradeRequest)
-                print("Remote Fetch DAY DATA Complete", day.open, day.close)
-
-                #pokud jde o dnešní den a nebyl konec trhu tak cache neukládáme, pripadne pri iex datapointu necachujeme
-                if (day.open < datetime.now().astimezone(zoneNY) < day.close) or live_data_feed == DataFeed.IEX:
-                    print("not saving trade cache, market still open today or IEX datapoint")
-                    #ic(datetime.now().astimezone(zoneNY))
-                    #ic(day.open, day.close)
-                else:
-                    with gzip.open(file_path, 'wb') as fp:
-                        pickle.dump(tradesResponse, fp)
-
-            #zde už máme daily data
-            #pokud je    start_time < trade < end_time
-            #odesíláme do queue
-            #jinak ne
-
-            #TODO pokud data zahrnuji open (tzn. bud cely den(jednotest nebo v ramci vice dni) a nebo jednotest se zacatkem v 9:30 nebo driv.
+            df = fetch_daily_stock_trades(symbol=symbol,
+                                          start=start,
+                                          end=end,
+                                          main_session_only=self.main_session_only, #currently only main session supported
+                                          no_return=False,
+                                          force_remote=force_remote, # issue #258 
+                                          rename_labels=False,
+                                          keep_symbols=False,
+                                          data_feed=live_data_feed)
 
             #- pockame na trade Q a od nej budeme pocitat
             #    abychom meli zarovnano s tradingview
@@ -279,79 +224,41 @@ class Trade_Offline_Streamer(Thread):
             # (např. požadovaná start až od 10:00)
 
             #docasne disablujeme wait for queue, aby nam mohl jit i premarket
-            if self.time_from > day.open: # or 1==1:
+            if self.time_from > day.open or self.main_session_only is False: # or 1==1:
                 wait_for_q = False
             else:
                 wait_for_q = True
             print(f"{wait_for_q=}")
+        
+            if wait_for_q:
+                # Identify the first market open row containing "Q" or "O" in the "c" list
+                market_open_index = df[df['c'].apply(lambda x: 'Q' in x or 'O' in x)].index.min()
 
-        # v tradesResponse je dict = Trades identifikovane symbolem
-            for symbol in tradesResponse:
-                #print(tradesResponse[symbol])
-                celkem = len(tradesResponse[symbol])
-                
-                #ic(symbol, celkem)
-                print("POCET: ", celkem)
-                cnt = 1
-                
-                
-                for t in tqdm(tradesResponse[symbol], desc="Loading Trades"):
-                    
-                    #protoze je zde cely den, poustime dal, jen ty relevantni
-                    #pokud je    start_time < trade < end_time
-                    #datetime.fromtimestamp(parse_alpaca_timestamp(t['t']))
-                    ##ic(t['t'])
+                if market_open_index is not None:
+                    # Remove all rows before market open
+                    df = df.loc[market_open_index:].copy()
 
-                    #poustime i 20 minut premarketu pro presnejsi populaci slopu v prvnich minutech
-                    # - timedelta(minutes=20)
-                    #homogenizace timestampu s online streamem
-                    #tmp = to_datetime(t['t'], utc=True).timestamp()
-                    
+            df.reset_index(inplace=True)
 
-                    #obcas se v response objevoval None radek
-                    if t is None:
-                        continue
+            #from numpy to list
+            df["c"] = df["c"].apply(lambda x: x.tolist() if isinstance(x, np.ndarray) else x)
 
-                    datum = to_datetime(t['t'], utc=True)
+            #TODO ZRYCHLIT
+            # Put each row into the queue in the format (symbol, row) with "t" as Unix timestamp
+            for row in tqdm(df.itertuples(index=False, name='Row'), desc="Loading rows"):
+                row_dict = row._asdict()
+                # Convert the index 't' to a Unix timestamp using Pandas' timestamp() method
+                #row_dict['t'] = row.Index.timestamp()
+                #same as in live input
+                #row_dict['t'] = Timestamp.from_unix(row.Index.timestamp())
+                row_dict["t"] = Timestamp.from_unix(row_dict["t"].timestamp())
+                #Optimized this
+                #send the data, to all streams of this symbol
+                for s in self.to_run[symbol]:
+                    trade_queue.put((s, row_dict))
 
-                    if self.time_from < datum < self.time_to:
-                        #poustime dal, jinak ne
-                        if wait_for_q:
-                            #cekame na Q nebo na O (nekterym dnum chybelo Q)
-                            if ('Q' not in t['c']) and ('O' not in t['c']): continue
-                            else:
-                                #ic("Q found poustime dal")
-                                wait_for_q = False
-                        
-                        #homogenizace timestampu s online streamem
-                        t['t'] = Timestamp.from_unix(datum.timestamp())
-                        #print(f"{t['t']}")
-                        #t['t'] = Timestamp.from_unix(to_datetime(t['t']).timestamp())
-                        #print(to_datetime(t['t']).timestamp())
-                        
-                        #print("PROGRESS ",cnt,"/",celkem)
-                        #print(t)
-                        #na rozdil od wwebsocketu zde nemame v zaznamu symbol ['S']
-                        #vsem streamum na tomto symbolu posilame data - tbd mozna udelat i per stream vlakno
-                        for s in self.to_run[symbol]:
-                            #print("zaznam",t)
-                            #print("Ingest", s, "zaznam", t)
-                            #await s.ingest_trade(packb(t))
-                            trade_queue.put((s,t))
-
-                            ##asyncio.run(s.ingest_trade(packb(t)))
-                        cnt += 1
-                    #protoze jsou serazene, tak prvni ktery je vetsi muze prerusit
-                    elif datum > self.time_to:
-                        #print(f"{datum=}")
-                        #print(to_datetime(t['t']))
-                        #print(f"{self.time_to=}")
-                        #print("prerusujeme")
-                        break
-        #vsem streamum posleme last TODO: (tuto celou cast prepsat a zjednodusit)
-        #po loadovani vsech dnu
         print("naloadovane vse posilame last")
-        for s in self.to_run[symbpole[0]]:
+        for s in self.to_run[symbol]:
             #zde bylo await
             trade_queue.put((s,"last"))
             ##asyncio.run(s.ingest_trade(packb("last")))
@@ -362,6 +269,9 @@ class Trade_Offline_Streamer(Thread):
                 #print("send trade")
                 s, trade = trade_queue.get()
                 await s.ingest_trade(packb(trade))
+
+        #TADY pouzit vectorize loader
+        #nejspis do issue, na parametr pouzit bud standardni(pomaly a nebo vektorovy)
 
         #spusteni asyncio run - tentokrat jednou, ktera spusti proces jez to z queue odesle
         #nevyhoda reseni - kdyz je to pres vice dnu, tak se naloaduji vsechny dny do queue

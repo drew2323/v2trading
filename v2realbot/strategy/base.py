@@ -38,7 +38,7 @@ if PROFILING_NEXT_ENABLED:
 
 # obecna Parent strategie podporující queues
 class Strategy:
-    def __init__(self, name: str, symbol: str, next: callable, init: callable, account: Account, mode: str = Mode.PAPER, stratvars: AttributeDict = None, open_rush: int = 30, close_rush: int = 30, pe: Event = None, se: Event = None, runner_id: UUID = None, ilog_save: bool = False) -> None:
+    def __init__(self, name: str, symbol: str, next: callable, init: callable, account: Account, mode: str = Mode.PAPER, stratvars: AttributeDict = None, open_rush: int = 30, close_rush: int = 30, pe: Event = None, se: Event = None, runner_id: UUID = None, ilog_save: bool = False, batch_id: str = None) -> None:
         #variable to store methods overriden by strategytypes (ie pre plugins)
         self.overrides = None
         self.symbol = symbol
@@ -67,6 +67,7 @@ class Strategy:
         self.rtqueue = None
         self.runner_id = runner_id
         self.ilog_save = ilog_save
+        self.batch_id = batch_id
         self.secondary_res_start_time = dict()
         self.secondary_res_start_index = dict()
         self.last_index = -1
@@ -121,9 +122,6 @@ class Strategy:
             exthours: bool = False,
             excludes: list = cfh.config_handler.get_val('AGG_EXCLUDED_TRADES')):
         
-        ##TODO vytvorit self.datas_here containing dict - queue - SYMBOL - RecType - 
-        ##zatim natvrdo
-        ##stejne tak podporit i ruzne resolutions, zatim take natvrdo prvni
         self.rectype = rectype
         self.state.rectype = rectype
         self.state.resolution = resolution
@@ -154,7 +152,7 @@ class Strategy:
                 #propojujeme notifice s interfacem (pro callback)
                 self.order_notifs[account.name].connect_callback(self)
 
-            self.state = StrategyState(name=self.name, accounts=self.accounts, account=self.account, symbol = self.symbol, stratvars = self.stratvars, interface=self.interface, rectype=self.rectype, runner_id=self.runner_id, ilog_save=self.ilog_save)
+            self.state = StrategyState(name=self.name, accounts=self.accounts, account=self.account, symbol = self.symbol, stratvars = self.stratvars, interface=self.interface, rectype=self.rectype, runner_id=self.runner_id, ilog_save=self.ilog_save, batch_id=self.batch_id)
 
         elif mode == Mode.BT:
 
@@ -165,19 +163,19 @@ class Strategy:
             for account in self.accounts:
                 #pro backtest volame stejne oklicujeme interface
                 self.interface[account.name] = BacktestInterface(symbol=self.symbol, bt=self.bt, account=account)
-            self.state = StrategyState(name=self.name, accounts=self.accounts, account=self.account, symbol = self.symbol, stratvars = self.stratvars, interface=self.interface, rectype=self.rectype, runner_id=self.runner_id, bt=self.bt, ilog_save=self.ilog_save)
+            self.state = StrategyState(name=self.name, accounts=self.accounts, account=self.account, symbol = self.symbol, stratvars = self.stratvars, interface=self.interface, rectype=self.rectype, runner_id=self.runner_id, bt=self.bt, ilog_save=self.ilog_save, batch_id=self.batch_id)
             #no callback from bt, it is called directly
             self.order_notifs = None
             
             ##streamer bude plnit trady do listu trades - nad kterym bude pracovat paper trade
             #zatim takto - pak pripadne do fajlu nebo jinak OPTIMALIZOVAT
-            self.dataloader.add_stream(TradeAggregator2List(symbol=self.symbol,btdata=self.btdata,rectype=RecordType.TRADE))
+            self.dataloader.add_stream(TradeAggregator2List(symbol=self.symbol,btdata=self.btdata,rectype=RecordType.TRADE, exthours=True)) #workaround - bude vzdy exthours
         elif mode == Mode.PREP:
             #bt je zde jen pro udrzeni BT casu v logu atp. JInak jej nepouzivame.
             self.bt = Backtester(symbol = self.symbol, accounts=self.accounts, order_fill_callback= self.order_updates, btdata=self.btdata, cash=cash, bp_from=start, bp_to=end)
             self.interface = None
             #self.interface = BacktestInterface(symbol=self.symbol, bt=self.bt)
-            self.state = StrategyState(name=self.name, accounts=self.accounts, account=self.account, symbol = self.symbol, stratvars = self.stratvars, interface=self.interface, rectype=self.rectype, runner_id=self.runner_id, bt=self.bt, ilog_save=self.ilog_save)
+            self.state = StrategyState(name=self.name, accounts=self.accounts, account=self.account, symbol = self.symbol, stratvars = self.stratvars, interface=self.interface, rectype=self.rectype, runner_id=self.runner_id, bt=self.bt, ilog_save=self.ilog_save, batch_id=self.batch_id)
             self.order_notifs = None        
         
         else:
@@ -762,7 +760,7 @@ class StrategyState:
           triggerují callback, který následně vyvolá např. buy (ten se musí ale udít v čase fillu, tzn. callback si nastaví čas interfacu na filltime)
           po dokončení bt kroků před zahájením iterace "NEXT" se časy znovu updatnout na původni state.time
     """
-    def __init__(self, name: str, symbol: str, accounts: set, account: Account, stratvars: AttributeDict, bars: AttributeDict = {}, trades: AttributeDict = {}, interface: GeneralInterface = None, rectype: RecordType = RecordType.BAR, runner_id: UUID = None, bt: Backtester = None, ilog_save: bool = False):
+    def __init__(self, name: str, symbol: str, accounts: set, account: Account, stratvars: AttributeDict, bars: AttributeDict = {}, trades: AttributeDict = {}, interface: GeneralInterface = None, rectype: RecordType = RecordType.BAR, runner_id: UUID = None, bt: Backtester = None, ilog_save: bool = False, batch_id: str = None):
         self.vars = stratvars
         self.interface = interface
         self.account = account #primary account
@@ -784,6 +782,7 @@ class StrategyState:
         self.bt = bt
         self.docasny_rel_profit = []
         self.ilog_save = ilog_save
+        self.batch_id = batch_id
         self.sl_optimizer_short = optimsl.SLOptimizer(ptm.TradeDirection.SHORT)
         self.sl_optimizer_long = optimsl.SLOptimizer(ptm.TradeDirection.LONG)
         self.cache = defaultdict(dict)

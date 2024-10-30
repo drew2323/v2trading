@@ -35,8 +35,13 @@ def expression(state: StrategyState, params, name, returns):
         #nevyhoda: neumi comprehensions a dalsi
         #viz https://chat.openai.com/c/03bb0c1d-450e-4f0e-8036-d338692c1082
 
-        #opt by chatGPT
-        temp_ind_mapping = {k: np.array(v) if k in convertToNumpy else v for k, v in state.ind_mapping.items()}
+        anchor = utls.safe_get(params, "anchor",None)
+
+        if anchor is None:
+            temp_ind_mapping = {k: np.array(v) if k in convertToNumpy else v for k, v in state.ind_mapping.items()}
+        else:
+            max_lookback = utls.get_max_anchored_lookback(state, anchor=anchor)
+            temp_ind_mapping = {k: np.array(v[-max_lookback:]) if k in convertToNumpy else v[-max_lookback:] for k, v in state.ind_mapping.items()}
      
         # temp_ind_mapping = {}
         # if len(convertToNumpy) > 0:

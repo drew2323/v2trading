@@ -11,12 +11,13 @@ import threading
 from copy import deepcopy
 from msgpack import unpackb
 import os
-from v2realbot.config import DATA_DIR
+from v2realbot.config import AGG_CACHE
 import dill
 import gzip
 import v2realbot.utils.config_handler as cfh
 
-class TradeAggregator:  
+class TradeAggregator:
+    lock = threading.Lock()   
     def __init__(self,
                  rectype: RecordType = RecordType.BAR,
                  resolution: int = 5,
@@ -204,6 +205,20 @@ class TradeAggregator:
             case RecordType.CBARRENKO:
                 return await self.calculate_renko_bar(data, symbol)
 
+    async def get_next_bar_open_time(self,next_trade_time: float) -> float:
+        """Returns next_bar_open_time based on the last bar open time, frequency and next trade time"""
+        last_bar_open_time=self.bar_start
+        frequency=self.resolution
+        # Calculate the difference between next_trade_time and last_bar_open_time in seconds (with float precision)
+        time_diff = next_trade_time - last_bar_open_time
+
+        # Find the largest multiple of frequency within the difference
+        largest_multiple = (time_diff // frequency) * frequency
+
+        # Calculate the timestamp of the last multiple
+        next_bar_open_time = last_bar_open_time + largest_multiple
+        return next_bar_open_time
+    
     async def calculate_time_bar(self, data, symbol):
         #print("barstart",datetime.fromtimestamp(self.bar_start))
         #print("oriznute data z tradu", datetime.fromtimestamp(int(data['t'])))
@@ -316,20 +331,23 @@ class TradeAggregator:
 
             self.newBar['open'] = data['p']
             
-            #UPRAVENO - pouze pro prvni bar a ROUND, jinak bereme cas baru podle noveho tradu
-            #TODO: do budoucna vymyslet, kdyz bude mene tradu, tak to radit vzdy do spravneho intervalu
-            #zarovname time prvniho baru podle timeframu kam patří (např. 5, 10, 15 ...) (ROUND)
+            #SET NEW BAR OPEN TIME
+            #set first bar when ROUDN
             if self.align == StartBarAlign.ROUND and self.bar_start == 0:
                 t = datetime.fromtimestamp(data['t'], tz=zoneUTC)
                 t = t - timedelta(seconds=t.second % self.resolution,microseconds=t.microsecond)
                 self.bar_start = datetime.timestamp(t)
-            #nebo pouzijeme datum tradu zaokrouhlene na vteriny (RANDOM)
-            else:
-                #ulozime si jeho timestamp (odtum pocitame resolution)
+            #set first bar when RANDOM - current trade time (just seconds)
+            elif self.align == StartBarAlign.RANDOM and self.bar_start == 0:
                 t = datetime.fromtimestamp(int(data['t']), tz=zoneUTC)
-                #timestamp
                 self.bar_start = int(data['t'])
-            
+            #for next iterations always align with the last bar               
+            else:
+                #align open bar time to the nearest multiple of resolution according to the last bar open and current trade time and freq
+                self.bar_start = await self.get_next_bar_open_time(next_trade_time=data['t'])
+
+                #ulozime si jeho timestamp (odtum pocitame resolution)
+                t = datetime.fromtimestamp(self.bar_start, tz=zoneUTC)
 
             self.newBar['time'] = t 
             self.newBar['resolution'] = self.resolution
@@ -900,24 +918,30 @@ class TradeAggregator:
         else:
             return []
 
-    def populate_file_name(self, date_from: datetime, date_to: datetime):
+    def populate_file_name(self, date_from: datetime, date_to: datetime, exthours=None):
         #nazev obsahuje i child class
         #a take excludes result = ''.join(self.excludes.sort())
+        self.exthours = self.exthours if exthours is None else exthours
         self.excludes.sort()  # Sorts the list in place
         excludes_str = ''.join(map(str, self.excludes))  # Joins the sorted elements after converting them to strings
         cache_file = self.__class__.__name__ + '-' + self.symbol + '-' + str(int(date_from.timestamp())) + '-' + str(int(date_to.timestamp())) + '-' + str(self.rectype) + "-" + str(self.resolution) + "-" + str(self.minsize) + "-" + str(self.align) + '-' + str(self.mintick) + str(self.exthours) + excludes_str + '.cache.gz'
-        file_path = DATA_DIR + "/aggcache/" + cache_file
+        file_path = AGG_CACHE / cache_file
         #print(file_path)
         return file_path
 
     #returns cached objects for given period
-    def get_cache(self, date_from: datetime, date_to: datetime):
-        file_path = self.populate_file_name(date_from, date_to)
-        if self.skip_cache is False and os.path.exists(file_path):
+    def get_cache(self, date_from: datetime, date_to: datetime, exthours=None):
+        """
+        exthours is exthours override, until issue #260 is implemented and global param for exthours
+         now Offline ws loader will override exthours param of all streams if one has exthours = True
+        """
+        file_path = self.populate_file_name(date_from, date_to, exthours)
+        if self.skip_cache is False and file_path.exists():
             ##daily aggregated file exists
-            with gzip.open (file_path, 'rb') as fp:
-                cachedobject = dill.load(fp)
-                print("AGG CACHE loaded ", file_path)
+            with TradeAggregator.lock:
+                with gzip.open (file_path, 'rb') as fp:
+                    cachedobject = dill.load(fp)
+                    print("AGG CACHE loaded ", file_path)
 
             if isinstance(cachedobject, Queue):
                 num = cachedobject.qsize()
@@ -930,7 +954,8 @@ class TradeAggregator:
             return None, None
         
     #cachujeme jen na exlicitni zapnuti a jen pro BT
-    def enable_cache_output(self, date_from: datetime, date_to: datetime):
+    def enable_cache_output(self, date_from: datetime, date_to: datetime, exthours=None):
+        self.exthours = exthours if exthours is not None else self.exthours
         self.cache_output_enabled = True
         self.cache_from = date_from
         self.cache_to = date_to
@@ -947,9 +972,9 @@ class TradeAggregator:
             num = len(self.cached_object)
         
         file_path = self.populate_file_name(self.cache_from, self.cache_to)
-
-        with gzip.open(file_path, 'wb') as fp:
-            dill.dump(self.cached_object, fp)
+        with TradeAggregator.lock:
+            with gzip.open(file_path, 'wb') as fp:
+                dill.dump(self.cached_object, fp)
         print(f"AGG CACHE stored ({num}) :{file_path}")
         print(f"DATES from:{self.cache_from.strftime('%d.%m.%Y %H:%M')} to:{self.cache_to.strftime('%d.%m.%Y %H:%M')}")
 

@@ -13,17 +13,20 @@ def attach_previous_data(state):
     """""
     print("ATTACHING PREVIOUS DATA")
     try:
-        runner : Runner
-        #get batch_id of current runer
-        res, runner = cs.get_runner(state.runner_id)
-        if res < 0:
-            if runner.batch_id is None:
-                print(f"No batch_id found for runner {runner.id}")
-            else:
-                print(f"Couldnt get previous runner {state.runner_id} error: {runner}")
+        # runner : Runner
+        # #get batch_id of current runer
+        # res, runner = cs.get_runner(state.runner_id)
+        # if res < 0:
+        #     if runner.batch_id is None:
+        #         print(f"No batch_id found for runner {runner.id}")
+        #     else:
+        #         print(f"Couldnt get previous runner {state.runner_id} error: {runner}")
+        #     return None
+        if state.batch_id is None:
+            print(f"No batch_id found for runner {state.runner_id}")
             return None
-        
-        batch_id = runner.batch_id
+
+        batch_id = state.batch_id
         #batch_id = "6a6b0bcf"
         res, runner_ids =cs.get_archived_runnerslist_byBatchID(batch_id, "desc")
         if res < 0:
@@ -32,11 +35,13 @@ def attach_previous_data(state):
             return None
         
         if runner_ids is None or len(runner_ids) == 0:
-            print(f"NO runners found for batch {batch_id} {runner_ids}")
+            msg = f"NO runners found for batch {batch_id} {runner_ids}"
+            print(msg)
             return None
         
         last_runner = runner_ids[0]
-        print("Previous runner identified:", last_runner)
+        msg = f"Previous runner identified: {last_runner}"
+        print(msg)
 
         #get archived header - to get transferables
         runner_header : RunArchive = None
@@ -67,6 +72,9 @@ def attach_previous_data(state):
         attach_previous_bar_data = safe_get(state.vars, "attach_previous_bar_data", 50)
         attach_previous_tick_data = safe_get(state.vars, "attach_previous_tick_data", None)
         
+        if attach_previous_bar_data is None:
+            return
+
         #indicators datetime utc
         indicators = slice_dict_lists(d=detail.indicators[0],last_item=attach_previous_bar_data, time_to_datetime=True)
 

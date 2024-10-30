@@ -1,4 +1,4 @@
-from v2realbot.utils.utils import isrising, isfalling,zoneNY, price2dec, print, safe_get, is_still, is_window_open, eval_cond_dict, crossed_down, crossed_up, crossed, is_pivot, json_serial, pct_diff, create_new_bars, slice_dict_lists
+from v2realbot.utils.utils import isrising, isfalling,zoneNY, price2dec, print, safe_get, is_still, is_window_open, eval_cond_dict, crossed_down, crossed_up, crossed, is_pivot, json_serial, pct_diff, create_new_bars, slice_dict_lists, get_max_anchored_lookback
 from v2realbot.strategy.base import StrategyState
 from v2realbot.indicators.indicators import ema as ext_ema
 from v2realbot.strategyblocks.indicators.helpers import get_source_series
@@ -17,6 +17,9 @@ def ema(state, params, name, returns):
     #lookback muze byt odkaz na indikator, pak berem jeho hodnotu
     lookback = int(value_or_indicator(state, lookback))
     
+    anchor = safe_get(params, "anchor",None)
+    lookback = min(lookback, get_max_anchored_lookback(state, anchor) if anchor is not None else lookback)
+
     source_series = get_source_series(state, source)[-lookback:] 
     ema_value = ext_ema(source_series, lookback)
     val = round(ema_value[-1],4)

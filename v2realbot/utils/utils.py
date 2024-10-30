@@ -38,6 +38,53 @@ import v2realbot.utils.config_handler as cfh
 import pandas_market_calendars as mcal
 from typing import Dict, Any, Callable, Optional
 from pydantic import BaseModel
+from datetime import datetime
+from threading import Lock
+from pathlib import Path
+
+def get_max_anchored_lookback(state, anchor=None):
+    """
+    This function returns the maximum lookback time based on the anchor specified.
+
+    Meaning maximum lookback not to break the anchor.
+
+    The anchor can be 'D' for days, 'H' for hours, 'm' for minutes.
+    """
+    times = state.bars['time']
+
+    if anchor is None:
+        return len(times) #TODO optimize
+
+    last_time = datetime.fromtimestamp(times[-1], zoneNY)
+
+    if anchor == 'D':
+        current_unit = last_time.date()  # Get the date part
+    elif anchor == 'H':
+        current_unit = (last_time.date(), last_time.hour)  # Get date and hour as a tuple
+    elif anchor == 'm':
+        current_unit = (last_time.date(), last_time.hour, last_time.minute)  # Get date, hour, and minute as a tuple
+    else:
+        raise ValueError("anchor must be 'D', 'H', or 'm'.")
+
+    max_lookback = 0
+
+    # Loop through the times list backward
+    for lookback in range(1, len(times)):
+        lookbacked_time = datetime.fromtimestamp(times[-lookback], zoneNY)
+        if anchor == 'D':
+            compare_unit = lookbacked_time.date()
+        elif anchor == 'H':
+            compare_unit = (lookbacked_time.date(), lookbacked_time.hour)
+        elif anchor == 'm':
+            compare_unit = (lookbacked_time.date(), lookbacked_time.hour, lookbacked_time.minute)
+
+        # Check if the unit has changed
+        if compare_unit != current_unit:
+            break  # Stop when crossing to a previous time unit
+        else:
+            max_lookback = lookback
+
+    return max_lookback
 
 def get_attribute(obj: Any, attr: str) -> Any:
     """
@@ -869,12 +916,14 @@ def json_serial(obj):
     """JSON serializer for objects not serializable by default json code
     https://stackoverflow.com/questions/11875770/how-to-overcome-datetime-datetime-not-json-serializable
     """
+    #print(f"Serializing object of type {type(obj)}: {obj}")
 
     type_map = {
         pd.Timestamp: lambda obj: obj.timestamp(),
         datetime: lambda obj: obj.timestamp(),
         UUID: lambda obj: str(obj),
         Enum: lambda obj: str(obj),
+        Path: lambda obj: str(obj),
         np.int32: lambda obj: int(obj),
         np.int64: lambda obj: int(obj),
         np.float64: lambda obj: float(obj),
@@ -934,6 +983,7 @@ def parse_toml_string(tomlst: str):
 class Store:
     stratins: List[StrategyInstance] = []
     runners: List[Runner] = []
+    runners_lock = Lock()
     
     def __init__(self) -> None:
         self.lock = FileLock(DATA_DIR + "/strategyinstances.lock")
@@ -1139,67 +1189,35 @@ def is_open_hours(dt, business_hours: dict = None):
            and dt.date() not in holidays \
            and business_hours["from"] <= dt.time() < business_hours["to"]
 
-#vraci zda dane pole je klesajici (bud cele a nebo jen pocet poslednich) - no same values
 def isfallingc(pole: list, pocet: int = None):
+    """Returns whether last pocet elements of pole are falling."""
     if pocet is None: pocet = len(pole)
     if len(pole)<pocet: return False
     pole = pole[-pocet:]
     res = all(i > j for i, j in zip(pole, pole[1:]))
     return res
 
-#optimized by gpt and same values are considered as one
 def isfalling(pole: list, pocet: int = None):
+    """Returns whether last pocet elements of pole are falling (or equal)."""
     if pocet is None:
         pocet = len(pole)
-    if len(pole) < pocet:
-        return False
+    return all(pole[i] >= pole[i+1] for i in range(len(pole)-pocet, len(pole)-1))
 
-    # Prepare the list - all same consecutive values in the list are considered as one value.
-    new_pole = [pole[0]]
-    for i in range(1, len(pole)):
-        if pole[i] != pole[i - 1]:
-            new_pole.append(pole[i])
-
-    if len(new_pole) < pocet:
-        return False
-    
-    new_pole = new_pole[-pocet:]
-    #print(new_pole)
-
-
-    # Perform the current calculation on this list.
-    res = all(i > j for i, j in zip(new_pole, new_pole[1:]))
-    return res
-
-#vraci zda dane pole je roustouci (bud cele a nebo jen pocet poslednich) - no same values
 def isrisingc(pole: list, pocet: int = None):
-    if pocet is None: pocet = len(pole)
+    """Returns whether last pocet elements of pole are rising."""
+    if pocet is None:
+        pocet = len(pole)
     if len(pole)<pocet: return False
     pole = pole[-pocet:]
     res = all(i < j for i, j in zip(pole, pole[1:]))
     return res
 
-#optimized by gpt and same values are considered as one
 def isrising(pole: list, pocet: int = None):
-    if pocet is None:
-        pocet = len(pole)
-    if len(pole) < pocet:
-        return False
-
-    # Prepare the list - all same consecutive values in the list are considered as one value.
-    new_pole = [pole[0]]
-    for i in range(1, len(pole)):
-        if pole[i] != pole[i - 1]:
-            new_pole.append(pole[i])
-
-    if len(new_pole) < pocet:
-        return False
-    
-    new_pole = new_pole[-pocet:]
-    #print(new_pole)
-
-    # Perform the current calculation on this list.
-    res = all(i < j for i, j in zip(new_pole, new_pole[1:]))
+    """Returns whether last pocet elements of pole are rising or equal."""
+    if pocet is None: pocet = len(pole)
+    if len(pole)<pocet: return False
+    pole = pole[-pocet:]
+    res = all(i <= j for i, j in zip(pole, pole[1:]))
     return res
 
 def parse_alpaca_timestamp(value: Timestamp):

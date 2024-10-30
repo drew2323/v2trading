@@ -14,7 +14,7 @@ from v2realbot.common.model import Trade, TradeDirection, TradeStatus, TradeStop
 from datetime import datetime
 from v2realbot.loader.trade_offline_streamer import Trade_Offline_Streamer
 from threading import Thread, current_thread, Event, enumerate
-from v2realbot.config import STRATVARS_UNCHANGEABLES, ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, ACCOUNT1_PAPER_FEED, ACCOUNT1_LIVE_API_KEY, ACCOUNT1_LIVE_SECRET_KEY, ACCOUNT1_LIVE_FEED, DATA_DIR, MEDIA_DIRECTORY, RUNNER_DETAIL_DIRECTORY
+from v2realbot.config import PRE_MARKET_OFFSET, POST_MARKET_OFFSET, STRATVARS_UNCHANGEABLES, ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, ACCOUNT1_PAPER_FEED, ACCOUNT1_LIVE_API_KEY, ACCOUNT1_LIVE_SECRET_KEY, ACCOUNT1_LIVE_FEED, DATA_DIR, MEDIA_DIRECTORY, RUNNER_DETAIL_DIRECTORY
 import importlib
 from alpaca.trading.requests import GetCalendarRequest
 from alpaca.trading.client import TradingClient
@@ -65,17 +65,18 @@ def get_all_threads():
         return (-2, "not found")
     
 def get_all_runners():
-    if len(db.runners) > 0:
-        #print(db.runners)
-        for i in db.runners:
-            if i.run_instance:
-                i.run_profit = round(float(i.run_instance.state.profit),2)
-                i.run_trade_count = len(i.run_instance.state.tradeList)
-                i.run_positions = gaka(i.run_instance.state.account_variables, "positions")
-                i.run_avgp = gaka(i.run_instance.state.account_variables, "avgp", lambda x: round(float(x),3))
-        return (0, db.runners)
-    else:
-        return (0, [])
+    with db.runners_lock: 
+        if len(db.runners) > 0:
+            #print(db.runners)
+            for i in db.runners:
+                if i.run_instance:
+                    i.run_profit = round(float(i.run_instance.state.profit),2)
+                    i.run_trade_count = len(i.run_instance.state.tradeList)
+                    i.run_positions = gaka(i.run_instance.state.account_variables, "positions")
+                    i.run_avgp = gaka(i.run_instance.state.account_variables, "avgp", lambda x: round(float(x),3))
+            return (0, db.runners)
+        else:
+            return (0, [])
  
 def get_all_stratins():
     if len(db.stratins) > 0:
@@ -90,14 +91,15 @@ def get_stratin(id: UUID) -> List[StrategyInstance]:
     return (-2, "not found")
 
 def get_runner(id: UUID):
-    for i in db.runners:
-        if str(i.id) == str(id):
-            i.run_profit = round(float(i.run_instance.state.profit),2)
-            i.run_trade_count = len(i.run_instance.state.tradeList)
-            i.run_positions =gaka(i.run_instance.state.account_variables, "positions")
-            i.run_avgp = gaka(i.run_instance.state.account_variables, "avgp", lambda x: round(float(x),3))
-            return (0, i)
-    return (-2, "not found")
+    with db.runners_lock: 
+        for i in db.runners:
+            if str(i.id) == str(id):
+                i.run_profit = round(float(i.run_instance.state.profit),2)
+                i.run_trade_count = len(i.run_instance.state.tradeList)
+                i.run_positions =gaka(i.run_instance.state.account_variables, "positions")
+                i.run_avgp = gaka(i.run_instance.state.account_variables, "avgp", lambda x: round(float(x),3))
+                return (0, i)
+        return (-2, "not found")
 
 def create_stratin(si: StrategyInstance):
     #validate toml
@@ -147,32 +149,33 @@ def delete_stratin(id: UUID):
     return (-2, "not found")
 
 def inject_stratvars(id: UUID, stratvars_parsed_new: AttributeDict, stratvars_parsed_old: AttributeDict):
-    for i in db.runners:
-        if str(i.strat_id) == str(id):
-            #inject only those changed, some of them cannot be changed (for example pendingbuys)
+    with db.runners_lock: 
+        for i in db.runners:
+            if str(i.strat_id) == str(id):
+                #inject only those changed, some of them cannot be changed (for example pendingbuys)
 
-            changed_keys = []
-            #get changed values
-            for key,value in stratvars_parsed_new.items():
-                if value != stratvars_parsed_old[key]:
-                    changed_keys.append(key)
+                changed_keys = []
+                #get changed values
+                for key,value in stratvars_parsed_new.items():
+                    if value != stratvars_parsed_old[key]:
+                        changed_keys.append(key)
 
-            #print("changed before check", changed_keys)
-            #remove keys that cannot be changed
-            for k in changed_keys:
-                if k in STRATVARS_UNCHANGEABLES:
-                    #print(k, "cant be changed removing")
-                    changed_keys.remove(k)
-                    return -2, "Stratvar Key "+k+" cannot be changed"
+                #print("changed before check", changed_keys)
+                #remove keys that cannot be changed
+                for k in changed_keys:
+                    if k in STRATVARS_UNCHANGEABLES:
+                        #print(k, "cant be changed removing")
+                        changed_keys.remove(k)
+                        return -2, "Stratvar Key "+k+" cannot be changed"
 
-            #print("clean changed keys", changed_keys)
-            #inject clean keys
-            for k in changed_keys:
-                print("INJECTING ",k, "value", stratvars_parsed_new[k])
-                i.run_instance.state.vars[k] = stratvars_parsed_new[k]
-                i.run_instance.stratvars[k] = stratvars_parsed_new[k]
-            return 0, None
-    return -2, "No runners found"
+                #print("clean changed keys", changed_keys)
+                #inject clean keys
+                for k in changed_keys:
+                    print("INJECTING ",k, "value", stratvars_parsed_new[k])
+                    i.run_instance.state.vars[k] = stratvars_parsed_new[k]
+                    i.run_instance.stratvars[k] = stratvars_parsed_new[k]
+                return 0, None
+        return -2, "No runners found"
 
 #allows change of set of parameters that are possible to change while it is running
 #also injects those parameters to instance
@@ -212,77 +215,83 @@ def modify_stratin_running(si: StrategyInstance, id: UUID):
 ##enable realtime chart - inject given queue for strategy instance
 ##webservice listens to this queue
 async def runner_realtime_on(id: UUID, rtqueue: Queue):
-    for i in db.runners:
-        if str(i.id) == str(id):
-            i.run_instance.rtqueue = rtqueue
-            print("RT QUEUE added")
-            return 0
-    print("ERROR NOT FOUND")
-    return -2
+    with db.runners_lock: 
+        for i in db.runners:
+            if str(i.id) == str(id):
+                i.run_instance.rtqueue = rtqueue
+                print("RT QUEUE added")
+                return 0
+        print("ERROR NOT FOUND")
+        return -2
 
 async def runner_realtime_off(id: UUID):
-    for i in db.runners:
-        if str(i.id) == str(id):
-            i.run_instance.rtqueue = None
-            print("RT QUEUE removed")
-            return 0
-    print("ERROR NOT FOUND")
-    return -2
+    with db.runners_lock: 
+        for i in db.runners:
+            if str(i.id) == str(id):
+                i.run_instance.rtqueue = None
+                print("RT QUEUE removed")
+                return 0
+        print("ERROR NOT FOUND")
+        return -2
 
 ##controller (run_stratefy, pause, stop, reload_params)
 def pause_runner(id: UUID):
-    for i in db.runners:
-        print(i.id)
-        if str(i.id) == id:
-            if i.run_pause_ev.is_set():
-                i.run_pause_ev.clear()
-                i.run_paused = None
-                print("Unpaused")
-                return (0, "unpaused runner " + str(i.id))
-            print("pausing runner", i.id)
-            i.run_pause_ev.set()
-            i.run_paused = datetime.now().astimezone(zoneNY)
-            return (0, "paused runner " + str(i.id))
-    print("no ID found")
-    return (-1, "not running instance found")
+    with db.runners_lock: 
+        for i in db.runners:
+            print(i.id)
+            if str(i.id) == id:
+                if i.run_pause_ev.is_set():
+                    i.run_pause_ev.clear()
+                    i.run_paused = None
+                    print("Unpaused")
+                    return (0, "unpaused runner " + str(i.id))
+                print("pausing runner", i.id)
+                i.run_pause_ev.set()
+                i.run_paused = datetime.now().astimezone(zoneNY)
+                return (0, "paused runner " + str(i.id))
+        print("no ID found")
+        return (-1, "not running instance found")
 #allows to delete runner based on runner_id, strat_id or all (both none)
 #podpruje i hodnotu strat_id v id
 def stop_runner(id: UUID = None, strat_id: UUID = None):
-    chng = []
-    try:
-        for i in db.runners:
-            #print(i['id'])
-            if (id is None and strat_id is None) or str(i.id) == str(id) or str(i.strat_id) == str(strat_id) or str(i.strat_id) == str(id):
-                chng.append(i.id)
-                print("Sending STOP signal to Runner", i.id)
-                #just sending the signal, update is done in stop after plugin
-                i.run_stop_ev.set()
-                # i.run_stopped = datetime.now().astimezone(zoneNY)
-                # i.run_thread = None
-                # i.run_instance = None
-                # i.run_pause_ev = None
-                # i.run_stop_ev = None
-                # #stratins.remove(i)
-    except Exception as e:
-        return (-2, "Error Exception" + str(e) + format_exc())
-    if len(chng) > 0:
-        return (0, "Sent STOP signal to those" + str(chng))
-    else:
-        return (-2, "not found" + str(id))
+    with db.runners_lock: 
+        chng = []
+        try:
+            for i in db.runners:
+                #print(i['id'])
+                if (id is None and strat_id is None) or str(i.id) == str(id) or str(i.strat_id) == str(strat_id) or str(i.strat_id) == str(id):
+                    chng.append(i.id)
+                    print("Sending STOP signal to Runner", i.id)
+                    #just sending the signal, update is done in stop after plugin
+                    i.run_stop_ev.set()
+                    # i.run_stopped = datetime.now().astimezone(zoneNY)
+                    # i.run_thread = None
+                    # i.run_instance = None
+                    # i.run_pause_ev = None
+                    # i.run_stop_ev = None
+                    # #stratins.remove(i)
+        except Exception as e:
+            return (-2, "Error Exception" + str(e) + format_exc())
+        if len(chng) > 0:
+            return (0, "Sent STOP signal to those" + str(chng))
+        else:
+            return (-2, "not found" + str(id))
 
 def is_stratin_running(id: UUID):
-    for i in db.runners:
-        if str(i.strat_id) == str(id):
-            if i.run_started is not None and i.run_stopped is None:
-                return True
-    return False
+    with db.runners_lock: 
+        for i in db.runners:
+            if str(i.strat_id) == str(id):
+                if i.run_started is not None and i.run_stopped is None:
+                    return True
+        return False
 
 def is_runner_running(id: UUID):
-    for i in db.runners:
-        if str(i.id) == str(id):
-            if i.run_started is not None and i.run_stopped is None:
-                return True
-    return False
+    with db.runners_lock: 
+        for i in db.runners:
+            if str(i.id) == str(id):
+                if i.run_started is not None and i.run_stopped is None:
+                    return True
+        return False
 
 def save_history(id: UUID, st: object, runner: Runner, reason: str = None):
     
@@ -337,42 +346,43 @@ def capsule(target: object, db: object, inter_batch_params: dict = None):
         #     f_html.write(profiler.output_html())
 
         # remove runners after thread is stopped and save results to stratin history
-        for i in db.runners:
-            if i.run_instance == target:
-                i.run_stopped = datetime.now().astimezone(zoneNY)
-                i.run_thread = None
-                i.run_instance = None
-                i.run_pause_ev = None
-                i.run_stop_ev = None
-                #ukladame jen pro zapis exception reasonu
-                save_history(id=i.strat_id, st=target, runner=i, reason=reason)
-                #store in archive header and archive detail
-                archive_runner(runner=i, strat=target, inter_batch_params=inter_batch_params)
-                #mazeme runner po skonceni instance
-                db.runners.remove(i)
-                #vytvoreni report image pro RUNNER
-                try:
-                    res, val = mt.generate_trading_report_image(runner_ids=[str(i.id)])
-                    if res == 0:
-                        print("DAILY REPORT IMAGE CREATED")
-                    else:
-                        print(f"Daily report ERROR - {val}")
-                except Exception as e:
-                    err_msg = "Nepodarilo se vytvorit daily report image" + str(e)+format_exc()
-                    send_to_telegram(err_msg)
-                    print(err_msg)
-                #PRO LIVE a PAPER pri vyplnenem batchi vytvarime batchovy soubor zde (pro BT ridi batch_manager)
-                if i.run_mode in [Mode.LIVE, Mode.PAPER] and i.batch_id is not None:
+        with db.runners_lock:   
+            for i in db.runners:
+                if i.run_instance == target:
+                    i.run_stopped = datetime.now().astimezone(zoneNY)
+                    i.run_thread = None
+                    i.run_instance = None
+                    i.run_pause_ev = None
+                    i.run_stop_ev = None
+                    #ukladame jen pro zapis exception reasonu
+                    save_history(id=i.strat_id, st=target, runner=i, reason=reason)
+                    #store in archive header and archive detail
+                    archive_runner(runner=i, strat=target, inter_batch_params=inter_batch_params)
+                    #mazeme runner po skonceni instance
+                    db.runners.remove(i)
+                    #vytvoreni report image pro RUNNER
                     try:
-                        res, val = mt.generate_trading_report_image(batch_id=i.batch_id)
+                        res, val = mt.generate_trading_report_image(runner_ids=[str(i.id)])
                         if res == 0:
-                            print("BATCH REPORT CREATED")
+                            print("DAILY REPORT IMAGE CREATED")
                         else:
-                            print(f"BATCH REPORT ERROR - {val}")
+                            print(f"Daily report ERROR - {val}")
                     except Exception as e:
-                        err_msg = f"Nepodarilo se vytvorit batchj report image pro {i.strat_id} a batch{i.batch_id}" + str(e)+format_exc()
+                        err_msg = "Nepodarilo se vytvorit daily report image" + str(e)+format_exc()
                         send_to_telegram(err_msg)
                         print(err_msg)
+                    #PRO LIVE a PAPER pri vyplnenem batchi vytvarime batchovy soubor zde (pro BT ridi batch_manager)
+                    if i.run_mode in [Mode.LIVE, Mode.PAPER] and i.batch_id is not None:
+                        try:
+                            res, val = mt.generate_trading_report_image(batch_id=i.batch_id)
+                            if res == 0:
+                                print("BATCH REPORT CREATED")
+                            else:
+                                print(f"BATCH REPORT ERROR - {val}")
+                        except Exception as e:
+                            err_msg = f"Nepodarilo se vytvorit batchj report image pro {i.strat_id} a batch{i.batch_id}" + str(e)+format_exc()
+                            send_to_telegram(err_msg)
+                            print(err_msg)
 
         target.release()
     print("Runner STOPPED")
@@ -410,7 +420,10 @@ def run_batch_stratin(id: UUID, runReq: RunRequest):
     
     #print("request values:", runReq)
 
-    def get_market_days_in_interval(datefrom, dateto, note = None, id = None):
+    def get_market_days_in_interval(datefrom, dateto, note = None, id = None, exthours: bool = False):
+        """
+        If ext hours then the whole day is selected.
+        """
         #getting dates from calendat
         clientTrading = TradingClient(ACCOUNT1_PAPER_API_KEY, ACCOUNT1_PAPER_SECRET_KEY, raw_data=False, paper=True)        
         calendar_request = GetCalendarRequest(start=datefrom.date(),end=dateto.date())
@@ -424,9 +437,24 @@ def run_batch_stratin(id: UUID, runReq: RunRequest):
         for day in cal_dates:
             start_time = zoneNY.localize(day.open)
             end_time = zoneNY.localize(day.close)
+ 
+            #ZDE JSEM SKONCIL
+            #dotestovat exthours a pak se vratit do ipynb a pokracovat tam
+            if exthours:
+                # Extend schedule with pre- and post-market times
+                pre_market_open = start_time - PRE_MARKET_OFFSET
+                post_market_close = end_time + POST_MARKET_OFFSET
+
+                min_day_time = pre_market_open
+                max_day_time = post_market_close
+                #or alternatively use day min and day max times
+                #min_day_time = zoneNY.localize(datetime.combine(start_time.date(), datetime.min.time()))
+                #max_day_time = zoneNY.localize(datetime.combine(start_time.date(), datetime.max.time()))   
+                start_time = max(datefrom, min_day_time)
+                end_time = min(dateto, max_day_time)
 
             #u prvni polozky
-            if day == cal_dates[0]:
+            if day == cal_dates[0] and exthours is False:
                 #pokud je cas od po konci marketa, nedavame tento den
                 if datefrom > end_time:
                     print("Cas od je po konci marketu, vynechavame tento den")
@@ -437,7 +465,7 @@ def run_batch_stratin(id: UUID, runReq: RunRequest):
                     start_time = datefrom
 
             #u posledni polozky
-            if day == cal_dates[-1]:
+            if day == cal_dates[-1] and exthours is False:
                 #cas do, je pred openenem market, nedavame tento den
                 if dateto < start_time:
                     continue
@@ -449,7 +477,25 @@ def run_batch_stratin(id: UUID, runReq: RunRequest):
         print(f"Getting interval dates from - to - RESULT ({len(cal_list)}):")
         #print(cal_list)
         return cal_list
-    
+
+    def is_ext_hours(id: UUID):
+        """
+        Temporary function to set ext_hours from add_data, before issue #260 will be implemented
+        """
+        #volani funkce instantiate_strategy
+        for i in db.stratins:
+            if str(i.id) == str(id):
+                    res, adp = parse_toml_string(i.add_data_conf)
+                    if res < 0:
+                        return (-1, f"add data conf invalid {adp}")
+                    break
+        for st in adp["add_data"]:
+            if st.get("exthours", False) and st["exthours"]:
+                return True
+        return False
+
+    exthours = is_ext_hours(id)
+
     #getting days to run into RunDays format
     if runReq.test_batch_id is not None:
         print("getting intervals days")
@@ -471,18 +517,19 @@ def run_batch_stratin(id: UUID, runReq: RunRequest):
             #pokud nejde o konkretni dny, ale o interval, pridame vsechny dny z tohoto intervalu
             if start_time.date() != end_time.date():
                 print("interval within testlist, fetching market days")
-                cal_list += get_market_days_in_interval(start_time, end_time, intrvl.note, testlist.id)
+                cal_list += get_market_days_in_interval(start_time, end_time, intrvl.note, testlist.id, exthours)
             else:
                 cal_list.append(RunDay(start = start_time, end = end_time, note=intrvl.note, id=testlist.id))
 
-        print(f"Getting intervals - RESULT ({len(cal_list)}): {cal_list}")
         #sem getting dates
     else:
         if runReq.bt_to is None:
             runReq.bt_to = datetime.now().astimezone(zoneNY)
         
-        cal_list = get_market_days_in_interval(runReq.bt_from, runReq.bt_to)
+        cal_list = get_market_days_in_interval(runReq.bt_from, runReq.bt_to, exthours=exthours)
 
+    print(f"Getted cal intervals - RESULT ({len(cal_list)}):")
+    print(cal_list)
 #spousti se vlakno s paralelnim behem a vracime ok
     ridici_vlakno = Thread(target=batch_run_manager, args=(id, runReq, cal_list), name=f"Batch run control thread started.")
     ridici_vlakno.start()    
@@ -655,7 +702,8 @@ def run_stratin(id: UUID, runReq: RunRequest, synchronous: bool = False, inter_b
                                             pe=pe,
                                             se=se,
                                             runner_id=id,
-                                            ilog_save=runReq.ilog_save)
+                                            ilog_save=runReq.ilog_save,
+                                            batch_id=runReq.batch_id)
                 print("instance vytvorena", instance)
                 #set mode
                 if runReq.mode == Mode.LIVE or runReq.mode == Mode.PAPER:
@@ -672,11 +720,13 @@ def run_stratin(id: UUID, runReq: RunRequest, synchronous: bool = False, inter_b
                     instance.add_data(**st)
 
                 print("Starting strategy", instance.name)
+
                 #vlakno = Thread(target=instance.start, name=instance.name)
                 #pokus na spusteni v kapsli, abychom po skonceni mohli updatnout stratin
                 vlakno = Thread(target=capsule, args=(instance,db, inter_batch_params), name=instance.name)
                 vlakno.start()
                 print("Spuštěna", instance.name)
+
                 ##storing the attributtes - pozor pri stopu je zase odstranit
                 #id runneru je nove id, stratin se dava dalsiho parametru
                 runner = Runner(id = id,
@@ -695,7 +745,9 @@ def run_stratin(id: UUID, runReq: RunRequest, synchronous: bool = False, inter_b
                         run_mode = runReq.mode,
                         run_instance = instance,
                         run_stratvars_toml=i.stratvars_conf)
-                db.runners.append(runner)
+                
+                with db.lock:
+                    db.runners.append(runner)
                 #print(db.runners)
                 #print(i)
                 #print(enumerate())
@@ -890,7 +942,7 @@ def archive_runner(runner: Runner, strat: StrategyInstance, inter_batch_params: 
         
         settings = dict(resolution=strat.state.resolution,
                         rectype=strat.state.rectype,
-                        cache_used=strat.dataloader.cache_used if isinstance(strat.dataloader, Trade_Offline_Streamer) else None,
+                        agg_cache_used=strat.dataloader.cache_used if isinstance(strat.dataloader, Trade_Offline_Streamer) else None,
                         configs=dict(
                             CONFIG_HANDLER=dict(profile=cfh.config_handler.active_profile, values=cfh.config_handler.active_config)))
 
@@ -1275,7 +1327,7 @@ def insert_archive_header(archeader: RunArchive):
             VALUES
             (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (str(archeader.id), str(archeader.strat_id), archeader.batch_id, archeader.symbol, archeader.name, archeader.note, archeader.started, archeader.stopped, archeader.mode, archeader.account, archeader.bt_from, archeader.bt_to, orjson.dumps(archeader.strat_json).decode('utf-8'), orjson.dumps(archeader.settings).decode('utf-8'), archeader.ilog_save, archeader.profit, archeader.trade_count, orjson.dumps(archeader.end_positions).decode('utf-8'), orjson.dumps(archeader.end_positions_avgp).decode('utf-8'), orjson.dumps(archeader.metrics, default=json_serial, option=orjson.OPT_PASSTHROUGH_DATETIME).decode('utf-8'), archeader.stratvars_toml, orjson.dumps(archeader.transferables).decode('utf-8')))
+            (str(archeader.id), str(archeader.strat_id), archeader.batch_id, archeader.symbol, archeader.name, archeader.note, archeader.started, archeader.stopped, archeader.mode, archeader.account, archeader.bt_from, archeader.bt_to, orjson.dumps(archeader.strat_json).decode('utf-8'), orjson.dumps(archeader.settings, default=json_serial).decode('utf-8'), archeader.ilog_save, archeader.profit, archeader.trade_count, orjson.dumps(archeader.end_positions).decode('utf-8'), orjson.dumps(archeader.end_positions_avgp).decode('utf-8'), orjson.dumps(archeader.metrics, default=json_serial, option=orjson.OPT_PASSTHROUGH_DATETIME).decode('utf-8'), archeader.stratvars_toml, orjson.dumps(archeader.transferables).decode('utf-8')))
 
         #retry not yet supported for statement format above
         #res = execute_with_retry(c,statement)

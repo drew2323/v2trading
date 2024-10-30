@@ -39,7 +39,7 @@
 """
 from uuid import UUID, uuid4
 from alpaca.trading.enums import OrderSide, OrderStatus, TradeEvent, OrderType
-from v2realbot.common.model import TradeUpdate, Order
+from v2realbot.common.model import TradeUpdate, Order, Account
 from rich import print as printanyway
 import threading
 import asyncio
@@ -61,6 +61,7 @@ import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output
 from dash import dcc, html, dash_table, Dash
 import v2realbot.utils.config_handler as cfh
+from typing import Set
 """"
 LATENCY DELAYS
 .000 trigger - last_trade_time (.4246266)
@@ -74,7 +75,20 @@ lock = threading.Lock
 #todo nejspis dat do classes, aby se mohlo backtestovat paralelne
 #ted je globalni promena last_time_now a self.account a cash
 class Backtester:
-    def __init__(self, symbol: str, order_fill_callback: callable, btdata: list, bp_from: datetime, bp_to: datetime, cash: float = 100000):
+    """
+    Initializes a new instance of the Backtester class.
+    Args:
+        symbol (str): The symbol of the security being backtested.
+        accounts (set): A set of accounts to use for backtesting.
+        order_fill_callback (callable): A callback function to handle order fills.
+        btdata (list): A list of backtesting data.
+        bp_from (datetime): The start date of the backtesting period.
+        bp_to (datetime): The end date of the backtesting period.
+        cash (float, optional): The initial cash balance. Defaults to 100000.
+    Returns:
+        None
+    """
+    def __init__(self, symbol: str, accounts: Set, order_fill_callback: callable, btdata: list, bp_from: datetime, bp_to: datetime, cash: float = 1000000):
         #this TIME value determines true time for submit, replace, cancel order should happen (allowing past)
         #it is set by every iteration of BT or before fill callback - allowing past events to happen
         self.time = None
@@ -83,6 +97,7 @@ class Backtester:
         self.btdata = btdata
         self.backtest_start = None
         self.backtest_end = None
+        self.accounts = accounts
         self.cash_init = cash
         #backtesting period
         self.bp_from = bp_from
@@ -90,9 +105,10 @@ class Backtester:
         self.cash = cash
         self.cash_reserved_for_shorting = 0
         self.trades = []
-        self.account = { "BAC": [0, 0] }
-        # { "BAC": [avgp, size] }
-        self.open_orders =[]
+        self.internal_account = { account.name:{self.symbol: [0, 0]} for account in accounts }
+        # { "ACCOUNT1": {}"BAC": [avgp, size]}, .... }
+        self.open_orders =[] #open orders shared for all accounts, account being an attribute
+
         # self.open_orders = [Order(id=uuid4(),
         #                         submitted_at = datetime(2023, 3, 17, 9, 30, 0, 0, tzinfo=zoneNY),
         #                         symbol = "BAC",
@@ -110,6 +126,8 @@ class Backtester:
         #                         side = OrderSide.BUY)]
     
     #
+  
+
     def execute_orders_and_callbacks(self, intime: float):
         """""
         Voláno ze strategie před každou iterací s časem T.
@@ -166,7 +184,7 @@ class Backtester:
 
         for order in self.open_orders:
             #pokud je vyplneny symbol, tak jedeme jen tyto, jinak vsechny
-            print(order.id, datetime.timestamp(order.submitted_at), order.symbol, order.side, order.order_type, order.qty, order.limit_price, order.submitted_at)
+            print(order.account.name, order.id, datetime.timestamp(order.submitted_at), order.symbol, order.side, order.order_type, order.qty, order.limit_price, order.submitted_at)
             if order.canceled_at:
                 #ic("deleting canceled order",order.id)
                 todel.append(order)
@@ -348,21 +366,22 @@ class Backtester:
 
             #ic(o.filled_at, o.filled_avg_price)
 
-            a = self.update_account(o = o)
+            a = self.update_internal_account(o = o)
             if a < 0:
                 tlog("update_account ERROR")
                 return -1
 
-            trade = TradeUpdate(order = o,
+            trade = TradeUpdate(account=o.account,
+                                order = o,
                                 event = TradeEvent.FILL,
                                 execution_id = str(uuid4()),
                                 timestamp = datetime.fromtimestamp(fill_time),
-                                position_qty= self.account[o.symbol][0],
+                                position_qty= self.internal_account[o.account.name][o.symbol][0],
                                 price=float(fill_price),
                                 qty = o.qty,
                                 value = float(o.qty*fill_price),
                                 cash = self.cash,
-                                pos_avg_price = self.account[o.symbol][1])
+                                pos_avg_price = self.internal_account[o.account.name][o.symbol][1])
             
             self.trades.append(trade)
 
@@ -379,49 +398,49 @@ class Backtester:
         self.time = time + float(cfh.config_handler.get_val('BT_DELAYS','fill_to_not'))
         print("current bt.time",self.time)
         #print("FILL NOTIFICATION: ", tradeupdate)
-        res = asyncio.run(self.order_fill_callback(tradeupdate))
+        res = asyncio.run(self.order_fill_callback(tradeupdate, tradeupdate.account))
         return 0
 
-    def update_account(self, o: Order):
+    def update_internal_account(self, o: Order):
         #updatujeme self.account
         #pokud neexistuje klic v accountu vytvorime si ho
-        if o.symbol not in self.account:
+        if o.symbol not in self.internal_account[o.account.name]:
             # { "BAC": [size, avgp] }
-            self.account[o.symbol] = [0,0]
+            self.internal_account[o.account.name][o.symbol] = [0,0]
 
         if o.side == OrderSide.BUY:
             #[size, avgp]
-            newsize = (self.account[o.symbol][0] + o.qty)
+            newsize = (self.internal_account[o.account.name][o.symbol][0] + o.qty)
             #JPLNE UZAVRENI SHORT  (avgp 0)
             if newsize == 0: newavgp = 0
             #CASTECNE UZAVRENI SHORT (avgp puvodni)
-            elif newsize < 0: newavgp = self.account[o.symbol][1]
+            elif newsize < 0: newavgp = self.internal_account[o.account.name][o.symbol][1]
             #JDE O LONG (avgp nove)
             else:
-                newavgp = ((self.account[o.symbol][0] * self.account[o.symbol][1]) + (o.qty * o.filled_avg_price)) / (self.account[o.symbol][0] + o.qty)
+                newavgp = ((self.internal_account[o.account.name][o.symbol][0] * self.internal_account[o.account.name][o.symbol][1]) + (o.qty * o.filled_avg_price)) / (self.internal_account[o.account.name][o.symbol][0] + o.qty)
             
-            self.account[o.symbol] = [newsize, newavgp]
+            self.internal_account[o.account.name][o.symbol] = [newsize, newavgp]
             self.cash = self.cash - (o.qty * o.filled_avg_price)
             return 1
         #sell
         elif o.side == OrderSide.SELL:
-            newsize = self.account[o.symbol][0]-o.qty
+            newsize = self.internal_account[o.account.name][o.symbol][0]-o.qty
             #UPLNE UZAVRENI LONGU (avgp 0)
             if newsize == 0: newavgp = 0
             #CASTECNE UZAVRENI LONGU (avgp puvodni)
-            elif newsize > 0: newavgp = self.account[o.symbol][1]
+            elif newsize > 0: newavgp = self.internal_account[o.account.name][o.symbol][1]
             #jde o SHORT (avgp nove)
             else:
                 #pokud je predchozi 0 - tzn. jde o prvni short
-                if self.account[o.symbol][1] == 0:
+                if self.internal_account[o.account.name][o.symbol][1] == 0:
                     newavgp = o.filled_avg_price
                 else:
-                    newavgp = ((abs(self.account[o.symbol][0]) * self.account[o.symbol][1]) + (o.qty * o.filled_avg_price)) / (abs(self.account[o.symbol][0]) + o.qty)
+                    newavgp = ((abs(self.internal_account[o.account.name][o.symbol][0]) * self.internal_account[o.account.name][o.symbol][1]) + (o.qty * o.filled_avg_price)) / (abs(self.internal_account[o.account.name][o.symbol][0]) + o.qty)
 
-            self.account[o.symbol] = [newsize, newavgp]
+            self.internal_account[o.account.name][o.symbol] = [newsize, newavgp]
 
             #pokud jde o prodej longu(nova pozice je>=0) upravujeme cash
-            if self.account[o.symbol][0] >= 0:
+            if self.internal_account[o.account.name][o.symbol][0] >= 0:
                 self.cash = float(self.cash + (o.qty * o.filled_avg_price))
                 print("uprava cashe, jde o prodej longu")
             else:
@@ -466,7 +485,7 @@ class Backtester:
         # #ic("get last price")
         # return self.btdata[i-1][1]
 
-    def submit_order(self, time: float, symbol: str, side: OrderSide, size: int, order_type: OrderType, price: float = None):
+    def submit_order(self, time: float, symbol: str, side: OrderSide, size: int, order_type: OrderType, account: Account, price: float = None):
         """submit order
         - zakladni validace
         - vloží do self.open_orders s daným časem
@@ -499,9 +518,9 @@ class Backtester:
             return -1
     
         #pokud neexistuje klic v accountu vytvorime si ho
-        if symbol not in self.account:
+        if symbol not in self.internal_account[account.name]:
             # { "BAC": [size, avgp] }
-            self.account[symbol] = [0,0]
+            self.internal_account[account.name][symbol] = [0,0]
 
         #check for available quantity
         if side == OrderSide.SELL:
@@ -509,15 +528,15 @@ class Backtester:
             reserved_price = 0
             #with lock:
             for o in self.open_orders:
-                if o.side == OrderSide.SELL and o.symbol == symbol and o.canceled_at is None:
+                if o.side == OrderSide.SELL and o.symbol == symbol and o.canceled_at is None and o.account==account:
                     reserved += o.qty
                     cena = o.limit_price if o.limit_price else self.get_last_price(time, o.symbol)
                     reserved_price += o.qty * cena
                 print("blokovano v open orders pro sell qty: ", reserved, "celkem:", reserved_price)
             
-            actual_minus_reserved = int(self.account[symbol][0]) - reserved 
+            actual_minus_reserved = int(self.internal_account[account.name][symbol][0]) - reserved 
             if actual_minus_reserved > 0 and actual_minus_reserved - int(size) < 0:
-                printanyway("not enough shares available to sell or shorting while long position",self.account[symbol][0],"reserved",reserved,"available",int(self.account[symbol][0]) - reserved,"selling",size)
+                printanyway("not enough shares available to sell or shorting while long position",self.internal_account[account.name][symbol][0],"reserved",reserved,"available",int(self.internal_account[account.name][symbol][0]) - reserved,"selling",size)
                 return -1
             
             #if is shorting - check available cash to short
@@ -533,13 +552,13 @@ class Backtester:
             reserved_price = 0
             #with lock:
             for o in self.open_orders:
-                if o.side == OrderSide.BUY and o.canceled_at is None:
+                if o.side == OrderSide.BUY and o.canceled_at is None and o.account==account:
                     cena = o.limit_price if o.limit_price else self.get_last_price(time, o.symbol)
                     reserved_price += o.qty * cena
                     reserved_qty += o.qty
                     print("blokovano v open orders for buy: qty, price", reserved_qty, reserved_price)
 
-            actual_plus_reserved_qty = int(self.account[symbol][0]) + reserved_qty
+            actual_plus_reserved_qty = int(self.internal_account[account.name][symbol][0]) + reserved_qty
             
             #jde o uzavreni shortu
             if actual_plus_reserved_qty < 0 and (actual_plus_reserved_qty + int(size)) > 0:
@@ -555,6 +574,7 @@ class Backtester:
 
         id = str(uuid4())
         order = Order(id=id,
+                    account=account,
                     submitted_at = datetime.fromtimestamp(float(time)),
                     symbol=symbol,
                     order_type = order_type,
@@ -569,7 +589,7 @@ class Backtester:
         return id
 
 
-    def replace_order(self, id: str, time: float, size: int = None, price: float = None):
+    def replace_order(self, id: str, time: float, account: Account, size: int = None, price: float = None):
         """replace order
         - zakladni validace vrací synchronně
         - vrací číslo nové objednávky
@@ -586,7 +606,7 @@ class Backtester:
         #with lock:
         for o in self.open_orders:
             print(o.id)
-            if str(o.id) == str(id):
+            if str(o.id) == str(id) and o.account == account:
                 newid = str(uuid4())
                 o.id = newid
                 o.submitted_at = datetime.fromtimestamp(time)
@@ -597,7 +617,7 @@ class Backtester:
         print("BT: replacement order doesnt exist")
         return 0
     
-    def cancel_order(self, time: float, id: str):
+    def cancel_order(self, time: float, id: str, account: Account):
         """cancel order
         - základní validace vrací synchronně
         - vymaže objednávku z open orders
@@ -613,22 +633,22 @@ class Backtester:
             return 0
         #with lock:
         for o in self.open_orders:
-            if str(o.id) == id:
+            if str(o.id) == id and o.account == account:
                 o.canceled_at = time
                 print("set as canceled in self.open_orders")
                 return 1
         print("BTC: cantchange. open order doesnt exist")
         return 0
     
-    def get_open_position(self, symbol: str):
+    def get_open_position(self, symbol: str, account: Account):
         """get positions ->(avg,size)"""
         #print("BT:get open positions entry")
         try:
-            return self.account[symbol][1], self.account[symbol][0]
+            return self.internal_account[account.name][symbol][1], self.internal_account[account.name][symbol][0]
         except:
             return (0,0)
 
-    def get_open_orders(self, side: OrderSide, symbol: str):
+    def get_open_orders(self, side: OrderSide, symbol: str, account: Account):
         """get open orders ->list(OrderNotification)""" 
         print("BT:get open orders entry")
         if len(self.open_orders) == 0:
@@ -638,7 +658,7 @@ class Backtester:
         #with lock:
         for o in self.open_orders:
             #print(o)
-            if o.symbol == symbol and o.canceled_at is None:
+            if o.symbol == symbol and o.canceled_at is None and o.account == account:
                 if side is None or o.side == side:
                     res.append(o)
         return res

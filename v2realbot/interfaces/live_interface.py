@@ -97,7 +97,7 @@ class LiveInterface(GeneralInterface):
             return -1
 
     """sell limit"""
-    async def sell_l(self, price: float, size = 1, repeat: bool = False):
+    def sell_l(self, price: float, size = 1, repeat: bool = False):
         self.size = size
         self.repeat = repeat
 
@@ -124,7 +124,7 @@ class LiveInterface(GeneralInterface):
             return -1
         
     """order replace"""
-    async def repl(self, orderid: str, price: float = None, size: int = None, repeatl: bool = False):
+    def repl(self, orderid: str, price: float = None, size: int = None, repeatl: bool = False):
         
         if not price and not size:
             print("price or size has to be filled")

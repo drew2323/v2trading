@@ -5,10 +5,75 @@ from rich import print
 from typing import Any, Optional, List, Union
 from datetime import datetime, date
 from pydantic import BaseModel, Field
-from v2realbot.enums.enums import Mode, Account, SchedulerStatus, Moddus, Market
+from v2realbot.enums.enums import Mode, Account, SchedulerStatus, Moddus, Market, Followup
 from alpaca.data.enums import Exchange
+from enum import Enum
+from datetime import datetime
+from pydantic import BaseModel
+from typing import Any, Optional, List, Union
+from uuid import UUID
 
 
+#prescribed model
+#from prescribed model
+class InstantIndicator(BaseModel):
+    name: str
+    toml: str
+
+
+class TradeStatus(str, Enum):
+    READY = "ready"
+    ACTIVATED = "activated"
+    CLOSED = "closed"
+    #FINISHED = "finished"
+
+class TradeDirection(str, Enum):
+    LONG = "long"
+    SHORT = "short"
+
+class TradeStoplossType(str, Enum):
+    FIXED = "fixed"
+    TRAILING = "trailing"
+
+#Predpis obchodu vygenerovany signalem, je to zastresujici jednotka
+#ke kteremu jsou pak navazany jednotlivy FILLy (reprezentovany model.TradeUpdate) - napr. castecne exity atp.
+class Trade(BaseModel):
+    account: Account
+    id: UUID
+    last_update: datetime
+    entry_time: Optional[datetime] = None
+    exit_time: Optional[datetime] = None
+    status: TradeStatus
+    generated_by: Optional[str] = None
+    direction: TradeDirection
+    entry_price: Optional[float] = None
+    goal_price: Optional[float] = None
+    size: Optional[int] = None
+    # size_multiplier je pomocna promenna pro pocitani relativniho denniho profit
+    size_multiplier: Optional[float] = None    
+    # stoploss_type: TradeStoplossType
+    stoploss_value: Optional[float] = None
+    profit: Optional[float] = 0
+    profit_sum: Optional[float] = 0
+    rel_profit: Optional[float] = 0
+    rel_profit_cum: Optional[float] = 0
+
+#account variables that can be accessed by ACCOUNT key dictionary
+class AccountVariables(BaseModel):
+    positions: float = 0
+    avgp: float = 0
+    pending: str = None
+    blockbuy: int = 0
+    wait_for_fill: float = None
+    profit: float = 0
+    docasny_rel_profit: list = []
+    rel_profit_cum: list = []
+    last_entry_index: int = None #acc varianta, mame taky obnecnou state.vars.last_entry_index
+    requested_followup: Followup = None
+    activeTrade: Trade = None
+    dont_exit_already_activated: bool = False
+    #activeTrade, prescribedTrades
+    #tbd transferables?
 
 
 #models for server side datatables
@@ -91,7 +156,7 @@ class TestList(BaseModel):
     dates: List[Intervals]
 
 #for GUI to fetch historical trades on given symbol
-class Trade(BaseModel):
+class TradeView(BaseModel):
     symbol: str
     timestamp: datetime
     exchange: Optional[Union[Exchange, str]] = None
@@ -146,7 +211,7 @@ class RunRequest(BaseModel):
     test_batch_id: Optional[str] = None
     #GENERATED ID v ramci runu, vaze vsechny runnery v batchovem behu
     batch_id: Optional[str] = None
-    cash: int = 100000
+    cash: int = 1000000
     skip_cache: Optional[bool] = False
 
 #Trida, která je nadstavbou runrequestu a pouzivame ji v scheduleru, je zde navic jen par polí
@@ -189,8 +254,8 @@ class RunnerView(BaseModel):
     run_symbol: Optional[str] = None
     run_trade_count: Optional[int] = 0
     run_profit: Optional[float] = 0
-    run_positions: Optional[int] = 0
-    run_avgp: Optional[float] = 0
+    run_positions: Optional[dict] = 0
+    run_avgp: Optional[dict] = 0
     run_stopped: Optional[datetime] = None
     run_paused: Optional[datetime] = None    
  
@@ -208,8 +273,8 @@ class Runner(BaseModel):
     run_ilog_save: Optional[bool] = False
     run_trade_count: Optional[int] = None
     run_profit: Optional[float] = None
-    run_positions: Optional[int] = None
-    run_avgp: Optional[float] = None
+    run_positions: Optional[dict] = None
+    run_avgp: Optional[dict] = None
     run_strat_json: Optional[str] = None
     run_stopped: Optional[datetime] = None
     run_paused: Optional[datetime] = None   
@@ -247,6 +312,7 @@ class Bar(BaseModel):
     vwap: Optional[float] = 0
 
 class Order(BaseModel):
+    account: Account
     id: UUID
     submitted_at: datetime
     filled_at: Optional[datetime] = None
@@ -262,6 +328,7 @@ class Order(BaseModel):
 
 #entita pro kazdy kompletni FILL, je navazana na prescribed_trade 
 class TradeUpdate(BaseModel):
+    account: Account
     event: Union[TradeEvent, str]
     execution_id: Optional[UUID] = None
     order: Order
@@ -307,8 +374,8 @@ class RunArchive(BaseModel):
     ilog_save: Optional[bool] = False
     profit: float = 0
     trade_count: int = 0
-    end_positions: int = 0
-    end_positions_avgp: float = 0
+    end_positions: Union[dict,str] = None
+    end_positions_avgp: Union[dict,str] = None
     metrics: Union[dict, str] = None
     stratvars_toml: Optional[str] = None
 
@@ -329,8 +396,8 @@ class RunArchiveView(BaseModel):
     ilog_save: Optional[bool] = False
     profit: float = 0
     trade_count: int = 0
-    end_positions: int = 0
-    end_positions_avgp: float = 0
+    end_positions: Union[dict,int] = None
+    end_positions_avgp: Union[dict,float] = None
     metrics: Union[dict, str] = None
     batch_profit: float = 0  # Total profit for the batch - now calculated during query
     batch_count: int = 0  # Count of runs in the batch - now calculated during query
@@ -347,6 +414,8 @@ class SLHistory(BaseModel):
     id: Optional[UUID] = None
     time: datetime
     sl_val: float
+    direction: TradeDirection
+    account: Account
 
 #Contains archive of running strategies (runner) - detail data
 class RunArchiveDetail(BaseModel):
@@ -359,9 +428,3 @@ class RunArchiveDetail(BaseModel):
     trades: List[TradeUpdate]
     ext_data: Optional[dict] = None
     
-
-class InstantIndicator(BaseModel):
-    name: str
-    toml: str
-
-

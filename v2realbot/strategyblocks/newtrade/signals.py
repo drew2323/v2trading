@@ -1,6 +1,6 @@
 from v2realbot.strategy.base import StrategyState
-from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus
-from v2realbot.utils.utils import isrising, isfalling,zoneNY, price2dec, print, safe_get
+from v2realbot.common.model import Trade, TradeDirection, TradeStatus
+from v2realbot.utils.utils import isrising, isfalling,zoneNY, price2dec, print, safe_get, gaka
 from v2realbot.config import KW
 from uuid import uuid4
 from datetime import datetime
@@ -31,6 +31,12 @@ def signal_search(state: StrategyState, data):
     # slope10.out_short_if_above = 0
     # ema.AND.short_if_below = 28
 
+    accountsWithNoActiveTrade = gaka(state.account_variables, "activeTrade", None, lambda x: x is None)
+
+    if len(accountsWithNoActiveTrade.values()) == 0:
+        #print("active trades on all accounts")
+        return
+
     for signalname, signalsettings in state.vars.signals.items():
         execute_signal_generator(state, data, signalname)
 
@@ -38,14 +44,21 @@ def signal_search(state: StrategyState, data):
     # pokud je s cenou ceka se na cenu, pokud immmediate tak se hned provede
     # to vse za predpokladu, ze neni aktivni trade
 
-def execute_signal_generator(state, data, name):
+def execute_signal_generator(state: StrategyState, data, name):
     state.ilog(lvl=1,e=f"SIGNAL SEARCH for {name}", cond_go=state.vars.conditions[KW.go][name], cond_dontgo=state.vars.conditions[KW.dont_go][name], cond_activate=state.vars.conditions[KW.activate][name] )
     options = safe_get(state.vars.signals, name, None)
+
+    #add account from stratvars (if there) or default to self.state.account
 
     if options is None:
         state.ilog(lvl=1,e=f"No options for {name} in stratvars")
         return
     
+    #get account of the signal, fallback to default
+    account = safe_get(options, "account", state.account)
+    account_long = safe_get(options, "account_long", account)
+    account_short = safe_get(options, "account_short", account)
+
     if common_go_preconditions_check(state, data, signalname=name, options=options) is False:
         return
 
@@ -71,9 +84,12 @@ def execute_signal_generator(state, data, name):
             state.ilog(lvl=1,e=f"{name} SHORT DISABLED")
         if long_enabled is False:
             state.ilog(lvl=1,e=f"{name} LONG DISABLED")
-        if long_enabled and go_conditions_met(state, data,signalname=name, direction=TradeDirection.LONG):
+        trade_made = None
+        #predkontroloa zda neni pending na accountu nebo aktivni trade
+        if state.account_variables[account_long].pending is None and state.account_variables[account_long].activeTrade is None and long_enabled and go_conditions_met(state, data,signalname=name, direction=TradeDirection.LONG):
             multiplier = get_multiplier(state, data, options, TradeDirection.LONG)
             state.vars.prescribedTrades.append(Trade(
+                                    account = account_long,
                                     id=uuid4(),
                                     last_update=datetime.fromtimestamp(state.time).astimezone(zoneNY),
                                     status=TradeStatus.READY,
@@ -83,9 +99,12 @@ def execute_signal_generator(state, data, name):
                                     direction=TradeDirection.LONG,
                                     entry_price=None,
                                     stoploss_value = None))
-        elif short_enabled and go_conditions_met(state, data, signalname=name, direction=TradeDirection.SHORT):
+            trade_made = account_long
+        #pri multiaccountu muzeme udelat v jedne iteraci vice tradu avsak vzdy na ruznych accountech
+        if (trade_made is None or trade_made != account_short) and state.account_variables[account_short].pending is None and state.account_variables[account_short].activeTrade is None and short_enabled and go_conditions_met(state, data, signalname=name, direction=TradeDirection.SHORT):
             multiplier = get_multiplier(state, data, options, TradeDirection.SHORT)
             state.vars.prescribedTrades.append(Trade(
+                    account=account_short,
                     id=uuid4(),
                     last_update=datetime.fromtimestamp(state.time).astimezone(zoneNY),
                     status=TradeStatus.READY,
@@ -95,5 +114,5 @@ def execute_signal_generator(state, data, name):
                     direction=TradeDirection.SHORT,
                     entry_price=None,
                     stoploss_value = None))
-        else:
-            state.ilog(lvl=0,e=f"{name} NO SIGNAL")
+            return
+        state.ilog(lvl=0,e=f"{name} NO SIGNAL")

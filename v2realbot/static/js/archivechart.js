@@ -11,6 +11,44 @@ var markersLine = null
 var avgBuyLine = null
 var profitLine = null
 var slLine = []
+
+//create function which for each ACCOUNT1, ACCOUNT2 or ACCOUNT3 returns color for buy and color for sell - which can be strings representing color
+//HELPERS FUNCTION - will go to utils
+/**
+ * Returns an object containing the colors for buy and sell for the specified account.
+ *
+ * Parameters:
+ *     account (string): The account for which to retrieve the colors (ACCOUNT1, ACCOUNT2, or ACCOUNT3).
+ *
+ * Returns:
+ *     object: An object with 'buy' and 'sell' properties containing the corresponding color strings.
+ * 
+ * Account 1:
+#FF6B6B, #FF9999
+Account 2:
+#4ECDC4, #83E8E1
+Account 3:
+#FFD93D, #FFE787
+Account 4:
+#6C5CE7, #A29BFE
+Another option for colors:
+
+#1F77B4 (Entry) and #AEC7E8 (Exit)
+#FF7F0E (Entry) and #FFBB78 (Exit)
+#2CA02C (Entry) and #98DF8A (Exit)
+#D62728 (Entry) and #FF9896 (Exit)
+    */
+function getAccountColors(account) {
+    const accountColors = {
+        ACCOUNT1: { accid: 'A1', buy: '#FF7F0E', sell: '#FFBB78' },
+        ACCOUNT2: { accid: 'A2',buy: '#1F77B4', sell: '#AEC7E8' },
+        ACCOUNT3: { accid: 'A3',buy: '#2CA02C', sell: '#98DF8A' },
+        ACCOUNT4: { accid: 'A4',buy: '#D62728', sell: '#FF9896' },
+        ACCOUNT5: { accid: 'A5',buy: 'purple', sell: 'orange' }
+    };
+    return accountColors[account] || { buy: '#37cade', sell: 'red' };
+}  
+
 //TRANSFORM object returned from REST API get_arch_run_detail
 //to series and markers required by lightweigth chart
 //input array object bars = { high: [1,2,3], time: [1,2,3], close: [2,2,2]...}
@@ -34,6 +72,11 @@ function transform_data(data) {
     //cas of first record, nekdy jsou stejny - musim pridat setinku
     prev_cas = 0
     if ((data.ext_data !== null) && (data.ext_data.sl_history)) {
+        ///sort sl_history according to order id string - i need all same order id together
+        data.ext_data.sl_history.sort(function (a, b) {
+            return a.id.localeCompare(b.id);
+          });
+
         data.ext_data.sl_history.forEach((histRecord, index, array) => {
             
             //console.log("plnime")
@@ -48,6 +91,7 @@ function transform_data(data) {
                 //init nova sada
                 sl_line_sada = []
                 sl_line_markers_sada = []
+                sline_color = "#f5aa42"
             }
 
             prev_id = histRecord.id
@@ -65,12 +109,21 @@ function transform_data(data) {
             sline = {}
             sline["time"] = cas
             sline["value"] = histRecord.sl_val
+            if (histRecord.account) {
+                const accColors = getAccountColors(histRecord.account)
+                sline_color = histRecord.direction == "long" ? accColors.buy : accColors.sell //idealne
+                sline["color"] = sline_color
+            }
+
             sl_line_sada.push(sline)
+
+            //ZDE JSEM SKONCIL
+            //COLOR SE NASTAVUJE V SERIES OPTIONS POZDEJI - nejak vymyslet
 
             sline_markers = {}
             sline_markers["time"] = cas
             sline_markers["position"] = "inBar" 
-            sline_markers["color"] = "#f5aa42"
+            sline_markers["color"] = sline_color
             //sline_markers["shape"] = "circle"
             //console.log("SHOW_SL_DIGITS",SHOW_SL_DIGITS)
             sline_markers["text"] = SHOW_SL_DIGITS ? histRecord.sl_val.toFixed(3) : ""
@@ -239,31 +292,33 @@ function transform_data(data) {
                 // //a_markers["text"] = CHART_SHOW_TEXT ? trade.position_qty + "/" + parseFloat(trade.pos_avg_price).toFixed(3) :trade.position_qty
                 // avgp_markers.push(a_markers)
             }
-        }
-        
+        }      
+
+        const { accid: accountId,buy: buyColor, sell: sellColor } = getAccountColors(trade.account);
 
         //buy sell markery
         marker = {}
         marker["time"] = timestamp;
         // marker["position"] = (trade.order.side == "buy") ? "belowBar" : "aboveBar" 
         marker["position"] = (trade.order.side == "buy") ? "aboveBar" : "aboveBar" 
-        marker["color"] = (trade.order.side == "buy") ? "#37cade" : "red"
+        marker["color"] = (trade.order.side == "buy") ? buyColor : sellColor
         //marker["shape"] = (trade.order.side == "buy") ? "arrowUp" : "arrowDown"
         marker["shape"] = (trade.order.side == "buy") ? "arrowUp" : "arrowDown"
         //marker["text"] =  trade.qty + "/" + trade.price
         qt_optimized = (trade.order.qty % 1000 === 0) ? (trade.order.qty / 1000).toFixed(1) + 'K' : trade.order.qty
   
+        marker["text"] = accountId + " " //account shortcut
         if (CHART_SHOW_TEXT) {
             //včetně qty
             //marker["text"] =  qt_optimized + "@" + trade.price
                 
             //bez qty
-            marker["text"] =  trade.price
+            marker["text"] +=  trade.price
             closed_trade_marker_and_profit = (trade.profit) ? "c" + trade.profit.toFixed(1) + "/" + trade.profit_sum.toFixed(1) : "c"
             marker["text"] += (trade.position_qty == 0) ? closed_trade_marker_and_profit : ""
         } else {
             closed_trade_marker_and_profit = (trade.profit) ? "c" + trade.profit.toFixed(1) + "/" + trade.profit_sum.toFixed(1) : "c"
-            marker["text"] = (trade.position_qty == 0) ? closed_trade_marker_and_profit : trade.price.toFixed(3)
+            marker["text"] += (trade.position_qty == 0) ? closed_trade_marker_and_profit : trade.price.toFixed(3)
         }
 
         markers.push(marker)
@@ -844,7 +899,7 @@ function display_buy_markers(data) {
         //console.log("uvnitr")
         slLine_temp = chart.addLineSeries({
             //    title: "avgpbuyline",
-                color: '#e4c76d',
+                color: slRecord[0]["color"] ? slRecord[0]["color"] : '#e4c76d',
             //    color: 'transparent',
                 lineWidth: 1,
                 lastValueVisible: false

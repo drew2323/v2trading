@@ -172,7 +172,7 @@ function initialize_archiveRecords() {
                     {
                         targets: [13,14,15],
                         render: function ( data, type, row ) {
-                            return '<div class="tdsmall">'+data+'</div>'
+                            return '<div class="tdsmall">'+JSON.stringify(data, null, 2)+'</div>'
                         },
                     },
                     {

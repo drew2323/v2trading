@@ -1,6 +1,7 @@
-from threading import Thread
+from threading import Thread, current_thread
 from alpaca.trading.stream import TradingStream
 from v2realbot.config import Keys
+from v2realbot.common.model import Account
 
 #jelikoz Alpaca podporuje pripojeni libovolneho poctu websocket instanci na order updates
 #vytvorime pro kazdou bezici instanci vlastni webservisu (jinak bychom museli delat instanci pro kombinaci ACCOUNT1 - LIVE, ACCOUNT1 - PAPER, ACCOUNT2 - PAPER ..)
@@ -14,15 +15,16 @@ As Alpaca supports connecting of any number of trade updates clients
 new instance of this websocket thread is created for each strategy instance.
 """""
 class LiveOrderUpdatesStreamer(Thread):
-    def __init__(self, key: Keys, name: str) -> None:
+    def __init__(self, key: Keys, name: str, account: Account) -> None:
         self.key = key
+        self.account = account
         self.strategy = None
         self.client = TradingStream(api_key=key.API_KEY, secret_key=key.SECRET_KEY, paper=key.PAPER)
         Thread.__init__(self, name=name)
     
     #notif dispatcher - pouze 1 strategie
     async def distributor(self,data):     
-        if self.strategy.symbol == data.order.symbol: await self.strategy.order_updates(data)
+        if self.strategy.symbol == data.order.symbol: await self.strategy.order_updates(data, self.account)
 
    # connects callback to interface object - responses for given symbol are routed to interface callback
     def connect_callback(self, st):
@@ -39,6 +41,6 @@ class LiveOrderUpdatesStreamer(Thread):
             print("connect strategy first")
             return
         self.client.subscribe_trade_updates(self.distributor)
-        print("*"*10, "WS Order Update Streamer started for", self.strategy.name, "*"*10)
+        print("*"*10, "WS Order Update Streamer started for", current_thread().name,"*"*10)
         self.client.run()
         

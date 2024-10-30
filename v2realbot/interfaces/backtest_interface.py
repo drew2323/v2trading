@@ -5,6 +5,7 @@ from v2realbot.backtesting.backtester import Backtester
 from datetime import datetime
 from v2realbot.utils.utils import zoneNY
 import v2realbot.utils.config_handler as cfh
+from v2realbot.common.model import Account
 
 """"
 backtester methods can be called
@@ -16,8 +17,9 @@ both should be backtestable
 if method are called for the past self.time must be set accordingly
 """
 class BacktestInterface(GeneralInterface):
-    def __init__(self, symbol, bt: Backtester) -> None:
+    def __init__(self, symbol, bt: Backtester, account: Account) -> None:
         self.symbol = symbol
+        self.account = account
         self.bt = bt
         self.count_api_requests = cfh.config_handler.get_val('COUNT_API_REQUESTS')
         self.mincnt = list([dict(minute=0,count=0)])
@@ -43,48 +45,48 @@ class BacktestInterface(GeneralInterface):
     def buy(self, size = 1, repeat: bool = False):
         self.count()
         #add REST API latency
-        return self.bt.submit_order(time=self.bt.time + cfh.config_handler.get_val('BT_DELAYS','strat_to_sub'),symbol=self.symbol,side=OrderSide.BUY,size=size,order_type = OrderType.MARKET) 
+        return self.bt.submit_order(time=self.bt.time + cfh.config_handler.get_val('BT_DELAYS','strat_to_sub'),symbol=self.symbol,side=OrderSide.BUY,size=size,order_type = OrderType.MARKET, account=self.account) 
     
     """buy limit"""
     def buy_l(self, price: float, size: int = 1, repeat: bool = False, force: int = 0):
         self.count()
-        return self.bt.submit_order(time=self.bt.time + cfh.config_handler.get_val('BT_DELAYS','strat_to_sub'),symbol=self.symbol,side=OrderSide.BUY,size=size,price=price,order_type = OrderType.LIMIT) 
+        return self.bt.submit_order(time=self.bt.time + cfh.config_handler.get_val('BT_DELAYS','strat_to_sub'),symbol=self.symbol,side=OrderSide.BUY,size=size,price=price,order_type = OrderType.LIMIT, account=self.account) 
     
     """sell market"""
     def sell(self, size = 1, repeat: bool = False):
         self.count()
-        return self.bt.submit_order(time=self.bt.time + cfh.config_handler.get_val('BT_DELAYS','strat_to_sub'),symbol=self.symbol,side=OrderSide.SELL,size=size,order_type = OrderType.MARKET) 
+        return self.bt.submit_order(time=self.bt.time + cfh.config_handler.get_val('BT_DELAYS','strat_to_sub'),symbol=self.symbol,side=OrderSide.SELL,size=size,order_type = OrderType.MARKET, account=self.account) 
 
     """sell limit"""
     async def sell_l(self, price: float, size = 1, repeat: bool = False):
         self.count()
-        return self.bt.submit_order(time=self.bt.time + cfh.config_handler.get_val('BT_DELAYS','strat_to_sub'),symbol=self.symbol,side=OrderSide.SELL,size=size,price=price,order_type = OrderType.LIMIT)        
+        return self.bt.submit_order(time=self.bt.time + cfh.config_handler.get_val('BT_DELAYS','strat_to_sub'),symbol=self.symbol,side=OrderSide.SELL,size=size,price=price,order_type = OrderType.LIMIT, account=self.account)        
 
     """replace order"""
     async def repl(self, orderid: str, price: float = None, size: int = None, repeat: bool = False):
         self.count()
-        return self.bt.replace_order(time=self.bt.time + cfh.config_handler.get_val('BT_DELAYS','strat_to_sub'),id=orderid,size=size,price=price)
+        return self.bt.replace_order(time=self.bt.time + cfh.config_handler.get_val('BT_DELAYS','strat_to_sub'),id=orderid,size=size,price=price, account=self.account)
     
     """cancel order"""
     #TBD exec predtim?
     def cancel(self, orderid: str):
         self.count()
-        return self.bt.cancel_order(time=self.bt.time + cfh.config_handler.get_val('BT_DELAYS','strat_to_sub'), id=orderid)
+        return self.bt.cancel_order(time=self.bt.time + cfh.config_handler.get_val('BT_DELAYS','strat_to_sub'), id=orderid, account=self.account)
 
     """get positions ->(size,avgp)"""
     #TBD exec predtim?
     def pos(self):
         self.count()
-        return self.bt.get_open_position(symbol=self.symbol)
+        return self.bt.get_open_position(symbol=self.symbol, account=self.account)
 
     """get open orders ->list(Order)"""      
     def get_open_orders(self, side: OrderSide, symbol: str):
         self.count()
-        return self.bt.get_open_orders(side=side, symbol=symbol)
+        return self.bt.get_open_orders(side=side, symbol=symbol, account=self.account)
     
     def get_last_price(self, symbol: str):
         self.count()
-        return self.bt.get_last_price(time=self.bt.time)
+        return self.bt.get_last_price(time=self.bt.time, account=self.account)
 
 
     

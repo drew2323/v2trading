@@ -2,7 +2,7 @@
     Strategy base class
 """
 from datetime import datetime
-from v2realbot.utils.utils import AttributeDict, zoneNY, is_open_rush, is_close_rush, json_serial, print
+from v2realbot.utils.utils import AttributeDict, zoneNY, is_open_rush, is_close_rush, json_serial, print, gaka
 from v2realbot.utils.tlog import tlog
 from v2realbot.utils.ilog import insert_log, insert_log_multiple_queue
 from v2realbot.enums.enums import RecordType, StartBarAlign, Mode, Order, Account
@@ -16,11 +16,11 @@ from v2realbot.loader.trade_ws_streamer import Trade_WS_Streamer
 from v2realbot.interfaces.general_interface import GeneralInterface
 from v2realbot.interfaces.backtest_interface import BacktestInterface
 from v2realbot.interfaces.live_interface import LiveInterface
-import v2realbot.common.PrescribedTradeModel as ptm
+import v2realbot.common.model as ptm
 from alpaca.trading.enums import OrderSide
 from v2realbot.backtesting.backtester import Backtester
 #from alpaca.trading.models import TradeUpdate
-from v2realbot.common.model import TradeUpdate
+from v2realbot.common.model import TradeUpdate, AccountVariables
 from alpaca.trading.enums import TradeEvent, OrderStatus
 from threading import Event, current_thread
 import orjson
@@ -30,6 +30,7 @@ from collections import defaultdict
 import v2realbot.strategyblocks.activetrade.sl.optimsl as optimsl
 from tqdm import tqdm
 import v2realbot.utils.config_handler as cfh
+from typing import Dict, Set
 
 if PROFILING_NEXT_ENABLED:
     from pyinstrument import Profiler
@@ -37,7 +38,7 @@ if PROFILING_NEXT_ENABLED:
 
 # obecna Parent strategie podporující queues
 class Strategy:
-    def __init__(self, name: str, symbol: str, next: callable, init: callable, account: Account, mode: str = Mode.PAPER, stratvars: AttributeDict = None, open_rush: int = 30, close_rush: int = 30, pe: Event = None, se: Event = None, runner_id: UUID = None, ilog_save: bool = False) -> None:
+    def __init__(self, name: str, symbol: str, next: callable, init: callable, account: Account, mode: str = Mode.PAPER, stratvars: AttributeDict = None, open_rush: int = 30, close_rush: int = 30, pe: Event = None, se: Event = None, runner_id: UUID = None, ilog_save: bool = False, batch_id: str = None) -> None:
         #variable to store methods overriden by strategytypes (ie pre plugins)
         self.overrides = None
         self.symbol = symbol
@@ -50,7 +51,8 @@ class Strategy:
         self.rectype: RecordType = None
         self.nextnew = 1
         self.btdata: list = []
-        self.interface: GeneralInterface = None
+        self.interface: Dict[str, GeneralInterface] = {}
+        self.order_notifs: Dict[str, LiveOrderUpdatesStreamer] = {}
         self.state: StrategyState = None
         self.bt: Backtester = None
         self.debug = False
@@ -60,14 +62,18 @@ class Strategy:
         self.open_rush = open_rush
         self.close_rush = close_rush
         self._streams = []
+        #primary account from runReqs
         self.account = account
-        self.key = get_key(mode=self.mode, account=self.account)
         self.rtqueue = None
         self.runner_id = runner_id
         self.ilog_save = ilog_save
+        self.batch_id = batch_id
         self.secondary_res_start_time = dict()
         self.secondary_res_start_index = dict()
         self.last_index = -1
+
+        #set of all accounts (Account) including those from stratvars
+        self.accounts = self.get_accounts_in_stratvars_and_reqs()
 
         #TODO predelat na dynamické queues
         self.q1 = queue.Queue()
@@ -83,6 +89,25 @@ class Strategy:
         self.hard_stop = False #indikuje hard stop, tedy vypnuti strategie
         self.soft_stop = False #indikuje soft stop (napr. při dosažení max zisku/ztráty), tedy pokracovani strategie, vytvareni dat, jen bez obchodu
 
+    def get_accounts_in_stratvars_and_reqs(self) -> Set:
+        """
+        Helper that retrieves distinct account values used in stratvars and in runRequest.
+
+        Returns:
+            set: A set of unique account values.
+        """
+        account_keywords = ['account', 'account_long', 'account_short']
+        account_values = set()
+
+        for signal_value in self.stratvars.get('signals', {}).values():
+            for key in account_keywords:
+                if key in signal_value:
+                    account_values.add(Account(signal_value[key]))
+
+        account_values.add(Account(self.account))
+        printnow("Distinct account values:", account_values)
+        return account_values
+
     #prdelat queue na dynamic - podle toho jak bud uchtit pracovat s multiresolutions
     #zatim jen jedna q1
     #TODO zaroven strategie musi vedet o rectypu, protoze je zpracovava
@@ -97,9 +122,6 @@ class Strategy:
             exthours: bool = False,
             excludes: list = cfh.config_handler.get_val('AGG_EXCLUDED_TRADES')):
         
-        ##TODO vytvorit self.datas_here containing dict - queue - SYMBOL - RecType - 
-        ##zatim natvrdo
-        ##stejne tak podporit i ruzne resolutions, zatim take natvrdo prvni
         self.rectype = rectype
         self.state.rectype = rectype
         self.state.resolution = resolution
@@ -116,36 +138,44 @@ class Strategy:
             return -1
         
         self.debug = debug
-        self.key = get_key(mode=mode, account=self.account)
         
         if mode == Mode.LIVE or mode == Mode.PAPER:
             #data loader thread
             self.dataloader = Trade_WS_Streamer(name="WS-LDR-"+self.name)
-            self.interface = LiveInterface(symbol=self.symbol, key=self.key)
-            # order notif thread
-            self.order_notifs = LiveOrderUpdatesStreamer(key=self.key, name="WS-STRMR-" + self.name)
-            #propojujeme notifice s interfacem (pro callback)
-            self.order_notifs.connect_callback(self)
-            self.state = StrategyState(name=self.name, symbol = self.symbol, stratvars = self.stratvars, interface=self.interface, rectype=self.rectype, runner_id=self.runner_id, ilog_save=self.ilog_save)
+            #populate interfaces for each account
+            for account in self.accounts:
+                #get key for account
+                key = get_key(mode=mode, account=Account(account))
+                self.interface[account.name] = LiveInterface(symbol=self.symbol, key=key)
+                # order notif thread
+                self.order_notifs[account.name] = LiveOrderUpdatesStreamer(key=key, name="WS-STRMR-" + account.name + "-" + self.name, account=account)
+                #propojujeme notifice s interfacem (pro callback)
+                self.order_notifs[account.name].connect_callback(self)
+
+            self.state = StrategyState(name=self.name, accounts=self.accounts, account=self.account, symbol = self.symbol, stratvars = self.stratvars, interface=self.interface, rectype=self.rectype, runner_id=self.runner_id, ilog_save=self.ilog_save, batch_id=self.batch_id)
 
         elif mode == Mode.BT:
 
             self.dataloader = Trade_Offline_Streamer(start, end, btdata=self.btdata)
-            self.bt = Backtester(symbol = self.symbol, order_fill_callback= self.order_updates, btdata=self.btdata, cash=cash, bp_from=start, bp_to=end)
+            self.bt = Backtester(symbol = self.symbol, accounts=self.accounts, order_fill_callback= self.order_updates, btdata=self.btdata, cash=cash, bp_from=start, bp_to=end)
             
-            self.interface = BacktestInterface(symbol=self.symbol, bt=self.bt)
-            self.state = StrategyState(name=self.name, symbol = self.symbol, stratvars = self.stratvars, interface=self.interface, rectype=self.rectype, runner_id=self.runner_id, bt=self.bt, ilog_save=self.ilog_save)
+            #populate interfaces for each account
+            for account in self.accounts:
+                #pro backtest volame stejne oklicujeme interface
+                self.interface[account.name] = BacktestInterface(symbol=self.symbol, bt=self.bt, account=account)
+            self.state = StrategyState(name=self.name, accounts=self.accounts, account=self.account, symbol = self.symbol, stratvars = self.stratvars, interface=self.interface, rectype=self.rectype, runner_id=self.runner_id, bt=self.bt, ilog_save=self.ilog_save, batch_id=self.batch_id)
+            #no callback from bt, it is called directly
             self.order_notifs = None
             
             ##streamer bude plnit trady do listu trades - nad kterym bude pracovat paper trade
             #zatim takto - pak pripadne do fajlu nebo jinak OPTIMALIZOVAT
-            self.dataloader.add_stream(TradeAggregator2List(symbol=self.symbol,btdata=self.btdata,rectype=RecordType.TRADE))
+            self.dataloader.add_stream(TradeAggregator2List(symbol=self.symbol,btdata=self.btdata,rectype=RecordType.TRADE, exthours=True)) #workaround - bude vzdy exthours
         elif mode == Mode.PREP:
             #bt je zde jen pro udrzeni BT casu v logu atp. JInak jej nepouzivame.
-            self.bt = Backtester(symbol = self.symbol, order_fill_callback= self.order_updates, btdata=self.btdata, cash=cash, bp_from=start, bp_to=end)
+            self.bt = Backtester(symbol = self.symbol, accounts=self.accounts, order_fill_callback= self.order_updates, btdata=self.btdata, cash=cash, bp_from=start, bp_to=end)
             self.interface = None
             #self.interface = BacktestInterface(symbol=self.symbol, bt=self.bt)
-            self.state = StrategyState(name=self.name, symbol = self.symbol, stratvars = self.stratvars, interface=self.interface, rectype=self.rectype, runner_id=self.runner_id, bt=self.bt, ilog_save=self.ilog_save)
+            self.state = StrategyState(name=self.name, accounts=self.accounts, account=self.account, symbol = self.symbol, stratvars = self.stratvars, interface=self.interface, rectype=self.rectype, runner_id=self.runner_id, bt=self.bt, ilog_save=self.ilog_save, batch_id=self.batch_id)
             self.order_notifs = None        
         
         else:
@@ -314,13 +344,15 @@ class Strategy:
     """"refresh positions and avgp - for CBAR once per confirmed, for BARS each time"""
     def refresh_positions(self, item):
         if self.rectype == RecordType.BAR:
-            a,p = self.interface.pos()
-            if a != -1:
-                self.state.avgp, self.state.positions = a,p
+            for account in self.accounts:
+                a,p = self.interface[account.name].pos()
+                if a != -1:
+                    self.state.account_variables[account.name].avgp, self.state.account_variables[account.name].positions = a, p
         elif self.rectype in (RecordType.CBAR, RecordType.CBARVOLUME, RecordType.CBARDOLLAR, RecordType.CBARRENKO) and item['confirmed'] == 1:
-            a,p = self.interface.pos()
-            if a != -1:
-                self.state.avgp, self.state.positions = a,p
+            for account in self.accounts:
+                a,p = self.interface[account.name].pos()
+                if a != -1:
+                    self.state.account_variables[account.name].avgp, self.state.account_variables[account.name].positions = a, p
 
     """update state.last_trade_time a time of iteration"""
     def update_times(self, item):
@@ -416,7 +448,11 @@ class Strategy:
 
         if self.mode == Mode.LIVE or self.mode == Mode.PAPER:
             #live notification thread
-            self.order_notifs.start()
+            #for all keys in self.order_notifs call start()
+            for key in self.order_notifs:
+                self.order_notifs[key].start()
+
+                #self.order_notifs.start()
         elif self.mode == Mode.BT or self.mode == Mode.PREP:
             self.bt.backtest_start = datetime.now()
 
@@ -486,7 +522,7 @@ class Strategy:
         self.stop()
 
         if self.mode == Mode.BT:
-            print("REQUEST COUNT:", self.interface.mincnt)
+            print("REQUEST COUNT:", {account_str:self.interface[account_str].mincnt for account_str in self.interface})
 
             self.bt.backtest_end = datetime.now()
             #print(40*"*",self.mode, "BACKTEST RESULTS",40*"*")
@@ -500,7 +536,9 @@ class Strategy:
 
         #disconnect strategy from websocket trader updates
         if self.mode == Mode.LIVE or self.mode == Mode.PAPER:
-            self.order_notifs.disconnect_callback(self)
+            for key in self.order_notifs:
+                self.order_notifs[key].disconnect_callback(self)
+            #self.order_notifs.disconnect_callback(self)
 
         #necessary only for shared loaders (to keep it running for other stratefies)
         for i in self._streams:
@@ -541,11 +579,11 @@ class Strategy:
     #for order updates from LIVE or BACKTEST
     #updates are sent only for SYMBOL of strategy
 
-    async def order_updates(self, data: TradeUpdate):
+    async def order_updates(self, data: TradeUpdate, account: Account):
         if self.mode == Mode.LIVE or self.mode == Mode.PAPER:
             now = datetime.now().timestamp()
             #z alpakýho TradeEvent si udelame svuj rozsireny TradeEvent (obsahujici navic profit atp.)
-            data = TradeUpdate(**data.dict())
+            data = TradeUpdate(**data.dict(), account=account)
         else:
             now = self.bt.time
 
@@ -632,17 +670,14 @@ class Strategy:
                 rt_out["statinds"] = dict()
                 for key, value in self.state.statinds.items():
                     rt_out["statinds"][key] = value
-
-            #vkladame average price and positions, pokud existuji
-            #self.state.avgp , self.state.positions
             
             #pro typ strategie Classic, posilame i vysi stoploss
             try:
-                sl_value = self.state.vars["activeTrade"].stoploss_value
+                sl_value = gaka(self.state.account_variables, "activeTrade", lambda x: x.stoploss_value)
             except (KeyError, AttributeError):
                 sl_value = None
 
-            rt_out["positions"] = dict(time=self.state.time, positions=self.state.positions, avgp=self.state.avgp, sl_value=sl_value)
+            rt_out["positions"] = dict(time=self.state.time, positions=gaka(self.state.account_variables, "positions"), avgp=gaka(self.state.account_variables,), sl_value=sl_value)
 
             #vkladame limitku a pendingbuys
             try:
@@ -718,17 +753,21 @@ class StrategyState:
     """Strategy Stat object that is passed to callbacks
         note: 
           state.time
-          state.interface.time
+          state.interface[account.name].time
+          accounts = set of all accounts (strings)
+          account = enum of primary account (Account)
           většinou mají stejnou hodnotu, ale lišit se mužou např. v případě BT callbacku - kdy se v rámci okna končící state.time realizují objednávky, které
           triggerují callback, který následně vyvolá např. buy (ten se musí ale udít v čase fillu, tzn. callback si nastaví čas interfacu na filltime)
           po dokončení bt kroků před zahájením iterace "NEXT" se časy znovu updatnout na původni state.time
     """
-    def __init__(self, name: str, symbol: str, stratvars: AttributeDict, bars: AttributeDict = {}, trades: AttributeDict = {}, interface: GeneralInterface = None, rectype: RecordType = RecordType.BAR, runner_id: UUID = None, bt: Backtester = None, ilog_save: bool = False):
+    def __init__(self, name: str, symbol: str, accounts: set, account: Account, stratvars: AttributeDict, bars: AttributeDict = {}, trades: AttributeDict = {}, interface: GeneralInterface = None, rectype: RecordType = RecordType.BAR, runner_id: UUID = None, bt: Backtester = None, ilog_save: bool = False, batch_id: str = None):
         self.vars = stratvars
         self.interface = interface
-        self.positions = 0
-        self.avgp = 0
-        self.blockbuy = 0
+        self.account = account #primary account
+        self.accounts = accounts
+        #populate account variables dictionary
+        self.account_variables: Dict[str, AccountVariables] = {account.name: AccountVariables() for account in self.accounts}
+    
         self.name = name
         self.symbol = symbol
         self.rectype = rectype
@@ -737,13 +776,13 @@ class StrategyState:
         self.time = None
         #time of last trade processed
         self.last_trade_time = 0
-        self.last_entry_price=dict(long=0,short=999)
+        self.last_entry_price={key:dict(long=0,short=999) for key in self.accounts}
         self.resolution = None
         self.runner_id = runner_id
         self.bt = bt
-        self.dont_exit_already_activated = False
         self.docasny_rel_profit = []
         self.ilog_save = ilog_save
+        self.batch_id = batch_id
         self.sl_optimizer_short = optimsl.SLOptimizer(ptm.TradeDirection.SHORT)
         self.sl_optimizer_long = optimsl.SLOptimizer(ptm.TradeDirection.LONG)
         self.cache = defaultdict(dict)
@@ -779,18 +818,14 @@ class StrategyState:
         #secondary resolution indicators
         #self.secondary_indicators = AttributeDict(time=[], sec_price=[])
         self.statinds = AttributeDict()
-        #these methods can be overrided by StrategyType (to add or alter its functionality)
-        self.buy = self.interface.buy
-        self.buy_l = self.interface.buy_l
-        self.sell = self.interface.sell
-        self.sell_l = self.interface.sell_l
+
         self.cancel_pending_buys = None
         self.iter_log_list = []
         self.dailyBars = defaultdict(dict)
         #celkovy profit (prejmennovat na profit_cum)
-        self.profit = 0
+        self.profit = 0 #TODO key by account?
         #celkovy relativni profit (obsahuje pole relativnich zisku, z jeho meanu se spocita celkovy rel_profit_cu,)
-        self.rel_profit_cum = []
+        self.rel_profit_cum = []#TODO key by account?
         self.tradeList = []
         #nova promenna pro externi data do ArchiveDetaili, napr. pro zobrazeni v grafu, je zde např. SL history
         self.extData = defaultdict(dict)
@@ -799,6 +834,25 @@ class StrategyState:
         self.today_market_close = None
         self.classed_indicators = {}
     
+    #quick interface actions to access from state without having to write interface[account.name].buy_l
+    def buy_l(self, account: Account, price: float, size: int = 1, repeat: bool = False, force: int = 0):
+        self.interface[account.name].buy_l(price, size, repeat, force)
+
+    def buy(self, account: Account, size = 1, repeat: bool = False):
+        self.interface[account.name].buy(size, repeat)
+
+    def sell_l(self, account: Account, price: float, size: int = 1, repeat: bool = False):
+        self.interface[account.name].sell_l(price, size, repeat)
+
+    def sell(self, account: Account, size = 1, repeat: bool = False):
+        self.interface[account.name].sell(size, repeat)
+    
+    def repl(self, account: Account, orderid: str, price: float = None, size: int = 1, repeat: bool = False):
+        self.interface[account.name].repl(orderid, price, size, repeat)
+    
+    def cancel(self, account: Account, orderid: str):
+        self.interface[account.name].cancel(orderid)
+
     def release(self):
         #release large variables
         self.bars = None

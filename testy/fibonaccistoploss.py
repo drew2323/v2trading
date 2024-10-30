@@ -1,9 +1,9 @@
 import numpy as np
-from v2realbot.common.PrescribedTradeModel import Trade, TradeDirection, TradeStatus
+from v2realbot.common.model import Trade, TradeDirection, TradeStatus
 from typing import Tuple
 from copy import deepcopy
 from v2realbot.strategy.base import StrategyState
-from v2realbot.strategyblocks.activetrade.helpers import get_max_profit_price, get_profit_target_price, get_override_for_active_trade, keyword_conditions_met
+from v2realbot.strategyblocks.activetrade.helpers import get_max_profit_price, get_profit_target_price, get_signal_section_directive, keyword_conditions_met
 from v2realbot.utils.utils import safe_get
 # FIBONACCI PRO PROFIT A SL
 
@@ -63,10 +63,10 @@ class SLOptimizer:
 
     def initialize_levels(self, state):
         directive_name = 'SL_opt_exit_levels_'+str(self.direction)
-        SL_opt_exit_levels = get_override_for_active_trade(state=state, directive_name=directive_name, default_value=safe_get(state.vars, directive_name, None))
+        SL_opt_exit_levels = get_signal_section_directive(state=state, directive_name=directive_name, default_value=safe_get(state.vars, directive_name, None))
 
         directive_name = 'SL_opt_exit_sizes_'+str(self.direction)
-        SL_opt_exit_sizes = get_override_for_active_trade(state=state, directive_name=directive_name, default_value=safe_get(state.vars, directive_name, None))
+        SL_opt_exit_sizes = get_signal_section_directive(state=state, directive_name=directive_name, default_value=safe_get(state.vars, directive_name, None))
 
         if SL_opt_exit_levels is None or SL_opt_exit_sizes is not None:
             print("no directives found: SL_opt_exit_levels/SL_opt_exit_sizes")

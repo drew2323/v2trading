@@ -5,9 +5,14 @@ from pathlib import Path
 import os
 from collections import defaultdict
 from dotenv import load_dotenv
+from datetime import timedelta
 # Global flag to track if the ml module has been imported (solution for long import times of tensorflow)
 #the first occurence of using it will load it globally
 _ml_module_loaded = False
+
+# Define pre-market and post-market offsets
+PRE_MARKET_OFFSET = timedelta(hours=5, minutes=30)     # 4:00 AM
+POST_MARKET_OFFSET = timedelta(hours=4)   # 8:00 PM
 
 #directory for generated images and basic reports
 MEDIA_DIRECTORY = Path(__file__).parent.parent.parent / "media"
@@ -18,25 +23,48 @@ RUNNER_DETAIL_DIRECTORY = Path(__file__).parent.parent.parent / "runner_detail"
 LOG_PATH = Path(__file__).parent.parent
 LOG_FILE = Path(__file__).parent.parent / "strat.log"
 JOB_LOG_FILE = Path(__file__).parent.parent / "job.log"
-DOTENV_DIRECTORY = Path(__file__).parent.parent.parent
-ENV_FILE = DOTENV_DIRECTORY / '.env'
-
 
 #stratvars that cannot be changed in gui
 STRATVARS_UNCHANGEABLES = ['pendingbuys', 'blockbuy', 'jevylozeno', 'limitka']
+#DATA dirs are stored in dotenv files so it can be shared amongs other libraries
+
+
+def find_dotenv(start_path):
+    """
+    Searches for a .env file in the given directory or its parents and returns the path.
+
+    Args:
+        start_path: The directory to start searching from.
+
+    Returns:
+        Path to the .env file if found, otherwise None.
+    """
+    current_path = Path(start_path)
+    for _ in range(6):  # Limit search depth to 5 levels
+        dotenv_path = current_path / '.env'
+        if dotenv_path.exists():
+            return dotenv_path
+        current_path = current_path.parent
+    return None
+
+ENV_FILE = find_dotenv(__file__)
+
+#NALOADUJEME DOTENV ENV VARIABLES
+if load_dotenv(ENV_FILE, verbose=True) is False:
+    print(f"!Error loading.env file {ENV_FILE}. Now depending on ENV VARIABLES set externally.")
+else:
+    print(f"!Loaded env variables from file {ENV_FILE}")
+
 DATA_DIR = user_data_dir("v2realbot", False)
 MODEL_DIR = Path(DATA_DIR)/"models"
-#BT DELAYS
+TRADE_CACHE = Path(DATA_DIR)/"tradecache"
+AGG_CACHE = Path(DATA_DIR)/"aggcache"
+
 #profiling
 PROFILING_NEXT_ENABLED = False
 PROFILING_OUTPUT_DIR = DATA_DIR
 
-#NALOADUJEME DOTENV ENV VARIABLES
-if load_dotenv(ENV_FILE, verbose=True) is False:
-    print(f"Error loading.env file {ENV_FILE}. Now depending on ENV VARIABLES set externally.")
-else:
-    print(f"Loaded env variables from file {ENV_FILE}")
-
+#BT DELAYS
 #WIP - FILL CONFIGURATION CLASS FOR BACKTESTING
 class BT_FILL_CONF:
     """"
@@ -67,10 +95,10 @@ def get_key(mode: Mode, account: Account):
         return None
     dict = globals()
     try:
-        API_KEY = dict[str.upper(str(account.value)) + "_" + str.upper(str(mode.value)) + "_API_KEY" ]
-        SECRET_KEY = dict[str.upper(str(account.value)) + "_" + str.upper(str(mode.value)) + "_SECRET_KEY" ]
-        PAPER = dict[str.upper(str(account.value)) + "_" + str.upper(str(mode.value)) + "_PAPER" ]
-        FEED = dict[str.upper(str(account.value)) + "_" + str.upper(str(mode.value)) + "_FEED" ]
+        API_KEY = dict[str.upper(str(account.name)) + "_" + str.upper(str(mode.name)) + "_API_KEY" ]
+        SECRET_KEY = dict[str.upper(str(account.name)) + "_" + str.upper(str(mode.name)) + "_SECRET_KEY" ]
+        PAPER = dict[str.upper(str(account.name)) + "_" + str.upper(str(mode.name)) + "_PAPER" ]
+        FEED = dict[str.upper(str(account.name)) + "_" + str.upper(str(mode.name)) + "_FEED" ]
         return Keys(API_KEY, SECRET_KEY, PAPER, FEED)
     except KeyError:
         print("Not valid combination to get keys for", mode, account)
@@ -94,7 +122,7 @@ data_feed_type_str = os.environ.get('ACCOUNT1_PAPER_FEED', 'iex')  # Default to 
 # Convert the string to DataFeed enum
 try:
     ACCOUNT1_PAPER_FEED = DataFeed(data_feed_type_str)
-except ValueError:
+except NameError:
     # Handle the case where the environment variable does not match any enum member
     print(f"Invalid data feed type: {data_feed_type_str} in ACCOUNT1_PAPER_FEED defaulting to 'iex'")
     ACCOUNT1_PAPER_FEED = DataFeed.SIP
@@ -112,7 +140,7 @@ data_feed_type_str = os.environ.get('ACCOUNT1_LIVE_FEED', 'iex')  # Default to '
 # Convert the string to DataFeed enum
 try:
     ACCOUNT1_LIVE_FEED = DataFeed(data_feed_type_str)
-except ValueError:
+except nameError:
     # Handle the case where the environment variable does not match any enum member
     print(f"Invalid data feed type: {data_feed_type_str} in ACCOUNT1_LIVE_FEED defaulting to 'iex'")
     ACCOUNT1_LIVE_FEED = DataFeed.IEX
@@ -130,7 +158,7 @@ data_feed_type_str = os.environ.get('ACCOUNT2_PAPER_FEED', 'iex')  # Default to 
 # Convert the string to DataFeed enum
 try:
     ACCOUNT2_PAPER_FEED = DataFeed(data_feed_type_str)
-except ValueError:
+except nameError:
     # Handle the case where the environment variable does not match any enum member
     print(f"Invalid data feed type: {data_feed_type_str} in ACCOUNT2_PAPER_FEED defaulting to 'iex'")
     ACCOUNT2_PAPER_FEED = DataFeed.IEX
@@ -149,7 +177,7 @@ except ValueError:
 # # Convert the string to DataFeed enum
 # try:
 #     ACCOUNT2_LIVE_FEED = DataFeed(data_feed_type_str)
-# except ValueError:
+# except nameError:
 #     # Handle the case where the environment variable does not match any enum member
 #     print(f"Invalid data feed type: {data_feed_type_str} in ACCOUNT2_LIVE_FEED defaulting to 'iex'")
 #     ACCOUNT2_LIVE_FEED = DataFeed.IEX

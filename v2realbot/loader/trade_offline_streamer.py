@@ -133,6 +133,7 @@ class Trade_Offline_Streamer(Thread):
         #zatim podpora pouze main session
         
         live_data_feed = cfh.config_handler.get_val('LIVE_DATA_FEED')
+        symbol = symbpole[0]  # Assuming symbpole[0] is your target symbol
 
         #zatim podpora pouze 1 symbolu, predelat na froloop vsech symbolu ze symbpole
         #minimalni jednotka pro CACHE je 1 den - a to jen marketopen to marketclose (extended hours not supported yet)
@@ -177,7 +178,7 @@ class Trade_Offline_Streamer(Thread):
             #AGG daily CACHE HERE (from-to period enters cache)
             #we cache daily cache files, including partial days - identified by exact time from - to
             #we assume single add_data here
-            symbol = symbpole[0]  # Assuming symbpole[0] is your target symbol
+
             #AGG CACHE zatim neupravujeme, zde je zatim zapiklovany MAIN SESSION a dany objekt
             #TODO v budoucnu predelat, na daily, parquet a reuse i pro vbt, jako tradecache
             if live_data_feed == DataFeed.SIP :

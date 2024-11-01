@@ -69,6 +69,7 @@ class Strategy:
         self.secondary_res_start_time = dict()
         self.secondary_res_start_index = dict()
         self.last_index = -1
+        self.resampled_bar = None
 
         #TODO predelat na dynamické queues
         self.q1 = queue.Queue()
@@ -377,8 +378,8 @@ class Strategy:
 
         self.save_item_history(item)
         #nevyhodit ten refresh do TypeLimit? asi ANO
-        temp_bar = None
-        temp_bar = self.save_to_15min_bar(item, temp_bar = temp_bar)
+        
+        self.save_to_15min_bar(item)
         #pro prep nedelame refresh pozic
         if self.mode != Mode.PREP:
             self.refresh_positions(item)
@@ -402,9 +403,9 @@ class Strategy:
 
         
                     
-    def save_to_15min_bar(self, item: dict, temp_bar: dict=None, config=dict(align=StartBarAlign.ROUND, BarType=RecordType.BAR, resolution='15M')): 
+    def save_to_15min_bar(self, item: dict, config=dict(align=StartBarAlign.ROUND, bar_type=RecordType.BAR, resolution='4M')): 
           
-        def set_storage():
+        def init_storage():
             self.state.extData["bar_15min"] = {}
             self.state.extData["bar_15min"]["high"] = []
             self.state.extData["bar_15min"]["low"] = []
@@ -424,93 +425,92 @@ class Strategy:
             if isinstance(res_input, int):
                 return res_input
             if isinstance(res_input, str):
-                TimeUnit = ''.join(char.lower() for char in res_input if char.isalpha())
-                TimeInterval = int(''.join(char for char in res_input if char.isdigit()))
-                print(type(TimeInterval))
+                time_unit = ''.join(char.lower() for char in res_input if char.isalpha())
+                time_interval = int(''.join(char for char in res_input if char.isdigit()))
                 
-                match TimeUnit:
+                match time_unit:
                     case 's':
-                        return int(TimeInterval)
-                    case 'h':
-                        return int(TimeInterval*3600)
+                        return int(time_interval)
                     case 'm':
-                        return int(TimeInterval*60)
+                        return int(time_interval*60)
+                    case 'h':
+                        return int(time_interval*3600)
+                    case 'd':
+                        return int(time_interval*86400)
                     case _:
                         return int(900)
                     
 
-        def initiate_temp_bar(bar_item, TypeAlign, resolution):
-            if TypeAlign == StartBarAlign.ROUND:
-                typ=type(bar_item["time"])
-                print(typ)
-                update_minutes = int(bar_item["time"].minute - bar_item["time"].minute % (resolution/60))
+        def initiate_resampled_bar(bar_item, type_align, bar_resolution):
+            if type_align == StartBarAlign.ROUND:
+                update_minutes = int(bar_item["time"].minute - bar_item["time"].minute % (bar_resolution/60))
                 start_time = bar_item["time"].replace(minute = update_minutes, second = 0, microsecond = 0)
-                end_time = start_time + timedelta(minutes=resolution/60) - timedelta(microseconds=1)
             
-            if TypeAlign == StartBarAlign.RANDOM: 
+            if type_align == StartBarAlign.RANDOM: 
                 start_time = bar_item["time"]
-                end_time = start_time + timedelta(minutes=resolution/60) - timedelta(microseconds=1)
             
-            new_temp_bar = {
+            self.resampled_bar = {
                 "high": bar_item["high"],
                 "low": bar_item["low"],
                 "volume": bar_item["volume"],
                 "close": bar_item["close"],
                 "hlcc4": bar_item["hlcc4"],
                 "open": bar_item["open"],
-                "time": bar_item["time"],
                 "trades": bar_item["trades"],
-                "resolution": bar_item["resolution"],
+                "resolution": bar_resolution,
                 "confirmed": bar_item["confirmed"],
                 "vwap": bar_item["vwap"],
                 "updated": bar_item["updated"],
                 "index": bar_item["index"],
-                "start_time": start_time,
-                "end_time": end_time
-                }  
-            return new_temp_bar            
+                "time": start_time
+                }            
+            return self.resampled_bar
 
-
-        if config["BarType"]==RecordType.BAR:
-            if temp_bar is None:
-                set_storage()
-                return initiate_temp_bar(item, config["align"], parse_resolution(config["resolution"]))
+        if config["bar_type"]==RecordType.BAR:
+            if self.resampled_bar is None:
+                if not self.state.extData["bar_15min"]:
+                    init_storage()
+                self.resampled_bar = initiate_resampled_bar(item, config["align"], parse_resolution(config["resolution"]))
         
             else:
-                if temp_bar["end_time"] > item["time"]:
-                    temp_bar["high"] = max(temp_bar["high"], item["high"])
-                    temp_bar["low"] = min(temp_bar["low"],  item["low"])
-                    temp_bar["close"] = item["close"]
-                    temp_bar["updated"] = item["updated"]
-                    return temp_bar
+                if (self.resampled_bar["time"] + timedelta(seconds=self.resampled_bar["resolution"])) > item["time"]:
+                    self.resampled_bar["high"] = max(self.resampled_bar["high"], item["high"])
+                    self.resampled_bar["low"] = min(self.resampled_bar["low"],  item["low"])
+                    self.resampled_bar["volume"] = self.resampled_bar["volume"] + item["volume"]
+                    self.resampled_bar["trades"] = self.resampled_bar["trades"] + item["trades"]
+                    self.resampled_bar["close"] = item["close"]
+                    self.resampled_bar["updated"] = item["updated"]
                 else: 
-                    self.state.extData["bar_15min"]["open"].append(temp_bar["open"])
-                    self.state.extData["bar_15min"]["close"].append(temp_bar["close"])
-                    self.state.extData["bar_15min"]["high"].append(temp_bar["high"])
-                    self.state.extData["bar_15min"]["low"].append(temp_bar["low"])
-                    self.state.extData["bar_15min"]["time"].append(temp_bar["time"])
-                    self.state.extData["bar_15min"]["updated"].append(temp_bar["updated"])
-                    return initiate_temp_bar(item)
+                    self.state.extData["bar_15min"]["open"].append(self.resampled_bar["open"])
+                    self.state.extData["bar_15min"]["close"].append(self.resampled_bar["close"])
+                    self.state.extData["bar_15min"]["high"].append(self.resampled_bar["high"])
+                    self.state.extData["bar_15min"]["low"].append(self.resampled_bar["low"])
+                    self.state.extData["bar_15min"]["volume"].append(self.resampled_bar["volume"])
+                    self.state.extData["bar_15min"]["trades"].append(self.resampled_bar["trades"])
+                    self.state.extData["bar_15min"]["time"].append(self.resampled_bar["time"])
+                    self.state.extData["bar_15min"]["updated"].append(self.resampled_bar["updated"])
+                    self.resampled_bar = initiate_resampled_bar(item, config["align"], parse_resolution(config["resolution"]))
                 
 
-        if config["BarType"]==RecordType.CBAR:
-            if temp_bar is None:
-                set_storage()
-                temp_bar = initiate_temp_bar(item, config["align"], parse_resolution(config["resolution"]))
-                self.state.extData["bar_15min"]["open"].append(temp_bar["open"])
-                self.state.extData["bar_15min"]["close"].append(temp_bar["close"])
-                self.state.extData["bar_15min"]["high"].append(temp_bar["high"])
-                self.state.extData["bar_15min"]["low"].append(temp_bar["low"])
-                self.state.extData["bar_15min"]["time"].append(temp_bar["time"])
-                self.state.extData["bar_15min"]["updated"].append(temp_bar["updated"])
+        if config["bar_type"]==RecordType.CBAR:
+            if self.resampled_bar is None:
+                if not self.state.extData["bar_15min"]:
+                    init_storage()
+                self.resampled_bar = initiate_resampled_bar(item, config["align"], parse_resolution(config["resolution"]))
+                self.state.extData["bar_15min"]["open"].append(self.resampled_bar["open"])
+                self.state.extData["bar_15min"]["close"].append(self.resampled_bar["close"])
+                self.state.extData["bar_15min"]["high"].append(self.resampled_bar["high"])
+                self.state.extData["bar_15min"]["low"].append(self.resampled_bar["low"])
+                self.state.extData["bar_15min"]["time"].append(self.resampled_bar["time"])
+                self.state.extData["bar_15min"]["updated"].append(self.resampled_bar["updated"])
             else:
-                if temp_bar["end_time"] > item["time"]:
+                if (self.resampled_bar["time"] + timedelta(seconds=self.resampled_bar["resolution"])) > item["time"]:
                     self.state.extData["bar_15min"]["high"][-1] = max(self.state.extData["bar_15min"]["high"][-1], item["high"])
                     self.state.extData["bar_15min"]["low"][-1] = min(self.state.extData["bar_15min"]["low"][-1], item["low"])
                     self.state.extData["bar_15min"]["close"][-1] = item["close"]
                     self.state.extData["bar_15min"]["updated"][-1] = item["updated"]
                 else: 
-                    return initiate_temp_bar(item)
+                    self.resampled_bar = initiate_resampled_bar(item, config["align"], parse_resolution(config["resolution"]))
 
 
     #toto si mohu ve strategy classe overridnout a pridat dalsi kroky

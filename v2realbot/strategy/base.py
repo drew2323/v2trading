@@ -378,6 +378,7 @@ class Strategy:
 
         self.save_item_history(item)
         #nevyhodit ten refresh do TypeLimit? asi ANO
+
         
         self.save_to_15min_bar(item)
         #pro prep nedelame refresh pozic
@@ -474,21 +475,9 @@ class Strategy:
         
             else:
                 if (self.resampled_bar["time"] + timedelta(seconds=self.resampled_bar["resolution"])) > item["time"]:
-                    self.resampled_bar["high"] = max(self.resampled_bar["high"], item["high"])
-                    self.resampled_bar["low"] = min(self.resampled_bar["low"],  item["low"])
-                    self.resampled_bar["volume"] = self.resampled_bar["volume"] + item["volume"]
-                    self.resampled_bar["trades"] = self.resampled_bar["trades"] + item["trades"]
-                    self.resampled_bar["close"] = item["close"]
-                    self.resampled_bar["updated"] = item["updated"]
+                    self.resample_bar(self.resampled_bar, item)
                 else: 
-                    self.state.extData["bar_15min"]["open"].append(self.resampled_bar["open"])
-                    self.state.extData["bar_15min"]["close"].append(self.resampled_bar["close"])
-                    self.state.extData["bar_15min"]["high"].append(self.resampled_bar["high"])
-                    self.state.extData["bar_15min"]["low"].append(self.resampled_bar["low"])
-                    self.state.extData["bar_15min"]["volume"].append(self.resampled_bar["volume"])
-                    self.state.extData["bar_15min"]["trades"].append(self.resampled_bar["trades"])
-                    self.state.extData["bar_15min"]["time"].append(self.resampled_bar["time"])
-                    self.state.extData["bar_15min"]["updated"].append(self.resampled_bar["updated"])
+                    self.append_bar(self.state.extData["bar_15min"], self.resampled_bar)
                     self.resampled_bar = initiate_resampled_bar(item, config["align"], parse_resolution(config["resolution"]))
                 
 
@@ -497,20 +486,18 @@ class Strategy:
                 if not self.state.extData["bar_15min"]:
                     init_storage()
                 self.resampled_bar = initiate_resampled_bar(item, config["align"], parse_resolution(config["resolution"]))
-                self.state.extData["bar_15min"]["open"].append(self.resampled_bar["open"])
-                self.state.extData["bar_15min"]["close"].append(self.resampled_bar["close"])
-                self.state.extData["bar_15min"]["high"].append(self.resampled_bar["high"])
-                self.state.extData["bar_15min"]["low"].append(self.resampled_bar["low"])
-                self.state.extData["bar_15min"]["time"].append(self.resampled_bar["time"])
-                self.state.extData["bar_15min"]["updated"].append(self.resampled_bar["updated"])
+                self.append_bar(self.state.extData["bar_15min"], self.resampled_bar)
             else:
                 if (self.resampled_bar["time"] + timedelta(seconds=self.resampled_bar["resolution"])) > item["time"]:
-                    self.state.extData["bar_15min"]["high"][-1] = max(self.state.extData["bar_15min"]["high"][-1], item["high"])
-                    self.state.extData["bar_15min"]["low"][-1] = min(self.state.extData["bar_15min"]["low"][-1], item["low"])
-                    self.state.extData["bar_15min"]["close"][-1] = item["close"]
-                    self.state.extData["bar_15min"]["updated"][-1] = item["updated"]
+                    self.resample_bar(self.resampled_bar, item)
+                    self.replace_prev_bar(self.state.extData["bar_15min"], self.resampled_bar)
                 else: 
-                    self.resampled_bar = initiate_resampled_bar(item, config["align"], parse_resolution(config["resolution"]))
+                    if item["confirmed"] == 1:
+                        self.resample_bar(self.resampled_bar, item)
+                        self.replace_prev_bar(self.state.extData["bar_15min"], self.resampled_bar)
+                        self.resampled_bar = None                       
+                    else:
+                        self.resampled_bar = initiate_resampled_bar(item, config["align"], parse_resolution(config["resolution"]))
 
 
     #toto si mohu ve strategy classe overridnout a pridat dalsi kroky
@@ -829,6 +816,16 @@ class Strategy:
         history_reference['confirmed'][-1]=new_bar['confirmed']
         history_reference['index'][-1]=new_bar['index']
         history_reference['updated'][-1]=new_bar['updated']
+    
+    @staticmethod
+    def resample_bar(current_bar: dict, new_bar: dict):
+        current_bar["high"] = max(current_bar["high"], new_bar["high"])
+        current_bar["low"] = min(current_bar["low"],  new_bar["low"])
+        current_bar["volume"] = current_bar["volume"] + new_bar["volume"]
+        current_bar["trades"] = current_bar["trades"] + new_bar["trades"]
+        current_bar["close"] = new_bar["close"]
+        current_bar["updated"] = new_bar["updated"]
+        
 class StrategyState:
     """Strategy Stat object that is passed to callbacks
         note: 

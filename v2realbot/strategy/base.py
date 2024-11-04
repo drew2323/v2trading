@@ -380,7 +380,7 @@ class Strategy:
         #nevyhodit ten refresh do TypeLimit? asi ANO
 
         
-        self.save_to_15min_bar(item)
+        self.bar_resample(item)
         #pro prep nedelame refresh pozic
         if self.mode != Mode.PREP:
             self.refresh_positions(item)
@@ -404,7 +404,7 @@ class Strategy:
 
         
                     
-    def save_to_15min_bar(self, item: dict, config=dict(align=StartBarAlign.ROUND, bar_type=RecordType.BAR, resolution='4M')): 
+    def bar_resample(self, item: dict, config=dict(align=StartBarAlign.ROUND, bar_type=RecordType.BAR, resolution='4M')): 
           
         def init_storage():
             self.state.extData["bar_15min"] = {}

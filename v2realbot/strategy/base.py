@@ -115,7 +115,7 @@ class Strategy:
         stream = TradeAggregator2Queue(symbol=symbol,queue=self.q1,rectype=rectype,resolution=resolution,update_ltp=update_ltp,align=align,mintick = mintick, exthours=exthours, minsize=minsize, excludes=excludes)
         self._streams.append(stream)
         self.dataloader.add_stream(stream)
-        self.resamplers = {(str(self.symbol)+ '_' + str(sec_res)): Resampler(align=StartBarAlign.ROUND, bartype=RecordType.BAR, resolution=sec_res) for sec_res in self.secondary}
+        self.resamplers = {(str(self.symbol)+ '_' + str(sec_res)): Resampler(align=StartBarAlign.ROUND, bartype=RecordType.BAR, resolution=sec_res, storage=self.state.extData) for sec_res in self.secondary}
 
     """Allow client to set LIVE or BACKTEST mode"""
     def set_mode(self, mode: Mode, start: datetime = None, end: datetime = None, cash = None, debug: bool = False):
@@ -414,40 +414,40 @@ class Strategy:
                     
     def save_resampled_bar(self, item: dict): 
 
-              
-        if self.resampler.bartype==RecordType.BAR:
-            if self.resampler.resampled_bar is None:
-                if not (list(filter(lambda key: key[:3]=='Bar', self.resampler.storage.keys()))):
-                    self.resampler.init_storage()
-                if type(self.resampler.resolution) is str:
-                    self.resampler.parse_resolution()
-                self.resampler.initiate_resampled_bar(item)
-            else:
-                if (self.resampler.resampled_bar["time"] + timedelta(seconds=self.resampler.resolution)) > item["time"]:
-                    self.resampler.update_resampled_bar(item)
-                else: 
-                    self.append_bar(self.resampler.storage_dict, self.resampler.resampled_bar)
-                    self.resampler.initiate_resampled_bar(item)
-                
+        for (resampler_name, resampler) in self.resamplers.items():         
+            if resampler.bartype==RecordType.BAR:
+                if resampler.resampled_bar is None:
+                    if not (list(filter(lambda key: key == resampler_name, resampler.storage.keys()))):
+                        resampler.init_storage(resampler_name)
+                    if type(resampler.resolution) is str:
+                        resampler.parse_resolution()
+                    resampler.initiate_resampled_bar(item)
+                else:
+                    if (resampler.resampled_bar["time"] + timedelta(seconds=resampler.resolution)) > item["time"]:
+                        resampler.update_resampled_bar(item)
+                    else: 
+                        self.append_bar(resampler.storage_dict, resampler.resampled_bar)
+                        resampler.initiate_resampled_bar(item)
+                    
 
-        if self.resampler.bartype==RecordType.CBAR:
-            if self.resampler.resampled_bar is None:
-                if not (list(filter(lambda key: key[:3]=='Bar', self.resampler.storage.keys()))):
-                    self.resampler.init_storage()
-                self.resampler.parse_resolution()
-                self.resampler.initiate_resampled_bar(item)
-                self.append_bar(self.resampler.storage_dict, self.resampler.resampled_bar)
-            else:
-                if (self.resampled_bar["time"] + timedelta(seconds=self.resampled_bar["resolution"])) > item["time"]:
-                    self.resampler.update_resampled_bar(item)
-                    self.replace_prev_bar(self.resampler.storage_dict, self.resampler.resampled_bar)
-                else: 
-                    if item["confirmed"] == 1:
-                        self.resampler.update_resampled_bar(item)
-                        self.replace_prev_bar(self.resampler.storage_dict, self.resampler.resampled_bar)
-                        self.resampler.resampled_bar = None                       
-                    else:
-                        self.resampler.initiate_resampled_bar(item)
+            if resampler.bartype==RecordType.CBAR:
+                if resampler.resampled_bar is None:
+                    if not (list(filter(lambda key: key == resampler_name, resampler.storage.keys()))):
+                        resampler.init_storage(resampler_name)
+                    resampler.parse_resolution()
+                    resampler.initiate_resampled_bar(item)
+                    self.append_bar(resampler.storage_dict, resampler.resampled_bar)
+                else:
+                    if (self.resampled_bar["time"] + timedelta(seconds=self.resampled_bar["resolution"])) > item["time"]:
+                        resampler.update_resampled_bar(item)
+                        self.replace_prev_bar(resampler.storage_dict, resampler.resampled_bar)
+                    else: 
+                        if item["confirmed"] == 1:
+                            resampler.update_resampled_bar(item)
+                            self.replace_prev_bar(resampler.storage_dict, resampler.resampled_bar)
+                            resampler.resampled_bar = None                       
+                        else:
+                            resampler.initiate_resampled_bar(item)
 
 
     #toto si mohu ve strategy classe overridnout a pridat dalsi kroky
@@ -778,8 +778,8 @@ class Resampler:
         self.storage_dict = None
     
 
-    def init_storage(self) -> None:
-        self.storage_dict = self.storage["Bar_" + str(self.resolution)] = {}
+    def init_storage(self, name) -> None:
+        self.storage_dict = self.storage[name] = {}
         self.storage_dict["high"] = []
         self.storage_dict["low"] = []
         self.storage_dict["volume"] = []
@@ -821,7 +821,7 @@ class Resampler:
             if self.align == StartBarAlign.RANDOM: 
                 start_time = inputbar["time"]
             
-            self.resamled_bar = {
+            self.resampled_bar = {
                 "high": inputbar["high"],
                 "low": inputbar["low"],
                 "volume": inputbar["volume"],

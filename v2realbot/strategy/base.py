@@ -21,7 +21,7 @@ import v2realbot.common.PrescribedTradeModel as ptm
 from alpaca.trading.enums import OrderSide
 from v2realbot.backtesting.backtester import Backtester
 #from alpaca.trading.models import TradeUpdate
-from v2realbot.common.model import TradeUpdate
+from v2realbot.common.model import TradeUpdate, bar_template, trade_template
 from alpaca.trading.enums import TradeEvent, OrderStatus
 from threading import Event, current_thread
 import orjson
@@ -97,7 +97,7 @@ class Strategy:
             mintick: int = 0,
             exthours: bool = False,
             excludes: list = cfh.config_handler.get_val('AGG_EXCLUDED_TRADES'),
-            secondary: list = []):
+            secondary_resolutions: list = []):
         # Pridat parameter secondary coz bude prazdnej list stringu rozliseni. Zajisti to ze po rozbaleni configuarniho stringu z 
         # uzivatelskeho gui se pridaji tyto atributy do instance Strategy
         # potom tady dole vytvorit self.resamplers, coz bude slovni resamleru, klic bude symbol a rozliseni, hodnota bude instace Resampler objektu
@@ -111,11 +111,11 @@ class Strategy:
         self.rectype = rectype
         self.state.rectype = rectype
         self.state.resolution = resolution
-        self.secondary = secondary
+        self.secondary_resolutions = secondary_resolutions
         stream = TradeAggregator2Queue(symbol=symbol,queue=self.q1,rectype=rectype,resolution=resolution,update_ltp=update_ltp,align=align,mintick = mintick, exthours=exthours, minsize=minsize, excludes=excludes)
         self._streams.append(stream)
         self.dataloader.add_stream(stream)
-        self.resamplers = {(str(self.symbol)+ '_' + str(sec_res)): Resampler(align=StartBarAlign.ROUND, bartype=RecordType.BAR, resolution=sec_res, storage=self.state.extData) for sec_res in self.secondary}
+        self.resamplers = {(str(self.symbol)+ '_' + str(res_string)): Resampler(symbol = self.symbol, bar_align=align, bartype=self.rectype, resolution=res_string, storage=self.state.extData) for res_string in self.secondary_resolutions}
 
     """Allow client to set LIVE or BACKTEST mode"""
     def set_mode(self, mode: Mode, start: datetime = None, end: datetime = None, cash = None, debug: bool = False):
@@ -387,8 +387,9 @@ class Strategy:
         self.save_item_history(item)
         #nevyhodit ten refresh do TypeLimit? asi ANO
 
-        
-        self.save_resampled_bar(item)
+        for resampler in self.resamplers.values():
+            resampler.process_bar(item)   
+
         #pro prep nedelame refresh pozic
         if self.mode != Mode.PREP:
             self.refresh_positions(item)
@@ -408,46 +409,7 @@ class Strategy:
             self.call_next(item)
             if PROFILING_NEXT_ENABLED:
                 profiler.stop()
-            self.after_iteration(item)
-
-        
-                    
-    def save_resampled_bar(self, item: dict): 
-
-        for (resampler_name, resampler) in self.resamplers.items():         
-            if resampler.bartype==RecordType.BAR:
-                if resampler.resampled_bar is None:
-                    if not (list(filter(lambda key: key == resampler_name, resampler.storage.keys()))):
-                        resampler.init_storage(resampler_name)
-                    if type(resampler.resolution) is str:
-                        resampler.parse_resolution()
-                    resampler.initiate_resampled_bar(item)
-                else:
-                    if (resampler.resampled_bar["time"] + timedelta(seconds=resampler.resolution)) > item["time"]:
-                        resampler.update_resampled_bar(item)
-                    else: 
-                        self.append_bar(resampler.storage_dict, resampler.resampled_bar)
-                        resampler.initiate_resampled_bar(item)
-                    
-
-            if resampler.bartype==RecordType.CBAR:
-                if resampler.resampled_bar is None:
-                    if not (list(filter(lambda key: key == resampler_name, resampler.storage.keys()))):
-                        resampler.init_storage(resampler_name)
-                    resampler.parse_resolution()
-                    resampler.initiate_resampled_bar(item)
-                    self.append_bar(resampler.storage_dict, resampler.resampled_bar)
-                else:
-                    if (self.resampled_bar["time"] + timedelta(seconds=self.resampled_bar["resolution"])) > item["time"]:
-                        resampler.update_resampled_bar(item)
-                        self.replace_prev_bar(resampler.storage_dict, resampler.resampled_bar)
-                    else: 
-                        if item["confirmed"] == 1:
-                            resampler.update_resampled_bar(item)
-                            self.replace_prev_bar(resampler.storage_dict, resampler.resampled_bar)
-                            resampler.resampled_bar = None                       
-                        else:
-                            resampler.initiate_resampled_bar(item)
+            self.after_iteration(item)     
 
 
     #toto si mohu ve strategy classe overridnout a pridat dalsi kroky
@@ -768,89 +730,114 @@ class Strategy:
         history_reference['updated'][-1]=new_bar['updated']
 
 
+    @staticmethod
+    def append_bar(history_reference, new_bar: dict):
+        history_reference['open'].append(new_bar['open'])
+        history_reference['high'].append(new_bar['high'])
+        history_reference['low'].append(new_bar['low'])
+        history_reference['close'].append(new_bar['close'])
+        history_reference['hlcc4'].append(new_bar['hlcc4'])
+        history_reference['volume'].append(new_bar['volume'])
+        history_reference['time'].append(new_bar['time'])
+        history_reference['trades'].append(new_bar['trades'])
+        history_reference['resolution'].append(new_bar['resolution'])
+        history_reference['vwap'].append(new_bar['vwap'])
+        history_reference['confirmed'].append(new_bar['confirmed'])
+        history_reference['index'].append(new_bar['index'])
+        history_reference['updated'].append(new_bar['updated'])
+
+
 class Resampler:
-    def __init__(self, align: StartBarAlign, bartype: RecordType, resolution: str | int, storage: dict):
-        self.align = align
+    def __init__(self, symbol: str, bar_align: StartBarAlign, bartype: RecordType, resolution: str, storage: dict):
+        self.symbol = symbol
+        self.bar_align = bar_align
         self.bartype = bartype
         self.resolution = resolution
         self.storage = storage
         self.resampled_bar = None
-        self.storage_dict = None
-    
-
-    def init_storage(self, name) -> None:
-        self.storage_dict = self.storage[name] = {}
-        self.storage_dict["high"] = []
-        self.storage_dict["low"] = []
-        self.storage_dict["volume"] = []
-        self.storage_dict["close"] = []
-        self.storage_dict["hlcc4"] = []
-        self.storage_dict["open"] = []
-        self.storage_dict["time"] = []
-        self.storage_dict["trades"] = []
-        self.storage_dict["resolution"] = []
-        self.storage_dict["confirmed"] = []
-        self.storage_dict["vwap"] = []
-        self.storage_dict["updated"] = []
-        self.storage_dict["index"] = []
-
-
-    def parse_resolution(self) -> int:
-            if isinstance(self.resolution, str):
-                time_unit = ''.join(char.lower() for char in self.resolution if char.isalpha())
-                time_interval = int(''.join(char for char in self.resolution if char.isdigit()))
+        self.index_counter = 0
+        self.name = self.symbol + '_' + self.resolution
+        self.storage[self.name] = bar_template
+      
+        self.time_unit = ''.join(char.lower() for char in self.resolution if char.isalpha())
+        self.time_interval = int(''.join(char for char in self.resolution if char.isdigit()))
                 
-                match time_unit:
-                    case 's':
-                        self.resolution = int(time_interval)
-                    case 'm':
-                        self.resolution = int(time_interval*60)
-                    case 'h':
-                        self.resolution = int(time_interval*3600)
-                    case 'd':
-                        self.resolution = int(time_interval*86400)
-                    case _:
-                        self.resolution = int(900)
+        match self.time_unit:
+            case 's':
+                self.resolution = int(self.time_interval)
+            case 'm':
+                self.resolution = int(self.time_interval*60)
+            case 'h':
+                self.resolution = int(self.time_interval*3600)
+            case 'd':
+                self.resolution = int(self.time_interval*86400)
+            case _:
+                #Raise Exception
+                self.resolution = int(900)
 
 
-    def initiate_resampled_bar(self, inputbar) -> dict:
-            if self.align == StartBarAlign.ROUND:
-                update_minutes = int(inputbar["time"].minute - inputbar["time"].minute % (self.resolution/60))
-                start_time = inputbar["time"].replace(minute = update_minutes, second = 0, microsecond = 0)
+    def update_resampled_bar(self, new_bar_data: dict) -> None:
+            self.resampled_bar["high"] = max(self.resampled_bar["high"], new_bar_data["high"])
+            self.resampled_bar["low"] = min(self.resampled_bar["low"],  new_bar_data["low"])
+            self.resampled_bar["close"] = new_bar_data["close"]
+            self.resampled_bar["hlcc4"] = (self.resampled_bar["high"] + self.resampled_bar["low"] +  self.resampled_bar["close"] +  self.resampled_bar["close"]) / 4
+            self.resampled_bar["volume"] = self.resampled_bar["volume"] + new_bar_data["volume"]
+            self.resampled_bar["trades"] = self.resampled_bar["trades"] + new_bar_data["trades"]
+            self.resampled_bar["vwap"] = (self.resampled_bar["vwap"]*self.resampled_bar["volume"] + new_bar_data["vwap"]*new_bar_data["volume"]) / (self.resampled_bar["volume"] + new_bar_data["volume"])
+            self.resampled_bar["updated"] = new_bar_data["updated"]
+
+
+    def initiate_resampled_bar(self, new_bar_data: dict) -> None:
+        if self.bar_align == StartBarAlign.ROUND:
+            update_minutes = int(new_bar_data["time"].minute - new_bar_data["time"].minute % (self.resolution/60))
+            start_time = new_bar_data["time"].replace(minute = update_minutes, second = 0, microsecond = 0)
             
-            if self.align == StartBarAlign.RANDOM: 
-                start_time = inputbar["time"]
+        if self.bar_align == StartBarAlign.RANDOM: 
+            start_time = new_bar_data["time"]
             
-            self.resampled_bar = {
-                "high": inputbar["high"],
-                "low": inputbar["low"],
-                "volume": inputbar["volume"],
-                "close": inputbar["close"],
-                "hlcc4": inputbar["hlcc4"],
-                "open": inputbar["open"],
-                "trades": inputbar["trades"],
-                "resolution": self.resolution,
-                "confirmed": inputbar["confirmed"],
-                "vwap": inputbar["vwap"],
-                "updated": inputbar["updated"],
-                "index": int(1),
-                "time": start_time
-                } 
+        self.resampled_bar = {
+            "high": new_bar_data["high"],
+            "low": new_bar_data["low"],
+            "volume": new_bar_data["volume"],
+            "close": new_bar_data["close"],
+            "hlcc4": new_bar_data["hlcc4"],
+            "open": new_bar_data["open"],
+            "trades": new_bar_data["trades"],
+            "resolution": self.resolution,
+            "confirmed": new_bar_data["confirmed"],
+            "vwap": new_bar_data["vwap"],
+            "updated": new_bar_data["updated"],
+            "index": self.index_counter,
+            "time": start_time
+            }     
 
 
-    def update_resampled_bar(self, inputbar) -> None:
-        self.resampled_bar["high"] = max(self.resampled_bar["high"], inputbar["high"])
-        self.resampled_bar["low"] = min(self.resampled_bar["low"],  inputbar["low"])
-        self.resampled_bar["close"] = inputbar["close"]
-        self.resampled_bar["hlcc4"] = (self.resampled_bar["high"] + self.resampled_bar["low"] +  self.resampled_bar["close"] +  self.resampled_bar["close"]) / 4
-        self.resampled_bar["volume"] = self.resampled_bar["volume"] + inputbar["volume"]
-        self.resampled_bar["trades"] = self.resampled_bar["trades"] + inputbar["trades"]
-        self.resampled_bar["vwap"] = (self.resampled_bar["vwap"]*self.resampled_bar["volume"] + inputbar["vwap"]*inputbar["volume"]) / (self.resampled_bar["volume"] + inputbar["volume"])
-        self.resampled_bar["updated"] = inputbar["updated"]
-
-
-
-
+    def process_bar(self, inputbar: dict) -> None:
+        if self.resampled_bar is None:
+            self.initiate_resampled_bar(new_bar_data=inputbar)
+        else:
+            if self.bartype == RecordType.BAR:
+                if (self.resampled_bar["time"] + timedelta(seconds=self.resolution)) > inputbar["time"]:
+                    self.update_resampled_bar(new_bar_data=inputbar)
+        
+                else:
+                    Strategy.append_bar(self.storage[self.name], self.resampled_bar)
+                    self.resampled_bar = None
+                    self.index_counter +=1 
+        
+            if self.bartype == RecordType.CBAR:
+                if (self.resampled_bar["time"] + timedelta(seconds=self.resampled_bar["resolution"])) > inputbar["time"]:
+                        self.update_resampled_bar(new_bar_data=inputbar)
+                        Strategy.replace_prev_bar(self.storage[self.name], self.resampled_bar)
+                else: 
+                    if inputbar["confirmed"] == 1:
+                        self.update_resampled_bar(new_bar_data=inputbar)
+                        Strategy.replace_prev_bar(self.storage[self.name], self.resampled_bar)
+                        self.resampled_bar = None   
+                        self.index_counter +=1   
+                    else:
+                        self.index_counter += 1
+                        self.initiate_resampled_bar(new_bar_data=inputbar)
 
 
 class StrategyState:
@@ -886,31 +873,10 @@ class StrategyState:
         self.sl_optimizer_short = optimsl.SLOptimizer(ptm.TradeDirection.SHORT)
         self.sl_optimizer_long = optimsl.SLOptimizer(ptm.TradeDirection.LONG)
         self.cache = defaultdict(dict)
-
-        bars = {'high': [], 
-                                'low': [],
-                                'volume': [],
-                                'close': [],
-                                'hlcc4': [],
-                                'open': [],
-                                'time': [],
-                                'trades':[],
-                                'resolution':[],
-                                'confirmed': [],
-                                'vwap': [],
-                                'updated': [],
-                                'index': []}
         
-        trades = {'t': [], 
-                                'x': [],
-                                'p': [],
-                                's': [],
-                                'c': [],
-                                'i': [],
-                                'z': []}
         
-        self.bars = AttributeDict(bars)
-        self.trades = AttributeDict(trades)
+        self.bars = AttributeDict(bar_template)
+        self.trades = AttributeDict(trade_template)
         self.indicators = AttributeDict(time=[])
         #pro mapping indikatoru pro pouziti v operation expressionu
         self.ind_mapping = {}

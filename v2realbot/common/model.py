@@ -365,3 +365,24 @@ class InstantIndicator(BaseModel):
     toml: str
 
 
+bar_template = {'high': [], 
+        'low': [],
+        'volume': [],
+        'close': [],
+        'hlcc4': [],
+        'open': [],
+        'time': [],
+        'trades':[],
+        'resolution':[],
+        'confirmed': [],
+        'vwap': [],
+        'updated': [],
+        'index': []}
+
+trade_template = {'t': [], 
+            'x': [],
+            'p': [],
+            's': [],
+            'c': [],
+            'i': [],
+            'z': []}

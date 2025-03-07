@@ -22,7 +22,7 @@ Custom-built algorithmic trading platform for research, backtesting and live tra
 
 <p align="center">
   Main screen with entry/exit points and stoploss lines<br>
-  <img width="700" alt="Main screen with entry/exit points and stoploss lines" src="https://github.com/drew2323/v2trading/assets/28433232/751d5b0e-ef64-453f-8e76-89a39db679c5">
+  <img width="700" alt="Main screen with entry/exit points and stoploss lines" src="https://github.com/user-attachments/assets/7c464609-e7c0-48aa-ad1e-1fcb661b8629">
 </p>
 
 <p align="center">

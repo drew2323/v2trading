@@ -362,7 +362,9 @@ class TradeAggregator:
             self.returnBar = []
             #doplnime prubezny vwap
             self.newBar['vwap'] = self.vwaphelper / self.newBar['volume']
-            return_set.append(self.newBar)
+            #return_set.append(self.newBar)
+            if self.rectype == RecordType.CBAR: #add new bar only if CBAR
+                return_set.append(self.newBar)
             #TODO pridat sem podporu pro mintick jako nize, tzn. pokud je v ochrannem okne, tak novy bar nevracet
             #zatim je novy bar odesilan nehlede na mintick
             #return_set = [self.tmp, self.newBar]
